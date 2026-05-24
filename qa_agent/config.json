@@ -1,0 +1,13 @@
+{
+  "project_name": "App 21 Dias",
+  "app_url": "https://wpktavares.com.br/app/",
+  "login_url": "https://wpktavares.com.br/app/",
+  "headless": false,
+  "record_video": true,
+  "save_trace": true,
+  "timeout_ms": 30000,
+  "viewport": {
+    "width": 1366,
+    "height": 768
+  }
+}

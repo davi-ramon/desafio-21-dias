@@ -1,0 +1,42 @@
+{
+  "project_name": "App 21 Dias",
+  "safe_mode": true,
+  "tests": [
+    {
+      "id": "SMOKE_001",
+      "name": "Acessar pagina inicial",
+      "enabled": true,
+      "expected_result": "A pagina principal responde dentro do timeout configurado."
+    },
+    {
+      "id": "SMOKE_002",
+      "name": "Verificar se o body carregou",
+      "enabled": true,
+      "expected_result": "O elemento body fica visivel apos o carregamento."
+    },
+    {
+      "id": "SMOKE_003",
+      "name": "Verificar se nao ha erro critico no console",
+      "enabled": true,
+      "expected_result": "Nao existem erros de console classificados como criticos apos a carga inicial."
+    },
+    {
+      "id": "NAV_001",
+      "name": "Validar links e botoes principais visiveis",
+      "enabled": true,
+      "expected_result": "Os principais links ou botoes visiveis podem ser identificados com seguranca."
+    },
+    {
+      "id": "LOGIN_001",
+      "name": "Executar login seguro com credenciais de teste",
+      "enabled": true,
+      "expected_result": "O login de teste conclui sem erro critico, quando URL e credenciais estiverem configuradas."
+    },
+    {
+      "id": "FORM_001",
+      "name": "Reserva para teste futuro de formulario",
+      "enabled": false,
+      "expected_result": "Estrutura reservada para expansao posterior de testes seguros de formularios."
+    }
+  ]
+}

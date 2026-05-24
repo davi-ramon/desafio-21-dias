@@ -1,0 +1,2661 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM WPK Tavares</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════
+   DESIGN SYSTEM — Dark Premium CRM (WPK Tavares)
+   ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #07090a;
+  --surface:    #0f1412;
+  --surface2:   #141c18;
+  --surface3:   #1a2a1a;
+  --border:     rgba(76,175,80,0.16);
+  --border2:    rgba(76,175,80,0.22);
+
+  --accent:     #4caf50;
+  --accent-d:   #2e6b31;
+  --accent-l:   rgba(76,175,80,0.12);
+  --accent-l2:  rgba(76,175,80,0.06);
+
+  --green:      #4caf50;
+  --green-bright: #6dde71;
+  --green-l:    rgba(76,175,80,0.12);
+  --yellow:     #f59e0b;
+  --yellow-l:   rgba(245,158,11,0.14);
+  --red:        #e84040;
+  --red-l:      rgba(232,64,64,0.12);
+  --blue:       #3b82f6;
+  --blue-l:     rgba(59,130,246,0.14);
+
+  --text:       #dde8dd;
+  --text2:      #aac4ab;
+  --muted:      #6e9070;
+  --muted2:     #3e5a3e;
+  --cream:      #eeeadc;
+
+  --sidebar-w:  248px;
+  --sidebar-c:  64px;
+  --radius:     12px;
+  --shadow:     0 1px 6px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.25);
+  --shadow-md:  0 4px 20px rgba(0,0,0,0.5), 0 16px 40px rgba(0,0,0,0.4);
+}
+
+html, body { height: 100%; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ═══════════════════════════════════════
+   SIDEBAR
+   ═══════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.28s cubic-bezier(0.4,0,0.2,1);
+  overflow: hidden;
+  flex-shrink: 0;
+  z-index: 100;
+  position: relative;
+}
+.sidebar.collapsed { width: var(--sidebar-c); }
+
+/* Toggle button — sempre visível, fixo no topo da sidebar */
+.sidebar-toggle {
+  position: absolute;
+  top: 18px;
+  right: 14px;
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, right 0.28s;
+  z-index: 10;
+  flex-shrink: 0;
+}
+.sidebar-toggle:hover { background: var(--accent-l); border-color: var(--accent); }
+.sidebar-toggle svg { transition: transform 0.28s; }
+.sidebar.collapsed .sidebar-toggle {
+  right: 50%;
+  transform: translateX(50%);
+}
+.sidebar.collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 16px 16px;
+  border-bottom: 1px solid var(--border);
+  min-height: 64px;
+  white-space: nowrap;
+  overflow: hidden;
+  padding-right: 52px; /* space for toggle */
+}
+.logo-mark {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--accent), #2e6b31);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+}
+.logo-text { overflow: hidden; }
+.logo-name {
+  font-size: 14px; font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.logo-sub {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.sidebar.collapsed .logo-text { display: none; }
+
+.nav-wrap {
+  flex: 1;
+  padding: 12px 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted2);
+  padding: 0 8px;
+  margin: 10px 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sidebar.collapsed .nav-section-label { opacity: 0; height: 0; margin: 0; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13px; font-weight: 500;
+  transition: background 0.13s, color 0.13s;
+  white-space: nowrap;
+  overflow: hidden;
+  margin-bottom: 2px;
+  user-select: none;
+  text-decoration: none;
+}
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active {
+  background: var(--accent-l);
+  color: var(--accent);
+  font-weight: 600;
+}
+.nav-icon {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  flex-shrink: 0;
+  font-size: 15px;
+  background: transparent;
+  transition: background 0.13s;
+}
+.nav-item.active .nav-icon { background: rgba(76,175,80,0.12); }
+.nav-label { overflow: hidden; }
+.sidebar.collapsed .nav-label { display: none; }
+.sidebar.collapsed .nav-icon { margin: 0 auto; }
+
+/* Tooltip when collapsed */
+.sidebar.collapsed .nav-item { justify-content: center; padding: 9px 0; }
+.sidebar.collapsed .nav-item[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(var(--sidebar-c) + 8px);
+  background: #141c18;
+  color: var(--text);
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  white-space: nowrap;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.sidebar-footer {
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
+.user-pill {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.13s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.user-pill:hover { background: var(--surface2); }
+.avatar-sm {
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.user-info { overflow: hidden; }
+.user-name-text { font-size: 13px; font-weight: 600; color: var(--text); }
+.user-role-text { font-size: 11px; color: var(--muted); }
+.sidebar.collapsed .user-info { display: none; }
+.sidebar.collapsed .user-pill { justify-content: center; }
+
+.logout-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  color: var(--red);
+  font-size: 13px; font-weight: 500;
+  transition: background 0.13s;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.logout-btn:hover { background: var(--red-l); }
+.sidebar.collapsed .logout-btn { justify-content: center; }
+.sidebar.collapsed .logout-label { display: none; }
+
+/* ═══════════════════════════════════════
+   MAIN
+   ═══════════════════════════════════════ */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+.topbar {
+  height: 64px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 24px; gap: 12px;
+  flex-shrink: 0;
+}
+.page-title { font-size: 17px; font-weight: 700; color: var(--text); }
+.topbar-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+.sync-badge {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 100px;
+  font-size: 11px; font-weight: 600;
+  background: var(--green-l); color: var(--green);
+  border: 1px solid rgba(34,197,94,0.2);
+}
+.sync-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ═══════════════════════════════════════
+   BUTTONS
+   ═══════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px; border-radius: 9px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; border: none;
+  transition: all 0.15s; white-space: nowrap;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--accent); color: #fff;
+  box-shadow: 0 2px 8px rgba(76,175,80,0.3);
+}
+.btn-primary:hover { background: var(--accent-d); box-shadow: 0 4px 12px rgba(76,175,80,0.4); transform: translateY(-1px); }
+.btn-ghost {
+  background: var(--surface2); color: var(--text2);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--surface3); color: var(--text); }
+.btn-green { background: var(--green-l); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
+.btn-green:hover { background: #bbf7d0; }
+.btn-red { background: var(--red-l); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+.btn-red:hover { background: #fecaca; }
+.btn-whatsapp {
+  background: #25D366; color: #fff;
+  box-shadow: 0 2px 8px rgba(37,211,102,0.25);
+  font-size: 12px; padding: 7px 12px;
+}
+.btn-whatsapp:hover { background: #1ebe5d; transform: translateY(-1px); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-xs { padding: 4px 8px; font-size: 11px; }
+
+/* ═══════════════════════════════════════
+   CARDS / SURFACE
+   ═══════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.card-pad { padding: 20px; }
+
+/* ═══════════════════════════════════════
+   TAGS / BADGES
+   ═══════════════════════════════════════ */
+.tag {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 600;
+}
+.tag-0 { background: var(--accent-l); color: var(--accent); }
+.tag-1 { background: var(--blue-l);   color: var(--blue); }
+.tag-2 { background: var(--yellow-l); color: var(--yellow); }
+.tag-3 { background: #ffe4e6; color: #f43f5e; }
+.tag-4 { background: var(--green-l);  color: var(--green); }
+
+/* Platform badge */
+.platform-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 100px;
+  font-size: 10px; font-weight: 600;
+  background: var(--surface2); color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════
+   KANBAN
+   ═══════════════════════════════════════ */
+.kanban-board {
+  display: flex; gap: 14px;
+  height: 100%; overflow-x: auto;
+  align-items: flex-start;
+  padding-bottom: 8px;
+}
+
+.kanban-col {
+  min-width: 272px; width: 272px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex; flex-direction: column;
+  max-height: calc(100vh - 120px);
+}
+.kanban-col-header {
+  padding: 12px 14px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; background: var(--surface);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.col-stripe {
+  width: 4px; height: 18px; border-radius: 2px;
+}
+.col-title { font-size: 12px; font-weight: 700; flex: 1; color: var(--text); }
+.col-count {
+  background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 100px; padding: 1px 8px;
+  font-size: 11px; font-weight: 700; color: var(--muted);
+}
+.kanban-cards {
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  overflow-y: auto; flex: 1;
+  min-height: 60px;
+}
+.kanban-cards.drag-over {
+  background: var(--accent-l2);
+  outline: 2px dashed var(--accent);
+  outline-offset: -4px;
+  border-radius: 8px;
+}
+
+/* Lead card */
+.lead-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  cursor: grab;
+  transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s;
+  user-select: none;
+  position: relative;
+}
+.lead-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--border2);
+}
+.lead-card.dragging { opacity: 0.45; cursor: grabbing; }
+.lead-card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.lead-avatar {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--accent-l); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; flex-shrink: 0;
+}
+.lead-info { flex: 1; min-width: 0; }
+.lead-name { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lead-email { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lead-card-footer {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.lead-phone-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 6px;
+  background: rgba(76,175,80,0.12); color: var(--green);
+  font-size: 11px; font-weight: 600;
+  text-decoration: none; cursor: pointer;
+  transition: background 0.13s;
+  border: none;
+}
+.lead-phone-btn:hover { background: #bbf7d0; }
+.lead-date { font-size: 10px; color: var(--muted2); margin-left: auto; }
+.lead-quick-actions {
+  position: absolute; top: 10px; right: 10px;
+  display: flex; gap: 4px;
+  opacity: 0; transition: opacity 0.13s;
+}
+.lead-card:hover .lead-quick-actions { opacity: 1; }
+.quick-btn {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 11px;
+  transition: background 0.13s;
+}
+.quick-btn:hover { background: var(--accent-l); border-color: var(--accent); }
+
+/* ═══════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 580px; max-width: 95vw; max-height: 90vh;
+  display: flex; flex-direction: column;
+  box-shadow: var(--shadow-md);
+  transform: scale(0.96) translateY(12px);
+  transition: transform 0.22s cubic-bezier(0.16,1,0.3,1);
+  overflow: hidden;
+}
+.modal-overlay.open .modal { transform: scale(1) translateY(0); }
+.modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.modal-title { font-size: 16px; font-weight: 700; flex: 1; color: var(--text); }
+.modal-close {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.13s;
+}
+.modal-close:hover { background: var(--red-l); color: var(--red); border-color: rgba(239,68,68,0.2); }
+.modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+.modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+/* ═══════════════════════════════════════
+   FORM
+   ═══════════════════════════════════════ */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--muted); margin-bottom: 6px;
+}
+.form-control {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; color: var(--text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(76,175,80,0.14);
+}
+.form-control::placeholder { color: var(--muted2); }
+select.form-control { cursor: pointer; }
+textarea.form-control { resize: vertical; min-height: 80px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ═══════════════════════════════════════
+   LEAD DETAIL MODAL
+   ═══════════════════════════════════════ */
+.detail-section { margin-bottom: 20px; }
+.detail-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted2); margin-bottom: 10px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.detail-item {}
+.detail-item-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+.detail-item-value { font-size: 13px; color: var(--text); font-weight: 500; }
+
+.answer-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 9px; padding: 10px 12px; margin-bottom: 8px;
+}
+.answer-q { font-size: 11px; color: var(--muted); margin-bottom: 3px; font-weight: 600; }
+.answer-a { font-size: 13px; color: var(--text); font-weight: 500; }
+
+/* Timeline */
+.tl-wrap { display: flex; flex-direction: column; }
+.tl-item { display: flex; gap: 10px; padding-bottom: 14px; position: relative; }
+.tl-item:not(:last-child)::before {
+  content: ''; position: absolute;
+  left: 11px; top: 22px; bottom: 0;
+  width: 1px; background: var(--border);
+}
+.tl-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent-l); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; flex-shrink: 0; font-weight: 700;
+  border: 2px solid var(--border);
+}
+.tl-text { font-size: 12px; color: var(--text2); padding-top: 2px; }
+.tl-meta { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+/* ═══════════════════════════════════════
+   DASHBOARD
+   ═══════════════════════════════════════ */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px; margin-bottom: 20px;
+}
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  cursor: default;
+}
+.metric-card:hover {
+  border-color: rgba(76,175,80,0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(76,175,80,0.12);
+}
+.metric-card.clickable { cursor: pointer; }
+.metric-icon {
+  width: 36px; height: 36px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; margin-bottom: 12px;
+}
+.metric-value {
+  font-size: 28px; font-weight: 700;
+  color: var(--cream); line-height: 1;
+  margin-bottom: 4px;
+}
+.metric-label { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+/* Period filter bar */
+.period-filter {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 20px; flex-wrap: wrap;
+}
+.period-label { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-right: 4px; }
+.period-btn {
+  padding: 5px 13px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  font-family: 'DM Sans', sans-serif;
+}
+.period-btn:hover { background: var(--surface3); color: var(--text); }
+.period-btn.active {
+  background: rgba(76,175,80,0.12);
+  border-color: rgba(76,175,80,0.4);
+  color: var(--green);
+}
+
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.chart-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+.chart-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 14px; }
+
+/* ═══════════════════════════════════════
+   TABLE
+   ═══════════════════════════════════════ */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted);
+  padding: 10px 14px; text-align: left;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+  background: var(--surface2);
+}
+th:first-child { border-radius: 8px 0 0 0; }
+th:last-child { border-radius: 0 8px 0 0; }
+td { padding: 11px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--accent-l2); }
+
+/* ═══════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════ */
+.toast-container {
+  position: fixed; bottom: 20px; right: 20px;
+  z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  min-width: 250px; max-width: 340px;
+  box-shadow: var(--shadow-md); font-size: 13px;
+  animation: toastIn 0.25s cubic-bezier(0.16,1,0.3,1) both;
+}
+.toast.removing { animation: toastOut 0.18s ease forwards; }
+@keyframes toastIn { from { opacity:0; transform: translateX(30px); } to { opacity:1; transform: translateX(0); } }
+@keyframes toastOut { to { opacity:0; transform: translateX(30px); } }
+.toast-success { border-left: 3px solid var(--green); }
+.toast-error   { border-left: 3px solid var(--red); }
+.toast-info    { border-left: 3px solid var(--accent); }
+.toast-icon { font-size: 15px; }
+
+/* ═══════════════════════════════════════
+   MISC
+   ═══════════════════════════════════════ */
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-center {
+  display: flex; align-items: center; justify-content: center;
+  height: 200px; gap: 10px; color: var(--muted);
+  font-size: 13px;
+}
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  color: var(--muted);
+}
+.empty-icon { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
+.empty-title { font-size: 14px; font-weight: 600; color: var(--text2); }
+.empty-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+.section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.section-title { font-size: 15px; font-weight: 700; color: var(--text); }
+.dash-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 20px 0 8px;
+}
+.metrics-grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .metrics-grid-5 { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 600px) {
+  .metrics-grid-5 { grid-template-columns: repeat(2, 1fr); }
+}
+
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ══════════════════════════════════════════════ -->
+<aside class="sidebar" id="sidebar">
+
+  <!-- Toggle sempre visível -->
+  <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Expandir/Recolher menu">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+      <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <div class="sidebar-header">
+    <div class="logo-mark" id="sidebarLogoMark" style="overflow:hidden;padding:0">
+      <img src="<?= wsLogoUrl ?>" alt="Logo" style="width:34px;height:34px;object-fit:cover;border-radius:10px" onerror="this.style.display='none';this.parentNode.textContent='⚡'">
+    </div>
+    <div class="logo-text">
+      <div class="logo-name" id="wsNomeEl"><?= wsNome ?></div>
+      <div class="logo-sub" id="wsSubEl"><?= wsSubtitulo ?></div>
+    </div>
+  </div>
+
+  <div class="nav-wrap">
+    <div class="nav-section-label">Principal</div>
+
+    <div class="nav-item active" data-page="pipeline" onclick="navigate('pipeline')" title="Pipeline">
+      <div class="nav-icon">⚡</div>
+      <span class="nav-label">Pipeline</span>
+    </div>
+    <div class="nav-item" data-page="dashboard" onclick="navigate('dashboard')" title="Dashboard">
+      <div class="nav-icon">📊</div>
+      <span class="nav-label">Dashboard</span>
+    </div>
+    <div class="nav-item" data-page="contacts" onclick="navigate('contacts')" title="Contatos">
+      <div class="nav-icon">👥</div>
+      <span class="nav-label">Contatos</span>
+    </div>
+
+    <div class="nav-item" data-page="automacoes" id="navAutomacoes" onclick="navigate('automacoes')" title="Automações" style="display:none">
+      <div class="nav-icon">🤖</div>
+      <span class="nav-label">Automações</span>
+    </div>
+    <div class="nav-item" data-page="compradores" id="navCompradores" onclick="navigate('compradores')" title="Alunos" style="display:none">
+      <div class="nav-icon">🎓</div>
+      <span class="nav-label">Alunos</span>
+    </div>
+    <div class="nav-item" data-page="audios21" id="navAudios21" onclick="navigate('audios21')" title="Áudios 21 Dias" style="display:none">
+      <div class="nav-icon">🎧</div>
+      <span class="nav-label">Áudios 21 Dias</span>
+    </div>
+    <div class="nav-item" data-page="notificacoes" id="navNotificacoes" onclick="navigate('notificacoes')" title="Notificações" style="display:none">
+      <div class="nav-icon">🔔</div>
+      <span class="nav-label">Notificações</span>
+    </div>
+
+    <div class="nav-section-label" id="adminLabel" style="display:none">Administração</div>
+    <div class="nav-item" data-page="sync" id="navSync" onclick="navigate('sync')" title="Sincronização" style="display:none">
+      <div class="nav-icon">↻</div>
+      <span class="nav-label">Sincronização</span>
+    </div>
+    <div class="nav-item" data-page="users" id="navUsers" onclick="navigate('users')" title="Usuários" style="display:none">
+      <div class="nav-icon">🔐</div>
+      <span class="nav-label">Usuários</span>
+    </div>
+    <div class="nav-item" data-page="log" id="navLog" onclick="navigate('log')" title="Log" style="display:none">
+      <div class="nav-icon">📋</div>
+      <span class="nav-label">Log</span>
+    </div>
+    <div class="nav-item" data-page="configuracoes" id="navConfiguracoes" onclick="navigate('configuracoes')" title="Configurações" style="display:none">
+      <div class="nav-icon">⚙️</div>
+      <span class="nav-label">Configurações</span>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="avatar-sm" id="avatarEl">A</div>
+      <div class="user-info">
+        <div class="user-name-text" id="userNameEl">—</div>
+        <div class="user-role-text" id="userRoleEl">—</div>
+      </div>
+    </div>
+    <div class="logout-btn" onclick="doLogout()">
+      <div class="nav-icon" style="width:32px;height:32px">🚪</div>
+      <span class="logout-label">Sair</span>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═════════════════════════════════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Pipeline CRM</div>
+    <div class="topbar-right" id="topbarRight">
+      <div class="sync-badge" id="syncBadge" style="display:none">
+        <div class="sync-dot"></div> Sincronizado
+      </div>
+    </div>
+  </div>
+  <div class="content" id="content">
+    <div class="loading-center"><div class="spinner"></div> Carregando...</div>
+  </div>
+</div>
+
+<!-- ═══ MODAL ════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<!-- ═══ TOASTS ═══════════════════════════════════════════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+const SCRIPT_URL = '<?= scriptUrl ?>';
+
+// Dados injetados pelo servidor no serve-time — fallback seguro para loadUserInfo
+const _SERVER_USER = {
+  name:  '<?= userName ?>',
+  email: '<?= userEmail ?>',
+  role:  '<?= userRole ?>'
+};
+
+const CRM = {
+  token:   sessionStorage.getItem('crm_token') || new URLSearchParams(location.search).get('token') || '<?= token ?>',
+  user:    null,
+  leads:   [],
+  contacts: [],
+  sidebarCollapsed: false,
+};
+
+const STAGES = ['Interessado', 'Qualificado', 'Em Atendimento', 'Proposta Enviada', 'Fechado'];
+const STAGE_COLORS = ['#4caf50','#3b82f6','#f59e0b','#e84040','#6dde71'];
+const STAGE_BG     = ['rgba(76,175,80,0.14)','rgba(59,130,246,0.14)','rgba(245,158,11,0.14)','rgba(232,64,64,0.14)','rgba(109,222,113,0.14)'];
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+window.addEventListener('load', function() {
+  console.info('[App] window.load — token presente:', !!CRM.token);
+  if (!CRM.token) { console.warn('[App] Token ausente — redirecionando para login'); redirectLogin(); return; }
+
+  google.charts.load('current', { packages: ['corechart','bar','line'] });
+  google.charts.setOnLoadCallback(function() { console.info('[App] Google Charts carregado'); });
+
+  // Carrega UI imediatamente — não depende de initSheets
+  loadUserInfo();
+  navigate('pipeline');
+  showSyncBadge();
+
+  // initSheets roda em background — erro não bloqueia a UI
+  rpc('initSheets', {}).then(function(r) {
+    if (!r.ok) console.warn('[App] initSheets retornou erro:', r.error);
+    else console.info('[App] initSheets ok');
+  }).catch(function(e) {
+    console.warn('[App] initSheets background error:', e && e.message);
+  });
+});
+
+function redirectLogin() {
+  // Usa a URL injetada no serve-time para evitar chamada assíncrona
+  // e o problema de sandboxing do iframe do GAS
+  try {
+    var url = SCRIPT_URL || '';
+    if (url) {
+      window.location.assign(url + '?page=login');
+    } else {
+      // fallback: tenta via google.script.run no contexto do frame atual
+      google.script.run
+        .withSuccessHandler(function(u) { window.location.assign(u + '?page=login'); })
+        .withFailureHandler(function() { window.location.reload(); })
+        .getScriptUrl();
+    }
+  } catch(e) {
+    window.location.reload();
+  }
+}
+
+function loadUserInfo() {
+  let u = null;
+  try { u = JSON.parse(sessionStorage.getItem('crm_user') || 'null'); } catch(e){}
+  // Fallback: usa dados injetados pelo servidor se sessionStorage estiver vazio
+  if (!u || !u.role) u = (_SERVER_USER && _SERVER_USER.role) ? _SERVER_USER : { name: 'Usuário', email: '', role: 'user' };
+  // Persiste para uso em outras abas/recargas
+  try { sessionStorage.setItem('crm_user', JSON.stringify(u)); } catch(e2) {}
+  CRM.user = u;
+  document.getElementById('userNameEl').textContent = u.name || 'Usuário';
+  document.getElementById('userRoleEl').textContent = u.role === 'admin' ? 'Administrador' : 'Usuário';
+  document.getElementById('avatarEl').textContent = (u.name || 'U')[0].toUpperCase();
+  if (u.role === 'admin') {
+    document.getElementById('adminLabel').style.display = '';
+    document.getElementById('navSync').style.display = '';
+    document.getElementById('navUsers').style.display = '';
+    document.getElementById('navLog').style.display = '';
+    document.getElementById('navAutomacoes').style.display = '';
+    document.getElementById('navCompradores').style.display = '';
+    document.getElementById('navAudios21').style.display = '';
+    document.getElementById('navNotificacoes').style.display = '';
+    document.getElementById('navConfiguracoes').style.display = '';
+  }
+}
+
+function showSyncBadge() {
+  document.getElementById('syncBadge').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════════════════
+// RPC
+// ══════════════════════════════════════════════════════════
+function rpc(action, data) {
+  return new Promise(function(resolve, reject) {
+    google.script.run
+      .withSuccessHandler(function(r) {
+        if (r && !r.ok) console.warn('[rpc]', action, '→ nok:', r.error);
+        resolve(r);
+      })
+      .withFailureHandler(function(e) {
+        console.error('[rpc]', action, '→ falha:', e && e.message);
+        reject(e);
+      })
+      .handleRequest({ action: action, token: CRM.token, data: data || {} });
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// SIDEBAR TOGGLE — fix: sempre visível, alterna corretamente
+// ══════════════════════════════════════════════════════════
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  CRM.sidebarCollapsed = !CRM.sidebarCollapsed;
+  sb.classList.toggle('collapsed', CRM.sidebarCollapsed);
+}
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════
+function navigate(page) {
+  CRM.currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  const titles = {
+    pipeline:       'Pipeline CRM',
+    dashboard:      'Dashboard',
+    contacts:       'Contatos',
+    sync:           'Sincronização de Leads',
+    users:          'Usuários',
+    automacoes:     'Automações',
+    compradores:    'Alunos — Desafio 21 Dias',
+    log:            'Log de Atividade',
+    audios21:       'Áudios 21 Dias',
+    notificacoes:   'Notificações para Alunos',
+    configuracoes:  'Configurações do Workspace'
+  };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  document.getElementById('topbarRight').innerHTML = buildTopbarActions(page);
+
+  var content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  // Timeout de segurança: se após 12s o spinner ainda estiver visível, exibe erro
+  var _navTs = Date.now();
+  content._navTs = _navTs;
+  setTimeout(function() {
+    if (content._navTs === _navTs && content.querySelector('.spinner')) {
+      console.warn('[navigate] Timeout ao carregar página:', page);
+      content.innerHTML =
+        '<div class="empty-state">' +
+          '<div class="empty-icon">⏱️</div>' +
+          '<div class="empty-title">Tempo esgotado</div>' +
+          '<div class="empty-sub">A p&aacute;gina demorou demais para carregar. Verifique a conex&atilde;o com o servidor.</div>' +
+          '<button class="btn btn-ghost" style="margin-top:16px" onclick="navigate(\'' + page + '\')">Tentar novamente</button>' +
+        '</div>';
+    }
+  }, 12000);
+
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, notificacoes: renderNotificacoes, configuracoes: renderConfiguracoes };
+  console.info('[navigate]', page);
+  if (pages[page]) {
+    pages[page]();
+  } else {
+    console.warn('[navigate] Página desconhecida:', page);
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">P&aacute;gina n&atilde;o encontrada: ' + escHtml(page) + '</div></div>';
+  }
+}
+
+function buildTopbarActions(page) {
+  var html = '<div class="sync-badge" id="syncBadge"><div class="sync-dot"></div> Auto-sync ativo</div>';
+  if (page === 'pipeline') {
+    html += '<button class="btn btn-ghost btn-sm" onclick="doManualSync()" title="Sincronizar agora">&#8635; Sincronizar</button>';
+    html += '<button class="btn btn-primary btn-sm" onclick="openCreateLead()">+ Novo Lead</button>';
+  }
+  if (page === 'contacts') html += '<button class="btn btn-primary btn-sm" onclick="openCreateContact()">+ Novo Contato</button>';
+  if (page === 'users')    html += '<button class="btn btn-primary btn-sm" onclick="openCreateUser()">+ Novo Usu&aacute;rio</button>';
+  if (page === 'sync')     html += '<button class="btn btn-ghost btn-sm" onclick="syncAndRefresh()">&#8635; Sincronizar Agora</button>';
+  return html;
+}
+
+// ══════════════════════════════════════════════════════════
+// MANUAL SYNC
+// ══════════════════════════════════════════════════════════
+async function doManualSync() {
+  toast('Sincronizando leads da planilha...', 'info');
+  try {
+    const res = await rpc('manualSync', {});
+    if (res.ok) {
+      toast('Sincronização concluída!', 'success');
+      if (CRM.currentPage === 'pipeline') renderPipeline();
+    } else {
+      toast(res.error || 'Erro ao sincronizar.', 'error');
+    }
+  } catch(e) {
+    toast('Erro ao sincronizar: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// PIPELINE KANBAN
+// ══════════════════════════════════════════════════════════
+async function renderPipeline() {
+  try {
+    const res = await rpc('getLeadsLite', {});
+    if (!res.ok) {
+      const msg = res.error || 'Nao autorizado';
+      document.getElementById('content').innerHTML =
+        '<div class="empty-state"><div class="empty-icon">&#9888;</div>' +
+        '<div class="empty-title">Erro ao carregar pipeline</div>' +
+        '<div class="empty-sub">' + escHtml(msg) + '</div>' +
+        '<button class="btn btn-ghost" style="margin-top:16px" onclick="renderPipeline()">Tentar novamente</button></div>';
+      return;
+    }
+    CRM.leads = res.data || [];
+    buildKanban();
+  } catch(e) {
+    const errMsg = (e && e.message) ? e.message : String(e);
+    document.getElementById('content').innerHTML =
+      '<div class="empty-state"><div class="empty-icon">&#9888;</div>' +
+      '<div class="empty-title">Erro ao carregar pipeline</div>' +
+      '<div class="empty-sub" style="max-width:320px;word-break:break-all">' + escHtml(errMsg) + '</div>' +
+      '<button class="btn btn-primary" style="margin-top:16px" onclick="renderPipeline()">&#8635; Tentar novamente</button></div>';
+  }
+}
+
+function buildKanban() {
+  const content = document.getElementById('content');
+  content.style.cssText = 'padding:20px; display:flex; flex-direction:column; height:100%; box-sizing:border-box;';
+  var html = '<div class="kanban-board" id="kanbanBoard">';
+  STAGES.forEach(function(stage, i) {
+    var cards = CRM.leads.filter(function(l) { return l.status === stage; });
+    var emptySlot = cards.length
+      ? cards.map(function(c) { return renderCardHTML(c, i); }).join('')
+      : '<div style="text-align:center;padding:24px 12px;color:var(--muted2);font-size:12px">Nenhum lead</div>';
+    html +=
+      '<div class="kanban-col" data-stage="' + stage + '">' +
+        '<div class="kanban-col-header">' +
+          '<div class="col-stripe" style="background:' + (STAGE_COLORS[i] || '#aaa') + '"></div>' +
+          '<div class="col-title">' + stage + '</div>' +
+          '<div class="col-count">' + cards.length + '</div>' +
+        '</div>' +
+        '<div class="kanban-cards" id="col-' + i + '"' +
+          ' ondragover="onDragOver(event)"' +
+          ' ondrop="onDrop(event,\'' + stage + '\')"' +
+          ' ondragenter="this.classList.add(\'drag-over\')"' +
+          ' ondragleave="this.classList.remove(\'drag-over\')">' +
+          emptySlot +
+        '</div>' +
+      '</div>';
+  });
+  html += '</div>';
+  content.innerHTML = html;
+}
+
+function renderCardHTML(lead, stageIdx) {
+  const name    = lead.name || 'Sem nome';
+  const initial = name[0].toUpperCase();
+  const date    = lead.created_at ? fmtDate(lead.created_at) : '';
+  // phone pode vir como número do Sheets → converte para string
+  const phone   = String(lead.phone || '');
+
+  // Parse custom_fields para plataforma/origem
+  let cf = {};
+  try { cf = JSON.parse(String(lead.custom_fields || '{}')); } catch(e){}
+  const platform = String(cf.platform || '');
+  const platformIcon = platform.toLowerCase().includes('ig') ? '&#128247;' :
+                       platform.toLowerCase().includes('fb') || platform.toLowerCase().includes('face') ? '&#128280;' : '&#128227;';
+
+  const waLink      = phone ? 'https://wa.me/' + phone.replace(/\D/g,'') : '';
+  const whatsappBtn = waLink
+    ? '<a href="' + waLink + '" target="_blank" class="lead-phone-btn" onclick="event.stopPropagation()" title="' + escHtml(phone) + '">&#9990; WhatsApp</a>'
+    : '';
+  const platformBadge = platform ? '<span class="platform-badge">' + platformIcon + ' ' + escHtml(platform) + '</span>' : '';
+  const bgColor  = STAGE_BG[stageIdx]    || 'var(--accent-l)';
+  const txColor  = STAGE_COLORS[stageIdx] || 'var(--accent)';
+
+  return '<div class="lead-card" draggable="true" id="card-' + lead.id + '"' +
+    ' ondragstart="onDragStart(event,\'' + lead.id + '\')" ondragend="onDragEnd(event)"' +
+    ' onclick="openLeadDetail(\'' + lead.id + '\')">' +
+    '<div class="lead-quick-actions">' +
+      '<div class="quick-btn" onclick="event.stopPropagation();openEditLead(\'' + lead.id + '\')" title="Editar">&#9998;</div>' +
+    '</div>' +
+    '<div class="lead-card-top">' +
+      '<div class="lead-avatar" style="background:' + bgColor + ';color:' + txColor + '">' + initial + '</div>' +
+      '<div class="lead-info">' +
+        '<div class="lead-name">' + escHtml(name) + '</div>' +
+        '<div class="lead-email">' + escHtml(lead.email || '') + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="lead-card-footer">' + whatsappBtn + platformBadge +
+      '<span class="lead-date">' + date + '</span>' +
+    '</div></div>';
+}
+
+// ── Drag & Drop ──────────────────────────────────────────────
+function onDragStart(e, id) { CRM.draggedLeadId = id; e.target.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
+function onDragEnd(e)   { e.target.classList.remove('dragging'); }
+function onDragOver(e)  { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }
+async function onDrop(e, stage) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const leadId = CRM.draggedLeadId;
+  if (!leadId) return;
+  const lead = CRM.leads.find(l => l.id === leadId);
+  if (!lead || lead.status === stage) return;
+  lead.status = stage;
+  buildKanban();
+  try {
+    await rpc('updateLead', { id: leadId, updates: { status: stage } });
+    toast('Lead movido para "' + stage + '"', 'success');
+  } catch(e) { toast('Erro ao mover lead.', 'error'); }
+}
+
+// ══════════════════════════════════════════════════════════
+// LEAD DETAIL MODAL (lazy load — chama getLead para dados completos)
+// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// LEAD DETAIL MODAL — lazy load via getLead (dados completos)
+// ══════════════════════════════════════════════════════════
+async function openLeadDetail(leadId) {
+  openModal('Carregando...', '<div class="loading-center" style="height:180px"><div class="spinner"></div></div>', []);
+  let lead;
+  try {
+    const res = await rpc('getLead', { id: leadId });
+    if (!res.ok) { toast(res.error || 'Lead nao encontrado.', 'error'); closeModal(); return; }
+    lead = res.data;
+  } catch(e) { toast('Erro ao carregar lead.', 'error'); closeModal(); return; }
+
+  let cf = {};
+  try { cf = JSON.parse(String(lead.custom_fields || '{}')); } catch(e){}
+  let formAnswers = {};
+  try { formAnswers = JSON.parse(String(lead.form_answers || '{}')); } catch(e){}
+  let timeline = [];
+  try { timeline = JSON.parse(String(lead.timeline || '[]')); } catch(e){}
+
+  const stageIdx = STAGES.indexOf(lead.status);
+  // phone pode vir como número do Sheets — converte para string
+  const phone    = String(lead.phone || '');
+  const waLink   = phone ? 'https://wa.me/' + phone.replace(/\D/g,'') : '';
+  const waBtn    = waLink
+    ? '<div style="margin-bottom:16px"><a href="' + waLink + '" target="_blank" class="btn btn-whatsapp">&#9990; Abrir WhatsApp &mdash; ' + escHtml(phone) + '</a></div>'
+    : '';
+
+  const formKeys = Object.entries(formAnswers).filter(function(kv){ return kv[1] && !['Campanha','Anuncio','Plataforma','An\u00FAncio'].includes(kv[0]); });
+  let formHtml = '';
+  formKeys.forEach(function(kv) {
+    formHtml += '<div class="answer-card"><div class="answer-q">' + escHtml(kv[0]) + '</div><div class="answer-a">' + escHtml(String(kv[1])) + '</div></div>';
+  });
+  if (!formHtml) formHtml = '<div style="color:var(--muted);font-size:13px">Sem respostas registradas.</div>';
+
+  let tlHtml = '';
+  timeline.slice().reverse().forEach(function(t) {
+    tlHtml += '<div class="tl-item"><div class="tl-dot">&#10022;</div><div>' +
+      '<div class="tl-text">' + escHtml(t.action||'') + '</div>' +
+      '<div class="tl-meta">' + escHtml(t.user||'') + ' &middot; ' + (t.timestamp ? fmtDateFull(t.timestamp) : '') + '</div>' +
+      '</div></div>';
+  });
+  if (!tlHtml) tlHtml = '<div style="color:var(--muted);font-size:12px">Sem historico.</div>';
+
+  const bgColor  = STAGE_BG[stageIdx]    || 'var(--accent-l)';
+  const txColor  = STAGE_COLORS[stageIdx] || 'var(--accent)';
+  const body =
+    '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">' +
+      '<div style="width:48px;height:48px;border-radius:14px;background:' + bgColor + ';color:' + txColor + ';display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;flex-shrink:0">' + (lead.name||'?')[0].toUpperCase() + '</div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:800;color:var(--text)">' + escHtml(String(lead.name||'Sem nome')) + '</div>' +
+      '<div style="font-size:12px;color:var(--muted)">' + escHtml(String(lead.email||'')) + '</div></div>' +
+      '<span class="tag tag-' + stageIdx + '">' + lead.status + '</span>' +
+    '</div>' +
+    waBtn +
+    '<div class="detail-section"><div class="detail-section-title">Dados do Lead</div>' +
+    '<div class="detail-grid">' +
+      '<div class="detail-item"><div class="detail-item-label">Telefone</div><div class="detail-item-value">' + escHtml(phone||'&mdash;') + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Origem</div><div class="detail-item-value">' + escHtml(String(cf.platform||formAnswers['Plataforma']||'&mdash;')) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Campanha</div><div class="detail-item-value" style="font-size:12px">' + escHtml(String(cf.campaign_name||formAnswers['Campanha']||'&mdash;')) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Anuncio</div><div class="detail-item-value" style="font-size:12px">' + escHtml(String(cf.ad_name||formAnswers['Anuncio']||formAnswers['An\u00FAncio']||'&mdash;')) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Responsavel</div><div class="detail-item-value">' + escHtml(String(lead.assigned_user||'&mdash;')) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Criado em</div><div class="detail-item-value">' + fmtDateFull(lead.created_at) + '</div></div>' +
+    '</div></div>' +
+    '<div class="detail-section"><div class="detail-section-title">Respostas do Formulario</div>' + formHtml + '</div>' +
+    '<div class="detail-section"><div class="detail-section-title">Historico</div><div class="tl-wrap">' + tlHtml + '</div></div>';
+
+  openModal('Lead: ' + (lead.name||'Sem nome'), body, [
+    { label: 'Editar',  action: function(){ closeModal(); openEditLead(leadId); }, cls: 'btn-ghost' },
+    { label: 'Fechar',  action: closeModal, cls: 'btn-primary' }
+  ]);
+}
+
+function openCreateLead() {
+  openModal('Novo Lead', leadFormHTML({}), [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Criar Lead', action: submitCreateLead, cls: 'btn-primary' }
+  ]);
+}
+function openEditLead(leadId) {
+  const lead = CRM.leads.find(l => l.id === leadId);
+  if (!lead) return;
+  openModal('Editar Lead', leadFormHTML(lead), [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Excluir', action: () => confirmDeleteLead(leadId), cls: 'btn-red' },
+    { label: 'Salvar', action: () => submitEditLead(leadId), cls: 'btn-primary' }
+  ]);
+}
+function leadFormHTML(lead) {
+  const stageOpts = STAGES.map(function(s) {
+    return '<option value="' + s + '" ' + (lead.status === s ? 'selected' : '') + '>' + s + '</option>';
+  }).join('');
+  return '' +
+  '<div class="form-row">' +
+    '<div class="form-group"><label class="form-label">Nome *</label><input class="form-control" id="f_name" value="' + escHtml(lead.name||'') + '"></div>' +
+    '<div class="form-group"><label class="form-label">E-mail</label><input class="form-control" id="f_email" type="email" value="' + escHtml(lead.email||'') + '"></div>' +
+  '</div>' +
+  '<div class="form-row">' +
+    '<div class="form-group"><label class="form-label">Telefone</label><input class="form-control" id="f_phone" value="' + escHtml(String(lead.phone||'')) + '" placeholder="+5511999999999"></div>' +
+    '<div class="form-group"><label class="form-label">Est&aacute;gio</label><select class="form-control" id="f_status">' + stageOpts + '</select></div>' +
+  '</div>' +
+  '<div class="form-group"><label class="form-label">Observa&ccedil;&otilde;es / Respostas</label><textarea class="form-control" id="f_form_answers">' + escHtml(lead.form_answers||'') + '</textarea></div>' +
+  '<div class="form-group"><label class="form-label">Respons&aacute;vel</label><input class="form-control" id="f_assigned" value="' + escHtml(lead.assigned_user||'') + '"></div>';
+}
+async function submitCreateLead() {
+  const data = getLeadForm();
+  if (!data.name) { toast('Nome é obrigatório.', 'error'); return; }
+  const res = await rpc('createLead', data);
+  if (res.ok) { closeModal(); toast('Lead criado com sucesso!', 'success'); renderPipeline(); }
+  else toast(res.error, 'error');
+}
+async function submitEditLead(id) {
+  const updates = getLeadForm();
+  const res = await rpc('updateLead', { id, updates });
+  if (res.ok) { closeModal(); toast('Lead atualizado!', 'success'); renderPipeline(); }
+  else toast(res.error, 'error');
+}
+async function confirmDeleteLead(id) {
+  if (!confirm('Excluir este lead? Essa ação é irreversível.')) return;
+  const res = await rpc('deleteLead', { id });
+  if (res.ok) { closeModal(); toast('Lead excluído.', 'success'); renderPipeline(); }
+  else toast(res.error, 'error');
+}
+function getLeadForm() {
+  return { name: val('f_name'), email: val('f_email'), phone: val('f_phone'), status: val('f_status'), form_answers: val('f_form_answers'), assigned_user: val('f_assigned') };
+}
+
+// ══════════════════════════════════════════════════════════
+// DASHBOARD — com filtro de período e seções renomeadas
+// ══════════════════════════════════════════════════════════
+let _dashPeriod = 30; // default
+
+async function renderDashboard(dias) {
+  if (dias !== undefined) _dashPeriod = dias;
+  const content = document.getElementById('content');
+  content.style = '';
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const res = await rpc('getDashboardFull', { dias: _dashPeriod });
+    if (!res.ok) throw new Error(res.error);
+    const m   = res.data;
+    const trf = m.trafego || {};
+
+    const stageRows = (m.stages || []).map(function(s, i) {
+      var pct = m.total > 0 ? ((m.byStage[s] || 0) / m.total * 100).toFixed(1) : '0.0';
+      return '<tr>' +
+        '<td><span class="tag tag-' + (i % 5) + '">' + s + '</span></td>' +
+        '<td style="font-weight:700">' + (m.byStage[s] || 0) + '</td>' +
+        '<td style="color:var(--muted)">' + pct + '%</td>' +
+        '</tr>';
+    }).join('');
+
+    const periodos = [7, 14, 30, 60, 90, 0];
+    const perLabels = { 7:'7 dias', 14:'14 dias', 30:'30 dias', 60:'60 dias', 90:'90 dias', 0:'Total' };
+    var _filterBtns = periodos.map(function(p) {
+      return '<button class="period-btn' + (p === _dashPeriod ? ' active' : '') +
+             '" onclick="renderDashboard(' + p + ')">' + (perLabels[p] || p) + '</button>';
+    }).join('');
+    const filterHtml = '<div class="period-filter"><span class="period-label">Período:</span>' + _filterBtns + '</div>';
+
+    // Seção Tráfego
+    var trfHtml;
+    if (trf.configurado) {
+      trfHtml = '<div class="dash-section-label">📡 Tráfego</div>' +
+        '<div class="metrics-grid metrics-grid-5">' +
+        _dCard('💰','Investido','R$ ' + Number(trf.invest||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),'var(--accent-l)','var(--accent)') +
+        _dCard('👥','Alcance',Number(trf.alcance||0).toLocaleString('pt-BR'),'var(--blue-l)','var(--blue)') +
+        _dCard('📋','Leads via Formulário',trf.leads||0,'var(--green-l)','var(--green)') +
+        _dCard('💲','CPL','R$ ' + Number(trf.cpl||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),'var(--yellow-l)','var(--yellow)') +
+        _dCard('🖱️','Cliques no Link',Number(trf.cliquesLink||0).toLocaleString('pt-BR'),'var(--accent-l)','var(--accent)') +
+        '</div>';
+    } else {
+      trfHtml = '<div class="dash-section-label">📡 Tráfego</div>' +
+        '<div class="card" style="padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:4px">' +
+        '<span style="font-size:18px">🔗</span>' +
+        '<div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--text)">Meta Ads não configurado</div>' +
+          '<div style="font-size:12px;color:var(--muted)">Configure o Access Token e Ad Account ID em Automações.</div>' +
+        '</div>' +
+        '<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="navigate(\'automacoes\')">Configurar &rarr;</button>' +
+        '</div>';
+    }
+
+    // Seção CRM — título com lead count + período
+    const labelPer = _dashPeriod > 0 ? ' — últimos ' + _dashPeriod + ' dias' : ' — total';
+    const fechadosKey = m.stages && m.stages.length ? m.stages[m.stages.length-1] : 'Fechado';
+    const crmHtml =
+      '<div class="dash-section-label">⚡ Funil CRM' + labelPer + '</div>' +
+      '<div class="metrics-grid">' +
+      _dCard('⚡','Total de Leads',m.total,'var(--accent-l)','var(--accent)') +
+      _dCard('✓','Taxa de Conversão',m.conversionRate+'%','var(--green-l)','var(--green)') +
+      _dCard('🎯','Fechados',(m.byStage && m.byStage[fechadosKey])||0,'var(--green-l)','var(--green)') +
+      _dCard('⏳','Atendimento',(m.byStage && (m.byStage['Em Atendimento']||m.byStage['Em_Atendimento']))||0,'var(--yellow-l)','var(--yellow)') +
+      '</div>';
+
+    // Seção Alunos — "Jornada dos Alunos"
+    const alunosHtml =
+      '<div class="dash-section-label">🎓 Jornada dos Alunos — 21 Dias</div>' +
+      '<div class="metrics-grid metrics-grid-5">' +
+      _dCard('🛒','Total de Alunos',m.compradores||0,'var(--accent-l)','var(--accent)') +
+      _dCard('🔥','Em Andamento',m.ativos||0,'var(--green-l)','var(--green)') +
+      _dCard('🏆','Concluídos',m.concluidos||0,'var(--green-l)','var(--green)') +
+      _dCard('📊','Progresso Médio',(m.progMedioTotal||0)+'%','var(--blue-l)','var(--blue)') +
+      _dCard('⭐','Próximos de Concluir',m.proxConcluir||0,'var(--yellow-l)','var(--yellow)') +
+      '</div>';
+
+    content.innerHTML =
+      '<div style="display:flex;flex-direction:column;gap:0">' +
+      filterHtml +
+      trfHtml +
+      crmHtml +
+      alunosHtml +
+      '<div class="chart-grid">' +
+        '<div class="chart-card">' +
+          '<div class="chart-title">Leads por Est&aacute;gio' + labelPer + '</div>' +
+          '<div id="chartStage"></div>' +
+          '<div class="table-wrap" style="margin-top:16px">' +
+            '<table><thead><tr><th>Est&aacute;gio</th><th>Leads</th><th>%</th></tr></thead>' +
+            '<tbody>' + stageRows + '</tbody></table>' +
+          '</div>' +
+        '</div>' +
+        '<div class="chart-card">' +
+          '<div class="chart-title">Leads — &Uacute;ltimos 30 dias</div>' +
+          '<div id="chartTimeline"></div>' +
+        '</div>' +
+      '</div>' +
+      '</div>';
+
+    google.charts.setOnLoadCallback(function() { drawStageChart(m.byStage, m.stages); drawTimelineChart(m.byDay); });
+    if (google.visualization) { drawStageChart(m.byStage, m.stages); drawTimelineChart(m.byDay); }
+
+  } catch(e) {
+    console.error('[renderDashboard]', e);
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erro ao carregar dashboard</div><div class="empty-sub">' + escHtml(e.message) + '</div></div>';
+  }
+}
+ 
+// Helper para metric card do dashboard
+function _dCard(icon, label, value, bg, color) {
+  return '<div class="metric-card">' +
+    '<div class="metric-icon" style="background:' + bg + ';color:' + color + '">' + icon + '</div>' +
+    '<div class="metric-value">' + value + '</div>' +
+    '<div class="metric-label">' + label + '</div>' +
+    '</div>';
+}
+function _metricCard(icon, value, label) {
+  return '<div class="metric-card">' +
+    '<div class="metric-icon" style="background:rgba(76,175,80,0.12);color:var(--green)">' + icon + '</div>' +
+    '<div class="metric-value">' + value + '</div>' +
+    '<div class="metric-label">' + label + '</div>' +
+    '</div>';
+}
+
+function drawStageChart(byStage, stagesList) {
+  const el = document.getElementById('chartStage');
+  if (!el || !google.visualization) return;
+  const stgs = stagesList || STAGES;
+  const data = google.visualization.arrayToDataTable([
+    ['Estágio', 'Leads', { role: 'style' }],
+    ...stgs.map((s, i) => [s, byStage[s]||0, STAGE_COLORS[i % STAGE_COLORS.length]])
+  ]);
+  new google.visualization.BarChart(el).draw(data, {
+    height: 180, legend: { position: 'none' },
+    backgroundColor: 'transparent', chartArea: { width: '68%', left: 110 },
+    hAxis: { textStyle: { color: '#6e9070', fontSize: 11 }, gridlines: { color: '#1a2a1a' } },
+    vAxis: { textStyle: { color: '#6e9070', fontSize: 11 } },
+    bar: { groupWidth: '55%' }
+  });
+}
+
+function drawTimelineChart(byDay) {
+  const el = document.getElementById('chartTimeline');
+  if (!el || !google.visualization) return;
+  const rows = Object.entries(byDay).sort((a,b) => a[0].localeCompare(b[0]));
+  if (!rows.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:40px;text-align:center">Sem dados recentes</div>'; return; }
+  const data = google.visualization.arrayToDataTable([['Data','Leads'],...rows.map(([d,v])=>[d,v])]);
+  new google.visualization.LineChart(el).draw(data, {
+    height: 180, legend: { position: 'none' },
+    backgroundColor: 'transparent', chartArea: { width: '80%' },
+    hAxis: { textStyle: { color: '#6e9070', fontSize: 10 }, gridlines: { color: 'transparent' } },
+    vAxis: { textStyle: { color: '#6e9070', fontSize: 11 }, gridlines: { color: '#1a2a1a' } },
+    colors: ['#4caf50'], lineWidth: 3, pointSize: 5,
+    curveType: 'function'
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// CONTACTS
+// ══════════════════════════════════════════════════════════
+async function renderContacts() {
+  function phoneLink(p) {
+    if (!p && p !== 0) return '&mdash;';
+    var s   = String(p); // phone pode vir como número do Sheets
+    var num = s.replace(/\D/g,'');
+    if (!num) return '&mdash;';
+    return '<a href="https://wa.me/' + num + '" target="_blank" class="lead-phone-btn" style="text-decoration:none">&#9990; ' + escHtml(s) + '</a>';
+  }
+  try {
+    const res = await rpc('getContacts', {});
+    CRM.contacts = res.ok ? res.data : [];
+    const content = document.getElementById('content');
+    content.style = '';
+    if (!CRM.contacts.length) {
+      content.innerHTML = '<div class="empty-state"><div class="empty-icon">&#128101;</div><div class="empty-title">Nenhum contato ainda</div><div class="empty-sub">Adicione contatos para manter sua base organizada</div><button class="btn btn-primary" onclick="openCreateContact()" style="margin-top:16px">+ Novo Contato</button></div>';
+      return;
+    }
+    var rows = '';
+    CRM.contacts.forEach(function(c) {
+      rows += '<tr style="cursor:pointer" onclick="openViewContact(\'' + c.id + '\')">' +
+        '<td><b>' + escHtml(c.name||'') + '</b><div style="font-size:11px;color:var(--muted)">' + escHtml(c.email||'') + '</div></td>' +
+        '<td>' + phoneLink(c.phone) + '</td>' +
+        '<td>' + escHtml(c.company||'') + '</td>' +
+        '<td>' + (c.tags ? '<span class="tag">' + escHtml(c.tags) + '</span>' : '<span style="color:var(--muted2)">—</span>') + '</td>' +
+        '<td style="color:var(--muted);font-size:12px">' + fmtDate(c.created_at) + '</td>' +
+        '<td onclick="event.stopPropagation()"><button class="btn btn-ghost btn-xs" onclick="openEditContact(\'' + c.id + '\')">Editar</button></td>' +
+        '</tr>';
+    });
+    content.innerHTML = '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-primary btn-sm" onclick="openCreateContact()">+ Novo Contato</button></div>' +
+      '<div class="card"><div class="table-wrap"><table>' +
+      '<thead><tr><th>Nome / E-mail</th><th>Telefone</th><th>Empresa</th><th>Tags</th><th>Criado</th><th></th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div></div>';
+  } catch(e) { toast('Erro ao carregar contatos.', 'error'); }
+}
+function openCreateContact() {
+  openModal('Novo Contato', contactFormHTML({}), [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Criar', action: submitCreateContact, cls: 'btn-primary' }
+  ]);
+}
+function openEditContact(id) {
+  const c = CRM.contacts.find(x => x.id === id);
+  if (!c) return;
+  openModal('Editar Contato', contactFormHTML(c), [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Excluir', action: () => confirmDeleteContact(id), cls: 'btn-red' },
+    { label: 'Salvar', action: () => submitEditContact(id), cls: 'btn-primary' }
+  ]);
+}
+function contactFormHTML(c) {
+  return '' +
+  '<div class="form-row">' +
+    '<div class="form-group"><label class="form-label">Nome *</label><input class="form-control" id="c_name" value="' + escHtml(c.name||'') + '"></div>' +
+    '<div class="form-group"><label class="form-label">E-mail</label><input class="form-control" id="c_email" type="email" value="' + escHtml(c.email||'') + '"></div>' +
+  '</div>' +
+  '<div class="form-row">' +
+    '<div class="form-group"><label class="form-label">Telefone</label><input class="form-control" id="c_phone" value="' + escHtml(String(c.phone||'')) + '"></div>' +
+    '<div class="form-group"><label class="form-label">Empresa</label><input class="form-control" id="c_company" value="' + escHtml(c.company||'') + '"></div>' +
+  '</div>' +
+  '<div class="form-group"><label class="form-label">Tags</label><input class="form-control" id="c_tags" value="' + escHtml(c.tags||'') + '" placeholder="ex: vip, parceiro"></div>' +
+  '<div class="form-group"><label class="form-label">Notas</label><textarea class="form-control" id="c_notes">' + escHtml(c.notes||'') + '</textarea></div>';
+}
+async function submitCreateContact() {
+  const data = { name:val('c_name'),email:val('c_email'),phone:val('c_phone'),company:val('c_company'),tags:val('c_tags'),notes:val('c_notes') };
+  if (!data.name) { toast('Nome obrigatório.', 'error'); return; }
+  const res = await rpc('createContact', data);
+  if (res.ok) { closeModal(); toast('Contato criado!', 'success'); renderContacts(); }
+  else toast(res.error, 'error');
+}
+async function submitEditContact(id) {
+  const updates = { name:val('c_name'),email:val('c_email'),phone:val('c_phone'),company:val('c_company'),tags:val('c_tags'),notes:val('c_notes') };
+  const res = await rpc('updateContact', { id, updates });
+  if (res.ok) { closeModal(); toast('Contato atualizado!', 'success'); renderContacts(); }
+  else toast(res.error, 'error');
+}
+async function confirmDeleteContact(id) {
+  if (!confirm('Excluir contato?')) return;
+  const res = await rpc('deleteContact', { id });
+  if (res.ok) { closeModal(); toast('Excluído.', 'success'); renderContacts(); }
+  else toast(res.error, 'error');
+}
+
+function openViewContact(id) {
+  const c = CRM.contacts.find(x => x.id === id);
+  if (!c) return;
+  var _lbl = '<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">';
+  var _cPhone = c.phone ? '<a href="https://wa.me/' + String(c.phone).replace(/\D/g,'') + '" target="_blank" style="color:var(--green)">&#128241; ' + escHtml(String(c.phone)) + '</a>' : '&mdash;';
+  var _cTags  = c.tags  ? '<span class="tag">' + escHtml(c.tags) + '</span>' : '&mdash;';
+  var _cNotes = c.notes ? '<div><div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Notas</div><div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;color:var(--text2);white-space:pre-wrap">' + escHtml(c.notes) + '</div></div>' : '';
+  var html =
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:16px">' +
+    '<div>' + _lbl + 'Nome</div><div style="font-size:15px;font-weight:700;color:var(--cream)">' + escHtml(c.name||'&mdash;') + '</div></div>' +
+    '<div>' + _lbl + 'E-mail</div><div>' + escHtml(c.email||'&mdash;') + '</div></div>' +
+    '<div>' + _lbl + 'Telefone</div><div>' + _cPhone + '</div></div>' +
+    '<div>' + _lbl + 'Empresa</div><div>' + escHtml(c.company||'&mdash;') + '</div></div>' +
+    '<div>' + _lbl + 'Tags</div><div>' + _cTags + '</div></div>' +
+    '<div>' + _lbl + 'Criado em</div><div style="color:var(--muted)">' + fmtDate(c.created_at) + '</div></div>' +
+  '</div>' +
+  _cNotes;
+  openModal('Contato &mdash; ' + escHtml(c.name||''), html, [
+    { label: 'Fechar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Editar', action: () => { closeModal(); openEditContact(id); }, cls: 'btn-primary' }
+  ]);
+}
+
+// ══════════════════════════════════════════════════════════
+// USERS
+// ══════════════════════════════════════════════════════════
+async function renderUsers() {
+  try {
+    const res = await rpc('getUsers', {});
+    const users = res.ok ? res.data : [];
+    const content = document.getElementById('content');
+    content.style = '';
+    var _uRows = users.map(function(u) {
+      return '<tr>' +
+        '<td style="font-weight:600">'  + escHtml(u.name  || '') + '</td>' +
+        '<td style="color:var(--muted)">' + escHtml(u.email || '') + '</td>' +
+        '<td><span class="tag ' + (u.role === 'admin' ? 'tag-0' : 'tag-1') + '">' + escHtml(u.role) + '</span></td>' +
+        '<td><span class="tag ' + (u.active ? 'tag-4' : 'tag-2') + '">' + (u.active ? 'Ativo' : 'Inativo') + '</span></td>' +
+        '<td style="color:var(--muted);font-size:12px">' + fmtDate(u.created_at) + '</td>' +
+        '<td><button class="btn btn-ghost btn-xs" onclick="openEditUser(\'' + escHtml(u.id) + '\',\'' + escHtml(u.name) + '\',\'' + escHtml(u.role) + '\',' + (u.active ? 'true' : 'false') + ')">Editar</button></td>' +
+        '</tr>';
+    }).join('');
+    content.innerHTML =
+      '<div class="card"><div class="table-wrap"><table>' +
+      '<thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th><th>Criado</th><th></th></tr></thead>' +
+      '<tbody>' + _uRows + '</tbody>' +
+      '</table></div></div>';
+  } catch(e) { toast('Erro ao carregar usuários.', 'error'); }
+}
+function openCreateUser() {
+  openModal('Novo Usu&aacute;rio',
+    '<div class="form-row">' +
+      '<div class="form-group"><label class="form-label">Nome *</label><input class="form-control" id="u_name"></div>' +
+      '<div class="form-group"><label class="form-label">E-mail *</label><input class="form-control" id="u_email" type="email"></div>' +
+    '</div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label class="form-label">Senha *</label><input class="form-control" id="u_password" type="password"></div>' +
+      '<div class="form-group"><label class="form-label">Papel</label><select class="form-control" id="u_role"><option value="user">Usu&aacute;rio</option><option value="admin">Admin</option></select></div>' +
+    '</div>', [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Criar Usu&aacute;rio', action: submitCreateUser, cls: 'btn-primary' }
+  ]);
+}
+async function submitCreateUser() {
+  const data = { name:val('u_name'), email:val('u_email'), password:val('u_password'), role:val('u_role') };
+  if (!data.name||!data.email||!data.password) { toast('Preencha todos os campos.','error'); return; }
+  const res = await rpc('createUser', data);
+  if (res.ok) { closeModal(); toast('Usuário criado!','success'); renderUsers(); }
+  else toast(res.error,'error');
+}
+function openEditUser(id, name, role, active) {
+  openModal('Editar Usu&aacute;rio',
+    '<div class="form-group"><label class="form-label">Nome</label><input class="form-control" id="eu_name" value="' + escHtml(name) + '"></div>' +
+    '<div class="form-row">' +
+      '<div class="form-group"><label class="form-label">Papel</label>' +
+        '<select class="form-control" id="eu_role">' +
+          '<option ' + (role==='user'?'selected':'') + ' value="user">Usu&aacute;rio</option>' +
+          '<option ' + (role==='admin'?'selected':'') + ' value="admin">Admin</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="form-group"><label class="form-label">Status</label>' +
+        '<select class="form-control" id="eu_active">' +
+          '<option ' + (active?'selected':'') + ' value="true">Ativo</option>' +
+          '<option ' + (!active?'selected':'') + ' value="false">Inativo</option>' +
+        '</select>' +
+      '</div>' +
+    '</div>' +
+    '<div class="form-group"><label class="form-label">Nova Senha (opcional)</label><input class="form-control" id="eu_password" type="password" placeholder="Deixe em branco para n&atilde;o alterar"></div>', [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Salvar', action: function() { submitEditUser(id); }, cls: 'btn-primary' }
+  ]);
+}
+async function submitEditUser(id) {
+  const updates = { name:val('eu_name'), role:val('eu_role'), active: val('eu_active')==='true' };
+  const pw = val('eu_password');
+  if (pw) updates.password = pw;
+  const res = await rpc('updateUser', { id, updates });
+  if (res.ok) { closeModal(); toast('Usuário atualizado!','success'); renderUsers(); }
+  else toast(res.error,'error');
+}
+
+// ══════════════════════════════════════════════════════════
+// LOG
+// ══════════════════════════════════════════════════════════
+async function renderLog() {
+  try {
+    const res = await rpc('getLogs', { limit: 150 });
+    const logs = res.ok ? res.data : [];
+    const content = document.getElementById('content');
+    content.style = '';
+    const actionColors = { 'SYNC_LEAD':'tag-4', 'CREATE_LEAD':'tag-0', 'UPDATE_LEAD':'tag-1', 'DELETE_LEAD':'tag-3', 'LOGIN':'tag-1', 'SYNC_COMPLETE':'tag-4' };
+    var _lRows = logs.map(function(l) {
+      var ac = actionColors[l.action] || 'tag-1';
+      return '<tr>' +
+        '<td style="font-size:12px">' + escHtml(l.user_email || '') + '</td>' +
+        '<td><span class="tag ' + ac + '" style="font-size:10px">' + escHtml(l.action || '') + '</span></td>' +
+        '<td style="font-size:12px;color:var(--muted)">' + escHtml(l.entity || '') + '</td>' +
+        '<td style="font-size:11px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(l.details || '') + '</td>' +
+        '<td style="font-size:11px;color:var(--muted2);white-space:nowrap">' + fmtDateFull(l.timestamp) + '</td>' +
+        '</tr>';
+    }).join('');
+    content.innerHTML =
+      '<div class="card"><div class="table-wrap"><table>' +
+      '<thead><tr><th>Usuário</th><th>Ação</th><th>Entidade</th><th>Detalhes</th><th>Data/Hora</th></tr></thead>' +
+      '<tbody>' + _lRows + '</tbody>' +
+      '</table></div></div>';
+  } catch(e) { toast('Erro ao carregar logs.','error'); }
+}
+
+// ══════════════════════════════════════════════════════════
+// MODAL SYSTEM
+// ══════════════════════════════════════════════════════════
+function openModal(title, body, buttons) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  const footer = document.getElementById('modalFooter');
+  footer.innerHTML = '';
+  (buttons||[]).forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (b.cls||'btn-ghost');
+    btn.textContent = b.label;
+    btn.onclick = b.action;
+    footer.appendChild(btn);
+  });
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function handleOverlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+
+// ══════════════════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════════════════
+function toast(msg, type) {
+  type = type || 'success';
+  var icons = { success:'✓', error:'✕', info:'ℹ' };
+  var el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.innerHTML = '<span class="toast-icon">' + (icons[type]||'ℹ') + '</span> ' + escHtml(msg);
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(function() { el.classList.add('removing'); setTimeout(function(){ el.remove(); }, 200); }, 3500);
+}
+
+// ══════════════════════════════════════════════════════════
+// SYNC PAGE
+// ══════════════════════════════════════════════════════════
+async function renderSync() {
+  const content = document.getElementById('content');
+  content.style = '';
+
+  // Skeleton enquanto carrega
+  content.innerHTML =
+    '<div style="max-width:720px;margin:0 auto">' +
+    '<div class="card card-pad" style="margin-bottom:14px">' +
+    '<div class="loading-center" style="height:80px"><div class="spinner"></div><span style="margin-left:10px;color:var(--muted)">Verificando status...</span></div>' +
+    '</div></div>';
+
+  var statusData = null;
+  try {
+    const res = await rpc('getSyncStatus', {});
+    if (res.ok) statusData = res.data;
+  } catch(e) { /* ignora — renderiza mesmo sem status */ }
+
+  const sheetFound = statusData ? statusData.sheetFound : null;
+  const total      = statusData ? statusData.total    : '&mdash;';
+  const imported   = statusData ? statusData.imported : '&mdash;';
+  const pending    = statusData ? statusData.pending  : '&mdash;';
+  const lastCheck  = statusData ? fmtDateFull(statusData.lastCheck) : '&mdash;';
+
+  const statusColor  = sheetFound === false ? 'var(--red)'   : sheetFound ? 'var(--green)' : 'var(--muted)';
+  const statusLabel  = sheetFound === false ? 'Aba n&atilde;o encontrada' : sheetFound ? 'Conectada' : 'Desconhecida';
+  const statusIcon   = sheetFound === false ? '&#x2715;' : sheetFound ? '&#x2713;' : '?';
+  const statusBg     = sheetFound ? 'var(--green-l)' : 'var(--red-l)';
+  const pendingBg    = pending > 0 ? 'var(--yellow-l)' : 'var(--surface2)';
+  const pendingBd    = pending > 0 ? 'rgba(245,158,11,0.2)' : 'var(--border)';
+  const pendingColor = pending > 0 ? 'var(--yellow)' : 'var(--text)';
+  const pendingLbl   = pending > 0 ? 'var(--yellow)' : 'var(--muted)';
+
+  content.innerHTML =
+  '<div style="max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px">' +
+  '<div class="card card-pad">' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">' +
+      '<div style="width:40px;height:40px;border-radius:12px;background:var(--accent-l);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">&#8635;</div>' +
+      '<div>' +
+        '<div style="font-size:15px;font-weight:700;color:var(--text)">Status da Integra&ccedil;&atilde;o</div>' +
+        '<div style="font-size:12px;color:var(--muted)">Planilha CRM_WPK_TAVARES &middot; Aba &quot;leads&quot;</div>' +
+      '</div>' +
+      '<span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:100px;font-size:12px;font-weight:700;background:' + statusBg + ';color:' + statusColor + '">' +
+        statusIcon + ' ' + statusLabel +
+      '</span>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px">' +
+      '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center">' +
+        '<div style="font-size:28px;font-weight:800;color:var(--text)">' + total + '</div>' +
+        '<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:2px">Total na Planilha</div>' +
+      '</div>' +
+      '<div style="background:var(--green-l);border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:14px 16px;text-align:center">' +
+        '<div style="font-size:28px;font-weight:800;color:var(--green)">' + imported + '</div>' +
+        '<div style="font-size:11px;color:var(--green);font-weight:600;margin-top:2px">Importados</div>' +
+      '</div>' +
+      '<div style="background:' + pendingBg + ';border:1px solid ' + pendingBd + ';border-radius:10px;padding:14px 16px;text-align:center">' +
+        '<div style="font-size:28px;font-weight:800;color:' + pendingColor + '">' + pending + '</div>' +
+        '<div style="font-size:11px;color:' + pendingLbl + ';font-weight:600;margin-top:2px">Pendentes</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--muted);text-align:right">Verificado em: ' + lastCheck + '</div>' +
+  '</div>' +
+  '<div class="card card-pad">' +
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">A&ccedil;&otilde;es de Sincroniza&ccedil;&atilde;o</div>' +
+    '<div style="display:flex;flex-direction:column;gap:10px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">' +
+        '<div><div style="font-size:13px;font-weight:600;color:var(--text)">Sincronizar Agora</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Importa todos os leads pendentes da planilha imediatamente</div></div>' +
+        '<button class="btn btn-primary btn-sm" onclick="syncAndRefresh()">&#8635; Executar</button>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--green-l);border:1px solid rgba(34,197,94,0.2);border-radius:10px">' +
+        '<div><div style="font-size:13px;font-weight:600;color:var(--green)">Importar Contatos dos Leads</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Copia nome, e-mail e telefone de todos os leads para a aba Contatos (sem duplicar)</div></div>' +
+        '<button class="btn btn-green btn-sm" onclick="doSyncContacts()">&#8595; Importar</button>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">' +
+        '<div><div style="font-size:13px;font-weight:600;color:var(--text)">Configurar Triggers Autom&aacute;ticos</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Cria trigger a cada 5 min + trigger de formul&aacute;rio (onFormSubmit)</div></div>' +
+        '<button class="btn btn-ghost btn-sm" onclick="doSetupTriggers()">Configurar</button>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:#fef9ec;border:1px solid rgba(245,158,11,0.2);border-radius:10px">' +
+        '<div><div style="font-size:13px;font-weight:600;color:var(--yellow)">Limpar Colunas Extras da Aba CRM</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Remove as 26 colunas extras do cabecalho CRM. Deixa a leitura ~3x mais rapida.</div></div>' +
+        '<button class="btn btn-sm" style="background:var(--yellow-l);color:var(--yellow);border:1px solid rgba(245,158,11,0.25)" onclick="doCleanupCRM()">Limpar</button>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:var(--red-l);border:1px solid rgba(239,68,68,0.15);border-radius:10px">' +
+        '<div><div style="font-size:13px;font-weight:600;color:var(--red)">Remover Todos os Triggers</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Use em caso de duplica&ccedil;&atilde;o de triggers. Sincroniza&ccedil;&atilde;o autom&aacute;tica ser&aacute; pausada.</div></div>' +
+        '<button class="btn btn-red btn-sm" onclick="doRemoveTriggers()">Remover</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>' +
+  '<div class="card card-pad">' +
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px">Como funciona a sincroniza&ccedil;&atilde;o</div>' +
+    '<div style="display:flex;flex-direction:column;gap:0" id="syncSteps"></div>' +
+  '</div>' +
+  '</div>';
+
+  // Build steps separately to avoid nested template literals
+  var steps = [
+    ['Google Form enviado',          'O lead preenche o formulário vinculado à planilha',          'var(--accent-l)', 'var(--accent)'],
+    ['Trigger onFormSubmit dispara',  'Instantâneo — aguarda 4s para garantir gravação da linha',  'var(--blue-l)',   'var(--blue)'],
+    ['syncLeadsFromSheet() executa',  'Lê todas as linhas sem crm_imported = sim',                  'var(--yellow-l)', 'var(--yellow)'],
+    ['Card criado no CRM',            'Etapa Interessado com nome, telefone, origem e respostas',  'var(--green-l)',  'var(--green)'],
+    ['Linha marcada como importada',  'Coluna crm_imported recebe sim — zero duplicação',          'var(--green-l)',  'var(--green)'],
+  ];
+  var stepsHtml = '';
+  for (var si = 0; si < steps.length; si++) {
+    var s = steps[si];
+    var border = si < 4 ? 'border-bottom:1px solid var(--border)' : '';
+    stepsHtml +=
+      '<div style="display:flex;gap:14px;padding:12px 0;' + border + '">' +
+        '<div style="width:28px;height:28px;border-radius:50%;background:' + s[2] + ';color:' + s[3] + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0">' + (si+1) + '</div>' +
+        '<div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--text)">' + escHtml(s[0]) + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:1px">' + escHtml(s[1]) + '</div>' +
+        '</div>' +
+      '</div>';
+  }
+  var stepsEl = document.getElementById('syncSteps');
+  if (stepsEl) stepsEl.innerHTML = stepsHtml;
+}
+
+
+async function syncAndRefresh() {
+  toast('Sincronizando leads da planilha...', 'info');
+  try {
+    const res = await rpc('manualSync', {});
+    if (res.ok) {
+      toast('Sincronização concluída!', 'success');
+      renderSync();
+    } else {
+      toast(res.error || 'Erro ao sincronizar.', 'error');
+    }
+  } catch(e) {
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+async function doSyncContacts() {
+  if (!confirm('Importar contatos dos leads?\n\nIsso copia nome, e-mail e telefone de cada lead para a aba Contatos.\nLeads ja existentes nos Contatos serao ignorados.')) return;
+  toast('Importando contatos...', 'info');
+  try {
+    const res = await rpc('syncContacts', {});
+    if (res.ok) { toast(res.message || 'Contatos importados!', 'success'); renderSync(); }
+    else toast(res.error || 'Erro ao importar.', 'error');
+  } catch(e) { toast('Erro: ' + (e && e.message ? e.message : e), 'error'); }
+}
+
+async function doSetupTriggers() {
+  if (!confirm('Configurar triggers automáticos?\n\nIsso cria:\n• Trigger a cada 5 minutos\n• Trigger onFormSubmit\n\nTriggers duplicados serão removidos primeiro.')) return;
+  toast('Configurando triggers...', 'info');
+  try {
+    const res = await rpc('setupTriggers', {});
+    if (res.ok) toast(res.message || 'Triggers configurados!', 'success');
+    else toast(res.error || 'Erro ao configurar.', 'error');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+async function doCleanupCRM() {
+  if (!confirm('Remover as colunas extras da aba CRM?\n\nIsso remove os cabecalhos extras (colunas 12-37) que vieram da aba leads. Os DADOS nao serao afetados.\n\nRecomendado para melhorar performance.')) return;
+  toast('Limpando colunas...', 'info');
+  try {
+    const res = await rpc('cleanupCRM', {});
+    if (res.ok) { toast(res.message || 'Limpeza concluida!', 'success'); renderSync(); }
+    else toast(res.error || 'Erro.', 'error');
+  } catch(e) { toast('Erro: ' + (e && e.message ? e.message : e), 'error'); }
+}
+
+async function doRemoveTriggers() {
+  if (!confirm('Remover TODOS os triggers?\n\nA sincronização automática será pausada. Você pode recriar depois.')) return;
+  toast('Removendo triggers...', 'info');
+  try {
+    const res = await rpc('removeAllTriggers', {});
+    if (res.ok) toast('Triggers removidos.', 'success');
+    else toast(res.error || 'Erro.', 'error');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+// ══════════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════════
+async function doLogout() {
+  console.info('[Auth] Fazendo logout...');
+  await rpc('logout', {}).catch(function(e) { console.warn('[Auth] logout rpc error (ignorado):', e && e.message); });
+  sessionStorage.clear();
+  console.info('[Auth] sessionStorage limpo — redirecionando para login');
+  redirectLogin();
+}
+
+// ══════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════
+function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDate(s) {
+  if (!s) return '—';
+  try { return new Date(s).toLocaleDateString('pt-BR'); } catch(e) { return String(s).slice(0,10); }
+}
+function fmtDateFull(s) {
+  if (!s) return '—';
+  try { return new Date(s).toLocaleString('pt-BR'); } catch(e) { return s; }
+}
+
+async function renderAutomacoes() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+ 
+  const [cfgRes, statusRes, metaRes] = await Promise.all([
+    rpc('getConfig', {}),
+    rpc('getAutomacaoStatus', {}),
+    rpc('getMetaStatus', {})
+  ]);
+ 
+  if (!cfgRes.ok) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>' + (cfgRes.error||'Erro') + '</p></div>';
+    return;
+  }
+ 
+  const cfg  = cfgRes.data;
+  const meta = metaRes.ok ? metaRes.data : {};
+ 
+  var metaDotBg = meta.configurado ? 'var(--green)' : 'var(--muted2)';
+  var metaStatusTxt = meta.configurado ? 'Configurado' : 'N&atilde;o configurado';
+  var metaLastSyncHtml = meta.lastSync
+    ? '<div style="font-size:11px;color:var(--muted);margin-bottom:14px">&Uacute;ltimo sync: ' + _fmtDateShort(meta.lastSync) + ' &nbsp;|&nbsp; ' + (meta.lastCount||'0') + ' linhas &nbsp;|&nbsp; status: ' + (meta.lastStatus||'&mdash;') + '</div>'
+    : '<div style="margin-bottom:14px"></div>';
+  content.innerHTML =
+    '<div style="max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-bottom:48px">' +
+    '<div class="card" style="padding:24px">' +
+      '<div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:6px">🧪 Teste do Acompanhamento 21 Dias</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:18px">Inicie o fluxo completo em si mesmo para validar o sistema antes de ativar para todos os compradores. Isso reinicia o registro do Dia 1 e envia a mensagem real de manh&atilde; agora.</div>' +
+      '<div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">' +
+        '<div style="flex:1;min-width:200px">' +
+          '<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">Buscar por e-mail ou telefone</label>' +
+          '<input type="text" id="testeCompBusca" placeholder="seu@email.com ou +55..." style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">' +
+        '</div>' +
+        '<button class="btn btn-primary" onclick="abrirModalTesteAcomp()">🚀 Iniciar teste</button>' +
+        '<button class="btn btn-ghost" onclick="abrirSeletorComprador()">📋 Escolher da lista</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card" style="padding:24px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">' +
+        '<div>' +
+          '<div style="font-weight:700;font-size:15px;color:var(--text)">Follow-up de Leads</div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-top:2px">Dispara mensagem para leads em &ldquo;Interessado&rdquo; ap&oacute;s o delay configurado</div>' +
+        '</div>' +
+        _toggleSwitch('followup_ativo', cfg.followup_ativo) +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">' +
+        _cfgField('Atraso inicial (horas)','followup_delay_horas',cfg.followup_delay_horas,'number') +
+        _cfgField('M&aacute;x. tentativas','followup_max_tentativas',cfg.followup_max_tentativas,'number') +
+        _cfgField('Intervalo entre tentativas (h)','followup_intervalo_horas',cfg.followup_intervalo_horas,'number') +
+        _cfgField('Nome do template','followup_template',cfg.followup_template,'text') +
+      '</div>' +
+    '</div>' +
+    '<div class="card" style="padding:24px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">' +
+        '<div>' +
+          '<div style="font-weight:700;font-size:15px;color:var(--text)">Acompanhamento 21 Dias</div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-top:2px">Mensagem manh&atilde; (05:30) + check-in noite (21:00) por 21 dias ap&oacute;s compra</div>' +
+        '</div>' +
+        _toggleSwitch('automacao21_ativa', cfg.automacao21_ativa) +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">' +
+        _cfgField('Link da Sala de Leitura','sala_link',cfg.sala_link,'url') +
+        _cfgField('Base de &Aacute;udios (URL)','audios_link',cfg.audios_link,'url') +
+        _cfgField('Link do Grupo WhatsApp','grupo_link',cfg.grupo_link,'url') +
+        _cfgField('Link do PDF/E-Book','pdf_link',cfg.pdf_link,'url') +
+      '</div>' +
+    '</div>' +
+    '<div class="card" style="padding:24px">' +
+      '<div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:16px">🤖 GPT Maker / Bia Tavares</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+        _cfgField('Bot / Agent ID','gptmaker_bot_id',cfg.gptmaker_bot_id,'text') +
+        _cfgField('Token API','gptmaker_token',cfg.gptmaker_token,'password') +
+      '</div>' +
+    '</div>' +
+    '<div class="card" style="padding:24px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+        '<div>' +
+          '<div style="font-weight:700;font-size:15px;color:var(--text)">📡 Meta Marketing API</div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-top:2px">Importa dados de campanhas diariamente para a aba <strong>trafego</strong> da planilha</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<div style="width:8px;height:8px;border-radius:50%;background:' + metaDotBg + ';flex-shrink:0"></div>' +
+          '<span style="font-size:12px;color:var(--muted)">' + metaStatusTxt + '</span>' +
+        '</div>' +
+      '</div>' +
+      metaLastSyncHtml +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:18px">' +
+        _cfgField('Access Token (permanente ou de longa dura&ccedil;&atilde;o)','meta_access_token',cfg.meta_access_token||'','password') +
+        _cfgField('Ad Account ID (ex: 123456789)','meta_ad_account_id',cfg.meta_ad_account_id||'','text') +
+        _cfgField('Hora do sync di&aacute;rio (Bras&iacute;lia)','meta_sync_hora',cfg.meta_sync_hora||'8','number') +
+      '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px">' +
+        '<button class="btn btn-ghost btn-sm" onclick="testarMetaConexao()">🔌 Testar conex&atilde;o</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="syncMetaAgora()">&#8635; Sincronizar agora</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="configurarMetaTrigger()">⏰ Ativar sync di&aacute;rio</button>' +
+      '</div>' +
+      '<div id="metaStatusMsg" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>' +
+    '</div>' +
+    '<div class="card" style="padding:20px 24px">' +
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">' +
+        '<button class="btn btn-primary" onclick="salvarConfigAutomacao()">💾 Salvar configura&ccedil;&otilde;es</button>' +
+        '<button class="btn btn-ghost" onclick="configTriggers()">⏰ Configurar todos os triggers</button>' +
+        '<button class="btn btn-ghost" onclick="renderAutomacoes()">&#8635; Atualizar</button>' +
+        '<span style="font-size:11px;color:var(--muted);margin-left:4px">M&eacute;tricas de resumo est&atilde;o no Dashboard.</span>' +
+      '</div>' +
+    '</div>' +
+    '</div>';
+}
+ 
+// ── Helpers de renderização ───────────────────────────────────
+function _autoCard(icon, label, value, sub) {
+  return '<div class="card" style="padding:20px 18px">' +
+    '<div style="font-size:22px;margin-bottom:8px">' + icon + '</div>' +
+    '<div style="font-size:26px;font-weight:800;color:var(--text);line-height:1">' + value + '</div>' +
+    '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-top:4px">' + label + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + sub + '</div>' +
+    '</div>';
+}
+ 
+function _cfgField(label, key, value, type) {
+  const t = type || 'text';
+  const v = String(value || '').replace(/"/g, '&quot;');
+  return '<div><label style="display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">' +
+    label + '</label><input type="' + t + '" id="cfg_' + key + '" value="' + v +
+    '" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;background:#fafafa" oninput="window._cfgDirty=true"></div>';
+}
+ 
+// ── Toggle de booleano ────────────────────────────────────────
+async function toggleConfig(key) {
+  const res = await rpc('getConfig', {});
+  if (!res.ok) return;
+  const atual = res.data[key];
+  const novo  = !(atual === true || atual === 'true');
+  const cfg   = {};
+  cfg[key]    = novo;
+  const save  = await rpc('saveConfig', { config: cfg });
+  if (save.ok) { toast((novo ? '✅ Ativado' : '⏸ Pausado') + ': ' + key.replace(/_/g,' '), 'success'); renderAutomacoes(); }
+  else toast(save.error || 'Erro ao salvar.', 'error');
+}
+ 
+// ── Salvar todos os campos do formulário ─────────────────────
+async function salvarConfigAutomacao() {
+  const keys = [
+    'followup_delay_horas','followup_max_tentativas','followup_intervalo_horas','followup_template',
+    'sala_link','audios_link','grupo_link','pdf_link',
+    'gptmaker_bot_id','gptmaker_token',
+    'meta_access_token','meta_ad_account_id','meta_sync_hora'
+  ];
+  const cfg = {};
+  keys.forEach(k => {
+    const el = document.getElementById('cfg_' + k);
+    if (el) cfg[k] = el.value;
+  });
+  toast('Salvando...', 'info');
+  const res = await rpc('saveConfig', { config: cfg });
+  if (res.ok) { toast('Configurações salvas!', 'success'); window._cfgDirty = false; }
+  else toast(res.error || 'Erro ao salvar.', 'error');
+}
+ 
+// ── Configurar triggers ───────────────────────────────────────
+async function configTriggers() {
+  toast('Configurando triggers...', 'info');
+  const res = await rpc('setupAllTriggersV2', {});
+  if (res.ok) toast('Todos os triggers configurados!', 'success');
+  else toast(res.error || 'Erro.', 'error');
+}
+
+async function configurarMetaTrigger() {
+  // Salva config primeiro para garantir que hora está atualizada
+  const el = document.getElementById('cfg_meta_sync_hora');
+  if (el) await rpc('saveConfig', { config: { meta_sync_hora: el.value } });
+  const res = await rpc('setupMetaTrigger', {});
+  const msg = document.getElementById('metaStatusMsg');
+  if (res.ok) { if (msg) msg.textContent = '✅ ' + res.message; toast(res.message, 'success'); }
+  else { if (msg) msg.textContent = '❌ ' + (res.error||'Erro'); toast(res.error||'Erro.', 'error'); }
+}
+ 
+// ── Meta API ──────────────────────────────────────────────────
+async function testarMetaConexao() {
+  await salvarConfigAutomacao();
+  const msg = document.getElementById('metaStatusMsg');
+  if (msg) msg.textContent = 'Testando...';
+  toast('Testando conexão com a Meta...', 'info');
+  const res = await rpc('testarConexaoMeta', {});
+  if (res.ok) {
+    const d = res.data;
+    const txt = '✅ Conectado: ' + d.nome + ' (' + d.moeda + ' / ' + d.fuso + ')';
+    if (msg) msg.textContent = txt;
+    toast('Conexão OK: ' + d.nome, 'success');
+  } else {
+    if (msg) msg.textContent = '❌ ' + (res.error||'Falha na conexão');
+    toast(res.error || 'Falha na conexão.', 'error');
+  }
+}
+ 
+// ── Teste 21 dias ─────────────────────────────────────────────
+async function abrirSeletorComprador() {
+  toast('Carregando compradores...', 'info');
+  const res = await rpc('getCompradoresList', {});
+  if (!res.ok) { toast(res.error||'Erro.', 'error'); return; }
+ 
+  const lista = res.data;
+  if (!lista.length) { toast('Nenhum comprador encontrado na planilha.', 'error'); return; }
+ 
+  const opts = lista.map(c =>
+    '<option value="' + c.email + '">' + c.nome + ' (' + c.email + ') — Dia ' + c.diaAtual + (c.ativo ? ' ✅' : ' ⏸') + '</option>'
+  ).join('');
+ 
+  openModal('Selecionar Comprador para Teste',
+    '<div class="form-group"><label class="form-label">Selecione o comprador</label>' +
+    '<select class="form-control" id="seletor_comp_email"><option value="">— escolha —</option>' + opts + '</select></div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-top:8px">Isso reinicia o registro no Dia 1 e envia a mensagem de teste agora.</div>',
+    [
+      { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+      { label: 'Iniciar Teste', action: confirmarTesteComprador, cls: 'btn-primary' }
+    ]
+  );
+}
+ 
+function _toggleSwitch(key, valor) {
+  const ativo = valor === true || valor === 'true';
+  return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">' +
+    '<div style="font-size:12px;color:var(--muted)">' + (ativo ? 'Ativo' : 'Pausado') + '</div>' +
+    '<div id="toggle_' + key + '" onclick="toggleConfig(\'' + key + '\')" style="width:40px;height:22px;background:' + (ativo ? 'var(--green)' : 'var(--border2)') + ';border-radius:11px;position:relative;cursor:pointer;transition:background .2s">' +
+    '<div style="position:absolute;top:3px;left:' + (ativo ? '19px' : '3px') + ';width:16px;height:16px;background:#fff;border-radius:50%;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div>' +
+    '</div></label>';
+}
+
+function _fmtDateShort(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+  } catch(e) { return iso; }
+}
+
+
+function openTechnicalModal(title, payload) {
+  const text = typeof payload === 'string' ? payload : JSON.stringify(payload || {}, null, 2);
+  openModal(
+    title,
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Detalhes tecnicos do ultimo retorno.</div>' +
+    '<pre style="margin:0;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;max-height:420px;overflow:auto;font-size:11px;line-height:1.45;white-space:pre-wrap;word-break:break-word">' + escHtml(text) + '</pre>',
+    [{ label: 'Fechar', action: closeModal, cls: 'btn-primary' }]
+  );
+}
+
+async function syncMetaAgora() {
+  await salvarConfigAutomacao();
+  const msg = document.getElementById('metaStatusMsg');
+  if (msg) msg.textContent = 'Sincronizando...';
+  toast('Buscando dados da Meta API...', 'info');
+
+  const res = await rpc('syncMetaManual', {});
+  if (res.ok) {
+    if (msg) msg.textContent = 'OK: ' + res.message;
+    toast(res.message, 'success');
+    return;
+  }
+
+  if (msg) msg.textContent = 'Erro: ' + (res.error || 'Falha no sync');
+  toast(res.error || 'Erro.', 'error');
+  if (res.technical) openTechnicalModal('Erro tecnico da Meta API', res.technical);
+}
+
+async function executarTesteAcompanhamento(data, label) {
+  closeModal();
+  await salvarConfigAutomacao();
+  toast('Iniciando teste...', 'info');
+  const res = await rpc('iniciarTesteAcompanhamento', data);
+
+  if (res.ok) {
+    toast(res.message, 'success');
+    if (res.technical) openTechnicalModal('Envio tecnico do teste: ' + (label || 'comprador'), res.technical);
+    return;
+  }
+
+  toast(res.error || 'Erro.', 'error');
+  if (res.technical) openTechnicalModal('Falha tecnica no teste: ' + (label || 'comprador'), res.technical);
+}
+
+async function abrirModalTesteAcomp() {
+  const buscaEl = document.getElementById('testeCompBusca');
+  const busca = buscaEl ? buscaEl.value.trim() : '';
+  if (!busca) {
+    toast('Digite um e-mail ou telefone para buscar.', 'error');
+    return;
+  }
+
+  const data = busca.includes('@') ? { email: busca } : { telefone: busca };
+  openModal(
+    'Confirmar teste do acompanhamento',
+    '<div style="font-size:13px;color:var(--text);line-height:1.5">O teste vai reiniciar o comprador selecionado para o Dia 1 e disparar uma mensagem real agora.</div>' +
+    '<div style="margin-top:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-size:12px"><strong>Destino:</strong> ' + escHtml(busca) + '</div>',
+    [
+      { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+      { label: 'Iniciar teste', action: () => executarTesteAcompanhamento(data, busca), cls: 'btn-primary' }
+    ]
+  );
+}
+
+async function confirmarTesteComprador() {
+  const sel = document.getElementById('seletor_comp_email');
+  if (!sel || !sel.value) {
+    toast('Selecione um comprador.', 'error');
+    return;
+  }
+
+  const optionText = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : sel.value;
+  await executarTesteAcompanhamento({ email: sel.value }, optionText);
+}
+
+// ══════════════════════════════════════════════════════════
+// COMPRADORES / ALUNOS
+// ══════════════════════════════════════════════════════════
+async function renderCompradores() {
+  try {
+    const res = await rpc('getCompradoresAdmin', {});
+    if (!res.ok) { document.getElementById('content').innerHTML = '<div class="empty-state"><div class="empty-title">Erro ao carregar alunos</div><div class="empty-sub">' + escHtml(res.error||'') + '</div></div>'; return; }
+
+    const lista = res.data || [];
+    const content = document.getElementById('content');
+
+    if (!lista.length) {
+      content.innerHTML = '<div class="empty-state"><div class="empty-icon">🎓</div><div class="empty-title">Nenhum aluno ainda</div><div class="empty-sub">Os alunos aparecerão aqui após a primeira compra via Cakto.</div></div>';
+      return;
+    }
+
+    // Métricas resumo
+    const ativos    = lista.filter(c => c.ativo).length;
+    const concluidos = lista.filter(c => c.concluido).length;
+    const progMedio = lista.length ? Math.round(lista.reduce((s,c) => s + (c.progresso||0), 0) / lista.length) : 0;
+
+    var html =
+      '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">' +
+        _metricCard('🎓', lista.length, 'Total de Alunos', '') +
+        _metricCard('✅', ativos, 'Em Andamento', 'ativos no desafio') +
+        _metricCard('🏆', concluidos, 'Conclu&iacute;dos', 'completaram 21 dias') +
+        _metricCard('📊', progMedio + '%', 'Progresso M&eacute;dio', 'entre todos os alunos') +
+      '</div>';
+
+    // Tabela
+    html += '<div class="card"><div class="table-wrap"><table>' +
+      '<thead><tr>' +
+        '<th>Aluno</th><th>Telefone</th><th>Compra</th>' +
+        '<th>Dia</th><th>Progresso</th><th>Status</th><th>&Uacute;ltimo Check-in</th><th></th>' +
+      '</tr></thead><tbody>';
+
+    lista.forEach(c => {
+      const statusCls  = c.concluido ? 'var(--green)'  : c.ativo ? '#3b82f6' : 'var(--muted)';
+      const statusTxt  = c.concluido ? '🏆 Concluído'  : c.ativo ? '✅ Ativo'  : '⏸ Pausado';
+      var progBar =
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">' +
+            '<div style="height:100%;width:' + c.progresso + '%;background:var(--green);border-radius:3px"></div>' +
+          '</div>' +
+          '<span style="font-size:11px;color:var(--muted);white-space:nowrap">' + c.progresso + '%</span>' +
+        '</div>';
+
+      html +=
+        '<tr>' +
+          '<td><b>' + escHtml(c.nome||'&mdash;') + '</b><div style="font-size:11px;color:var(--muted)">' + escHtml(c.email||'') + '</div></td>' +
+          '<td style="color:var(--muted);font-size:12px">' + escHtml(c.telefone||'&mdash;') + '</td>' +
+          '<td style="color:var(--muted);font-size:12px">' + fmtDate(c.paidAt) + '</td>' +
+          '<td style="font-weight:700;color:var(--accent)">' + (c.diaAtual > 21 ? '21' : c.diaAtual) + ' / 21</td>' +
+          '<td style="min-width:120px">' + progBar + '</td>' +
+          '<td><span style="font-size:12px;font-weight:600;color:' + statusCls + '">' + statusTxt + '</span></td>' +
+          '<td style="color:var(--muted);font-size:12px">' + fmtDate(c.ultimoCheckin) + '</td>' +
+          '<td><button class="btn btn-ghost btn-xs" onclick="verDetalheAluno(\'' + escHtml(c.email) + '\',\'' + escHtml(c.nome) + '\')">Ver</button></td>' +
+        '</tr>';
+    });
+
+    html += '</tbody></table></div></div>';
+    content.innerHTML = html;
+  } catch(e) {
+    toast('Erro ao carregar alunos: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// ÁUDIOS 21 DIAS — Admin
+// ══════════════════════════════════════════════════════════
+let _audios21Cache = null;
+
+async function renderAudios21() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const res = await rpc('getAudios21', {});
+    if (!res.ok) throw new Error(res.error);
+    _audios21Cache = res.data;
+    _renderAudios21Grid(res.data);
+  } catch(e) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erro</div><div class="empty-sub">' + escHtml(e.message) + '</div></div>';
+  }
+}
+
+function _renderAudios21Grid(audios) {
+  const content = document.getElementById('content');
+  var html =
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">' +
+      '<div>' +
+        '<div style="font-size:14px;font-weight:700;color:var(--text)">Configura&ccedil;&atilde;o dos 21 &Aacute;udios do Desafio</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-top:2px">Clique em um &aacute;udio para editar. Use URLs do Google Drive ou links diretos de MP3.</div>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="renderAudios21()">&#8635; Atualizar</button>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">';
+
+  (audios || []).forEach(function(a) {
+    var hasUrl  = Boolean(a.audio_url);
+    var hasCapa = Boolean(a.capa_url);
+    var coverHtml = hasCapa
+      ? '<img src="' + escHtml(a.capa_url) + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display=\'none\'">'
+      : '<div style="width:48px;height:48px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎧</div>';
+    var descHtml = a.descricao
+      ? '<div style="font-size:12px;color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + escHtml(a.descricao) + '</div>'
+      : '';
+    var dotBg    = hasUrl ? 'var(--green)' : 'var(--muted2)';
+    var dotTitle = hasUrl ? 'URL configurada' : 'Sem URL';
+    var statusTxt = (hasUrl ? '✓ Áudio configurado' : '• Sem áudio') + (a.duracao ? ' · ' + escHtml(a.duracao) : '');
+    var statusColor = hasUrl ? 'var(--green)' : 'var(--muted2)';
+    html +=
+      '<div class="card" style="padding:14px;cursor:pointer;transition:border-color .2s,transform .15s"' +
+        ' onmouseenter="this.style.borderColor=\'rgba(76,175,80,.4)\'"' +
+        ' onmouseleave="this.style.borderColor=\'\'"' +
+        ' onclick="openEditAudio21(' + a.dia + ')">' +
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">' +
+          coverHtml +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:.1em;text-transform:uppercase">Dia ' + a.dia + '</div>' +
+            '<div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(a.titulo) + '</div>' +
+          '</div>' +
+          '<div style="width:10px;height:10px;border-radius:50%;background:' + dotBg + ';flex-shrink:0" title="' + dotTitle + '"></div>' +
+        '</div>' +
+        descHtml +
+        '<div style="margin-top:8px;font-size:11px;color:' + statusColor + '">' + statusTxt + '</div>' +
+      '</div>';
+  });
+
+  html += '</div>';
+  content.innerHTML = html;
+}
+
+function openEditAudio21(dia) {
+  const a = (_audios21Cache || []).find(x => x.dia === dia) || { dia };
+  var html =
+    '<div style="margin-bottom:6px;font-size:11px;font-weight:700;color:var(--green);letter-spacing:.1em;text-transform:uppercase">Dia ' + dia + ' de 21</div>' +
+    '<div class="form-group"><label class="form-label">T&iacute;tulo</label>' +
+      '<input class="form-control" id="a21_titulo" value="' + escHtml(a.titulo||'&Aacute;udio do Dia '+dia) + '" placeholder="Nome do &aacute;udio"></div>' +
+    '<div class="form-group"><label class="form-label">Descri&ccedil;&atilde;o curta</label>' +
+      '<textarea class="form-control" id="a21_descricao" rows="2" placeholder="Sobre o que &eacute; este &aacute;udio...">' + escHtml(a.descricao||'') + '</textarea></div>' +
+    '<div class="form-group"><label class="form-label">URL do &Aacute;udio (MP3 ou Google Drive)</label>' +
+      '<input class="form-control" id="a21_url" value="' + escHtml(a.audio_url||'') + '" placeholder="https://... ou ID do Drive">' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">Para Google Drive: use o link de compartilhamento com ?usp=sharing</div></div>' +
+    '<div class="form-group"><label class="form-label">URL da Capa (imagem)</label>' +
+      '<input class="form-control" id="a21_capa" value="' + escHtml(a.capa_url||'') + '" placeholder="https://..."></div>' +
+    '<div class="form-group"><label class="form-label">URL da Transcri&ccedil;&atilde;o/Legenda (.srt, .vtt ou texto)</label>' +
+      '<input class="form-control" id="a21_legenda" value="' + escHtml(a.legenda_url||'') + '" placeholder="Opcional"></div>' +
+    '<div class="form-group"><label class="form-label">Dura&ccedil;&atilde;o (ex: 8:30)</label>' +
+      '<input class="form-control" id="a21_duracao" value="' + escHtml(a.duracao||'') + '" placeholder="00:00"></div>';
+
+  openModal('🎧 &Aacute;udio &mdash; Dia ' + dia, html, [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Salvar', action: function() { submitSaveAudio21(dia); }, cls: 'btn-primary' }
+  ]);
+}
+
+async function submitSaveAudio21(dia) {
+  const audioData = {
+    dia,
+    titulo:      val('a21_titulo') || 'Áudio do Dia ' + dia,
+    descricao:   val('a21_descricao'),
+    audio_url:   val('a21_url'),
+    capa_url:    val('a21_capa'),
+    legenda_url: val('a21_legenda'),
+    duracao:     val('a21_duracao'),
+    ativo:       true
+  };
+  const res = await rpc('saveAudio21', audioData);
+  if (res.ok) {
+    closeModal();
+    toast('Áudio do Dia ' + dia + ' salvo!', 'success');
+    renderAudios21();
+  } else {
+    toast(res.error || 'Erro ao salvar.', 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// CONFIGURAÇÕES DO WORKSPACE
+// ══════════════════════════════════════════════════════════
+async function renderConfiguracoes() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const res = await rpc('getConfig', {});
+    if (!res.ok) throw new Error(res.error);
+    const cfg = res.data || {};
+
+    content.innerHTML =
+      '<div style="max-width:640px">' +
+        '<div class="card" style="margin-bottom:16px">' +
+          '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px">' +
+            '<span>🏷️</span> Identidade do Workspace' +
+          '</div>' +
+          '<div class="form-row">' +
+            '<div class="form-group"><label class="form-label">Nome do Workspace</label>' +
+              '<input class="form-control" id="ws_nome" value="' + escHtml(cfg.workspace_nome||'WPK Tavares') + '"></div>' +
+            '<div class="form-group"><label class="form-label">Subt&iacute;tulo</label>' +
+              '<input class="form-control" id="ws_sub" value="' + escHtml(cfg.workspace_subtitulo||'Desafio 21 Dias') + '"></div>' +
+          '</div>' +
+          '<div class="form-group"><label class="form-label">URL da Logo (horizontal/completa)</label>' +
+            '<input class="form-control" id="ws_logo" value="' + escHtml(cfg.workspace_logo_url||'https://i.imgur.com/bOf9i1R.png') + '" placeholder="https://...">' +
+            '<div style="font-size:11px;color:var(--muted);margin-top:4px">Aparece na sidebar. Recomendado: PNG/GIF quadrado, 64&times;64px</div></div>' +
+          '<div class="form-row">' +
+            '<div class="form-group"><label class="form-label">URL da Logo Compacta (&iacute;cone)</label>' +
+              '<input class="form-control" id="ws_logo_compact" value="' + escHtml(cfg.workspace_logo_compact||'https://i.imgur.com/bOf9i1R.png') + '" placeholder="https://..."></div>' +
+            '<div class="form-group"><label class="form-label">URL do Favicon</label>' +
+              '<input class="form-control" id="ws_favicon" value="' + escHtml(cfg.workspace_favicon_url||'https://i.imgur.com/bOf9i1R.png') + '" placeholder="https://..."></div>' +
+          '</div>' +
+          '<div class="form-group"><label class="form-label">OG Image (meta social preview)</label>' +
+            '<input class="form-control" id="ws_og" value="' + escHtml(cfg.workspace_og_image||'') + '" placeholder="https://..."></div>' +
+          '<div style="margin-top:12px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:12px">' +
+            '<img id="wsLogoPreview" src="' + escHtml(cfg.workspace_logo_url||'https://i.imgur.com/bOf9i1R.png') + '" style="width:40px;height:40px;object-fit:cover;border-radius:8px" onerror="this.style.display=\'none\'">' +
+            '<div>' +
+              '<div id="wsNomePreview" style="font-size:13px;font-weight:700;color:var(--text)">' + escHtml(cfg.workspace_nome||'WPK Tavares') + '</div>' +
+              '<div id="wsSubPreview" style="font-size:11px;color:var(--muted)">' + escHtml(cfg.workspace_subtitulo||'Desafio 21 Dias') + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="margin-top:4px;font-size:11px;color:var(--muted)">Preview da sidebar &mdash; aplica na pr&oacute;xima vez que a p&aacute;gina for carregada</div>' +
+          '<button class="btn btn-primary btn-sm" style="margin-top:14px" onclick="salvarWorkspace()">💾 Salvar identidade</button>' +
+        '</div>' +
+      '</div>';
+
+    // Live preview
+    document.getElementById('ws_logo').addEventListener('input', function() {
+      document.getElementById('wsLogoPreview').src = this.value;
+    });
+    document.getElementById('ws_nome').addEventListener('input', function() {
+      document.getElementById('wsNomePreview').textContent = this.value;
+    });
+    document.getElementById('ws_sub').addEventListener('input', function() {
+      document.getElementById('wsSubPreview').textContent = this.value;
+    });
+
+  } catch(e) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erro</div><div class="empty-sub">' + escHtml(e.message) + '</div></div>';
+  }
+}
+
+async function salvarWorkspace() {
+  const cfg = {
+    workspace_nome:         val('ws_nome'),
+    workspace_subtitulo:    val('ws_sub'),
+    workspace_logo_url:     val('ws_logo'),
+    workspace_logo_compact: val('ws_logo_compact'),
+    workspace_favicon_url:  val('ws_favicon'),
+    workspace_og_image:     val('ws_og')
+  };
+  const res = await rpc('saveConfig', { config: cfg });
+  if (res.ok) {
+    toast('Workspace salvo! Recarregue a página para aplicar.', 'success');
+    // Atualiza sidebar ao vivo
+    const logoEl = document.getElementById('sidebarLogoMark');
+    if (logoEl) { const img = logoEl.querySelector('img'); if (img && cfg.workspace_logo_url) img.src = cfg.workspace_logo_url; }
+    const nEl = document.getElementById('wsNomeEl'); if (nEl) nEl.textContent = cfg.workspace_nome;
+    const sEl = document.getElementById('wsSubEl');  if (sEl) sEl.textContent = cfg.workspace_subtitulo;
+  } else {
+    toast(res.error || 'Erro ao salvar.', 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+async function verDetalheAluno(email, nome) {
+  try {
+    toast('Carregando dados do aluno...', 'info');
+    const res = await rpc('getCompradoresDetalhes', { email });
+    if (!res.ok) { toast(res.error||'Erro.', 'error'); return; }
+    const d = res.data;
+
+    // Monta grid de 21 dias
+    let diasHtml = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:8px">';
+    (d.historico || []).forEach(h => {
+      const cor = h.status === 'SIM' ? 'var(--green)' : h.status === 'PARCIAL' ? '#f59e0b' : 'var(--surface3)';
+      const txt = h.status === 'SIM' ? '#fff' : h.status === 'PARCIAL' ? '#fff' : 'var(--muted)';
+      diasHtml += '<div style="aspect-ratio:1;border-radius:6px;background:' + cor + ';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:' + txt + '">' + h.dia + '</div>';
+    });
+    diasHtml += '</div>';
+
+    var progBar =
+      '<div style="height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;margin:8px 0">' +
+        '<div style="height:100%;width:' + d.progresso + '%;background:var(--green);border-radius:4px"></div>' +
+      '</div>';
+
+    var _lbl = '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px">';
+    var modalBody =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">' +
+        '<div>' + _lbl + 'E-mail</div><div style="font-weight:600">' + escHtml(d.email) + '</div></div>' +
+        '<div>' + _lbl + 'Telefone</div><div style="font-weight:600">' + escHtml(d.telefone||'&mdash;') + '</div></div>' +
+        '<div>' + _lbl + 'Produto</div><div style="font-weight:600">' + escHtml(d.produto||'&mdash;') + '</div></div>' +
+        '<div>' + _lbl + 'Compra</div><div style="font-weight:600">' + fmtDate(d.paidAt) + '</div></div>' +
+      '</div>' +
+      '<div style="margin-bottom:14px">' +
+        '<div style="font-size:13px;font-weight:700;margin-bottom:4px">Progresso: ' + d.diasConcluidos + '/21 dias (' + d.progresso + '%)</div>' +
+        progBar +
+      '</div>' +
+      '<div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hist&oacute;rico dos 21 Dias</div>' +
+      diasHtml +
+      '<div style="font-size:11px;color:var(--muted);margin-top:10px">🟢 Conclu&iacute;do &nbsp; 🟡 Parcial &nbsp; ⬜ Pendente</div>';
+
+    openModal('Aluno: ' + escHtml(d.nome || nome), modalBody,
+      [{ label: 'Fechar', action: closeModal, cls: 'btn-ghost' }]
+    );
+  } catch(e) {
+    toast('Erro: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// NOTIFICAÇÕES PARA ALUNOS
+// ══════════════════════════════════════════════════════════
+async function renderNotificacoes() {
+  const content = document.getElementById('content');
+
+  // Carrega lista existente
+  let lista = [];
+  try {
+    const r = await rpc('getNotificacoesAdmin', {});
+    if (r.ok) lista = r.data || [];
+  } catch(e) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-title">Erro ao carregar notificações</div><div class="empty-sub">' + escHtml(String(e.message||e)) + '</div></div>';
+    return;
+  }
+
+  // Monta tabela de enviadas
+  var rows = '';
+  if (lista.length) {
+    lista.forEach(function(n) {
+      var tipoClass = n.tipo === 'success' ? 'tag tag-4' : n.tipo === 'alerta' ? 'tag tag-2' : 'tag tag-1';
+      var tipoLabel = n.tipo === 'success' ? 'Novidade' : n.tipo === 'alerta' ? 'Alerta' : 'Info';
+      var date = '';
+      try { date = new Date(n.criada_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }); } catch(e2) {}
+      rows +=
+        '<tr>' +
+          '<td><span class="badge ' + tipoClass + '">' + tipoLabel + '</span></td>' +
+          '<td style="font-weight:600;max-width:220px">' + escHtml(n.titulo) + '</td>' +
+          '<td style="color:var(--muted);max-width:280px;font-size:12px">' + escHtml(n.mensagem) + '</td>' +
+          '<td style="color:var(--muted);font-size:12px;white-space:nowrap">' + date + '</td>' +
+          '<td style="color:var(--muted);text-align:center">' + (n.totalLidas || 0) + '</td>' +
+          '<td>' +
+            (n.ativo
+              ? '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="excluirNotificacao(\'' + n.id + '\')">Excluir</button>'
+              : '<span style="font-size:11px;color:var(--muted2)">Inativa</span>') +
+          '</td>' +
+        '</tr>';
+    });
+  } else {
+    rows = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">Nenhuma notificação enviada ainda.</td></tr>';
+  }
+
+  content.innerHTML =
+    '<div style="padding:24px;max-width:960px;margin:0 auto">' +
+
+    // ── Formulário de envio ────────────────────────────────
+    '<div class="card" style="margin-bottom:24px">' +
+      '<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📤 Enviar Nova Notificação</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
+        '<div class="form-group" style="margin:0">' +
+          '<label class="form-label">Título *</label>' +
+          '<input class="form-control" id="notif_titulo" placeholder="Ex: Nova aula disponível">' +
+        '</div>' +
+        '<div class="form-group" style="margin:0">' +
+          '<label class="form-label">Tipo</label>' +
+          '<select class="form-control" id="notif_tipo">' +
+            '<option value="info">ℹ️ Info</option>' +
+            '<option value="success">✅ Novidade</option>' +
+            '<option value="alerta">⚠️ Alerta</option>' +
+          '</select>' +
+        '</div>' +
+      '</div>' +
+      '<div class="form-group" style="margin-bottom:16px">' +
+        '<label class="form-label">Mensagem *</label>' +
+        '<textarea class="form-control" id="notif_mensagem" rows="3" placeholder="Escreva a mensagem que os alunos verão no app..." style="resize:vertical"></textarea>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+        '<button class="btn btn-primary" onclick="enviarNotificacao()">🔔 Enviar para todos os alunos</button>' +
+        '<div id="notifSendStatus" style="font-size:13px;color:var(--muted)"></div>' +
+      '</div>' +
+    '</div>' +
+
+    // ── Tabela de enviadas ─────────────────────────────────
+    '<div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Histórico</div>' +
+    '<div class="table-wrap">' +
+      '<table class="table">' +
+        '<thead><tr>' +
+          '<th>Tipo</th><th>Título</th><th>Mensagem</th><th>Data</th><th style="text-align:center">Lidas</th><th></th>' +
+        '</tr></thead>' +
+        '<tbody id="notifTableBody">' + rows + '</tbody>' +
+      '</table>' +
+    '</div>' +
+
+    '</div>';
+}
+
+async function enviarNotificacao() {
+  var titulo   = (document.getElementById('notif_titulo')   || {}).value || '';
+  var mensagem = (document.getElementById('notif_mensagem') || {}).value || '';
+  var tipo     = (document.getElementById('notif_tipo')     || {}).value || 'info';
+  var statusEl = document.getElementById('notifSendStatus');
+
+  titulo   = titulo.trim();
+  mensagem = mensagem.trim();
+  if (!titulo || !mensagem) { toast('Preencha título e mensagem.', 'error'); return; }
+
+  if (statusEl) statusEl.textContent = 'Enviando...';
+  try {
+    const r = await rpc('sendNotification', { titulo: titulo, mensagem: mensagem, tipo: tipo });
+    if (r.ok) {
+      toast('Notificação enviada com sucesso!', 'success');
+      document.getElementById('notif_titulo').value   = '';
+      document.getElementById('notif_mensagem').value = '';
+      if (statusEl) statusEl.textContent = '';
+      renderNotificacoes(); // recarrega tabela
+    } else {
+      toast(r.error || 'Erro ao enviar.', 'error');
+      if (statusEl) statusEl.textContent = '';
+    }
+  } catch(e) {
+    toast('Erro: ' + (e.message || e), 'error');
+    if (statusEl) statusEl.textContent = '';
+  }
+}
+
+async function excluirNotificacao(id) {
+  if (!confirm('Desativar esta notificação? Os alunos não a verão mais.')) return;
+  try {
+    const r = await rpc('deleteNotificacao', { id: id });
+    if (r.ok) {
+      toast('Notificação desativada.', 'success');
+      renderNotificacoes();
+    } else {
+      toast(r.error || 'Erro ao excluir.', 'error');
+    }
+  } catch(e) {
+    toast('Erro: ' + (e.message || e), 'error');
+  }
+}
+
+</script>
+</body>
+</html>

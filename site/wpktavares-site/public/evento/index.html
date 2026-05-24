@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title id="pageTitle">Carregando evento…</title>
+  <!-- OG / Social -->
+  <meta property="og:type"        content="website" />
+  <meta id="ogTitle"       property="og:title"       content="WPK Tavares — Evento" />
+  <meta id="ogDesc"        property="og:description" content="" />
+  <meta id="ogImage"       property="og:image"       content="" />
+  <meta id="metaDesc"      name="description"        content="" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & tokens ───────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #07090a;
+      --surface:   #0e1012;
+      --surface2:  #141618;
+      --border:    rgba(255,255,255,.08);
+      --green:     #4caf50;
+      --green-d:   #388e3c;
+      --green-glow:rgba(76,175,80,.25);
+      --cream:     #eeeadc;
+      --cream-dim: #c8c4b8;
+      --white:     #ffffff;
+      --radius:    14px;
+      --radius-sm: 8px;
+      --font-h:    'Bebas Neue', sans-serif;
+      --font-b:    'DM Sans', sans-serif;
+      --font-s:    'Instrument Serif', serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--cream);
+      font-family: var(--font-b);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    img { display: block; max-width: 100%; height: auto; }
+    a   { color: inherit; text-decoration: none; }
+
+    /* ── Loading skeleton ─────────────────────────────────────── */
+    #loadingScreen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 20px;
+      z-index: 9999;
+      transition: opacity .5s ease, visibility .5s ease;
+    }
+    #loadingScreen.hidden { opacity: 0; visibility: hidden; }
+    .loader-logo {
+      font-family: var(--font-h);
+      font-size: 2.4rem;
+      letter-spacing: .08em;
+      color: var(--green);
+    }
+    .loader-bar {
+      width: 200px; height: 3px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .loader-bar::after {
+      content: '';
+      display: block;
+      height: 100%;
+      width: 40%;
+      background: var(--green);
+      border-radius: 99px;
+      animation: loaderSlide 1.2s ease-in-out infinite alternate;
+    }
+    @keyframes loaderSlide {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(350%); }
+    }
+
+    /* ── Error screen ─────────────────────────────────────────── */
+    #errorScreen {
+      display: none;
+      min-height: 100vh;
+      align-items: center; justify-content: center;
+      flex-direction: column; gap: 16px;
+      text-align: center; padding: 40px 20px;
+    }
+    #errorScreen.visible { display: flex; }
+    #errorScreen h2 { font-family: var(--font-h); font-size: 2rem; color: var(--cream); }
+    #errorScreen p  { color: var(--cream-dim); }
+
+    /* ── Sticky Navbar ────────────────────────────────────────── */
+    #navbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 5%;
+      background: rgba(7,9,10,.85);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border-bottom: 1px solid transparent;
+      transition: border-color .3s, box-shadow .3s;
+    }
+    #navbar.scrolled {
+      border-color: var(--border);
+      box-shadow: 0 4px 32px rgba(0,0,0,.5);
+    }
+    .nav-logo {
+      font-family: var(--font-h);
+      font-size: 1.5rem;
+      letter-spacing: .06em;
+      color: var(--white);
+    }
+    .nav-logo span { color: var(--green); }
+    .nav-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--green);
+      color: #000;
+      font-family: var(--font-b);
+      font-weight: 600;
+      font-size: .85rem;
+      letter-spacing: .04em;
+      padding: 10px 22px;
+      border-radius: 99px;
+      border: none; cursor: pointer;
+      transition: background .2s, transform .2s, box-shadow .2s;
+      white-space: nowrap;
+    }
+    .nav-cta:hover {
+      background: #5fca63;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px var(--green-glow);
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────── */
+    #hero {
+      position: relative;
+      min-height: 100svh;
+      display: flex; align-items: flex-end;
+      overflow: hidden;
+    }
+    #heroBg {
+      position: absolute; inset: 0;
+      background-size: cover;
+      background-position: center 20%;
+      transform: scale(1.05);
+      transition: transform 8s ease-out;
+      will-change: transform;
+    }
+    #heroBg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(7,9,10,.15) 0%,
+        rgba(7,9,10,.35) 40%,
+        rgba(7,9,10,.82) 75%,
+        var(--bg)        100%
+      );
+    }
+    .hero-content {
+      position: relative; z-index: 2;
+      width: 100%;
+      padding: 120px 5% 72px;
+      max-width: 900px;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(76,175,80,.15);
+      border: 1px solid rgba(76,175,80,.4);
+      color: var(--green);
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 99px;
+      margin-bottom: 20px;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .5; transform: scale(1.5); }
+    }
+    .hero-title {
+      font-family: var(--font-h);
+      font-size: clamp(2.8rem, 7vw, 6rem);
+      line-height: 1;
+      letter-spacing: .02em;
+      color: var(--white);
+      margin-bottom: 16px;
+    }
+    .hero-subtitle {
+      font-family: var(--font-s);
+      font-style: italic;
+      font-size: clamp(1.1rem, 2.5vw, 1.45rem);
+      color: var(--cream-dim);
+      margin-bottom: 32px;
+      max-width: 640px;
+    }
+    .hero-meta {
+      display: flex; flex-wrap: wrap; gap: 16px;
+      margin-bottom: 36px;
+    }
+    .hero-meta-item {
+      display: flex; align-items: center; gap: 8px;
+      font-size: .9rem;
+      color: var(--cream-dim);
+    }
+    .hero-meta-item svg { flex-shrink: 0; opacity: .75; }
+    .hero-ctas { display: flex; flex-wrap: wrap; gap: 12px; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--green);
+      color: #000;
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 16px 36px;
+      border-radius: 99px;
+      border: none; cursor: pointer;
+      transition: background .2s, transform .2s, box-shadow .2s;
+      animation: ctaPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes ctaPulse {
+      0%,100% { box-shadow: 0 4px 24px rgba(76,175,80,.25); transform: scale(1); }
+      50%      { box-shadow: 0 8px 40px rgba(76,175,80,.45); transform: scale(1.015); }
+    }
+    .btn-primary:hover {
+      background: #5fca63;
+      animation: none;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 40px rgba(76,175,80,.5);
+    }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: transparent;
+      color: var(--cream);
+      font-weight: 500;
+      font-size: 1rem;
+      padding: 15px 32px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: border-color .2s, background .2s, transform .2s;
+    }
+    .btn-secondary:hover {
+      border-color: rgba(255,255,255,.3);
+      background: rgba(255,255,255,.05);
+      transform: translateY(-2px);
+    }
+
+    /* ── Sections common ──────────────────────────────────────── */
+    section {
+      padding: 80px 5%;
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+    .section-label {
+      font-family: var(--font-b);
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: var(--font-h);
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      line-height: 1.05;
+      color: var(--white);
+      margin-bottom: 20px;
+    }
+    .section-divider {
+      width: 48px; height: 3px;
+      background: var(--green);
+      border-radius: 99px;
+      margin-bottom: 32px;
+    }
+
+    /* Reveal animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity .7s cubic-bezier(.16,1,.3,1),
+                  transform .7s cubic-bezier(.16,1,.3,1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-delay-1 { transition-delay: .1s; }
+    .reveal-delay-2 { transition-delay: .2s; }
+    .reveal-delay-3 { transition-delay: .3s; }
+    .reveal-delay-4 { transition-delay: .4s; }
+
+    /* ── Sobre o evento ───────────────────────────────────────── */
+    #sobre {
+      border-top: 1px solid var(--border);
+    }
+    .sobre-text {
+      font-size: 1.1rem;
+      line-height: 1.85;
+      color: var(--cream-dim);
+      max-width: 780px;
+      white-space: pre-wrap;
+    }
+
+    /* ── Palestrante ──────────────────────────────────────────── */
+    #palestrante {
+      background: var(--surface);
+      max-width: 100%;
+      padding: 80px 5%;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    #palestrante > div {
+      max-width: 1140px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+    .palestrante-img-wrap {
+      position: relative;
+    }
+    .palestrante-img-wrap::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      background: linear-gradient(135deg, var(--green), transparent 60%);
+      border-radius: 22px;
+      z-index: 0;
+    }
+    .palestrante-img {
+      position: relative; z-index: 1;
+      width: 100%;
+      aspect-ratio: 3/4;
+      object-fit: cover;
+      border-radius: 20px;
+      background: var(--surface2);
+    }
+    .palestrante-name {
+      font-family: var(--font-h);
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      color: var(--white);
+      margin-bottom: 8px;
+    }
+    .palestrante-role {
+      font-family: var(--font-s);
+      font-style: italic;
+      color: var(--green);
+      font-size: 1.05rem;
+      margin-bottom: 24px;
+    }
+    .palestrante-bio {
+      color: var(--cream-dim);
+      font-size: 1rem;
+      line-height: 1.8;
+    }
+
+    /* ── Galeria ──────────────────────────────────────────────── */
+    #galeria { border-top: 1px solid var(--border); }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      margin-top: 40px;
+    }
+    .gallery-item {
+      aspect-ratio: 4/3;
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--surface2);
+      transition: transform .3s, box-shadow .3s;
+    }
+    .gallery-item:hover {
+      transform: scale(1.025);
+      box-shadow: 0 12px 40px rgba(0,0,0,.5);
+    }
+    .gallery-item img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform .5s ease;
+    }
+    .gallery-item:hover img { transform: scale(1.06); }
+
+    /* Lightbox */
+    #lightbox {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.94);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; visibility: hidden;
+      transition: opacity .25s, visibility .25s;
+    }
+    #lightbox.open { opacity: 1; visibility: visible; }
+    #lightboxImg {
+      max-width: 90vw; max-height: 88vh;
+      border-radius: var(--radius);
+      object-fit: contain;
+      box-shadow: 0 20px 80px rgba(0,0,0,.8);
+    }
+    #lightboxClose {
+      position: absolute; top: 20px; right: 24px;
+      background: rgba(255,255,255,.1);
+      border: none; color: #fff;
+      width: 42px; height: 42px;
+      border-radius: 50%; font-size: 1.3rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .2s;
+    }
+    #lightboxClose:hover { background: rgba(255,255,255,.2); }
+    .lightbox-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,.1);
+      border: none; color: #fff;
+      width: 48px; height: 48px;
+      border-radius: 50%; font-size: 1.4rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .2s;
+    }
+    .lightbox-nav:hover { background: rgba(255,255,255,.2); }
+    #lightboxPrev { left: 20px; }
+    #lightboxNext { right: 20px; }
+
+    /* ── Vídeo ────────────────────────────────────────────────── */
+    #video { border-top: 1px solid var(--border); }
+    .video-wrapper {
+      margin-top: 40px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      aspect-ratio: 16/9;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+    }
+    .video-wrapper iframe {
+      width: 100%; height: 100%;
+      border: none;
+    }
+
+    /* ── Ingressos ────────────────────────────────────────────── */
+    #ingressos { border-top: 1px solid var(--border); }
+    .ingresso-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-top: 48px;
+    }
+    .ingresso-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      position: relative;
+      overflow: hidden;
+      transition: transform .3s, border-color .3s, box-shadow .3s;
+    }
+    .ingresso-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 48px rgba(0,0,0,.4);
+    }
+    .ingresso-card.featured {
+      border-color: var(--green);
+      background: linear-gradient(135deg, rgba(76,175,80,.06) 0%, var(--surface) 60%);
+    }
+    .ingresso-card.featured::before {
+      content: 'MAIS POPULAR';
+      position: absolute; top: 18px; right: 20px;
+      background: var(--green);
+      color: #000;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      padding: 4px 10px;
+      border-radius: 99px;
+    }
+    .ingresso-type {
+      font-family: var(--font-b);
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 12px;
+    }
+    .ingresso-price {
+      font-family: var(--font-h);
+      font-size: 3rem;
+      letter-spacing: .02em;
+      color: var(--white);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .ingresso-price-note {
+      font-size: .82rem;
+      color: var(--cream-dim);
+      margin-bottom: 28px;
+    }
+    .ingresso-features {
+      list-style: none;
+      margin-bottom: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .ingresso-features li {
+      display: flex; align-items: center; gap: 10px;
+      font-size: .9rem;
+      color: var(--cream-dim);
+    }
+    .ingresso-features li::before {
+      content: '✓';
+      width: 18px; height: 18px;
+      background: rgba(76,175,80,.15);
+      color: var(--green);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .btn-ingresso {
+      display: block;
+      width: 100%;
+      text-align: center;
+      background: var(--green);
+      color: #000;
+      font-weight: 700;
+      font-size: .95rem;
+      padding: 15px 24px;
+      border-radius: 99px;
+      border: none; cursor: pointer;
+      transition: background .2s, transform .15s, box-shadow .2s;
+      letter-spacing: .02em;
+    }
+    .btn-ingresso:hover {
+      background: #5fca63;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 28px var(--green-glow);
+    }
+    .btn-ingresso.secondary {
+      background: transparent;
+      color: var(--cream);
+      border: 1px solid var(--border);
+    }
+    .btn-ingresso.secondary:hover {
+      border-color: rgba(255,255,255,.3);
+      background: rgba(255,255,255,.05);
+    }
+
+    /* ── Footer ───────────────────────────────────────────────── */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 56px 5% 32px;
+      text-align: center;
+    }
+    .footer-logo {
+      font-family: var(--font-h);
+      font-size: 1.8rem;
+      letter-spacing: .08em;
+      color: var(--white);
+      margin-bottom: 12px;
+    }
+    .footer-logo span { color: var(--green); }
+    .footer-contato {
+      display: flex; align-items: center; justify-content: center;
+      gap: 24px; flex-wrap: wrap;
+      margin: 20px 0 32px;
+    }
+    .footer-contato a {
+      display: inline-flex; align-items: center; gap: 7px;
+      color: var(--cream-dim);
+      font-size: .9rem;
+      transition: color .2s;
+    }
+    .footer-contato a:hover { color: var(--green); }
+    .footer-copy {
+      font-size: .78rem;
+      color: rgba(255,255,255,.3);
+    }
+
+    /* ── WhatsApp FAB ─────────────────────────────────────────── */
+    #whatsappFab {
+      position: fixed;
+      bottom: 28px; right: 28px;
+      width: 58px; height: 58px;
+      background: #25d366;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 28px rgba(37,211,102,.4);
+      cursor: pointer;
+      z-index: 150;
+      transition: transform .25s, box-shadow .25s;
+      animation: whatsappPop .4s cubic-bezier(.16,1,.3,1) .8s both;
+    }
+    @keyframes whatsappPop {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    #whatsappFab:hover {
+      transform: scale(1.1);
+      box-shadow: 0 10px 36px rgba(37,211,102,.55);
+    }
+    #whatsappFab svg { width: 28px; height: 28px; }
+
+    /* ── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      #palestrante > div {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+      .palestrante-img-wrap {
+        max-width: 200px;
+        margin: 0 auto;
+      }
+      .palestrante-img { aspect-ratio: 1/1; }
+      .ingresso-cards {
+        grid-template-columns: 1fr;
+      }
+      .hero-ctas {
+        flex-direction: column;
+        width: fit-content;
+      }
+      section { padding: 60px 5%; }
+      #lightboxPrev { left: 8px; }
+      #lightboxNext { right: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Loading ──────────────────────────────────────────────── -->
+<div id="loadingScreen">
+  <div class="loader-logo">WPK<span style="color:var(--cream)">.</span></div>
+  <div class="loader-bar"></div>
+</div>
+
+<!-- ── Error ─────────────────────────────────────────────────── -->
+<div id="errorScreen">
+  <div style="font-size:3rem">🔍</div>
+  <h2>Evento não encontrado</h2>
+  <p id="errorMsg">Este link pode ter expirado ou o evento não está disponível.</p>
+  <a href="/" style="margin-top:8px;color:var(--green);font-weight:600">← Voltar ao início</a>
+</div>
+
+<!-- ════════════════ CONTEÚDO PRINCIPAL ════════════════════════ -->
+<div id="mainContent" style="display:none">
+
+  <!-- Navbar -->
+  <nav id="navbar">
+    <div class="nav-logo">WPK<span>.</span></div>
+    <a id="navCta" href="#ingressos" class="nav-cta">Garantir ingresso</a>
+  </nav>
+
+  <!-- Hero -->
+  <section id="hero" style="padding:0; max-width:100%; margin:0;">
+    <div id="heroBg"></div>
+    <div class="hero-content">
+      <div class="hero-badge" id="heroBadge">Evento</div>
+      <h1 class="hero-title" id="heroTitle">—</h1>
+      <p  class="hero-subtitle" id="heroSubtitle"></p>
+      <div class="hero-meta" id="heroMeta"></div>
+      <div class="hero-ctas" id="heroCtas"></div>
+    </div>
+  </section>
+
+  <!-- Sobre -->
+  <section id="sobre">
+    <p class="section-label reveal">Sobre o evento</p>
+    <h2 class="section-title reveal reveal-delay-1" id="sobreTitle">—</h2>
+    <div class="section-divider reveal reveal-delay-2"></div>
+    <p  class="sobre-text reveal reveal-delay-2" id="sobreText"></p>
+  </section>
+
+  <!-- Palestrante -->
+  <div id="palestrante">
+    <div>
+      <div class="palestrante-img-wrap reveal">
+        <img id="palestranteImg" class="palestrante-img" src="" alt="Palestrante" />
+      </div>
+      <div>
+        <p class="section-label reveal">Palestrante</p>
+        <h3 class="palestrante-name reveal reveal-delay-1" id="palestranteName">—</h3>
+        <p  class="palestrante-role reveal reveal-delay-2" id="palestranteRole"></p>
+        <p  class="palestrante-bio  reveal reveal-delay-3" id="palestranteBio"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Galeria -->
+  <section id="galeria" style="display:none">
+    <p class="section-label reveal">Galeria</p>
+    <h2 class="section-title reveal reveal-delay-1">Fotos do evento</h2>
+    <div class="section-divider reveal reveal-delay-2"></div>
+    <div class="gallery-grid reveal reveal-delay-2" id="galleryGrid"></div>
+  </section>
+
+  <!-- Vídeo -->
+  <section id="video" style="display:none">
+    <p class="section-label reveal">Assista</p>
+    <h2 class="section-title reveal reveal-delay-1">Vídeo do evento</h2>
+    <div class="section-divider reveal reveal-delay-2"></div>
+    <div class="video-wrapper reveal reveal-delay-2" id="videoWrapper"></div>
+  </section>
+
+  <!-- Ingressos -->
+  <section id="ingressos">
+    <p class="section-label reveal">Ingressos</p>
+    <h2 class="section-title reveal reveal-delay-1">Garanta sua vaga</h2>
+    <div class="section-divider reveal reveal-delay-2"></div>
+    <div class="ingresso-cards" id="ingressoCards"></div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-logo">WPK<span>.</span></div>
+    <div class="footer-contato" id="footerContato"></div>
+    <p  class="footer-copy">© <span id="footerYear"></span> WPK Tavares. Todos os direitos reservados.</p>
+  </footer>
+
+</div><!-- /mainContent -->
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <button id="lightboxClose" onclick="closeLightbox()">✕</button>
+  <button class="lightbox-nav" id="lightboxPrev" onclick="lightboxNav(-1)">‹</button>
+  <img id="lightboxImg" src="" alt="" />
+  <button class="lightbox-nav" id="lightboxNext" onclick="lightboxNav(+1)">›</button>
+</div>
+
+<!-- WhatsApp FAB -->
+<a id="whatsappFab" href="#" target="_blank" rel="noopener" title="Falar no WhatsApp" style="display:none">
+  <svg viewBox="0 0 24 24" fill="#fff" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+</a>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  EVENTO SPA — WPK Tavares
+//  Lê ?slug= da URL, busca no GAS e popula toda a página
+// ════════════════════════════════════════════════════════
+
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+
+var GALERIA_FOTOS  = [];
+var LIGHTBOX_IDX   = 0;
+
+// ── Scroll navbar ────────────────────────────────────────
+window.addEventListener('scroll', function() {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 40);
+}, { passive: true });
+
+// ── Reveal observer ──────────────────────────────────────
+function initReveal() {
+  var obs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        obs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(function(el) { obs.observe(el); });
+}
+
+// ── Slug from URL ────────────────────────────────────────
+function getSlug() {
+  var params = new URLSearchParams(window.location.search);
+  return params.get('slug') || '';
+}
+
+// ── Video embed helper ───────────────────────────────────
+function buildVideoEmbed(url) {
+  if (!url) return null;
+  // YouTube
+  var ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+  if (ytMatch) {
+    return 'https://www.youtube.com/embed/' + ytMatch[1] + '?rel=0&modestbranding=1&color=white';
+  }
+  // Vimeo
+  var vmMatch = url.match(/vimeo\.com\/(\d+)/);
+  if (vmMatch) {
+    return 'https://player.vimeo.com/video/' + vmMatch[1] + '?color=4caf50&title=0&byline=0&portrait=0';
+  }
+  return null;
+}
+
+// ── Format date ──────────────────────────────────────────
+function formatDate(val) {
+  if (!val) return '';
+  // Try ISO date
+  var d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  return String(val);
+}
+
+// ── Whatsapp number clean ────────────────────────────────
+function buildWhatsApp(contato) {
+  if (!contato) return null;
+  if (contato.startsWith('http')) return contato;
+  var num = contato.replace(/\D/g, '');
+  if (!num.startsWith('55')) num = '55' + num;
+  return 'https://wa.me/' + num + '?text=Ol%C3%A1%2C+gostaria+de+mais+informa%C3%A7%C3%B5es+sobre+o+evento.';
+}
+
+// ── Populate page ────────────────────────────────────────
+function populatePage(ev) {
+  // OG / SEO
+  document.title = ev.og_title || ev.nome_evento || 'Evento WPK Tavares';
+  setMeta('ogTitle',  ev.og_title || ev.nome_evento || '');
+  setMeta('ogDesc',   ev.og_desc  || ev.subtitulo   || '');
+  setMeta('ogImage',  ev.og_image || ev.foto_capa   || '');
+  setMeta('metaDesc', ev.og_desc  || ev.subtitulo   || '');
+
+  // Hero BG
+  if (ev.foto_capa) {
+    var bg = document.getElementById('heroBg');
+    bg.style.backgroundImage = 'url(' + ev.foto_capa + ')';
+    setTimeout(function() { bg.style.transform = 'scale(1)'; }, 100);
+  }
+
+  // Badge / Title / Subtitle
+  if (ev.data_evento) {
+    document.getElementById('heroBadge').textContent = formatDate(ev.data_evento);
+  }
+  document.getElementById('heroTitle').textContent    = ev.nome_evento  || '';
+  document.getElementById('heroSubtitle').textContent = ev.subtitulo    || '';
+  document.getElementById('sobreTitle').textContent   = ev.nome_evento  || '';
+
+  // Hero meta
+  var metaHtml = '';
+  if (ev.data_evento) {
+    metaHtml += metaItem(iconCal(), formatDate(ev.data_evento));
+  }
+  if (ev.horario) {
+    metaHtml += metaItem(iconClock(), ev.horario);
+  }
+  if (ev.local) {
+    metaHtml += metaItem(iconPin(), ev.local);
+  }
+  document.getElementById('heroMeta').innerHTML = metaHtml;
+
+  // Hero CTAs
+  var ctaHtml = '';
+  if (ev.link_presencial && ev.preco_presencial) {
+    ctaHtml += '<a href="' + ev.link_presencial + '" target="_blank" rel="noopener" class="btn-primary">' +
+               (ev.texto_btn_presencial || 'Ingresso Presencial') + '</a>';
+  }
+  if (ev.link_virtual && ev.preco_virtual) {
+    ctaHtml += '<a href="' + ev.link_virtual + '" target="_blank" rel="noopener" class="btn-secondary">' +
+               (ev.texto_btn_virtual || 'Ingresso Virtual') + '</a>';
+  }
+  if (!ctaHtml && ev.link_presencial) {
+    ctaHtml += '<a href="' + ev.link_presencial + '" target="_blank" rel="noopener" class="btn-primary">Garantir vaga</a>';
+  }
+  document.getElementById('heroCtas').innerHTML = ctaHtml;
+
+  // Sobre
+  document.getElementById('sobreText').textContent = ev.historia || '';
+  if (!ev.historia) document.getElementById('sobre').style.display = 'none';
+
+  // Palestrante
+  var palSec = document.getElementById('palestrante');
+  if (ev.nome_palestrante) {
+    document.getElementById('palestranteName').textContent = ev.nome_palestrante;
+    document.getElementById('palestranteRole').textContent = 'Palestrante do evento';
+    // Use foto_capa as fallback for speaker image
+    if (ev.foto_capa) {
+      document.getElementById('palestranteImg').src = ev.foto_capa;
+      document.getElementById('palestranteImg').alt = ev.nome_palestrante;
+    } else {
+      document.getElementById('palestranteImg').style.display = 'none';
+    }
+    if (ev.historia) {
+      document.getElementById('palestranteBio').textContent = ev.historia.substring(0, 320) + (ev.historia.length > 320 ? '…' : '');
+    }
+  } else {
+    palSec.style.display = 'none';
+  }
+
+  // Galeria
+  var fotos = ev.fotos || [];
+  if (fotos.length > 0) {
+    GALERIA_FOTOS = fotos;
+    var grid = document.getElementById('galleryGrid');
+    var gHtml = '';
+    fotos.forEach(function(url, idx) {
+      gHtml += '<div class="gallery-item" onclick="openLightbox(' + idx + ')">' +
+               '<img src="' + escHtml(url) + '" alt="Foto ' + (idx + 1) + '" loading="lazy" /></div>';
+    });
+    grid.innerHTML = gHtml;
+    document.getElementById('galeria').style.display = '';
+  }
+
+  // Vídeo
+  if (ev.video_url) {
+    var embedUrl = buildVideoEmbed(ev.video_url);
+    if (embedUrl) {
+      document.getElementById('videoWrapper').innerHTML =
+        '<iframe src="' + embedUrl + '" allowfullscreen allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture"></iframe>';
+      document.getElementById('video').style.display = '';
+    }
+  }
+
+  // Ingressos
+  buildIngressos(ev);
+
+  // Footer
+  buildFooter(ev);
+
+  // WhatsApp FAB
+  var wLink = buildWhatsApp(ev.contato);
+  if (wLink) {
+    var fab = document.getElementById('whatsappFab');
+    fab.href = wLink;
+    fab.style.display = '';
+  }
+
+  // Footer year
+  document.getElementById('footerYear').textContent = new Date().getFullYear();
+}
+
+function buildIngressos(ev) {
+  var cards = '';
+  var hasPresencial = ev.preco_presencial && ev.link_presencial;
+  var hasVirtual    = ev.preco_virtual    && ev.link_virtual;
+
+  if (hasPresencial) {
+    cards += '<div class="ingresso-card featured reveal">' +
+      '<p class="ingresso-type">Presencial</p>' +
+      '<div class="ingresso-price">' + ev.preco_presencial + '</div>' +
+      '<p class="ingresso-price-por-pessoa">' +
+      '<p class="ingresso-price-note">por pessoa</p>' +
+      '<ul class="ingresso-features">' +
+        '<li>Participação presencial no evento</li>' +
+        '<li>Networking ao vivo</li>' +
+        '<li>Certificado de participação</li>' +
+        '<li>Acesso à gravação</li>' +
+      '</ul>' +
+      '<a href="' + ev.link_presencial + '" target="_blank" rel="noopener" class="btn-ingresso">' +
+        (ev.texto_btn_presencial || 'Comprar ingresso presencial') +
+      '</a></div>';
+  }
+
+  if (hasVirtual) {
+    cards += '<div class="ingresso-card reveal reveal-delay-1">' +
+      '<p class="ingresso-type">Virtual</p>' +
+      '<div class="ingresso-price">' + ev.preco_virtual + '</div>' +
+      '<p class="ingresso-price-note">por pessoa</p>' +
+      '<ul class="ingresso-features">' +
+        '<li>Participação online ao vivo</li>' +
+        '<li>Acesso à gravação</li>' +
+        '<li>Certificado digital</li>' +
+        '<li>Material de apoio</li>' +
+      '</ul>' +
+      '<a href="' + ev.link_virtual + '" target="_blank" rel="noopener" class="btn-ingresso' + (hasPresencial ? ' secondary' : '') + '">' +
+        (ev.texto_btn_virtual || 'Comprar ingresso virtual') +
+      '</a></div>';
+  }
+
+  if (!cards) {
+    // Sem preço definido
+    cards = '<div class="ingresso-card reveal" style="grid-column:1/-1;text-align:center;padding:48px">' +
+      '<p style="color:var(--cream-dim);font-size:1.1rem">Em breve informações sobre ingressos.</p></div>';
+  }
+  document.getElementById('ingressoCards').innerHTML = cards;
+}
+
+function buildFooter(ev) {
+  var html = '';
+  var wLink = buildWhatsApp(ev.contato);
+  if (wLink) {
+    html += '<a href="' + wLink + '" target="_blank" rel="noopener">' +
+            iconWhatsApp() + ' Falar no WhatsApp</a>';
+  } else if (ev.contato && ev.contato.includes('@')) {
+    html += '<a href="mailto:' + ev.contato + '">' + iconMail() + ' ' + ev.contato + '</a>';
+  }
+  if (ev.local) {
+    html += '<span style="display:flex;align-items:center;gap:6px;color:var(--cream-dim)">' +
+            iconPin() + ' ' + ev.local + '</span>';
+  }
+  document.getElementById('footerContato').innerHTML = html;
+}
+
+// ── Lightbox ─────────────────────────────────────────────
+function openLightbox(idx) {
+  LIGHTBOX_IDX = idx;
+  document.getElementById('lightboxImg').src = GALERIA_FOTOS[idx];
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function lightboxNav(dir) {
+  LIGHTBOX_IDX = (LIGHTBOX_IDX + dir + GALERIA_FOTOS.length) % GALERIA_FOTOS.length;
+  document.getElementById('lightboxImg').src = GALERIA_FOTOS[LIGHTBOX_IDX];
+}
+document.getElementById('lightbox').addEventListener('click', function(e) {
+  if (e.target === this) closeLightbox();
+});
+document.addEventListener('keydown', function(e) {
+  var lb = document.getElementById('lightbox');
+  if (!lb.classList.contains('open')) return;
+  if (e.key === 'Escape') closeLightbox();
+  if (e.key === 'ArrowLeft')  lightboxNav(-1);
+  if (e.key === 'ArrowRight') lightboxNav(+1);
+});
+
+// ── Helpers ───────────────────────────────────────────────
+function setMeta(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.setAttribute(el.tagName === 'META' ? (el.getAttribute('property') ? 'content' : 'content') : 'content', val);
+}
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function metaItem(icon, text) {
+  return '<div class="hero-meta-item">' + icon + escHtml(text) + '</div>';
+}
+function iconCal() {
+  return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
+}
+function iconClock() {
+  return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+}
+function iconPin() {
+  return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+}
+function iconWhatsApp() {
+  return '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
+}
+function iconMail() {
+  return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>';
+}
+
+// ── Main init ─────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById('loadingScreen').classList.add('hidden');
+  var err = document.getElementById('errorScreen');
+  if (msg) document.getElementById('errorMsg').textContent = msg;
+  err.classList.add('visible');
+}
+
+function showContent() {
+  document.getElementById('loadingScreen').classList.add('hidden');
+  document.getElementById('mainContent').style.display = '';
+  initReveal();
+  // Trigger reveal for already-visible elements
+  setTimeout(function() {
+    document.querySelectorAll('.reveal').forEach(function(el) {
+      var rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight) el.classList.add('visible');
+    });
+  }, 150);
+}
+
+(function init() {
+  var slug = getSlug();
+  if (!slug) { showError('Nenhum slug de evento informado na URL.'); return; }
+
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'getEventoBySlug', data: { slug: slug } })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    if (!res.ok || !res.evento) {
+      showError(res.error || 'Evento não encontrado.');
+      return;
+    }
+    populatePage(res.evento);
+    showContent();
+  })
+  .catch(function(err) {
+    console.error('[Evento SPA]', err);
+    showError('Erro ao carregar evento. Tente novamente.');
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+site/**
+qa_agent/**
+.claude/**
+banco_de_dados/**
+backup_de_chats/**
+log-console/**
+node_modules/**
+.clasp.json
+.claspignore
+**/*.txt
+**/*.bat
+**/*.md
+**/*.ps1
+**/*.log
+**/*.csv

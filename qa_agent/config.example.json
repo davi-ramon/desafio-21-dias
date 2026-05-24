@@ -1,0 +1,24 @@
+{
+  "project_name": "App 21 Dias",
+  "app_url": "https://exemplo.com",
+  "login_url": "https://exemplo.com/login",
+  "headless": false,
+  "record_video": true,
+  "save_trace": true,
+  "timeout_ms": 30000,
+  "post_login_explore": true,
+  "safe_audio_test": true,
+  "safe_meditation_preview": true,
+  "max_nav_items": 8,
+  "audio_probe_seconds": 3,
+  "initial_wait_ms": 15000,
+  "post_login_wait_ms": 15000,
+  "action_wait_ms": 12000,
+  "view_load_wait_ms": 12000,
+  "audio_gallery_items": 5,
+  "audio_listen_seconds": 60,
+  "viewport": {
+    "width": 1366,
+    "height": 768
+  }
+}

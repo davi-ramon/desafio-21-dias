@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vagas Reabertas — Desafio 21 Dias</title>
+<meta name="description" content="As vagas do Desafio 21 Dias foram reabertas por tempo limitado. Se você já é aluno, solicite acesso à nova plataforma. Se ainda não é, garanta sua vaga.">
+
+<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Vagas Reabertas — Desafio 21 Dias">
+<meta property="og:description" content="Acesso liberado por tempo limitado. Alunos antigos e novas vagas disponíveis até 07/05/2026.">
+<meta property="og:image" content="https://i.imgur.com/Xe5iaZ1.gif">
+
+<!-- Pixel Meta -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','4212748045603496');
+fbq('track','PageView');
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ── TOKENS (mesma paleta landing page) ── */
+:root {
+  --bg:           #07090a;
+  --surface:      #0f1412;
+  --surface2:     #141c18;
+  --green:        #4caf50;
+  --green-bright: #6dde71;
+  --green-dim:    #2e6b31;
+  --cream:        #eeeadc;
+  --red:          #e84040;
+  --muted:        #6e9070;
+  --border:       rgba(76,175,80,0.18);
+  --border2:      rgba(76,175,80,0.08);
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+}
+
+section { position: relative; z-index: 1; }
+.container { max-width: 860px; margin: 0 auto; padding: 0 22px; }
+
+/* ── COUNTDOWN BANNER ── */
+.banner {
+  background: linear-gradient(90deg, rgba(76,175,80,0.12), rgba(76,175,80,0.06));
+  border-bottom: 1px solid var(--border);
+  padding: 12px 22px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cream);
+  position: relative; z-index: 10;
+}
+.banner span { color: var(--green); font-weight: 700; }
+.banner .countdown { display: inline-flex; gap: 4px; align-items: center; margin-left: 8px; }
+.cd-block {
+  background: var(--green);
+  color: #fff;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Bebas Neue', sans-serif;
+  letter-spacing: .05em;
+  min-width: 28px;
+  text-align: center;
+}
+.cd-sep { color: var(--green); font-weight: 700; }
+
+/* ── HERO ── */
+.hero {
+  min-height: 92vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 64px 22px 48px;
+  text-align: center;
+  background:
+    radial-gradient(ellipse 75% 55% at 50% 0%, rgba(76,175,80,0.13) 0%, transparent 65%),
+    var(--bg);
+}
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 11px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--green);
+  background: rgba(76,175,80,0.09); border: 1px solid var(--border);
+  border-radius: 100px; padding: 7px 20px; margin-bottom: 30px;
+}
+.eyebrow .dot-live {
+  width: 7px; height: 7px; background: var(--green-bright); border-radius: 50%;
+  animation: blink 1.8s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+.hero-badge {
+  display: inline-block;
+  background: var(--red);
+  color: #fff; font-size: 11px; font-weight: 700;
+  letter-spacing: .15em; text-transform: uppercase;
+  padding: 5px 16px; border-radius: 100px; margin-bottom: 22px;
+}
+
+h1.hero-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(56px, 12vw, 96px);
+  line-height: .92; letter-spacing: .01em;
+  color: var(--cream); margin-bottom: 12px;
+}
+h1.hero-title span { color: var(--green-bright); display: block; }
+
+.hero-sub {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: clamp(16px, 2.8vw, 21px);
+  color: var(--muted); margin-bottom: 20px;
+  max-width: 540px;
+}
+
+.hero-context {
+  font-size: 14px; color: rgba(110,144,112,.7);
+  margin-bottom: 44px; max-width: 480px;
+}
+
+/* ── FORM CARD ── */
+.form-card {
+  width: 100%; max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 0 0 1px rgba(76,175,80,.06), 0 24px 60px rgba(0,0,0,.5);
+}
+
+.form-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px; letter-spacing: .04em; color: var(--cream);
+  margin-bottom: 6px;
+}
+.form-desc { font-size: 13px; color: var(--muted); margin-bottom: 22px; line-height: 1.6; }
+
+.input-wrap { position: relative; margin-bottom: 14px; }
+.input-wrap input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; color: var(--cream);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input-wrap input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(76,175,80,.12);
+}
+.input-wrap input::placeholder { color: rgba(110,144,112,.5); }
+
+.btn-primary {
+  display: block; width: 100%;
+  background: var(--green); color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 700; letter-spacing: .03em;
+  text-decoration: none; text-align: center;
+  padding: 16px 24px; border-radius: 11px; border: none;
+  cursor: pointer;
+  transition: background .2s, transform .15s, box-shadow .2s;
+  box-shadow: 0 4px 24px rgba(76,175,80,.28);
+  position: relative; overflow: hidden;
+}
+.btn-primary:hover { background: var(--green-bright); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(76,175,80,.38); }
+.btn-primary:active { transform: none; }
+.btn-primary:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.btn-sub-label { font-size: 11px; font-weight: 400; opacity: .7; display: block; margin-top: 3px; }
+
+@keyframes glow-pulse { 0%,100%{box-shadow:0 4px 24px rgba(76,175,80,.28)} 50%{box-shadow:0 4px 44px rgba(76,175,80,.52)} }
+.btn-pulse { animation: glow-pulse 2.5s ease-in-out infinite; }
+
+.btn-ghost {
+  display: block; width: 100%; margin-top: 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 500;
+  text-align: center; text-decoration: none;
+  padding: 13px 24px; border-radius: 11px; cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+.btn-ghost:hover { border-color: var(--green); color: var(--cream); }
+
+.divider { display: flex; align-items: center; gap: 10px; margin: 16px 0; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.divider span { font-size: 12px; color: var(--muted); }
+
+/* ── RESULT STATES ── */
+.result {
+  display: none;
+  padding: 20px 22px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.65;
+  margin-top: 16px;
+  text-align: left;
+}
+.result.show { display: block; }
+.result-success {
+  background: rgba(76,175,80,.08);
+  border: 1px solid rgba(76,175,80,.25);
+  color: var(--cream);
+}
+.result-success strong { color: var(--green-bright); }
+.result-warn {
+  background: rgba(232,64,64,.07);
+  border: 1px solid rgba(232,64,64,.2);
+  color: var(--cream);
+}
+.result-warn strong { color: #f87272; }
+.result-info {
+  background: rgba(76,175,80,.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: middle; margin-right: 8px;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ── FEATURES ── */
+.features { padding: 72px 22px; }
+.section-tag {
+  font-size: 11px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--green); display: flex; align-items: center; gap: 8px; margin-bottom: 18px;
+  justify-content: center;
+}
+.section-tag::before { content: ''; width: 18px; height: 2px; background: var(--green); }
+
+h2.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(36px, 6.5vw, 58px);
+  line-height: .95; letter-spacing: .02em;
+  color: var(--cream); text-align: center; margin-bottom: 48px;
+}
+h2.section-title em { color: var(--green-bright); font-style: normal; }
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+.feat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 22px 20px;
+  transition: border-color .2s, transform .2s;
+}
+.feat-card:hover { border-color: var(--green-dim); transform: translateY(-3px); }
+.feat-icon { font-size: 24px; margin-bottom: 10px; }
+.feat-title { font-size: 14px; font-weight: 600; color: var(--cream); margin-bottom: 4px; }
+.feat-body { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+/* ── URGENCY ── */
+.urgency {
+  padding: 64px 22px;
+  background: var(--surface);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+.urgency p { font-size: 15px; color: var(--muted); max-width: 540px; margin: 0 auto 28px; line-height: 1.7; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--surface); border-top: 1px solid var(--border);
+  padding: 36px 22px; text-align: center;
+}
+footer p { font-size: 11px; color: #3a5a3a; line-height: 1.9; }
+footer a { color: var(--green); text-decoration: none; }
+
+/* ── DISCLAIMER ── */
+.disclaimer {
+  background: var(--bg); border-top: 1px solid rgba(76,175,80,.05);
+  padding: 22px;
+}
+.disclaimer p {
+  max-width: 860px; margin: 0 auto;
+  font-size: 10.5px; color: #344834; line-height: 1.8; text-align: center;
+}
+
+/* ── REVEAL ── */
+.reveal { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 500px) {
+  .form-card { padding: 26px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── COUNTDOWN BANNER ── -->
+<div class="banner">
+  <span>⚡ Vagas reabertas por tempo limitado</span> — Encerra em
+  <div class="countdown">
+    <div class="cd-block" id="cd-d">00</div><div class="cd-sep">:</div>
+    <div class="cd-block" id="cd-h">00</div><div class="cd-sep">:</div>
+    <div class="cd-block" id="cd-m">00</div><div class="cd-sep">:</div>
+    <div class="cd-block" id="cd-s">00</div>
+  </div>
+</div>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="eyebrow">
+    <div class="dot-live"></div>
+    Reabertura oficial · 04 a 07/05/2026
+  </div>
+
+  <div class="hero-badge">🔓 Vagas Abertas Agora</div>
+
+  <h1 class="hero-title">
+    O Desafio<br>
+    <span>21 Dias voltou.</span>
+  </h1>
+
+  <p class="hero-sub">
+    Agora com uma nova plataforma para você executar todos os dias.
+  </p>
+  <p class="hero-context">
+    Alunos antigos: acesso liberado sem pagar novamente.<br>
+    Novos alunos: garanta sua vaga antes do encerramento.
+  </p>
+
+  <!-- ── FORM CARD ── -->
+  <div class="form-card reveal" id="formCard">
+    <div class="form-title">Verifique seu acesso</div>
+    <p class="form-desc">Insira o e-mail usado na sua compra. Se você for aluno, liberamos o acesso à nova plataforma na hora.</p>
+
+    <div class="input-wrap">
+      <input type="email" id="emailInput" placeholder="seu@email.com" autocomplete="email">
+    </div>
+
+    <button class="btn-primary btn-pulse" id="btnCheck" onclick="verificarAcesso()">
+      <span id="btnLabel">Verificar meu acesso</span>
+      <span class="btn-sub-label" id="btnSub">Gratuito para alunos antigos</span>
+    </button>
+
+    <!-- Result states -->
+    <div class="result result-success" id="resultSuccess">
+      <strong>✅ Acesso liberado!</strong><br>
+      Enviamos seu login e senha para o e-mail informado.<br>
+      Verifique sua caixa de entrada e acesse a nova plataforma do Desafio 21 Dias.
+      <a href="/app/" class="btn-primary" style="margin-top:16px;display:block" target="_blank">
+        Acessar plataforma agora →
+      </a>
+    </div>
+
+    <div class="result result-info" id="resultExisting">
+      <strong style="color:var(--green)">👋 Você já tem acesso!</strong><br>
+      Seu cadastro já está ativo na plataforma. Reenviamos seus dados de acesso por e-mail.
+      <a href="/app/" class="btn-primary" style="margin-top:16px;display:block" target="_blank">
+        Acessar plataforma →
+      </a>
+    </div>
+
+    <div class="result result-warn" id="resultNotFound">
+      <strong>❌ Compra não encontrada</strong><br>
+      Não encontramos uma compra vinculada a este e-mail.<br>
+      Para participar da reabertura, você precisa garantir sua vaga.
+      <a id="btnCheckout" href="https://pay.cakto.com.br/a4po2eu_659401" class="btn-primary" style="margin-top:16px;display:block" target="_blank" onclick="fbq('track','InitiateCheckout',{value:60,currency:'BRL'})">
+        Garantir minha vaga agora →
+        <span class="btn-sub-label">R$60 · Garantia de 7 dias</span>
+      </a>
+    </div>
+
+    <div class="result result-warn" id="resultError">
+      <strong>⚠️ Ocorreu um erro</strong><br>
+      <span id="errorMsg">Tente novamente em instantes.</span><br>
+      Se o problema persistir, fale conosco pelo
+      <a href="https://wa.me/559484427988" target="_blank" style="color:var(--green)">WhatsApp</a>.
+    </div>
+
+    <div class="divider"><span>ou</span></div>
+
+    <a href="https://pay.cakto.com.br/a4po2eu_659401"
+       class="btn-ghost" target="_blank"
+       onclick="fbq('track','InitiateCheckout',{value:60,currency:'BRL'})">
+      Ainda não sou aluno — quero garantir minha vaga
+    </a>
+  </div>
+</section>
+
+<!-- ── FEATURES DA NOVA PLATAFORMA ── -->
+<section class="features">
+  <div class="container">
+    <div class="section-tag">Nova plataforma</div>
+    <h2 class="section-title reveal">O que você vai encontrar<br>na nova <em>experiência</em></h2>
+
+    <div class="features-grid">
+      <div class="feat-card reveal">
+        <div class="feat-icon">🔐</div>
+        <div class="feat-title">Login com e-mail e senha</div>
+        <div class="feat-body">Acesso personalizado e seguro à sua jornada dos 21 dias.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">📊</div>
+        <div class="feat-title">Progresso diário</div>
+        <div class="feat-body">Acompanhe em qual dia do desafio você está e o que já conquistou.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">🎧</div>
+        <div class="feat-title">Áudios motivacionais</div>
+        <div class="feat-body">21 áudios de palestrantes reais para te guiar cada manhã.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">☀️</div>
+        <div class="feat-title">Rotina da manhã guiada</div>
+        <div class="feat-body">Direção diária para meditar, ler e executar seus 3 pilares.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">✅</div>
+        <div class="feat-title">Check-in diário</div>
+        <div class="feat-body">Registre sua execução e construa consistência dia após dia.</div>
+      </div>
+      <div class="feat-card reveal">
+        <div class="feat-icon">💬</div>
+        <div class="feat-title">Comunidade ativa</div>
+        <div class="feat-body">Grupo no WhatsApp com suporte de especialistas todos os dias.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── URGENCY SECTION ── -->
+<section class="urgency">
+  <div class="container">
+    <div class="section-tag" style="justify-content:center">Encerramento em breve</div>
+    <h2 class="section-title reveal">As vagas fecham em<br><em>07/05/2026</em></h2>
+    <p>Depois dessa data, o acesso volta a ser bloqueado. Se você é aluno antigo, esse é o momento de reativar sua jornada sem custo. Se ainda não é aluno, essa é a abertura que estava esperando.</p>
+    <a href="#formCard" class="btn-primary btn-pulse" style="max-width:420px;margin:0 auto;display:block" onclick="fbq('track','Lead')">
+      Quero verificar meu acesso agora
+      <span class="btn-sub-label">Leva menos de 30 segundos</span>
+    </a>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <p>
+    © 2026 WPK Tavares — Equipe Lapidados. Todos os direitos reservados.<br>
+    <a href="/politica-de-privacidade/">Política de Privacidade</a> ·
+    <a href="/termos-de-uso/">Termos de Uso</a> ·
+    <a href="mailto:wpktavares@gmail.com">wpktavares@gmail.com</a>
+  </p>
+</footer>
+
+<div class="disclaimer">
+  <p>Este site não possui vínculo com Meta Platforms Inc., Facebook® ou Instagram®. Esta ação de reabertura é válida até 07/05/2026. O acesso à nova plataforma é exclusivo para compradores com compra verificada na base de dados do Desafio 21 Dias.</p>
+</div>
+
+<!-- ── SCRIPTS ── -->
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────
+var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+var DEADLINE   = new Date('2026-05-08T00:00:00-03:00'); // 07/05 fim do dia BRT
+
+// ─── COUNTDOWN ───────────────────────────────────────────────
+function updateCountdown() {
+  var diff = DEADLINE - new Date();
+  if (diff <= 0) {
+    document.getElementById('cd-d').textContent = '00';
+    document.getElementById('cd-h').textContent = '00';
+    document.getElementById('cd-m').textContent = '00';
+    document.getElementById('cd-s').textContent = '00';
+    return;
+  }
+  var d = Math.floor(diff / 86400000);
+  var h = Math.floor((diff % 86400000) / 3600000);
+  var m = Math.floor((diff % 3600000) / 60000);
+  var s = Math.floor((diff % 60000) / 1000);
+  document.getElementById('cd-d').textContent = String(d).padStart(2,'0');
+  document.getElementById('cd-h').textContent = String(h).padStart(2,'0');
+  document.getElementById('cd-m').textContent = String(m).padStart(2,'0');
+  document.getElementById('cd-s').textContent = String(s).padStart(2,'0');
+}
+updateCountdown();
+setInterval(updateCountdown, 1000);
+
+// ─── HELPERS ─────────────────────────────────────────────────
+function hideAllResults() {
+  ['resultSuccess','resultExisting','resultNotFound','resultError'].forEach(function(id) {
+    document.getElementById(id).classList.remove('show');
+  });
+}
+
+function setLoading(loading) {
+  var btn   = document.getElementById('btnCheck');
+  var label = document.getElementById('btnLabel');
+  var sub   = document.getElementById('btnSub');
+  btn.disabled = loading;
+  if (loading) {
+    label.innerHTML = '<span class="spinner"></span>Verificando...';
+    sub.textContent = 'Consultando a base de alunos';
+  } else {
+    label.textContent = 'Verificar meu acesso';
+    sub.textContent   = 'Gratuito para alunos antigos';
+  }
+}
+
+// ─── MAIN ACTION ─────────────────────────────────────────────
+function verificarAcesso() {
+  var email = document.getElementById('emailInput').value.trim().toLowerCase();
+
+  // Validation
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('emailInput').style.borderColor = '#e84040';
+    document.getElementById('emailInput').focus();
+    setTimeout(function(){ document.getElementById('emailInput').style.borderColor = ''; }, 2000);
+    return;
+  }
+
+  hideAllResults();
+  setLoading(true);
+  fbq('trackCustom', 'ReaberturaVerificar');
+
+  var payload = JSON.stringify({ action: 'reaberturaAccess', data: { email: email } });
+
+  fetch(WEBAPP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // GAS requires text/plain for CORS
+    body: payload
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    setLoading(false);
+    if (res.ok) {
+      if (res.status === 'created' || res.status === 'reset') {
+        fbq('trackCustom', 'ReaberturaAccessGranted');
+        document.getElementById('resultSuccess').classList.add('show');
+      } else if (res.status === 'existing') {
+        document.getElementById('resultExisting').classList.add('show');
+      }
+    } else if (res.status === 'not_found') {
+      // Atualiza link do checkout se veio do backend
+      if (res.checkout_url) {
+        document.getElementById('btnCheckout').href = res.checkout_url;
+      }
+      document.getElementById('resultNotFound').classList.add('show');
+    } else {
+      document.getElementById('errorMsg').textContent = res.error || 'Erro inesperado. Tente novamente.';
+      document.getElementById('resultError').classList.add('show');
+    }
+  })
+  .catch(function(err) {
+    setLoading(false);
+    document.getElementById('errorMsg').textContent = 'Falha de conexão. Verifique sua internet e tente novamente.';
+    document.getElementById('resultError').classList.add('show');
+  });
+}
+
+// Enter key submit
+document.getElementById('emailInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') verificarAcesso();
+});
+
+// ─── SCROLL REVEAL ───────────────────────────────────────────
+(function() {
+  var els = document.querySelectorAll('.reveal');
+  var io  = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  els.forEach(function(el) { io.observe(el); });
+})();
+</script>
+</body>
+</html>

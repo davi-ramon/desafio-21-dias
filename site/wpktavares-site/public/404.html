@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Página não encontrada — Desafio 21 Dias</title>
+<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080c08;--surface:#101810;--green:#4caf50;--green-bright:#6dde71;--cream:#f0ead6;--muted:#7a9a7a;--border:rgba(76,175,80,0.18)}
+body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;overflow:hidden}
+
+/* Grain */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+
+/* Radial glow behind 404 */
+body::after{content:'';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(76,175,80,.08) 0%,transparent 70%);pointer-events:none;z-index:0;animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}}
+
+.wrap{position:relative;z-index:1;max-width:460px}
+
+/* Animated 404 number */
+.num-404{font-family:'Bebas Neue',sans-serif;font-size:clamp(100px,22vw,160px);line-height:1;color:transparent;background:linear-gradient(135deg,var(--green) 0%,var(--green-bright) 50%,#2e6b31 100%);-webkit-background-clip:text;background-clip:text;letter-spacing:.02em;animation:shimmer 3s ease-in-out infinite;background-size:200% 200%}
+@keyframes shimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+
+/* Glitch bars */
+.glitch{position:relative;display:inline-block}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;inset:0;font-family:'Bebas Neue',sans-serif;font-size:inherit;line-height:1}
+.glitch::before{color:rgba(255,60,60,.4);animation:glitch1 4s infinite;clip-path:polygon(0 20%,100% 20%,100% 40%,0 40%)}
+.glitch::after{color:rgba(60,255,180,.3);animation:glitch2 4s infinite;clip-path:polygon(0 60%,100% 60%,100% 80%,0 80%)}
+@keyframes glitch1{0%,95%,100%{transform:translate(0)}96%{transform:translate(-3px,1px)}98%{transform:translate(3px,-1px)}}
+@keyframes glitch2{0%,95%,100%{transform:translate(0)}97%{transform:translate(3px,2px)}99%{transform:translate(-2px,-2px)}}
+
+.logo{width:48px;height:48px;border-radius:12px;border:1px solid var(--border);margin:0 auto 20px;display:block;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,5vw,38px);color:var(--cream);letter-spacing:.03em;margin-bottom:10px}
+.sub{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:36px}
+
+.links{display:flex;flex-direction:column;gap:10px;margin-bottom:32px}
+.btn-home{display:block;background:var(--green);color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;text-decoration:none;padding:15px 24px;border-radius:11px;transition:background .2s,transform .15s;box-shadow:0 4px 20px rgba(76,175,80,.25)}
+.btn-home:hover{background:var(--green-bright);transform:translateY(-2px)}
+.btn-ghost{display:block;background:var(--surface);border:1px solid var(--border);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;text-decoration:none;padding:13px 24px;border-radius:11px;transition:border-color .2s,color .2s}
+.btn-ghost:hover{border-color:var(--green);color:var(--cream)}
+
+/* Auto-redirect countdown */
+.redirect-note{font-size:12px;color:#3a5a3a}
+.redirect-note span{color:var(--green)}
+
+/* Floating dots */
+.dots{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.dot{position:absolute;border-radius:50%;background:var(--green);opacity:0;animation:rise var(--d) ease-in infinite;animation-delay:var(--dl);width:var(--s);height:var(--s);left:var(--l);bottom:-20px}
+@keyframes rise{0%{opacity:0;transform:translateY(0)}10%{opacity:.35}90%{opacity:.1}100%{opacity:0;transform:translateY(-100vh)}}
+</style>
+</head>
+<body>
+
+<div class="dots" id="dotsWrap"></div>
+
+<div class="wrap">
+  <img src="https://i.imgur.com/bOf9i1R.png" alt="Logo" class="logo">
+
+  <div class="glitch num-404" data-text="404">404</div>
+
+  <h1>Página não encontrada</h1>
+  <p class="sub">O endereço que você tentou acessar não existe ou foi movido.<br>Mas não se preocupe — estamos aqui para te colocar no caminho certo.</p>
+
+  <div class="links">
+    <a href="/" class="btn-home">← Voltar ao início</a>
+    <a href="/obrigado/" class="btn-ghost">Já comprei — acessar meu conteúdo</a>
+    <a href="/area-de-membros/" class="btn-ghost">Ir para a Área de Membros</a>
+  </div>
+
+  <p class="redirect-note">Redirecionando para o início em <span id="ctd">10</span>s...</p>
+</div>
+
+<script>
+// Floating particles
+(function(){
+  const wrap = document.getElementById('dotsWrap');
+  for (let i = 0; i < 18; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    const size = (Math.random() * 4 + 2) + 'px';
+    d.style.cssText =
+      '--s:' + size + ';' +
+      '--l:' + (Math.random()*100) + '%;' +
+      '--d:' + (Math.random()*8+6) + 's;' +
+      '--dl:' + (Math.random()*8) + 's';
+    wrap.appendChild(d);
+  }
+})();
+
+// Countdown redirect
+let t = 10;
+const el = document.getElementById('ctd');
+const id = setInterval(function(){
+  t--;
+  el.textContent = t;
+  if (t <= 0) { clearInterval(id); window.location.href = '/'; }
+}, 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════════
+#  TOKENS & SENSITIVE KEYS  ← never commit these!
+# ═══════════════════════════════════════════════════════
+tokenGitHub_.txt
+api_key_Meta_Ads.txt
+input_output_json_enviar_msg_gptMaker.txt
+**/*token*
+**/*secret*
+**/*_key*.txt
+.env
+.env.*
+
+# ═══════════════════════════════════════════════════════
+#  DATABASE & USER DATA
+# ═══════════════════════════════════════════════════════
+banco_de_dados/
+
+# ═══════════════════════════════════════════════════════
+#  BACKUPS & LOGS
+# ═══════════════════════════════════════════════════════
+backup_de_chats/
+log-console/
+
+# ═══════════════════════════════════════════════════════
+#  LOCAL CONFIG (Claude AI, clasp credentials)
+# ═══════════════════════════════════════════════════════
+.claude/
+.clasp.json
+
+# ═══════════════════════════════════════════════════════
+#  PYTHON — QA AGENT
+# ═══════════════════════════════════════════════════════
+qa_agent/.venv/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# QA report artifacts (keep .gitkeep placeholders)
+qa_agent/reports/screenshots/*
+qa_agent/reports/videos/*
+qa_agent/reports/traces/*
+qa_agent/reports/raw/*
+qa_agent/reports/markdown/*
+!**/.gitkeep
+
+# ═══════════════════════════════════════════════════════
+#  NODE.JS
+# ═══════════════════════════════════════════════════════
+node_modules/
+npm-debug.log*
+.npm
+
+# ═══════════════════════════════════════════════════════
+#  FIREBASE
+# ═══════════════════════════════════════════════════════
+.firebase/
+firebase-debug.log*
+
+# ═══════════════════════════════════════════════════════
+#  OS JUNK
+# ═══════════════════════════════════════════════════════
+.DS_Store
+Thumbs.db
+desktop.ini

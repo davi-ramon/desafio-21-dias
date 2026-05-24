@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bem-vindo ao Desafio 21 Dias — Acesso Confirmado</title>
+<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#080c08;--surface:#101810;--surface2:#141c18;--green:#4caf50;--green-bright:#6dde71;--green-dim:#2e6b31;--cream:#f0ead6;--muted:#7a9a7a;--border:rgba(76,175,80,0.18)}
+body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;padding:40px 20px;text-align:center}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:560px;margin:0 auto}
+/* Confetti-like pulse */
+.confetti{font-size:48px;animation:pop .5s cubic-bezier(.36,.07,.19,.97) both;margin-bottom:20px}
+@keyframes pop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
+.logo{width:52px;height:52px;border-radius:13px;border:1px solid var(--border);margin:0 auto 20px;display:block}
+.badge{display:inline-block;background:rgba(76,175,80,0.12);border:1px solid var(--border);border-radius:100px;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--green);padding:6px 18px;margin-bottom:22px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,10vw,78px);line-height:.92;color:var(--cream);margin-bottom:12px}
+h1 span{color:var(--green-bright);display:block}
+.sub{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:36px}
+/* Divider */
+.div{height:1px;background:var(--border);margin:28px 0}
+/* Section title */
+.sec{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+
+/* Primary CTA */
+.btn-primary{display:block;width:100%;background:var(--green);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;text-decoration:none;padding:17px 24px;border-radius:12px;border:none;cursor:pointer;transition:background .2s;margin-bottom:12px}
+.btn-primary:hover{background:var(--green-bright)}
+/* WA button */
+.btn-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:var(--surface);border:1px solid var(--border);color:var(--cream);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;text-decoration:none;padding:15px 24px;border-radius:12px;transition:border-color .2s,background .2s;margin-bottom:28px}
+.btn-wa:hover{border-color:var(--green);background:rgba(76,175,80,.06)}
+.btn-wa svg{flex-shrink:0}
+/* Notice */
+.notice{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--muted);line-height:1.7;text-align:left;margin-bottom:32px}
+.notice strong{color:var(--cream)}
+/* Footer */
+footer{font-size:11px;color:#3a5a3a;padding-top:16px;border-top:1px solid rgba(76,175,80,.06)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="confetti">🏆</div>
+  <img src="https://i.imgur.com/bOf9i1R.png" alt="Logo" class="logo">
+  <div class="badge">Compra confirmada</div>
+
+  <h1>Parabéns!<br><span>Você começou<br>algo grande.</span></h1>
+  <p class="sub">Sua inscrição no <strong>Desafio 21 Dias</strong> foi confirmada com sucesso.<br>Escolha como quer acessar seu conteúdo agora.</p>
+
+  <div class="sec">Acessar seu conteúdo</div>
+
+  <a href="/area-de-membros/" class="btn-primary">
+    🎓 Entrar na Área de Membros
+  </a>
+
+  <a href="https://wa.me/559484427988?text=Liberar+meu+acesso+Desafio+21+Dias" target="_blank" class="btn-wa">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    Liberar acesso via WhatsApp
+  </a>
+
+  <div class="notice">
+    <strong>Como acessar pela Área de Membros:</strong><br>
+    Clique em "Entrar na Área de Membros", informe o <strong>e-mail usado na compra</strong> e clique em <strong>"Enviar link mágico"</strong>. Você receberá um e-mail — clique no botão dentro dele e acesse o Desafio 21 Dias diretamente.
+  </div>
+
+  <footer>
+    © 2026 WPK Tavares — Equipe Lapidados · <a href="/politica-de-privacidade/" style="color:var(--green);text-decoration:none">Política de Privacidade</a>
+  </footer>
+</div>
+</body>
+</html>

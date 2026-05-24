@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Entrar — Desafio 21 Dias</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+
+<style>
+/* ══════════════════════════════════════════════
+   TOKENS
+══════════════════════════════════════════════ */
+:root {
+  --bg:           #07090a;
+  --surface:      #0d1410;
+  --surface2:     #111a14;
+  --green:        #4caf50;
+  --green-bright: #6dde71;
+  --green-glow:   rgba(76,175,80,0.22);
+  --green-dim:    rgba(76,175,80,0.08);
+  --cream:        #eeeadc;
+  --muted:        #5a7a5c;
+  --muted2:       #3a5a3c;
+  --border:       rgba(76,175,80,0.16);
+  --border-focus: rgba(76,175,80,0.55);
+  --red:          #e84040;
+}
+
+/* ══════════════════════════════════════════════
+   RESET + BASE
+══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: var(--bg);
+  color: var(--cream);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+}
+
+/* ══════════════════════════════════════════════
+   CANVAS BACKGROUND (shared)
+══════════════════════════════════════════════ */
+#bgCanvas {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+}
+
+/* ══════════════════════════════════════════════
+   LAYOUT — SPLIT
+══════════════════════════════════════════════ */
+.layout {
+  position: relative; z-index: 1;
+  width: 100%; height: 100%;
+  display: grid;
+  grid-template-columns: 480px 1fr;
+}
+
+/* ── LEFT PANEL (visual / animation side) ── */
+.left-panel {
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px;
+  overflow: hidden;
+}
+
+/* Radial spotlight behind left content */
+.left-panel::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 40% 45%, rgba(76,175,80,0.11) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 40% at 70% 70%, rgba(76,175,80,0.05) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+/* Vertical divider — agora left-panel é a coluna direita; linha na borda esquerda */
+.left-panel::after {
+  content: '';
+  position: absolute; top: 10%; left: 0; bottom: 10%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--border), var(--green-glow), var(--border), transparent);
+}
+
+/* ── Habit rings / progress visualization ── */
+.habit-visual {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+}
+
+.rings-wrap {
+  position: relative;
+  width: 260px; height: 260px;
+  margin-bottom: 36px;
+}
+
+.habit-ring {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Three concentric animated rings */
+.ring-outer {
+  width: 260px; height: 260px;
+  border: 1.5px solid rgba(76,175,80,.15);
+  animation: ring-rotate 18s linear infinite;
+}
+.ring-mid {
+  width: 190px; height: 190px;
+  top: 35px; left: 35px;
+  border: 1.5px solid rgba(76,175,80,.22);
+  animation: ring-rotate 12s linear infinite reverse;
+}
+.ring-inner {
+  width: 124px; height: 124px;
+  top: 68px; left: 68px;
+  border: 1.5px solid rgba(76,175,80,.32);
+  animation: ring-rotate 7s linear infinite;
+}
+
+/* Glowing dots on each ring */
+.ring-outer::before, .ring-mid::before, .ring-inner::before {
+  content: '';
+  position: absolute;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 12px 3px rgba(76,175,80,.7);
+  top: -3.5px; left: 50%; transform: translateX(-50%);
+}
+.ring-mid::before { width: 6px; height: 6px; top: -3px; }
+.ring-inner::before { width: 5px; height: 5px; top: -2.5px; background: var(--green-bright); }
+
+@keyframes ring-rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+/* Center icon */
+.ring-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 76px; height: 76px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 12px rgba(76,175,80,.04), 0 0 0 24px rgba(76,175,80,.02);
+}
+.ring-center img { width: 40px; height: 40px; border-radius: 10px; }
+
+/* Floating habit pills */
+.habit-pills {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.pill {
+  position: absolute;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 6px 14px;
+  font-size: 12px; font-weight: 500; color: var(--cream);
+  display: flex; align-items: center; gap: 7px;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  animation: pill-float var(--dur) ease-in-out infinite;
+  animation-delay: var(--del);
+}
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+
+/* Pill positions */
+.pill-1 { top: -12px;  left: 20%;  --dur: 5s; --del: 0s; }
+.pill-2 { top: 22%;   right: -20px; --dur: 6s; --del: 1.2s; }
+.pill-3 { bottom: 10%; left: -10px; --dur: 5.5s; --del: .6s; }
+.pill-4 { bottom: -8px; right: 22%; --dur: 4.8s; --del: 1.8s; }
+
+@keyframes pill-float {
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+}
+
+/* ── Left text ── */
+.left-text { text-align: center; max-width: 420px; }
+
+.left-tag {
+  font-size: 11px; font-weight: 600; letter-spacing: .22em; text-transform: uppercase;
+  color: var(--green); margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.left-tag::before, .left-tag::after {
+  content: ''; width: 20px; height: 1.5px; background: var(--muted2);
+}
+
+.left-headline {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(38px, 4vw, 54px);
+  line-height: .96; letter-spacing: .01em;
+  color: var(--cream); margin-bottom: 14px;
+}
+.left-headline em {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  color: var(--green-bright);
+}
+
+.left-body {
+  font-size: 14px; font-weight: 300; color: var(--muted);
+  line-height: 1.75; margin-bottom: 28px;
+}
+
+/* Progress strip */
+.progress-strip {
+  display: flex; gap: 6px; justify-content: center; align-items: center;
+}
+.day-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--muted2);
+  transition: background .3s, transform .3s;
+}
+.day-dot.done { background: var(--green); }
+.day-dot.active { background: var(--green-bright); transform: scale(1.5); box-shadow: 0 0 6px rgba(109,222,113,.6); }
+
+/* ── RIGHT PANEL (login form) ── */
+.right-panel {
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 44px;
+  background: rgba(13,20,16,.6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow-y: auto;
+}
+
+/* ── Logo block ── */
+.logo-block {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin-bottom: 32px;
+}
+.logo-block img {
+  width: 52px; height: 52px; border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 0 0 6px rgba(76,175,80,.04);
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+@keyframes logo-pulse {
+  0%,100%{box-shadow:0 0 0 6px rgba(76,175,80,.04)}
+  50%{box-shadow:0 0 0 10px rgba(76,175,80,.08)}
+}
+.logo-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px; letter-spacing: .08em; color: var(--cream);
+}
+.logo-sub {
+  font-size: 11px; font-weight: 400; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--muted); margin-top: -6px;
+}
+
+/* ── Form title ── */
+.form-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 10px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--green);
+  background: var(--green-dim); border: 1px solid var(--border);
+  border-radius: 100px; padding: 5px 14px;
+  margin-bottom: 22px;
+}
+.form-badge::before { content: '•'; }
+
+.form-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 30px; letter-spacing: .04em; color: var(--cream);
+  text-align: center; margin-bottom: 28px;
+}
+
+/* ── Input group ── */
+.input-group {
+  width: 100%; margin-bottom: 14px;
+}
+.input-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 7px;
+}
+
+.input-field {
+  position: relative; width: 100%;
+}
+.input-field input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 14px 44px 14px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px; color: var(--cream);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s, background .2s;
+}
+.input-field input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(76,175,80,.1), 0 2px 12px rgba(0,0,0,.2);
+  background: var(--surface2);
+}
+.input-field input:focus + .input-icon { color: var(--green); }
+.input-field input::placeholder { color: var(--muted2); }
+
+.input-icon {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--muted2); font-size: 16px; pointer-events: none;
+  transition: color .2s;
+}
+
+/* Reveal password toggle */
+.toggle-pass {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--muted2); font-size: 15px; cursor: pointer;
+  background: none; border: none; padding: 2px;
+  transition: color .2s;
+}
+.toggle-pass:hover { color: var(--green); }
+
+/* ── Submit button ── */
+.btn-submit {
+  width: 100%; position: relative; overflow: hidden;
+  background: var(--green); color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 700; letter-spacing: .03em;
+  padding: 16px 24px; border-radius: 11px; border: none;
+  cursor: pointer; margin-top: 6px;
+  transition: background .2s, transform .15s, box-shadow .2s;
+  box-shadow: 0 4px 24px rgba(76,175,80,.28), 0 1px 0 rgba(255,255,255,.08) inset;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.btn-submit:hover:not(:disabled) {
+  background: var(--green-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 36px rgba(76,175,80,.4);
+}
+.btn-submit:active:not(:disabled) { transform: translateY(0); }
+.btn-submit:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Shimmer on hover */
+.btn-submit::after {
+  content: ''; position: absolute; top: 0; left: -100%;
+  width: 55%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);
+  transition: left .5s;
+}
+.btn-submit:hover::after { left: 160%; }
+
+/* ── Spinner inside button ── */
+.btn-spinner {
+  width: 17px; height: 17px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+  display: none;
+}
+@keyframes spin { to{transform:rotate(360deg)} }
+.btn-submit.loading .btn-text { opacity: 0; }
+.btn-submit.loading .btn-spinner { display: block; position: absolute; }
+
+/* ── Error / success messages ── */
+.msg {
+  width: 100%; padding: 12px 16px;
+  border-radius: 10px; font-size: 13px; line-height: 1.6;
+  display: none; margin-top: 14px;
+}
+.msg.show { display: block; }
+.msg-error {
+  background: rgba(232,64,64,.08);
+  border: 1px solid rgba(232,64,64,.22);
+  color: #f87272;
+}
+.msg-success {
+  background: rgba(76,175,80,.08);
+  border: 1px solid rgba(76,175,80,.22);
+  color: var(--green-bright);
+}
+
+/* ── Footer ── */
+.form-footer {
+  margin-top: 22px; text-align: center;
+  font-size: 11px; color: var(--muted2); line-height: 1.8;
+}
+.form-footer a { color: var(--muted); text-decoration: none; transition: color .15s; }
+.form-footer a:hover { color: var(--green); }
+
+/* ── MOBILE LAYOUT — animação como background, form por cima ── */
+@media (max-width: 800px) {
+  html, body { overflow: hidden; height: 100%; }
+
+  .layout {
+    display: block;
+    position: fixed; inset: 0;
+    height: 100%; overflow: hidden;
+  }
+
+  /* Animação vira fundo decorativo */
+  .left-panel {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
+    opacity: 0.38;
+    pointer-events: none;
+    border: none;
+  }
+  .left-panel::after  { display: none; }
+  .left-panel::before { opacity: 0.55; }
+  .left-text          { display: none; }
+  .habit-pills        { display: none; }
+  .rings-wrap { width: 300px; height: 300px; margin-bottom: 0; }
+  .ring-outer { width: 300px; height: 300px; }
+  .ring-mid   { width: 220px; height: 220px; top: 40px; left: 40px; }
+  .ring-inner { width: 142px; height: 142px; top: 79px; left: 79px; }
+  .ring-center { width: 72px; height: 72px; }
+  .ring-center img { width: 36px; height: 36px; }
+
+  /* Form flutua centralizado com glassmorphism */
+  .right-panel {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 24px 20px 40px;
+    overflow-y: auto;
+    background: rgba(7,9,10,0.75);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .right-panel > * { max-width: 380px; width: 100%; }
+  .logo-block, .form-badge, .form-title, .form-footer { max-width: 380px; }
+}
+
+/* ── Entry animations ── */
+.right-panel > * {
+  opacity: 0; transform: translateY(16px);
+  animation: panel-in .55s cubic-bezier(.22,1,.36,1) forwards;
+}
+.right-panel > *:nth-child(1) { animation-delay: .1s; }
+.right-panel > *:nth-child(2) { animation-delay: .18s; }
+.right-panel > *:nth-child(3) { animation-delay: .24s; }
+.right-panel > *:nth-child(4) { animation-delay: .30s; }
+.right-panel > *:nth-child(5) { animation-delay: .36s; }
+.right-panel > *:nth-child(6) { animation-delay: .42s; }
+.right-panel > *:nth-child(7) { animation-delay: .46s; }
+.right-panel > *:nth-child(8) { animation-delay: .50s; }
+
+@keyframes panel-in { to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- Particle canvas -->
+<canvas id="bgCanvas"></canvas>
+
+<div class="layout">
+
+  <!-- ══ RIGHT PANEL (LOGIN) — coluna esquerda no desktop ══════ -->
+  <div class="right-panel">
+
+    <div class="logo-block">
+      <img src="https://i.imgur.com/bOf9i1R.png" alt="WPK Tavares">
+      <div class="logo-name">WPK TAVARES</div>
+      <div class="logo-sub">Desafio 21 Dias</div>
+    </div>
+
+    <!-- ── TELA: Login ─────────────────────── -->
+    <div id="viewLogin" style="display:contents">
+
+      <div class="form-badge">Área restrita — faça login</div>
+
+      <div class="form-title">Entrar</div>
+
+      <div class="input-group">
+        <label class="input-label" for="email">E-mail</label>
+        <div class="input-field">
+          <input type="email" id="email" placeholder="seu@email.com" autocomplete="email">
+          <span class="input-icon">✉</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="password">Senha</label>
+        <div class="input-field">
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+          <button class="toggle-pass" type="button" id="togglePass" onclick="togglePassword()" title="Mostrar senha">👁</button>
+        </div>
+      </div>
+
+      <button class="btn-submit" id="btnLogin" type="button" onclick="doLogin()">
+        <div class="btn-spinner"></div>
+        <span class="btn-text">Entrar</span>
+      </button>
+
+      <div class="msg msg-error" id="msgError"></div>
+      <div class="msg msg-success" id="msgSuccess"></div>
+
+      <div style="text-align:center;margin-top:14px">
+        <button onclick="switchView('forgot')" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:3px;transition:color .15s" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">Esqueci minha senha</button>
+      </div>
+
+      <div class="form-footer">
+        <p>Acesso restrito · WPK Tavares</p>
+        <p style="margin-top:6px">
+          Problemas com acesso?
+          <a href="https://wa.me/559484427988" target="_blank" rel="noopener">Fale conosco</a>
+        </p>
+      </div>
+
+    </div>
+
+    <!-- ── TELA: Esqueci a senha ─────────── -->
+    <div id="viewForgot" style="display:none;width:100%">
+
+      <div class="form-badge" style="margin-bottom:22px">🔑 Recuperar acesso</div>
+      <div class="form-title" id="forgotTitle">Recuperar Senha</div>
+
+      <div class="msg msg-error"   id="errForgot"></div>
+      <div class="msg msg-success" id="sucForgot"></div>
+
+      <!-- Passo 1: e-mail -->
+      <div id="fpStep1">
+        <div class="input-group">
+          <label class="input-label" for="fpEmail">E-mail cadastrado</label>
+          <div class="input-field">
+            <input type="email" id="fpEmail" placeholder="seu@email.com" autocomplete="email">
+            <span class="input-icon">✉</span>
+          </div>
+        </div>
+        <button class="btn-submit" id="btnSend" type="button" onclick="doSendCode()">
+          <div class="btn-spinner"></div>
+          <span class="btn-text">Enviar código</span>
+        </button>
+      </div>
+
+      <!-- Passo 2: código + nova senha -->
+      <div id="fpStep2" style="display:none">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;text-align:center;line-height:1.6">
+          Código enviado! Verifique seu e-mail e o spam.
+        </p>
+        <div class="input-group">
+          <label class="input-label" for="fpCode">Código (6 dígitos)</label>
+          <div class="input-field">
+            <input type="text" id="fpCode" placeholder="000000" maxlength="6" autocomplete="one-time-code"
+              style="letter-spacing:.15em;text-align:center;font-size:22px;font-weight:700">
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="fpNew">Nova senha</label>
+          <div class="input-field">
+            <input type="password" id="fpNew" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+          </div>
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="fpConfirm">Confirmar senha</label>
+          <div class="input-field">
+            <input type="password" id="fpConfirm" placeholder="Repita a nova senha" autocomplete="new-password">
+          </div>
+        </div>
+        <button class="btn-submit" id="btnReset" type="button" onclick="doResetPassword()">
+          <div class="btn-spinner"></div>
+          <span class="btn-text">Redefinir senha</span>
+        </button>
+      </div>
+
+      <div style="text-align:center;margin-top:16px">
+        <button onclick="switchView('login')" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:3px">← Voltar ao login</button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ══ LEFT PANEL (ANIMAÇÃO) — coluna direita no desktop ═════ -->
+  <div class="left-panel">
+    <div class="habit-visual">
+      <div class="rings-wrap">
+        <div class="habit-ring ring-outer"></div>
+        <div class="habit-ring ring-mid"></div>
+        <div class="habit-ring ring-inner"></div>
+        <div class="ring-center">
+          <img src="https://i.imgur.com/bOf9i1R.png" alt="WPK">
+        </div>
+        <!-- Floating pills -->
+        <div class="habit-pills">
+          <div class="pill pill-1"><div class="dot"></div>🧘 Meditação</div>
+          <div class="pill pill-2"><div class="dot"></div>📖 Leitura</div>
+          <div class="pill pill-3"><div class="dot"></div>🏃 Exercício</div>
+          <div class="pill pill-4"><div class="dot"></div>✅ Check-in</div>
+        </div>
+      </div>
+
+      <div class="left-text">
+        <div class="left-tag">Desafio 21 Dias</div>
+        <h2 class="left-headline">
+          Transforme<br>
+          cada <em>manhã</em><br>
+          em hábito.
+        </h2>
+        <p class="left-body">
+          21 dias de disciplina guiada.<br>
+          Meditação, leitura e exercício — todo dia.
+        </p>
+
+        <!-- Day progress strip -->
+        <div class="progress-strip" id="progressStrip"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── WEB APP URL ──────────────────────────────────────────────
+var WEBAPP = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+
+// ── PARTICLE BACKGROUND ──────────────────────────────────────
+(function() {
+  var canvas = document.getElementById('bgCanvas');
+  var ctx    = canvas.getContext('2d');
+  var W, H, particles;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function initParticles() {
+    particles = [];
+    var count = Math.floor((W * H) / 14000);
+    for (var i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: Math.random() * 1.8 + .4,
+        vx: (Math.random() - .5) * .25,
+        vy: (Math.random() - .5) * .25,
+        alpha: Math.random() * .4 + .1,
+        pulse: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  // Connection lines between close particles
+  function drawLines() {
+    var maxDist = 100;
+    for (var i = 0; i < particles.length; i++) {
+      for (var j = i + 1; j < particles.length; j++) {
+        var dx = particles[i].x - particles[j].x;
+        var dy = particles[i].y - particles[j].y;
+        var dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < maxDist) {
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(76,175,80,' + (.08 * (1 - dist/maxDist)) + ')';
+          ctx.lineWidth = .5;
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, W, H);
+    drawLines();
+    var t = Date.now() * .001;
+    particles.forEach(function(p) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      p.pulse += .015;
+      var a = p.alpha * (.7 + .3 * Math.sin(p.pulse));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(76,175,80,' + a + ')';
+      ctx.fill();
+    });
+    requestAnimationFrame(animate);
+  }
+
+  resize(); initParticles(); animate();
+  window.addEventListener('resize', function() { resize(); initParticles(); });
+})();
+
+// ── DAY PROGRESS STRIP ──────────────────────────────────────
+(function() {
+  var strip = document.getElementById('progressStrip');
+  var doneCount = Math.floor(Math.random() * 7) + 5; // visual demo: 5-12 days done
+  var activeDay = doneCount + 1;
+  for (var i = 1; i <= 21; i++) {
+    var dot = document.createElement('div');
+    dot.className = 'day-dot' + (i <= doneCount ? ' done' : i === activeDay ? ' active' : '');
+    strip.appendChild(dot);
+  }
+  // Animate dots in sequence
+  var dots = strip.querySelectorAll('.day-dot');
+  dots.forEach(function(d, idx) {
+    d.style.opacity = '0';
+    d.style.transform = 'scale(0)';
+    setTimeout(function() {
+      d.style.transition = 'opacity .3s, transform .3s';
+      d.style.opacity = '1';
+      d.style.transform = d.classList.contains('active') ? 'scale(1.5)' : 'scale(1)';
+    }, 700 + idx * 40);
+  });
+})();
+
+// ── TOGGLE PASSWORD ──────────────────────────────────────────
+function togglePassword() {
+  var inp = document.getElementById('password');
+  var btn = document.getElementById('togglePass');
+  if (inp.type === 'password') {
+    inp.type = 'text'; btn.textContent = '🙈';
+  } else {
+    inp.type = 'password'; btn.textContent = '👁';
+  }
+}
+
+// ── ENTER KEY ────────────────────────────────────────────────
+document.getElementById('email').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('password').focus();
+});
+document.getElementById('password').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ── DO LOGIN ─────────────────────────────────────────────────
+function doLogin() {
+  var email    = document.getElementById('email').value.trim().toLowerCase();
+  var password = document.getElementById('password').value;
+  var btn      = document.getElementById('btnLogin');
+  var errBox   = document.getElementById('msgError');
+  var sucBox   = document.getElementById('msgSuccess');
+
+  // Hide messages
+  errBox.classList.remove('show');
+  sucBox.classList.remove('show');
+
+  // Validate
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showErr('Informe um e-mail válido.'); return;
+  }
+  if (!password) {
+    showErr('Informe a senha.'); return;
+  }
+
+  // Loading state
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  fetch(WEBAPP, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'login', data: { email: email, password: password } })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    if (res.ok) {
+      // Save session
+      sessionStorage.setItem('crm_token', res.token);
+      sessionStorage.setItem('crm_user', JSON.stringify(res.user));
+
+      // Salva sessão e navega para app.html (sem iframe, sem script.google.com)
+      sucBox.innerHTML = '✅ Login realizado! Entrando...';
+      sucBox.classList.add('show');
+
+      setTimeout(function() {
+        window.location.assign('./app.html');
+      }, 600);
+    } else {
+      showErr(res.error || 'E-mail ou senha incorretos.');
+    }
+  })
+  .catch(function() {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+    showErr('Falha de conexão. Verifique sua internet e tente novamente.');
+  });
+}
+
+function showErr(msg) {
+  var el = document.getElementById('msgError');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('show');
+  var card = document.querySelector('.right-panel');
+  card.style.animation = 'shake .35s ease';
+  setTimeout(function() { card.style.animation = ''; }, 400);
+}
+
+// ── TROCA DE TELA login ↔ forgot ─────────────────────────────
+function switchView(v) {
+  var login  = document.getElementById('viewLogin');
+  var forgot = document.getElementById('viewForgot');
+  if (v === 'forgot') {
+    login.style.display  = 'none';
+    forgot.style.display = '';
+    // Reseta estados
+    document.getElementById('fpStep1').style.display = '';
+    document.getElementById('fpStep2').style.display = 'none';
+    document.getElementById('errForgot').classList.remove('show');
+    document.getElementById('sucForgot').classList.remove('show');
+  } else {
+    forgot.style.display = 'none';
+    login.style.display  = 'contents';
+    document.getElementById('msgError').classList.remove('show');
+    document.getElementById('msgSuccess').classList.remove('show');
+  }
+}
+
+// ── ENVIAR CÓDIGO DE RECUPERAÇÃO ─────────────────────────────
+function doSendCode() {
+  var email  = (document.getElementById('fpEmail').value || '').trim();
+  var btn    = document.getElementById('btnSend');
+  var errBox = document.getElementById('errForgot');
+  errBox.classList.remove('show');
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errBox.textContent = '⚠ Informe um e-mail válido.';
+    errBox.classList.add('show'); return;
+  }
+
+  btn.classList.add('loading'); btn.disabled = true;
+
+  fetch(WEBAPP, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'sendPasswordReset', data: { email: email } })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    btn.classList.remove('loading'); btn.disabled = false;
+    if (res.ok) {
+      document.getElementById('fpStep1').style.display = 'none';
+      document.getElementById('fpStep2').style.display = '';
+    } else {
+      errBox.textContent = '⚠ ' + (res.error || 'Erro ao enviar código.');
+      errBox.classList.add('show');
+    }
+  })
+  .catch(function() {
+    btn.classList.remove('loading'); btn.disabled = false;
+    errBox.textContent = '⚠ Falha de conexão.';
+    errBox.classList.add('show');
+  });
+}
+
+// ── VALIDAR CÓDIGO E REDEFINIR SENHA ─────────────────────────
+function doResetPassword() {
+  var email      = (document.getElementById('fpEmail').value || '').trim();
+  var code       = (document.getElementById('fpCode').value    || '').trim();
+  var newPwd     = document.getElementById('fpNew').value;
+  var confirmPwd = document.getElementById('fpConfirm').value;
+  var btn        = document.getElementById('btnReset');
+  var errBox     = document.getElementById('errForgot');
+  errBox.classList.remove('show');
+
+  if (!code)             { errBox.textContent = '⚠ Digite o código recebido.'; errBox.classList.add('show'); return; }
+  if (!newPwd)           { errBox.textContent = '⚠ Digite a nova senha.';       errBox.classList.add('show'); return; }
+  if (newPwd.length < 6) { errBox.textContent = '⚠ Senha mínimo 6 caracteres.'; errBox.classList.add('show'); return; }
+  if (newPwd !== confirmPwd) { errBox.textContent = '⚠ As senhas não coincidem.'; errBox.classList.add('show'); return; }
+
+  btn.classList.add('loading'); btn.disabled = true;
+
+  fetch(WEBAPP, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'verifyAndResetPassword', data: { email, code, newPassword: newPwd } })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(res) {
+    btn.classList.remove('loading'); btn.disabled = false;
+    if (res.ok) {
+      // Volta para login com mensagem de sucesso
+      switchView('login');
+      var el = document.getElementById('msgSuccess');
+      el.textContent = '✅ Senha redefinida! Faça o login.';
+      el.classList.add('show');
+    } else {
+      errBox.textContent = '⚠ ' + (res.error || 'Código inválido ou expirado.');
+      errBox.classList.add('show');
+    }
+  })
+  .catch(function() {
+    btn.classList.remove('loading'); btn.disabled = false;
+    errBox.textContent = '⚠ Falha de conexão.';
+    errBox.classList.add('show');
+  });
+}
+</script>
+
+<style>
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+</style>
+
+<!-- ══ APP IFRAME WRAPPER ══════════════════════════════════════
+     Aparece DEPOIS do login, em cima do formulário.
+     O iframe carrega o WebApp do GAS dentro do domínio próprio.
+     Isso resolve o problema de deep-link no Chrome mobile
+     (script.google.com nunca aparece na barra de endereços).
+═══════════════════════════════════════════════════════════════ -->
+<div id="appWrap" style="
+  display:none;
+  position:fixed;inset:0;z-index:999;
+  background:#07090a;
+  opacity:0;
+  transition:opacity .35s ease;
+">
+  <!-- Loading screen enquanto o iframe carrega -->
+  <div id="appLoading" style="
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:18px;
+    z-index:2;background:#07090a;
+    transition:opacity .4s ease;
+  ">
+    <div style="
+      width:54px;height:54px;border-radius:16px;
+      background:linear-gradient(135deg,#4caf50,#2e6b31);
+      display:flex;align-items:center;justify-content:center;
+      font-size:24px;
+      box-shadow:0 0 0 8px rgba(76,175,80,.07);
+      animation:logo-pulse 2.5s ease-in-out infinite;
+    ">⚡</div>
+    <div style="
+      width:24px;height:24px;
+      border:2px solid rgba(76,175,80,.2);
+      border-top-color:#4caf50;
+      border-radius:50%;
+      animation:spin .7s linear infinite;
+    "></div>
+    <div style="color:#6e9070;font-size:13px;font-family:'DM Sans',sans-serif">
+      Carregando seu desafio...
+    </div>
+  </div>
+
+  <!-- Overlay de erro / necessidade de autorização -->
+  <div id="appAuthOverlay" style="
+    display:none;
+    position:absolute;inset:0;z-index:3;
+    background:#07090a;
+    flex-direction:column;align-items:center;justify-content:center;
+    padding:32px;text-align:center;font-family:'DM Sans',sans-serif;
+    gap:20px;
+  ">
+    <div style="font-size:48px">🔐</div>
+    <div style="font-size:20px;font-weight:800;color:#eeeadc;letter-spacing:-0.3px">
+      Autorização necessária
+    </div>
+    <div style="font-size:14px;color:#6e9070;max-width:320px;line-height:1.7">
+      O aplicativo precisa de uma autorização única no Google para funcionar corretamente.<br>
+      Clique no botão abaixo, autorize e volte a essa tela.
+    </div>
+    <button id="authOpenBtn" onclick="_openGasAuth()" style="
+      padding:16px 32px;
+      background:#4caf50;color:#fff;
+      border:none;border-radius:13px;
+      font-family:'DM Sans',sans-serif;
+      font-size:15px;font-weight:800;
+      cursor:pointer;letter-spacing:0.02em;
+      box-shadow:0 4px 24px rgba(76,175,80,0.42);
+    ">Autorizar aplicativo →</button>
+    <button onclick="_retryApp()" style="
+      background:none;border:none;
+      font-family:'DM Sans',sans-serif;
+      font-size:13px;color:#3a5a3c;
+      cursor:pointer;text-decoration:underline;
+      text-underline-offset:3px;
+    ">Já autorizei — recarregar</button>
+    <button onclick="_forceLogout()" style="
+      background:none;border:none;
+      font-family:'DM Sans',sans-serif;
+      font-size:12px;color:#3a5a3c;
+      cursor:pointer;margin-top:4px;
+    ">Voltar ao login</button>
+  </div>
+
+  <!-- O iframe em si: ocupa 100% sem bordas -->
+  <iframe id="appFrame"
+    src="about:blank"
+    allow="autoplay; microphone; camera; fullscreen; clipboard-write"
+    allowfullscreen
+    style="
+      position:absolute;inset:0;
+      width:100%;height:100%;
+      border:none;
+      background:#07090a;
+      z-index:1;
+    ">
+  </iframe>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// APP WRAPPER — controla transição login → iframe
+// ═══════════════════════════════════════════════════════════════
+
+function _getToken() {
+  try { return sessionStorage.getItem('crm_token') || ''; } catch(e) { return ''; }
+}
+
+// ─── Estado global do app loader ─────────────────────────────
+var _appReady       = false;   // true quando gas_ready chega
+var _appReadyTimer  = null;    // timeout de segurança
+var _currentToken   = '';
+
+// Mostra o iframe com o WebApp carregado
+function showApp(token) {
+  if (!token) return;
+  _currentToken = token;
+  try { sessionStorage.setItem('crm_token', token); } catch(e) {}
+
+  var wrap   = document.getElementById('appWrap');
+  var frame  = document.getElementById('appFrame');
+  var ld     = document.getElementById('appLoading');
+  var auth   = document.getElementById('appAuthOverlay');
+  var layout = document.querySelector('.layout');
+
+  // Resetar estado
+  _appReady = false;
+  if (_appReadyTimer) { clearTimeout(_appReadyTimer); _appReadyTimer = null; }
+  if (auth)  { auth.style.display = 'none'; }
+  if (ld)    { ld.style.opacity = '1'; ld.style.display = 'flex'; }
+
+  // Fade out login
+  if (layout) {
+    layout.style.transition = 'opacity .3s ease';
+    layout.style.opacity = '0';
+    setTimeout(function() { layout.style.display = 'none'; }, 300);
+  }
+
+  // Mostra wrapper com fade in
+  wrap.style.display = 'block';
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() { wrap.style.opacity = '1'; });
+  });
+
+  // Define src do iframe
+  var iframeSrc = WEBAPP + '?page=app&token=' + encodeURIComponent(token);
+  console.info('[App] Carregando iframe:', iframeSrc.slice(0, 80) + '...');
+  frame.src = iframeSrc;
+
+  // Esconde loading quando o app sinalizar que está pronto (gas_ready via postMessage)
+  // Timeout de segurança: se em 25s não receber gas_ready, mostra tela de autorização
+  _appReadyTimer = setTimeout(function() {
+    if (!_appReady) {
+      console.warn('[App] Timeout: gas_ready não recebido em 25s — possível necessidade de autorização OAuth');
+      _showAuthOverlay();
+    }
+  }, 25000);
+}
+
+// Esconde loading e sinaliza app pronto
+function _onAppReady() {
+  if (_appReady) return;
+  _appReady = true;
+  if (_appReadyTimer) { clearTimeout(_appReadyTimer); _appReadyTimer = null; }
+  var ld   = document.getElementById('appLoading');
+  var auth = document.getElementById('appAuthOverlay');
+  if (auth) { auth.style.display = 'none'; }
+  if (ld)   { ld.style.opacity = '0'; setTimeout(function() { ld.style.display = 'none'; }, 400); }
+  console.info('[App] gas_ready recebido — app carregado com sucesso');
+}
+
+// Mostra overlay de autorização OAuth
+function _showAuthOverlay() {
+  var ld   = document.getElementById('appLoading');
+  var auth = document.getElementById('appAuthOverlay');
+  if (ld)   { ld.style.opacity = '0'; setTimeout(function() { ld.style.display = 'none'; }, 300); }
+  if (auth) { auth.style.display = 'flex'; }
+}
+
+// Abre a URL do GAS diretamente (para autorização OAuth one-time)
+function _openGasAuth() {
+  var authUrl = WEBAPP + '?page=app&token=' + encodeURIComponent(_currentToken || '');
+  window.open(authUrl, '_blank', 'noopener');
+}
+
+// Retenta carregar o app (após autorização)
+function _retryApp() {
+  var token = _currentToken || _getToken();
+  if (token) {
+    showApp(token);
+  } else {
+    _forceLogout();
+  }
+}
+
+// Volta para o login
+function _forceLogout() {
+  try { sessionStorage.clear(); } catch(e) {}
+  showLogin();
+}
+
+// Volta para o login (chamado pelo logout dentro do iframe)
+function showLogin() {
+  try { sessionStorage.removeItem('crm_token'); } catch(e) {}
+  _appReady = false;
+  _currentToken = '';
+  if (_appReadyTimer) { clearTimeout(_appReadyTimer); _appReadyTimer = null; }
+
+  var wrap   = document.getElementById('appWrap');
+  var frame  = document.getElementById('appFrame');
+  var ld     = document.getElementById('appLoading');
+  var auth   = document.getElementById('appAuthOverlay');
+  var layout = document.querySelector('.layout');
+
+  if (frame) frame.src = 'about:blank';
+  if (auth)  { auth.style.display = 'none'; }
+  if (ld)    { ld.style.opacity = '1'; ld.style.display = 'flex'; }
+  if (wrap)  { wrap.style.opacity = '0'; setTimeout(function() { wrap.style.display = 'none'; }, 350); }
+  if (layout) { layout.style.display = ''; requestAnimationFrame(function() { layout.style.opacity = '1'; }); }
+}
+
+// Recebe mensagens do iframe (GAS webapp)
+window.addEventListener('message', function(e) {
+  if (!e.data) return;
+
+  // App carregou com sucesso → esconde loading
+  if (e.data.type === 'gas_ready') {
+    console.info('[App] gas_ready — app carregado com sucesso');
+    _onAppReady();
+  }
+
+  // Erro de carregamento → mostra tela de autorização
+  if (e.data.type === 'gas_error') {
+    console.warn('[App] gas_error recebido:', e.data.message);
+    if (!_appReady) _showAuthOverlay();
+  }
+
+  // Logout do aluno → volta para login
+  if (e.data.type === 'gas_logout') {
+    console.info('[App] gas_logout — voltando para login');
+    _appReady = false;
+    showLogin();
+  }
+});
+
+// Ao carregar a página: se já tiver token → pula login, vai direto pro app.html
+(function checkExistingSession() {
+  var token = _getToken();
+  if (token) {
+    console.info('[App] Token existente encontrado — redirecionando para app.html');
+    window.location.replace('./app.html');
+  }
+})();
+</script>
+</body>
+</html>
