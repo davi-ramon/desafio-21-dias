@@ -2581,6 +2581,8 @@ async function loadConteudo() {
 // NAVIGATION
 // ════════════════════════════════════════════════════════════
 function navigate(page) {
+  // Para o polling do grupo ao sair da aba comunidade
+  if (page !== 'comunidade') _grupoStopPolling();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -6925,13 +6927,6 @@ async function _grupoCheckNew() {
       _grupoAppendMsg(m, m.is_mine);
     });
   } catch(e) {}
-}
-
-// Para polling ao sair da aba comunidade
-var _origNavigate = navigate;
-function navigate(page) {
-  if (page !== 'comunidade') _grupoStopPolling();
-  _origNavigate(page);
 }
 
 // ═══════════════════════════════════════════════════════════

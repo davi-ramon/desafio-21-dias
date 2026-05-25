@@ -2268,6 +2268,7 @@ async function loadConteudo() {
 // NAVIGATION
 // ════════════════════════════════════════════════════════════
 function navigate(page) {
+  if (page !== 'comunidade') _grupoStopPolling();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -5472,8 +5473,6 @@ function _grupoAppendMsg(msg,mine){var c=document.getElementById('grupoMsgsConta
 function _grupoStartPolling(){_grupoStopPolling();COMM.grupoInterval=setInterval(_grupoCheckNew,8000);}
 function _grupoStopPolling(){if(COMM.grupoInterval){clearInterval(COMM.grupoInterval);COMM.grupoInterval=null;}}
 async function _grupoCheckNew(){if(COMM.tab!=='grupo'||APP.page!=='comunidade'){_grupoStopPolling();return;}try{var r=await rpc('getGrupoMensagens',{afterId:COMM.grupoLastId});if(!r.ok||!r.mensagens||r.mensagens.length===0)return;r.mensagens.forEach(function(m){COMM.grupoMsgs.push(m);COMM.grupoLastId=m.id;_grupoAppendMsg(m,m.is_mine);});}catch(e){}}
-var _origNavigate=navigate;
-function navigate(page){if(page!=='comunidade')_grupoStopPolling();_origNavigate(page);}
 // UTILS
 function _commTimeAgo(iso){if(!iso)return'';var diff=Date.now()-new Date(iso).getTime();var s=Math.floor(diff/1000);if(s<60)return'agora';var m=Math.floor(s/60);if(m<60)return m+'min atrás';var h=Math.floor(m/60);if(h<24)return h+'h atrás';return Math.floor(h/24)+'d atrás';}
 function _commTimeHora(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}catch(e){return'';}}
