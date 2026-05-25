@@ -74,12 +74,20 @@ function _comGetMediaFolder_() {
 // Salva base64 no Drive e retorna URL pública
 function _comUploadMedia_(base64, mimeType, filename) {
   try {
-    const decoded = Utilities.newBlob(Utilities.base64Decode(base64), mimeType, filename);
+    // Remove prefixo data URL caso o frontend envie por engano
+    if (base64 && base64.indexOf(',') !== -1) {
+      base64 = base64.split(',')[1];
+    }
+    const bytes   = Utilities.base64Decode(base64);
+    const decoded = Utilities.newBlob(bytes, mimeType, filename);
     const folder  = _comGetMediaFolder_();
     const file    = folder.createFile(decoded);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return 'https://drive.google.com/uc?export=view&id=' + file.getId();
+    const url = 'https://drive.google.com/uc?export=view&id=' + file.getId();
+    console.log('[Comunidade] Mídia salva: ' + url);
+    return url;
   } catch(e) {
+    console.error('[Comunidade] Falha ao salvar mídia: ' + e.toString());
     return null;
   }
 }
