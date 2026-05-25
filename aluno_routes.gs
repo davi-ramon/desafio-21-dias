@@ -120,9 +120,10 @@ function _calcProgresso_(row, pilaresJson) {
 // Admin não tem registro em compradores; retorna dados de preview.
 // ══════════════════════════════════════════════════════════════
 function _getAdminAlunoData_(user) {
-  const salaLink  = getConfig_('sala_link')  || '';
-  const grupoLink = getConfig_('grupo_link') || '';
-  const ebookUrl  = getConfig_('pdf_link')   || '';
+  const salaLink      = getConfig_('sala_link')   || '';
+  const grupoLink     = getConfig_('grupo_link')  || '';
+  const ebookUrl      = getConfig_('pdf_link')    || '';
+  const salaJitsiRoom = getConfig_('jitsi_room')  || 'desafio21dias-wpktavares';
 
   // Busca áudio do dia 1 como preview
   let audioUrlHoje = '', audioCapaHoje = '', audioTituloHoje = 'Áudio do Dia 1';
@@ -164,7 +165,8 @@ function _getAdminAlunoData_(user) {
       audioCapaHoje,
       audioTituloHoje,
       grupoLink,
-      salaLink
+      salaLink,
+      salaJitsiRoom
     }
   };
 }
@@ -192,10 +194,11 @@ function getAlunoData(token) {
   const horaAtualBR  = parseInt(Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'H'));
 
   // Configuraçõess de links
-  const salaLink   = getConfig_('sala_link')   || '';
-  const audiosLink = getConfig_('audios_link') || '';
-  const grupoLink  = String(row[COL_COMP.GRUPO]  || getConfig_('grupo_link') || '');
-  const ebookUrl   = String(row[COL_COMP.EBOOK]  || getConfig_('pdf_link')   || '');
+  const salaLink      = getConfig_('sala_link')   || '';
+  const audiosLink    = getConfig_('audios_link') || '';
+  const grupoLink     = String(row[COL_COMP.GRUPO]  || getConfig_('grupo_link') || '');
+  const ebookUrl      = String(row[COL_COMP.EBOOK]  || getConfig_('pdf_link')   || '');
+  const salaJitsiRoom = getConfig_('jitsi_room')    || 'desafio21dias-wpktavares';
 
   // URL + metadados do áudio do dia atual (prioriza aba audio_21_dias)
   // Se não houver áudio para o dia exato, usa o último áudio cadastrado (≤ diaAtual).
@@ -272,7 +275,8 @@ function getAlunoData(token) {
       audioTituloHoje: audioTituloHoje,
       audioDescHoje:   audioDescHoje,
       grupoLink,
-      salaLink
+      salaLink,
+      salaJitsiRoom
     }
   };
 }

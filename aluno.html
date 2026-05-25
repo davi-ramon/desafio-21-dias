@@ -1934,6 +1934,112 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 .leit-epub-nav.prev { left: 6px; }
 .leit-epub-nav.next { right: 6px; }
 
+/* ═══ BIA ═══════════════════════════════════════════════════ */
+.bia-fab{position:fixed;bottom:86px;right:16px;z-index:400;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#4caf50,#2e7d32);box-shadow:0 4px 20px rgba(76,175,80,.5);display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;transition:transform .2s,box-shadow .2s;border:2px solid rgba(255,255,255,.15);}
+.bia-fab:active{transform:scale(.92);}
+.bia-fab-avatar{font-size:26px;line-height:1;}
+.bia-fab.hidden{display:none;}
+.bia-modal{position:fixed;bottom:156px;right:12px;z-index:401;width:calc(100vw - 24px);max-width:380px;height:520px;border-radius:20px;background:#0d1a12;border:1px solid rgba(76,175,80,.3);box-shadow:0 16px 48px rgba(0,0,0,.7);display:flex;flex-direction:column;overflow:hidden;animation:bia-in .25s cubic-bezier(.22,1,.36,1) both;}
+@keyframes bia-in{from{opacity:0;transform:translateY(20px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.bia-modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(76,175,80,.08);border-bottom:1px solid rgba(76,175,80,.18);font-size:13px;font-weight:700;color:var(--text);}
+.bia-modal-header button{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:2px 6px;border-radius:6px;}
+.bia-iframe{flex:1;border:none;width:100%;}
+/* ═══ JITSI ═════════════════════════════════════════════════ */
+.jitsi-overlay{position:fixed;inset:0;z-index:600;background:#000;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .38s cubic-bezier(.16,1,.3,1);}
+.jitsi-overlay.active{transform:translateY(0);}
+.jitsi-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#0d1a12;border-bottom:1px solid rgba(76,175,80,.2);font-size:15px;font-weight:700;color:var(--text);flex-shrink:0;}
+.jitsi-header button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text);border-radius:10px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;}
+.jitsi-iframe{flex:1;border:none;width:100%;}
+/* ═══ COMUNIDADE ════════════════════════════════════════════ */
+.comm-tabs{display:flex;gap:8px;margin:14px 0 16px;}
+.comm-tab-btn{flex:1;padding:10px 0;border-radius:12px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
+.comm-tab-btn.active{background:var(--green-glow);border-color:var(--green);color:var(--green);}
+.comm-composer{background:var(--surface2);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:16px;cursor:pointer;transition:border-color .2s;}
+.comm-composer:hover{border-color:rgba(76,175,80,.4);}
+.comm-composer-inner{display:flex;align-items:center;gap:12px;}
+.comm-composer-avatar{width:38px;height:38px;border-radius:50%;flex-shrink:0;background:var(--green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;}
+.comm-composer-placeholder{color:var(--muted);font-size:14px;}
+.comm-compose-icons{display:flex;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+.comm-compose-icon-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;transition:background .15s,color .15s;}
+.comm-compose-icon-btn:hover{background:var(--green-glow);color:var(--green);}
+.comm-compose-modal{position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding:0;animation:fade-in .2s ease;}
+.comm-compose-modal.hidden{display:none;}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.comm-compose-sheet{background:#0d1a12;border:1px solid rgba(76,175,80,.25);border-radius:20px 20px 0 0;width:100%;max-width:500px;padding:20px 18px 32px;max-height:90vh;overflow-y:auto;animation:sheet-up .28s cubic-bezier(.22,1,.36,1) both;}
+@keyframes sheet-up{from{transform:translateY(40px)}to{transform:translateY(0)}}
+.comm-compose-sheet h3{font-size:16px;font-weight:800;color:var(--text);margin:0 0 14px;}
+.comm-compose-textarea{width:100%;min-height:110px;resize:none;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.6;outline:none;box-sizing:border-box;}
+.comm-compose-textarea:focus{border-color:var(--green);}
+.comm-char-count{text-align:right;font-size:11px;color:var(--muted);margin:4px 0 10px;}
+.comm-char-count.warn{color:#ffb300;}
+.comm-char-count.over{color:#f44336;}
+.comm-bg-picker{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;}
+.comm-bg-option{width:42px;height:42px;border-radius:10px;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .15s;}
+.comm-bg-option:hover,.comm-bg-option.selected{border-color:var(--green);transform:scale(1.1);}
+.comm-bg-none{background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.comm-bg-aurora{background:linear-gradient(135deg,#1a1a4e,#0d4429,#2e1a4e);}
+.comm-bg-fire{background:linear-gradient(135deg,#3d0c00,#7a1c00,#3d1200);}
+.comm-bg-ocean{background:linear-gradient(135deg,#00192e,#003355,#001f3d);}
+.comm-bg-gold{background:linear-gradient(135deg,#2a1f00,#4a3500,#2a1a00);}
+.comm-bg-forest{background:linear-gradient(135deg,#0a1f0a,#0d2d0d,#051205);}
+.comm-media-preview{margin:10px 0;border-radius:12px;overflow:hidden;max-height:200px;display:flex;align-items:center;justify-content:center;background:var(--surface);}
+.comm-media-preview img{max-width:100%;max-height:200px;object-fit:contain;}
+.comm-publish-row{display:flex;gap:10px;margin-top:14px;}
+.comm-cancel-btn{flex:1;padding:12px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer;}
+.comm-publish-btn{flex:2;padding:12px;background:var(--green);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;transition:opacity .2s;}
+.comm-publish-btn:disabled{opacity:.45;cursor:default;}
+.comm-post-card{background:var(--surface2);border:1px solid var(--border2);border-radius:16px;overflow:hidden;margin-bottom:12px;}
+.comm-post-header{display:flex;align-items:center;gap:10px;padding:12px 14px 8px;}
+.comm-post-avatar{width:36px;height:36px;border-radius:50%;flex-shrink:0;background:var(--green);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;}
+.comm-post-author{font-size:13px;font-weight:700;color:var(--text);}
+.comm-post-time{font-size:11px;color:var(--muted);}
+.comm-post-text{padding:12px 14px 14px;font-size:15px;line-height:1.65;color:var(--text);word-break:break-word;}
+.comm-post-text.bg-aurora{background:linear-gradient(135deg,#1a1a4e,#0d4429,#2e1a4e);background-size:300% 300%;animation:bgAurora 6s ease infinite;color:#d4f0da;font-weight:500;}
+.comm-post-text.bg-fire{background:linear-gradient(135deg,#3d0c00,#7a1c00,#3d1200);background-size:300% 300%;animation:bgFire 5s ease infinite;color:#ffd0b0;font-weight:500;}
+.comm-post-text.bg-ocean{background:linear-gradient(135deg,#00192e,#003355,#001f3d);background-size:300% 300%;animation:bgOcean 7s ease infinite;color:#b0d8f0;font-weight:500;}
+.comm-post-text.bg-gold{background:linear-gradient(135deg,#2a1f00,#4a3500,#2a1a00);background-size:300% 300%;animation:bgGold 6s ease infinite;color:#ffd97a;font-weight:500;}
+.comm-post-text.bg-forest{background:linear-gradient(135deg,#0a1f0a,#0d2d0d,#051205);background-size:300% 300%;animation:bgForest 8s ease infinite;color:#a0d4a8;font-weight:500;}
+@keyframes bgAurora{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes bgFire{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes bgOcean{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes bgGold{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+@keyframes bgForest{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.comm-post-media{width:100%;max-height:360px;object-fit:cover;display:block;}
+.comm-post-actions{display:flex;align-items:center;gap:4px;padding:8px 10px 10px;border-top:1px solid var(--border);}
+.comm-action-btn{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:6px 10px;border-radius:10px;transition:background .15s,color .15s;}
+.comm-action-btn:hover{background:var(--green-glow);color:var(--green);}
+.comm-action-btn.liked{color:#f44336;}
+.comm-comments-drawer{background:var(--surface);border-top:1px solid var(--border);padding:10px 12px 12px;}
+.comm-comment-item{display:flex;gap:8px;margin-bottom:10px;}
+.comm-comment-avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;background:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#fff;}
+.comm-comment-body{background:var(--surface2);border-radius:0 10px 10px 10px;padding:6px 10px;flex:1;}
+.comm-comment-author{font-size:11px;font-weight:700;color:var(--green);margin-bottom:2px;}
+.comm-comment-text{font-size:13px;color:var(--text);line-height:1.5;}
+.comm-comment-input-row{display:flex;gap:8px;margin-top:8px;}
+.comm-comment-input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:8px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;}
+.comm-comment-input:focus{border-color:var(--green);}
+.comm-comment-send{background:var(--green);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;}
+.comm-load-more-btn{width:100%;padding:12px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;color:var(--muted);font-size:13px;font-weight:700;cursor:pointer;margin:4px 0 16px;transition:all .2s;}
+.comm-load-more-btn:hover{border-color:var(--green);color:var(--green);}
+.comm-empty{text-align:center;padding:32px 16px;color:var(--muted);}
+.comm-empty-icon{font-size:40px;margin-bottom:8px;}
+.grupo-chat-wrap{display:flex;flex-direction:column;height:55vh;min-height:300px;max-height:500px;}
+.grupo-msgs{flex:1;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:8px;}
+.grupo-msg{display:flex;gap:8px;align-items:flex-end;padding:0 4px;}
+.grupo-msg.mine{flex-direction:row-reverse;}
+.grupo-msg-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;background:var(--green-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;}
+.grupo-msg.mine .grupo-msg-avatar{background:var(--green);}
+.grupo-msg-bubble{max-width:72%;padding:8px 12px;border-radius:16px 16px 16px 4px;background:var(--surface2);border:1px solid var(--border);}
+.grupo-msg.mine .grupo-msg-bubble{border-radius:16px 16px 4px 16px;background:rgba(76,175,80,.15);border-color:rgba(76,175,80,.3);}
+.grupo-msg-author{font-size:10px;font-weight:700;color:var(--green);margin-bottom:3px;}
+.grupo-msg.mine .grupo-msg-author{display:none;}
+.grupo-msg-text{font-size:13px;color:var(--text);line-height:1.5;word-break:break-word;}
+.grupo-msg-time{font-size:10px;color:var(--muted2);margin-top:3px;text-align:right;}
+.grupo-input-row{display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--border);}
+.grupo-input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:22px;padding:10px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;resize:none;max-height:80px;}
+.grupo-input:focus{border-color:var(--green);}
+.grupo-send-btn{background:var(--green);border:none;border-radius:50%;width:42px;height:42px;color:#fff;font-size:18px;cursor:pointer;flex-shrink:0;transition:opacity .2s;}
+.grupo-send-btn:disabled{opacity:.4;}
 </style>
 </head>
 <body>
@@ -2579,70 +2685,38 @@ async function renderAudios() {
 // COMUNIDADE
 // ════════════════════════════════════════════════════════════
 async function renderComunidade() {
-  document.getElementById('page-comunidade').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  const pg = document.getElementById('page-comunidade');
+  if (!pg) return;
+
   const conteudo = await loadConteudo();
-  const d        = APP.data;
+  const d = APP.data || {};
+  const grupoLink = (conteudo && conteudo.grupoLink) || d.grupoLink || '';
+  const salaLink  = (conteudo && conteudo.salaLink)  || d.salaLink  || '';
+  const ebookUrl  = (conteudo && conteudo.ebookUrl)  || d.ebookUrl  || '';
 
-  const grupoLink = (conteudo && conteudo.grupoLink) || (d && d.grupoLink) || '';
-  const salaLink  = (conteudo && conteudo.salaLink)  || (d && d.salaLink)  || '';
-  const ebookUrl  = (conteudo && conteudo.ebookUrl)  || (d && d.ebookUrl)  || '';
-  const eventos   = (conteudo && conteudo.eventos)   || [];
+  var html = '<div class="page-header"><h2>Comunidade</h2><p>Feed, grupo e eventos da WPK Tavares</p></div>';
 
-  let html = `
-  <div class="page-header">
-    <h2>Comunidade</h2>
-    <p>Acesse o grupo, conteúdos e eventos da WPK Tavares</p>
+  // Sala de leitura (Jitsi)
+  html += `<div class="sala-card" style="margin-bottom:14px">
+    <div class="sala-time">☀️ Seg–Qui · 05h55 da manhã</div>
+    <div class="sala-title">Sala de Leitura Guiada</div>
+    <div class="sala-sub">Leitura coletiva ao vivo com a comunidade. Chegue 5 min antes.</div>
+    <button class="btn-sala" onclick="_openJitsi()">📹 Entrar na Sala de Leitura</button>
   </div>`;
 
-  // Links principais
-  if (grupoLink) {
-    html += `
-    <a href="${escH(grupoLink)}" target="_blank" class="link-card">
-      <div class="link-card-icon" style="background:rgba(37,211,102,0.12)">💬</div>
-      <div class="link-card-info">
-        <div class="link-card-title">Grupo Exclusivo</div>
-        <div class="link-card-sub">Comunidade do Desafio 21 Dias no WhatsApp</div>
-      </div>
-      <div class="link-card-arrow">→</div>
-    </a>`;
-  }
+  if (grupoLink) html += `<a href="${escH(grupoLink)}" target="_blank" class="link-card"><div class="link-card-icon" style="background:rgba(37,211,102,.12)">💬</div><div class="link-card-info"><div class="link-card-title">Grupo no WhatsApp</div><div class="link-card-sub">Comunidade externa no WhatsApp</div></div><div class="link-card-arrow">→</div></a>`;
+  if (ebookUrl) html += `<a href="${escH(ebookUrl)}" target="_blank" class="link-card"><div class="link-card-icon" style="background:rgba(251,191,36,.12)">📄</div><div class="link-card-info"><div class="link-card-title">E-Book do Desafio</div><div class="link-card-sub">Seu diário + planner dos 21 dias</div></div><div class="link-card-arrow">→</div></a>`;
 
-  if (ebookUrl) {
-    html += `
-    <a href="${escH(ebookUrl)}" target="_blank" class="link-card">
-      <div class="link-card-icon" style="background:rgba(251,191,36,0.12)">📄</div>
-      <div class="link-card-info">
-        <div class="link-card-title">E-Book do Desafio</div>
-        <div class="link-card-sub">Seu diário + planner dos 21 dias</div>
-      </div>
-      <div class="link-card-arrow">→</div>
-    </a>`;
-  }
+  html += `<div class="comm-tabs">
+    <button id="commTabFeed"  class="comm-tab-btn ${COMM.tab==='feed'  ? 'active' : ''}" onclick="_commSetTab('feed')">📣 Feed</button>
+    <button id="commTabGrupo" class="comm-tab-btn ${COMM.tab==='grupo' ? 'active' : ''}" onclick="_commSetTab('grupo')">💬 Grupo</button>
+  </div>
+  <div id="commFeed"  style="${COMM.tab==='feed'  ? '' : 'display:none'}"><div id="commFeedInner"><div class="loading-center"><div class="spinner"></div></div></div></div>
+  <div id="commGrupo" style="${COMM.tab==='grupo' ? '' : 'display:none'}"><div id="commGrupoInner"><div class="loading-center"><div class="spinner"></div></div></div></div>`;
 
-  if (salaLink) {
-    html += `
-    <div class="sala-card">
-      <div class="sala-time">☀️ Seg–Qui · 05h55 da manhã</div>
-      <div class="sala-title">Sala de Leitura Guiada</div>
-      <div class="sala-sub">Leitura coletiva ao vivo com a comunidade. Chegue 5 min antes.</div>
-      <a href="${escH(salaLink)}" target="_blank"><button class="btn-sala">Entrar na Sala de Leitura</button></a>
-    </div>`;
-  }
-
-  // Eventos
-  if (eventos.length) {
-    html += '<div class="section-title" style="margin-top:8px;margin-bottom:10px">Eventos</div>';
-    eventos.forEach(ev => {
-      html += `
-      <div class="event-card">
-        <div class="event-tag">${escH(ev.tipo || 'Evento')}</div>
-        <div class="event-title">${escH(ev.titulo || '')}</div>
-        <div class="event-date">${escH(ev.data || '')}${ev.link ? ' · <a href="' + escH(ev.link) + '" target="_blank" style="color:var(--green)">Acessar</a>' : ''}</div>
-      </div>`;
-    });
-  }
-
-  document.getElementById('page-comunidade').innerHTML = html;
+  pg.innerHTML = html;
+  if (COMM.tab === 'feed') _feedLoad(1, true);
+  else _grupoLoad();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3048,20 +3122,16 @@ function openExpandedPlayer() {
   _renderExpandedPlayer();
   var ep = document.getElementById('expandedPlayer');
   if (ep) {
-    // Force reflow so transition fires
     ep.style.display = 'flex';
-    requestAnimationFrame(function() {
-      ep.classList.add('open');
-    });
+    requestAnimationFrame(function() { ep.classList.add('open'); });
   }
+  if (typeof _biaHide === 'function') _biaHide();
 }
 
 function minimizePlayer() {
   var ep = document.getElementById('expandedPlayer');
-  if (ep) {
-    ep.classList.remove('open');
-    // hide after transition ends (pointer-events already off via CSS)
-  }
+  if (ep) { ep.classList.remove('open'); }
+  if (typeof _biaShow === 'function') _biaShow();
 }
 
 function closeAudio() {
@@ -4057,7 +4127,6 @@ var MED_MSGS = [
 
 // ── Abrir overlay ────────────────────────────────────────────
 function openMeditacao() {
-  // Pilar já concluído hoje → não reabre a experiência
   if (APP.data && APP.data.pilaresHoje && APP.data.pilaresHoje['meditacao']) {
     toast('🧘 Meditação já concluída hoje! ✓', 'success');
     return;
@@ -4065,10 +4134,9 @@ function openMeditacao() {
   var ov = document.getElementById('medOverlay');
   ov.classList.add('open');
   showMedScreen(1);
-  // Previne scroll da página por baixo
   document.getElementById('mainScroll').style.overflow = 'hidden';
-  // Carrega config de áudio do backend (uma vez por sessão)
   if (!_medAudiosLoaded) _medLoadAudioConfig();
+  if (typeof _biaHide === 'function') _biaHide();
 }
 
 // ── Fechar overlay ───────────────────────────────────────────
@@ -4078,6 +4146,7 @@ function closeMeditacao() {
   var ov = document.getElementById('medOverlay');
   ov.classList.remove('open');
   document.getElementById('mainScroll').style.overflow = '';
+  if (typeof _biaShow === 'function') _biaShow();
 }
 
 // ── Navegar entre telas ──────────────────────────────────────
@@ -4886,12 +4955,14 @@ function openLeitura() {
   document.getElementById('leitCompletionBanner').classList.remove('active');
   _leitShowScreen(1);
   _leitRenderLibrary();
+  if (typeof _biaHide === 'function') _biaHide();
 }
 function closeLeitura() {
   _leitCleanup();
   var ov = document.getElementById('leituraOverlay');
   if (ov) ov.classList.remove('active');
   document.body.style.overflow = '';
+  if (typeof _biaShow === 'function') _biaShow();
 }
 
 function _leitShowScreen(n) {
@@ -5310,6 +5381,102 @@ function _leitHandleBack() {
     _leitRenderLibrary();
   }
 }
+</script>
+
+<!-- BIA -->
+<div id="biaBtn" class="bia-fab" onclick="_biaToggle()" title="Falar com a Bia"><div class="bia-fab-avatar">🤖</div></div>
+<div id="biaModal" class="bia-modal hidden">
+  <div class="bia-modal-header"><span>✨ Bia — Assistente do Desafio</span><button onclick="_biaClose()">✕</button></div>
+  <iframe src="https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/iframe" allow="microphone;" frameborder="0" class="bia-iframe" title="Bia"></iframe>
+</div>
+
+<!-- JITSI -->
+<div id="jitsiOverlay" class="jitsi-overlay">
+  <div class="jitsi-header"><span>📖 Sala de Leitura Guiada</span><button onclick="_closeJitsi()">✕ Sair da Sala</button></div>
+  <iframe id="jitsiFrame" class="jitsi-iframe" allow="camera; microphone; display-capture; autoplay" frameborder="0" src="" title="Sala de Leitura"></iframe>
+</div>
+
+<!-- COMPOSE MODAL -->
+<div id="commComposeModal" class="comm-compose-modal hidden">
+  <div class="comm-compose-sheet">
+    <h3>✍️ Nova publicação</h3>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button id="compTypeText"  class="comm-tab-btn active" onclick="_compSetType('text')"  style="font-size:12px">📝 Texto</button>
+      <button id="compTypeImage" class="comm-tab-btn"        onclick="_compSetType('image')" style="font-size:12px">🖼️ Foto/GIF</button>
+    </div>
+    <div id="compTextArea">
+      <textarea id="compText" class="comm-compose-textarea" placeholder="O que você está pensando? (máx 249 caracteres)" maxlength="249" oninput="_compUpdateChar()"></textarea>
+      <div id="compCharCount" class="comm-char-count">0 / 249</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Fundo animado (opcional):</div>
+      <div class="comm-bg-picker">
+        <div class="comm-bg-option comm-bg-none selected" data-bg=""       onclick="_compSelectBg(this,'')">❌</div>
+        <div class="comm-bg-option comm-bg-aurora"        data-bg="aurora" onclick="_compSelectBg(this,'aurora')"></div>
+        <div class="comm-bg-option comm-bg-fire"          data-bg="fire"   onclick="_compSelectBg(this,'fire')"></div>
+        <div class="comm-bg-option comm-bg-ocean"         data-bg="ocean"  onclick="_compSelectBg(this,'ocean')"></div>
+        <div class="comm-bg-option comm-bg-gold"          data-bg="gold"   onclick="_compSelectBg(this,'gold')"></div>
+        <div class="comm-bg-option comm-bg-forest"        data-bg="forest" onclick="_compSelectBg(this,'forest')"></div>
+      </div>
+    </div>
+    <div id="compMediaArea" style="display:none">
+      <input type="file" id="compMediaInput" accept="image/*,.gif" style="display:none" onchange="_compMediaSelected(this)">
+      <button onclick="document.getElementById('compMediaInput').click()" style="width:100%;padding:32px;background:var(--surface);border:2px dashed var(--border2);border-radius:12px;color:var(--muted);font-size:14px;cursor:pointer;margin-bottom:8px">📷 Clique para escolher foto ou GIF (máx 5MB)</button>
+      <div id="compMediaPreview" class="comm-media-preview" style="display:none"></div>
+      <textarea id="compMediaCaption" class="comm-compose-textarea" placeholder="Legenda (opcional)" maxlength="249" style="min-height:60px;margin-top:8px" oninput="_compUpdateChar()"></textarea>
+      <div id="compCharCount2" class="comm-char-count">0 / 249</div>
+    </div>
+    <div class="comm-publish-row">
+      <button class="comm-cancel-btn" onclick="_compClose()">Cancelar</button>
+      <button class="comm-publish-btn" id="compPublishBtn" onclick="_compPublish()">Publicar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// BIA
+var _biaOpen=false,_biaForced=false;
+function _biaShow(){_biaForced=false;var b=document.getElementById('biaBtn');if(b)b.classList.remove('hidden');}
+function _biaHide(){_biaForced=true;_biaClose();var b=document.getElementById('biaBtn');if(b)b.classList.add('hidden');}
+function _biaToggle(){if(_biaOpen)_biaClose();else _biaOpenModal();}
+function _biaOpenModal(){_biaOpen=true;var m=document.getElementById('biaModal');if(m){m.classList.remove('hidden');m.style.display='flex';}}
+function _biaClose(){_biaOpen=false;var m=document.getElementById('biaModal');if(m){m.classList.add('hidden');m.style.display='none';}}
+// JITSI
+function _openJitsi(){var r=(APP.data&&APP.data.salaJitsiRoom)||'desafio21dias-wpktavares';var f=document.getElementById('jitsiFrame');if(f)f.src='https://meet.jit.si/'+r+'#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.disableDeepLinking=true';var o=document.getElementById('jitsiOverlay');if(o)o.classList.add('active');_biaHide();}
+function _closeJitsi(){var f=document.getElementById('jitsiFrame');if(f)f.src='';var o=document.getElementById('jitsiOverlay');if(o)o.classList.remove('active');_biaShow();}
+// COMM STATE
+var COMM={tab:'feed',feedPage:1,feedPosts:[],feedHasMore:false,feedLimites:{posts_restantes:3,likes_restantes:3,comments_restantes:3},openComments:null,grupoMsgs:[],grupoLastId:null,grupoInterval:null,compType:'text',compBg:'',compMedia:null};
+function _commSetTab(tab){COMM.tab=tab;var fe=document.getElementById('commFeed'),gr=document.getElementById('commGrupo'),bf=document.getElementById('commTabFeed'),bg=document.getElementById('commTabGrupo');if(!fe)return;if(tab==='feed'){fe.style.display='';gr.style.display='none';if(bf)bf.classList.add('active');if(bg)bg.classList.remove('active');_grupoStopPolling();if(COMM.feedPosts.length===0)_feedLoad(1,true);}else{fe.style.display='none';gr.style.display='';if(bf)bf.classList.remove('active');if(bg)bg.classList.add('active');_grupoLoad();}}
+// FEED
+async function _feedLoad(page,reset){if(reset){COMM.feedPage=1;COMM.feedPosts=[];}var inner=document.getElementById('commFeedInner');if(!inner)return;if(reset)inner.innerHTML='<div class="loading-center"><div class="spinner"></div></div>';try{var r=await rpc('getComunidadeFeed',{page:page||1,limit:10});if(!r.ok){toast(r.error||'Erro ao carregar feed.','error');return;}if(reset)COMM.feedPosts=r.posts;else COMM.feedPosts=COMM.feedPosts.concat(r.posts);COMM.feedHasMore=r.hasMore;COMM.feedLimites=r.limites||COMM.feedLimites;COMM.feedPage=page||1;_feedRender();}catch(e){if(inner)inner.innerHTML='<div class="comm-empty"><div class="comm-empty-icon">⚠️</div><p>Erro de conexão.</p></div>';}}
+function _feedRender(){var inner=document.getElementById('commFeedInner');if(!inner)return;var userName=APP.userName||APP.userEmail||'A';var inicial=userName.charAt(0).toUpperCase();var html='<div class="comm-composer" onclick="_compOpen()"><div class="comm-composer-inner"><div class="comm-composer-avatar">'+escH(inicial)+'</div><div class="comm-composer-placeholder">O que você está pensando?</div></div><div class="comm-compose-icons"><button class="comm-compose-icon-btn" onclick="event.stopPropagation();_compOpen(\'image\')">🖼️ Foto/GIF</button><button class="comm-compose-icon-btn" onclick="event.stopPropagation();_compOpen(\'text\')">📝 Texto</button>'+(COMM.feedLimites.posts_restantes>0?'<span style="margin-left:auto;font-size:11px;color:var(--muted)">'+COMM.feedLimites.posts_restantes+' pub. restante(s)</span>':'<span style="margin-left:auto;font-size:11px;color:#f44336">Limite atingido</span>')+'</div></div>';if(COMM.feedPosts.length===0){html+='<div class="comm-empty"><div class="comm-empty-icon">📣</div><p>Nenhuma publicação ainda.<br>Seja o primeiro a postar!</p></div>';}else{COMM.feedPosts.forEach(function(p){html+=_feedPostHtml(p,APP.userEmail||'');});if(COMM.feedHasMore)html+='<button class="comm-load-more-btn" onclick="_feedLoadMore()">Carregar mais ↓</button>';}inner.innerHTML=html;if(COMM.openComments){var dr=document.getElementById('commDrawer_'+COMM.openComments);if(dr)_feedRenderCommentsDrawer(COMM.openComments);}}
+function _feedPostHtml(post,ue){var ini=(post.author_name||'A').charAt(0).toUpperCase();var bgClass=post.bg_style?' bg-'+escH(post.bg_style):'';var isOpen=(COMM.openComments===post.id);var ago=_commTimeAgo(post.created_at);var html='<div class="comm-post-card" id="commPost_'+escH(post.id)+'"><div class="comm-post-header"><div class="comm-post-avatar">'+escH(ini)+'</div><div><div class="comm-post-author">'+escH(post.author_name||'Aluno')+'</div><div class="comm-post-time">'+escH(ago)+'</div></div></div>';if(post.type==='text'||!post.media_url){html+='<div class="comm-post-text'+bgClass+'">'+escH(post.content)+'</div>';}else{if(post.content)html+='<div class="comm-post-text" style="padding-bottom:6px">'+escH(post.content)+'</div>';html+='<img class="comm-post-media" src="'+escH(post.media_url)+'" alt="post" loading="lazy" onerror="this.style.display=\'none\'">';}var lkCls=post.liked_by_me?' liked':'';html+='<div class="comm-post-actions"><button class="comm-action-btn'+lkCls+'" id="likeBtn_'+escH(post.id)+'" onclick="_feedLike(\''+escH(post.id)+'\')">'+(post.liked_by_me?'❤️':'🤍')+' <span id="likeCount_'+escH(post.id)+'">'+(post.likes_count||0)+'</span></button><button class="comm-action-btn" onclick="_feedToggleComments(\''+escH(post.id)+'\')">💬 <span>'+(post.comments_count||0)+'</span> Comentar</button></div>';html+='<div id="commDrawer_'+escH(post.id)+'" style="'+(isOpen?'':'display:none')+'">';if(isOpen)html+=_feedCommentsDrawerHtml(post.id);html+='</div></div>';return html;}
+async function _feedLike(postId){var post=COMM.feedPosts.find(function(p){return p.id===postId;});if(!post)return;var nL=!post.liked_by_me,nC=post.likes_count+(nL?1:-1);post.liked_by_me=nL;post.likes_count=Math.max(0,nC);var btn=document.getElementById('likeBtn_'+postId);if(btn)btn.innerHTML=(nL?'❤️':'🤍')+' <span id="likeCount_'+postId+'">'+post.likes_count+'</span>';try{var r=await rpc('toggleLikePost',{postId:postId});if(!r.ok){post.liked_by_me=!nL;post.likes_count=Math.max(0,nC-(nL?1:0));toast(r.error||'Erro ao curtir.','error');_feedRender();}else{post.likes_count=r.likes_count;var c=document.getElementById('likeCount_'+postId);if(c)c.textContent=r.likes_count;if(nL)COMM.feedLimites.likes_restantes=Math.max(0,COMM.feedLimites.likes_restantes-1);}}catch(e){post.liked_by_me=!nL;toast('Erro de conexão.','error');}}
+function _feedToggleComments(postId){COMM.openComments=(COMM.openComments===postId)?null:postId;_feedRender();if(COMM.openComments){_feedRenderCommentsDrawer(postId);setTimeout(function(){var d=document.getElementById('commDrawer_'+postId);if(d)d.scrollIntoView({behavior:'smooth',block:'nearest'});},80);}}
+function _feedCommentsDrawerHtml(postId){return'<div class="comm-comments-drawer" id="commCommentsInner_'+postId+'"><div class="loading-center" style="padding:16px"><div class="spinner"></div></div></div>';}
+function _feedRenderCommentsDrawer(postId){rpc('getPostComentarios',{postId:postId}).then(function(r){var el=document.getElementById('commCommentsInner_'+postId);if(!el)return;if(!r.ok){el.innerHTML='<div style="padding:8px;color:var(--muted);font-size:13px">Erro.</div>';return;}var html='';(r.comentarios||[]).forEach(function(c){var ini=(c.author_name||'A').charAt(0).toUpperCase();html+='<div class="comm-comment-item"><div class="comm-comment-avatar">'+escH(ini)+'</div><div class="comm-comment-body"><div class="comm-comment-author">'+escH(c.author_name||'Aluno')+' <span style="font-weight:400;color:var(--muted2)">'+escH(_commTimeAgo(c.created_at))+'</span></div><div class="comm-comment-text">'+escH(c.content)+'</div></div></div>';});if(!html)html='<div style="padding:8px;color:var(--muted);font-size:13px">Nenhum comentário ainda.</div>';html+='<div class="comm-comment-input-row"><input id="commCommentInput_'+postId+'" class="comm-comment-input" placeholder="Adicionar comentário..." maxlength="249" onkeydown="if(event.key===\'Enter\'){event.preventDefault();_feedSendComment(\''+escH(postId)+'\');}"><button class="comm-comment-send" onclick="_feedSendComment(\''+escH(postId)+'\')">➤</button></div>';el.innerHTML=html;}).catch(function(){var el=document.getElementById('commCommentsInner_'+postId);if(el)el.innerHTML='<div style="padding:8px;color:var(--muted);font-size:13px">Erro de conexão.</div>';});}
+async function _feedSendComment(postId){var input=document.getElementById('commCommentInput_'+postId);if(!input)return;var content=input.value.trim();if(!content)return;input.value='';try{var r=await rpc('criarComentario',{postId:postId,content:content});if(!r.ok){toast(r.error||'Erro ao comentar.','error');return;}var post=COMM.feedPosts.find(function(p){return p.id===postId;});if(post)post.comments_count=(post.comments_count||0)+1;COMM.feedLimites.comments_restantes=Math.max(0,COMM.feedLimites.comments_restantes-1);_feedRenderCommentsDrawer(postId);}catch(e){toast('Erro de conexão.','error');}}
+function _feedLoadMore(){_feedLoad((COMM.feedPage||1)+1,false);}
+// COMPOSE
+function _compOpen(type){if(COMM.feedLimites.posts_restantes<=0){toast('Limite de 3 publicações por dia atingido.','error');return;}COMM.compType=type||'text';COMM.compBg='';COMM.compMedia=null;var modal=document.getElementById('commComposeModal');if(!modal)return;var txt=document.getElementById('compText'),cap=document.getElementById('compMediaCaption'),prev=document.getElementById('compMediaPreview');if(txt)txt.value='';if(cap)cap.value='';if(prev){prev.style.display='none';prev.innerHTML='';}document.querySelectorAll('.comm-bg-option').forEach(function(o){o.classList.remove('selected');});var no=document.querySelector('.comm-bg-none');if(no)no.classList.add('selected');modal.classList.remove('hidden');modal.style.display='flex';_compSetType(COMM.compType);}
+function _compClose(){var m=document.getElementById('commComposeModal');if(m){m.classList.add('hidden');m.style.display='none';}}
+function _compSetType(type){COMM.compType=type;var ta=document.getElementById('compTextArea'),ma=document.getElementById('compMediaArea'),bt=document.getElementById('compTypeText'),bi=document.getElementById('compTypeImage');if(ta)ta.style.display=type==='text'?'':'none';if(ma)ma.style.display=type==='image'?'':'none';if(bt)bt.classList.toggle('active',type==='text');if(bi)bi.classList.toggle('active',type==='image');}
+function _compSelectBg(el,bg){COMM.compBg=bg;document.querySelectorAll('.comm-bg-option').forEach(function(o){o.classList.remove('selected');});el.classList.add('selected');}
+function _compUpdateChar(){var txt=document.getElementById('compText'),cap=document.getElementById('compMediaCaption'),c1=document.getElementById('compCharCount'),c2=document.getElementById('compCharCount2');if(txt&&c1){var l=txt.value.length;c1.textContent=l+' / 249';c1.className='comm-char-count'+(l>220?(l>=249?' over':' warn'):'');}if(cap&&c2){var l2=cap.value.length;c2.textContent=l2+' / 249';c2.className='comm-char-count'+(l2>220?(l2>=249?' over':' warn'):'');}}
+function _compMediaSelected(input){var file=input.files&&input.files[0];if(!file)return;if(file.size>5*1024*1024){toast('Arquivo muito grande. Máximo 5MB.','error');input.value='';return;}var reader=new FileReader();reader.onload=function(e){var b64=e.target.result.split(',')[1];COMM.compMedia={base64:b64,mimeType:file.type};var prev=document.getElementById('compMediaPreview');if(prev){prev.style.display='flex';prev.innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:200px;object-fit:contain">';}};reader.readAsDataURL(file);}
+async function _compPublish(){var btn=document.getElementById('compPublishBtn');if(btn){btn.disabled=true;btn.textContent='Publicando...';}var type,content,mediaBase64,mediaType,bgStyle=COMM.compBg||'';if(COMM.compType==='text'){var txt=document.getElementById('compText');content=(txt&&txt.value.trim())||'';type='text';if(!content){toast('Escreva algo para publicar.','error');if(btn){btn.disabled=false;btn.textContent='Publicar';}return;}}else{var cap=document.getElementById('compMediaCaption');content=(cap&&cap.value.trim())||'';type='image';if(!COMM.compMedia){toast('Selecione uma imagem ou GIF.','error');if(btn){btn.disabled=false;btn.textContent='Publicar';}return;}mediaBase64=COMM.compMedia.base64;mediaType=COMM.compMedia.mimeType;}try{var r=await rpc('criarPost',{type,content,mediaBase64,mediaType,bgStyle});if(!r.ok){toast(r.error||'Erro ao publicar.','error');if(btn){btn.disabled=false;btn.textContent='Publicar';}return;}toast('✅ Publicado com sucesso!','success');_compClose();COMM.feedLimites.posts_restantes=Math.max(0,COMM.feedLimites.posts_restantes-1);_feedLoad(1,true);}catch(e){toast('Erro de conexão.','error');if(btn){btn.disabled=false;btn.textContent='Publicar';}}}
+// GRUPO
+async function _grupoLoad(){COMM.grupoMsgs=[];COMM.grupoLastId=null;var inner=document.getElementById('commGrupoInner');if(!inner)return;inner.innerHTML='<div class="loading-center" style="padding:24px"><div class="spinner"></div></div>';try{var r=await rpc('getGrupoMensagens',{afterId:null});if(!r.ok){inner.innerHTML='<div class="comm-empty"><p>Erro ao carregar grupo.</p></div>';return;}COMM.grupoMsgs=r.mensagens||[];if(COMM.grupoMsgs.length>0)COMM.grupoLastId=COMM.grupoMsgs[COMM.grupoMsgs.length-1].id;_grupoRender();_grupoStartPolling();}catch(e){inner.innerHTML='<div class="comm-empty"><p>Erro de conexão.</p></div>';}}
+function _grupoRender(){var inner=document.getElementById('commGrupoInner');if(!inner)return;var myEmail=(APP.userEmail||'').toLowerCase();var msgsHtml='';COMM.grupoMsgs.forEach(function(m){var isMine=m.is_mine||(m.author_email||'').toLowerCase()===myEmail;var ini=(m.author_name||'A').charAt(0).toUpperCase();var time=_commTimeHora(m.created_at);msgsHtml+='<div class="grupo-msg'+(isMine?' mine':'')+'"><div class="grupo-msg-avatar">'+escH(ini)+'</div><div class="grupo-msg-bubble"><div class="grupo-msg-author">'+escH(m.author_name||'Aluno')+'</div><div class="grupo-msg-text">'+escH(m.content)+'</div><div class="grupo-msg-time">'+escH(time)+'</div></div></div>';});if(!msgsHtml)msgsHtml='<div class="comm-empty" style="padding:24px 0"><div class="comm-empty-icon">💬</div><p>Nenhuma mensagem ainda.</p></div>';inner.innerHTML='<div class="grupo-chat-wrap"><div class="grupo-msgs" id="grupoMsgsContainer">'+msgsHtml+'</div><div class="grupo-input-row"><textarea id="grupoInput" class="grupo-input" rows="1" placeholder="Escreva uma mensagem..." maxlength="500" onkeydown="_grupoKeydown(event)"></textarea><button class="grupo-send-btn" id="grupoSendBtn" onclick="_grupoEnviar()">➤</button></div></div>';setTimeout(function(){var c=document.getElementById('grupoMsgsContainer');if(c)c.scrollTop=c.scrollHeight;},60);}
+function _grupoKeydown(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();_grupoEnviar();}}
+async function _grupoEnviar(){var input=document.getElementById('grupoInput'),btn=document.getElementById('grupoSendBtn');if(!input)return;var content=input.value.trim();if(!content)return;input.value='';if(btn)btn.disabled=true;try{var r=await rpc('enviarMensagemGrupo',{content:content});if(!r.ok){toast(r.error||'Erro ao enviar.','error');input.value=content;}else{COMM.grupoMsgs.push(r.mensagem);COMM.grupoLastId=r.mensagem.id;_grupoAppendMsg(r.mensagem,true);}}catch(e){toast('Erro de conexão.','error');input.value=content;}finally{if(btn)btn.disabled=false;}}
+function _grupoAppendMsg(msg,mine){var c=document.getElementById('grupoMsgsContainer');if(!c){_grupoRender();return;}var ini=(msg.author_name||'A').charAt(0).toUpperCase();var time=_commTimeHora(msg.created_at);var div=document.createElement('div');div.className='grupo-msg'+(mine?' mine':'');div.innerHTML='<div class="grupo-msg-avatar">'+escH(ini)+'</div><div class="grupo-msg-bubble"><div class="grupo-msg-author">'+escH(msg.author_name||'Aluno')+'</div><div class="grupo-msg-text">'+escH(msg.content)+'</div><div class="grupo-msg-time">'+escH(time)+'</div></div>';c.appendChild(div);c.scrollTop=c.scrollHeight;}
+function _grupoStartPolling(){_grupoStopPolling();COMM.grupoInterval=setInterval(_grupoCheckNew,8000);}
+function _grupoStopPolling(){if(COMM.grupoInterval){clearInterval(COMM.grupoInterval);COMM.grupoInterval=null;}}
+async function _grupoCheckNew(){if(COMM.tab!=='grupo'||APP.page!=='comunidade'){_grupoStopPolling();return;}try{var r=await rpc('getGrupoMensagens',{afterId:COMM.grupoLastId});if(!r.ok||!r.mensagens||r.mensagens.length===0)return;r.mensagens.forEach(function(m){COMM.grupoMsgs.push(m);COMM.grupoLastId=m.id;_grupoAppendMsg(m,m.is_mine);});}catch(e){}}
+var _origNavigate=navigate;
+function navigate(page){if(page!=='comunidade')_grupoStopPolling();_origNavigate(page);}
+// UTILS
+function _commTimeAgo(iso){if(!iso)return'';var diff=Date.now()-new Date(iso).getTime();var s=Math.floor(diff/1000);if(s<60)return'agora';var m=Math.floor(s/60);if(m<60)return m+'min atrás';var h=Math.floor(m/60);if(h<24)return h+'h atrás';return Math.floor(h/24)+'d atrás';}
+function _commTimeHora(iso){if(!iso)return'';try{return new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}catch(e){return'';}}
 </script>
 
 </body>

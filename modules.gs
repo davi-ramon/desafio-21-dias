@@ -222,6 +222,15 @@ function handleRequest(payload) {
     case 'deleteEvento':             return deleteEvento(token, data.id);
     case 'initEventosAction':        return initEventosAction(token);
 
+    // Comunidade — Feed Social + Grupo Chat
+    case 'getComunidadeFeed':    return getComunidadeFeed(token, data.page, data.limit);
+    case 'criarPost':            return criarPost(token, data.type, data.content, data.mediaBase64, data.mediaType, data.bgStyle);
+    case 'toggleLikePost':       return toggleLikePost(token, data.postId);
+    case 'criarComentario':      return criarComentario(token, data.postId, data.content);
+    case 'getPostComentarios':   return getPostComentarios(token, data.postId);
+    case 'getGrupoMensagens':    return getGrupoMensagens(token, data.afterId);
+    case 'enviarMensagemGrupo':  return enviarMensagemGrupo(token, data.content);
+
     default:
       return { ok: false, error: 'Acao desconhecida: ' + action };
   }
