@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Programa de Afiliados — Desafio 21 Dias | Wagner Tavares</title>
+<meta name="description" content="Indique o Desafio 21 Dias e ganhe comissão recorrente todo mês. Produto digital de alta conversão com comunidade engajada. Junte-se ao programa de afiliados.">
+<link rel="canonical" href="https://wpktavares.com.br/afiliados/">
+
+<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="shortcut icon" href="https://i.imgur.com/bOf9i1R.png">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Afiliados – Desafio 21 Dias | Ganhe Comissão Recorrente">
+<meta property="og:description" content="Indique e ganhe comissão todo mês. Produto com alta retenção, comunidade ativa e suporte de conversão completo.">
+<meta property="og:image" content="https://i.imgur.com/Xe5iaZ1.gif">
+<meta property="og:url" content="https://wpktavares.com.br/afiliados/">
+
+<!-- META PIXEL -->
+<script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '4212748045603496');
+  fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=4212748045603496&ev=PageView&noscript=1"/></noscript>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg:           #07090a;
+    --surface:      #0f1412;
+    --surface2:     #141c18;
+    --green:        #4caf50;
+    --green-bright: #6dde71;
+    --green-dim:    #2e6b31;
+    --cream:        #eeeadc;
+    --gold:         #f0c040;
+    --gold-dim:     #9a7b10;
+    --text:         #dde8dd;
+    --muted:        #6e9070;
+    --border:       rgba(76,175,80,0.16);
+    --border-gold:  rgba(240,192,64,0.2);
+    --glow:         0 0 48px rgba(76,175,80,0.12);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; line-height: 1.65; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; }
+  section { position: relative; z-index: 1; }
+  .container { max-width: 860px; margin: 0 auto; padding: 0 22px; }
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.65s ease, transform 0.65s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 80px 22px 72px;
+    text-align: center;
+    background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(240,192,64,0.08) 0%, rgba(76,175,80,0.06) 50%, transparent 70%), var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-logo { width: 60px; height: 60px; border-radius: 14px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--gold); background: rgba(240,192,64,0.08); border: 1px solid var(--border-gold);
+    border-radius: 100px; padding: 6px 18px; margin-bottom: 28px;
+  }
+  h1.hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 11vw, 90px);
+    line-height: 0.92; letter-spacing: 0.01em; color: var(--cream); margin-bottom: 18px;
+  }
+  h1.hero-title .accent { color: var(--gold); display: block; }
+  .hero-sub {
+    font-family: 'Instrument Serif', serif; font-style: italic;
+    font-size: clamp(16px, 2.5vw, 20px); color: var(--muted);
+    max-width: 560px; margin: 0 auto 40px;
+  }
+  .hero-cta-group { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .cta-btn {
+    display: inline-block; background: var(--gold); color: #1a1000;
+    font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 700;
+    letter-spacing: 0.03em; text-decoration: none; padding: 18px 40px;
+    border-radius: 12px; border: none; cursor: pointer; text-align: center;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 28px rgba(240,192,64,0.25);
+    position: relative; overflow: hidden;
+  }
+  .cta-btn::after { content: ''; position: absolute; top: 0; left: -100%; width: 55%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent); transition: left 0.5s; }
+  .cta-btn:hover { background: #f7d060; transform: translateY(-2px); box-shadow: 0 8px 36px rgba(240,192,64,0.4); }
+  .cta-btn:hover::after { left: 160%; }
+  .cta-btn-outline {
+    display: inline-block; background: transparent; color: var(--green);
+    font-size: 14px; font-weight: 600; text-decoration: none; padding: 12px 28px;
+    border-radius: 10px; border: 1px solid var(--border);
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .cta-btn-outline:hover { border-color: var(--green); color: var(--green-bright); }
+  .cta-sub { font-size: 11px; opacity: 0.7; display: block; margin-top: 3px; }
+
+  /* ── STATS STRIP ── */
+  .stats-strip {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 36px 22px;
+  }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0; }
+  .stat-item { text-align: center; padding: 16px 20px; border-right: 1px solid var(--border); }
+  .stat-item:last-child { border-right: none; }
+  @media (max-width: 600px) { .stat-item { border-right: none; border-bottom: 1px solid var(--border); } .stat-item:last-child { border-bottom: none; } }
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif; font-size: 44px;
+    color: var(--gold); letter-spacing: 0.02em; line-height: 1;
+  }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; letter-spacing: 0.04em; }
+
+  /* ── HOW IT WORKS ── */
+  .how { padding: 80px 22px; text-align: center; }
+  .section-tag { font-size: 11px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase; color: var(--green); margin-bottom: 16px; }
+  h2.section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px, 7vw, 60px); color: var(--cream); line-height: 1; margin-bottom: 12px; }
+  .section-sub { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 17px; color: var(--muted); margin-bottom: 52px; }
+  .steps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+  .step-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px 24px; text-align: left;
+    transition: border-color 0.25s, transform 0.25s;
+  }
+  .step-card:hover { border-color: var(--green-dim); transform: translateY(-3px); }
+  .step-num {
+    width: 40px; height: 40px; background: rgba(240,192,64,0.1);
+    border: 1px solid var(--border-gold); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--gold);
+    margin-bottom: 16px;
+  }
+  .step-title { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--cream); letter-spacing: 0.04em; margin-bottom: 8px; }
+  .step-desc { font-size: 13px; color: #8aaa8a; line-height: 1.6; }
+
+  /* ── COMMISSION ── */
+  .commission {
+    padding: 80px 22px; text-align: center;
+    background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  }
+  .commission-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 48px; }
+  .comm-card {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 16px;
+    padding: 32px 24px; position: relative; overflow: hidden;
+    transition: border-color 0.25s, transform 0.25s;
+  }
+  .comm-card:hover { border-color: var(--gold-dim); transform: translateY(-3px); }
+  .comm-card.featured { border-color: var(--gold-dim); background: linear-gradient(145deg, rgba(240,192,64,0.05), var(--surface2)); }
+  .comm-badge {
+    position: absolute; top: 14px; right: 14px;
+    background: var(--gold); color: #1a1000;
+    font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 100px;
+  }
+  .comm-plan { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .comm-price { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--cream); letter-spacing: 0.04em; margin-bottom: 6px; }
+  .comm-price sup { font-size: 14px; vertical-align: top; margin-top: 8px; display: inline-block; }
+  .comm-you {
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: var(--gold);
+    letter-spacing: 0.02em; margin-bottom: 4px;
+  }
+  .comm-you sup { font-size: 13px; vertical-align: top; margin-top: 6px; display: inline-block; }
+  .comm-label { font-size: 12px; color: var(--muted); }
+  .comm-note { font-size: 11px; color: #5a7a5a; margin-top: 8px; line-height: 1.5; }
+  .comm-divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  /* ── BENEFITS ── */
+  .benefits { padding: 80px 22px; }
+  .benefits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 48px; }
+  .benefit-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 22px 20px; display: flex; gap: 14px; align-items: flex-start;
+    transition: border-color 0.2s;
+  }
+  .benefit-item:hover { border-color: var(--green-dim); }
+  .benefit-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+  .benefit-title { font-size: 14px; font-weight: 600; color: var(--cream); margin-bottom: 3px; }
+  .benefit-desc { font-size: 13px; color: #8aaa8a; line-height: 1.5; }
+
+  /* ── FAQ ── */
+  .faq { padding: 80px 22px; background: var(--surface); border-top: 1px solid var(--border); }
+  .faq-list { margin-top: 44px; display: flex; flex-direction: column; gap: 12px; }
+  .faq-item {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden;
+  }
+  .faq-q {
+    padding: 18px 20px; font-size: 15px; font-weight: 600; color: var(--cream);
+    cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+    user-select: none;
+  }
+  .faq-q:hover { color: var(--green-bright); }
+  .faq-chevron { font-size: 18px; color: var(--green); transition: transform 0.25s; flex-shrink: 0; margin-left: 12px; }
+  .faq-item.open .faq-chevron { transform: rotate(180deg); }
+  .faq-a { display: none; padding: 0 20px 18px; font-size: 14px; color: var(--muted); line-height: 1.65; border-top: 1px solid var(--border); padding-top: 14px; }
+  .faq-item.open .faq-a { display: block; }
+
+  /* ── FINAL CTA ── */
+  .final-cta {
+    padding: 96px 22px; text-align: center;
+    background: radial-gradient(ellipse 55% 45% at 50% 50%, rgba(240,192,64,0.07) 0%, rgba(76,175,80,0.05) 60%, transparent 80%), var(--bg);
+  }
+  h2.cta-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px, 9vw, 76px); color: var(--cream); line-height: 0.95; margin-bottom: 16px; }
+  h2.cta-title .acc { color: var(--gold); }
+  .cta-desc { font-family: 'Instrument Serif', serif; font-style: italic; font-size: 18px; color: var(--muted); margin-bottom: 44px; }
+  .final-cta .cta-btn { max-width: 460px; margin: 0 auto 16px; display: block; font-size: 17px; padding: 22px 36px; }
+  .cta-help { font-size: 13px; color: var(--muted); margin-top: 18px; }
+  .cta-help a { color: var(--green); text-decoration: none; }
+
+  /* FOOTER */
+  footer { background: var(--surface); border-top: 1px solid var(--border); padding: 52px 22px 36px; }
+  .footer-inner { max-width: 880px; margin: 0 auto; display: flex; flex-direction: column; gap: 26px; }
+  .footer-brand { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--green-bright); letter-spacing: 0.07em; display: flex; align-items: center; gap: 12px; }
+  .footer-brand img { width: 36px; height: 36px; border-radius: 8px; }
+  .footer-brand-meta { display: flex; flex-direction: column; }
+  .footer-brand-meta small { font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--muted); font-weight: 400; letter-spacing: 0.04em; margin-top: 1px; }
+  .footer-contact { font-size: 13px; color: var(--muted); line-height: 1.9; }
+  .footer-contact a { color: var(--green); text-decoration: none; }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 18px; }
+  .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+  .footer-links a:hover { color: var(--green); }
+  .footer-divider { height: 1px; background: var(--border); }
+  .footer-copy { font-size: 11px; color: #3a5a3a; line-height: 1.8; }
+  .disclaimer { background: var(--bg); border-top: 1px solid rgba(76,175,80,0.05); padding: 28px 22px; }
+  .disclaimer p { max-width: 880px; margin: 0 auto; font-size: 10.5px; color: #344834; line-height: 1.8; text-align: center; }
+  @media (max-width: 600px) { h1.hero-title { font-size: 52px; } }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <img src="https://i.imgur.com/bOf9i1R.png" alt="Logo Desafio 21 Dias" class="hero-logo">
+  <div class="hero-tag">💰 Programa de Afiliados · Desafio 21 Dias</div>
+
+  <h1 class="hero-title">
+    Indique.<br>
+    <span class="accent">Ganhe todo mês.</span>
+  </h1>
+  <p class="hero-sub">
+    Produto digital com alta retenção. Assinatura recorrente. Você ganha comissão mês após mês enquanto seu indicado continuar ativo.
+  </p>
+
+  <div class="hero-cta-group">
+    <!-- SUBSTITUA PELO LINK DE CADASTRO DE AFILIADOS NO CAKTO -->
+    <a href="https://wa.me/+559484427988?text=Ol%C3%A1%2C+quero+ser+afiliado+do+Desafio+21+Dias"
+       class="cta-btn" id="cta-hero" target="_blank" rel="noopener"
+       onclick="fbq('trackCustom','AffiliateSignupClick',{position:'hero'})">
+      QUERO SER AFILIADO
+      <span class="cta-sub">Cadastro rápido via WhatsApp</span>
+    </a>
+    <a href="https://wpktavares.com.br/" class="cta-btn-outline" target="_blank" rel="noopener">Ver página de vendas →</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-strip">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item reveal">
+        <div class="stat-num">R$17</div>
+        <div class="stat-label">Preço do plano mensal</div>
+      </div>
+      <div class="stat-item reveal">
+        <div class="stat-num">30%</div>
+        <!-- AJUSTE A COMISSÃO CONFORME O SEU CONTRATO NO CAKTO -->
+        <div class="stat-label">Comissão por indicação</div>
+      </div>
+      <div class="stat-item reveal">
+        <div class="stat-num">R$5</div>
+        <div class="stat-label">Que você ganha por mês por indicado</div>
+      </div>
+      <div class="stat-item reveal">
+        <div class="stat-num">∞</div>
+        <div class="stat-label">Indicados que você pode fazer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="how">
+  <div class="container">
+    <p class="section-tag reveal">Como funciona</p>
+    <h2 class="section-title reveal">3 Passos.<br>Simples assim.</h2>
+    <p class="section-sub reveal">Não precisa criar nenhum conteúdo se não quiser. Só compartilhar o link.</p>
+
+    <div class="steps-grid">
+      <div class="step-card reveal">
+        <div class="step-num">1</div>
+        <div class="step-title">Cadastre-se como Afiliado</div>
+        <p class="step-desc">Entre em contato via WhatsApp ou acesse a plataforma Cakto. O cadastro é gratuito e aprovado na hora.</p>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-num">2</div>
+        <div class="step-title">Compartilhe Seu Link</div>
+        <p class="step-desc">Você recebe um link único de afiliado. Compartilhe no Instagram, TikTok, WhatsApp, grupo, lista — onde quiser.</p>
+      </div>
+      <div class="step-card reveal">
+        <div class="step-num">3</div>
+        <div class="step-title">Receba Todo Mês</div>
+        <p class="step-desc">Cada pessoa que assinar pelo seu link gera comissão recorrente para você — todos os meses enquanto ela permanecer ativa.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMISSION STRUCTURE -->
+<section class="commission">
+  <div class="container">
+    <p class="section-tag reveal">Quanto você ganha</p>
+    <h2 class="section-title reveal">Comissão Recorrente<br>Todo Mês</h2>
+    <p class="section-sub reveal">Quanto mais indicados ativos, maior sua renda passiva mensal.</p>
+
+    <div class="commission-cards">
+      <div class="comm-card reveal">
+        <div class="comm-plan">Plano Mensal</div>
+        <div class="comm-price"><sup>R$</sup>17<small style="font-size:14px;color:var(--muted)">/mês</small></div>
+        <div class="comm-divider"></div>
+        <div class="comm-label">Sua comissão:</div>
+        <div class="comm-you"><sup>R$</sup>5,10</div>
+        <div class="comm-label">por mês por indicado ativo</div>
+        <div class="comm-note">Comissão recorrente enquanto o assinante permanecer ativo</div>
+      </div>
+
+      <div class="comm-card featured reveal">
+        <div class="comm-badge">Popular</div>
+        <div class="comm-plan">Plano Trimestral</div>
+        <div class="comm-price"><sup>R$</sup>47<small style="font-size:14px;color:var(--muted)">/trimestre</small></div>
+        <div class="comm-divider"></div>
+        <div class="comm-label">Sua comissão:</div>
+        <div class="comm-you"><sup>R$</sup>14,10</div>
+        <div class="comm-label">por trimestre por indicado</div>
+        <div class="comm-note">Pago no momento da renovação a cada 3 meses</div>
+      </div>
+
+      <div class="comm-card reveal">
+        <div class="comm-plan">Plano Anual</div>
+        <div class="comm-price"><sup>R$</sup>177<small style="font-size:14px;color:var(--muted)">/ano</small></div>
+        <div class="comm-divider"></div>
+        <div class="comm-label">Sua comissão:</div>
+        <div class="comm-you"><sup>R$</sup>53,10</div>
+        <div class="comm-label">por ano por indicado</div>
+        <div class="comm-note">Maior LTV por indicado — pago na assinatura anual</div>
+      </div>
+    </div>
+
+    <p style="margin-top:28px;font-size:12px;color:#4a6a4a;text-align:center">
+      * Percentual de comissão: 30% sobre o valor pago. Valores aproximados para referência. Pagamentos processados via Cakto conforme política da plataforma.
+    </p>
+  </div>
+</section>
+
+<!-- EXEMPLO DE GANHOS -->
+<section class="benefits">
+  <div class="container">
+    <p class="section-tag reveal" style="text-align:center">Exemplo de ganhos</p>
+    <h2 class="section-title reveal" style="text-align:center">Quanto Você Pode<br>Ganhar por Mês</h2>
+    <p class="section-sub reveal" style="text-align:center">Baseado em 30% de comissão no plano mensal (R$17/mês por assinante)</p>
+
+    <div class="benefits-grid">
+      <div class="benefit-item reveal">
+        <div class="benefit-icon">👤</div>
+        <div>
+          <div class="benefit-title">10 indicados ativos</div>
+          <div class="benefit-desc">= <strong style="color:var(--gold)">R$51/mês</strong> recorrentes. Um café por dia pago pelos seus indicados.</div>
+        </div>
+      </div>
+      <div class="benefit-item reveal">
+        <div class="benefit-icon">👥</div>
+        <div>
+          <div class="benefit-title">50 indicados ativos</div>
+          <div class="benefit-desc">= <strong style="color:var(--gold)">R$255/mês</strong> recorrentes. Uma conta de luz + mercado pagos.</div>
+        </div>
+      </div>
+      <div class="benefit-item reveal">
+        <div class="benefit-icon">🏆</div>
+        <div>
+          <div class="benefit-title">200 indicados ativos</div>
+          <div class="benefit-desc">= <strong style="color:var(--gold)">R$1.020/mês</strong> recorrentes. Uma renda extra consistente.</div>
+        </div>
+      </div>
+      <div class="benefit-item reveal">
+        <div class="benefit-icon">🚀</div>
+        <div>
+          <div class="benefit-title">500 indicados ativos</div>
+          <div class="benefit-desc">= <strong style="color:var(--gold)">R$2.550/mês</strong> recorrentes. Uma segunda renda real.</div>
+        </div>
+      </div>
+      <div class="benefit-item reveal">
+        <div class="benefit-icon">📊</div>
+        <div>
+          <div class="benefit-title">Dashboard em tempo real</div>
+          <div class="benefit-desc">Acompanhe cliques, conversões, assinantes ativos e comissões pendentes no painel Cakto.</div>
+        </div>
+      </div>
+      <div class="benefit-item reveal">
+        <div class="benefit-icon">💳</div>
+        <div>
+          <div class="benefit-title">Pagamento garantido</div>
+          <div class="benefit-desc">Saques processados via Cakto. Sem burocracia. Diretamente na sua conta bancária.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="container">
+    <p class="section-tag reveal" style="text-align:center">Perguntas frequentes</p>
+    <h2 class="section-title reveal" style="text-align:center">Tem Dúvidas?</h2>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">Precisa ter uma grande audiência para ser afiliado? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Não. Qualquer pessoa pode ser afiliada. Você pode compartilhar com amigos, família, grupos de WhatsApp ou criar conteúdo nas redes sociais. Sem audiência mínima exigida.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Quando e como recebo minhas comissões? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">As comissões são processadas pela plataforma Cakto. Você pode solicitar saques conforme o saldo disponível. O prazo varia conforme a política da plataforma (geralmente após o período de garantia do produto).</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">O produto tem boa conversão? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Sim. A página de vendas tem VSL (vídeo de vendas), depoimentos reais, prova social e uma oferta acessível (R$17/mês). O produto existe há mais de 2 anos com comunidade ativa. Ofertas de período grátis (7, 14 ou 21 dias) também estão disponíveis para divulgação, o que aumenta significativamente a conversão.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Posso usar anúncios pagos para divulgar? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Sim, desde que você não faça concorrência direta com os anúncios da produtora, não use o nome "Wagner Tavares" ou "WPK Tavares" nos títulos e não viole as políticas das plataformas de anúncio. Em caso de dúvida, consulte a equipe no WhatsApp.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">A comissão é mesmo recorrente? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Sim. Em planos mensais e trimestrais, você recebe comissão em cada renovação enquanto o assinante permanecer ativo. Isso significa que um único indicado pode gerar renda para você durante meses ou anos.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Precisa pagar para ser afiliado? <span class="faq-chevron">▾</span></div>
+        <div class="faq-a">Não. O cadastro como afiliado é completamente gratuito. Você só precisa ter uma conta na plataforma Cakto e solicitar aprovação como afiliado do produto.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <div class="container">
+    <h2 class="cta-title reveal">
+      Pronto para<br><span class="acc">começar a ganhar?</span>
+    </h2>
+    <p class="cta-desc reveal">Cadastro gratuito. Link disponível em minutos. Comissões recorrentes.</p>
+
+    <!-- SUBSTITUA PELO LINK DE AFILIADO NO CAKTO QUANDO DISPONÍVEL -->
+    <a
+      href="https://wa.me/+559484427988?text=Ol%C3%A1%2C+quero+ser+afiliado+do+Desafio+21+Dias"
+      class="cta-btn reveal"
+      id="cta-final"
+      target="_blank"
+      rel="noopener"
+      onclick="fbq('trackCustom','AffiliateSignupClick',{position:'final'})"
+    >
+      QUERO SER AFILIADO AGORA
+      <span class="cta-sub">Fale com a equipe e receba seu link de afiliado</span>
+    </a>
+
+    <p class="cta-help reveal">
+      Já é afiliado? Acesse o painel em
+      <a href="https://app.cakto.com.br" target="_blank" rel="noopener">app.cakto.com.br</a>
+      &nbsp;·&nbsp;
+      Dúvidas? <a href="https://wa.me/+559484427988" target="_blank" rel="noopener">WhatsApp da equipe</a>
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="https://i.imgur.com/bOf9i1R.png" alt="Logo">
+      <div class="footer-brand-meta">Desafio 21 Dias<small>Equipe Lapidados · Produção: Wagner Tavares – WPK Tavares</small></div>
+    </div>
+    <div class="footer-contact">
+      E-mail: <a href="mailto:wpktavares@gmail.com">wpktavares@gmail.com</a><br>
+      WhatsApp: <a href="https://wa.me/+559484427988" target="_blank" rel="noopener">+55 94 8442-7988</a>
+    </div>
+    <div class="footer-links">
+      <a href="https://wpktavares.com.br/" target="_blank" rel="noopener">Página de Vendas</a>
+      <a href="https://wpktavares.com.br/politica-de-privacidade/" target="_blank" rel="noopener">Política de Privacidade</a>
+      <a href="https://wpktavares.com.br/termos-de-uso/" target="_blank" rel="noopener">Termos de Uso</a>
+    </div>
+    <div class="footer-divider"></div>
+    <div class="footer-copy"><p>© 2026 WPK Tavares — Equipe Lapidados. Todos os direitos reservados.</p></div>
+  </div>
+</footer>
+
+<div class="disclaimer">
+  <p>
+    <strong>Aviso Legal:</strong> Os valores de comissão apresentados são estimativas baseadas na estrutura atual de 30% sobre o preço do produto. Os valores reais podem variar conforme as políticas da plataforma Cakto, chargebacks e cancelamentos. Resultados de ganhos dependem exclusivamente do desempenho do afiliado. Este não é um programa de renda garantida.
+  </p>
+</div>
+
+<script>
+(function() {
+  'use strict';
+  var revealEls = document.querySelectorAll('.reveal');
+  var revealIO = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  revealEls.forEach(function(el) { revealIO.observe(el); });
+
+  // FAQ accordion
+  var faqItems = document.querySelectorAll('.faq-item');
+  faqItems.forEach(function(item) {
+    item.querySelector('.faq-q').addEventListener('click', function() {
+      var isOpen = item.classList.contains('open');
+      faqItems.forEach(function(i) { i.classList.remove('open'); });
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+
+  // Tracking
+  var ctaHero  = document.getElementById('cta-hero');
+  var ctaFinal = document.getElementById('cta-final');
+  if (ctaHero)  ctaHero.addEventListener('click',  function() { fbq('trackCustom', 'AffiliateSignupClick', { position: 'hero'  }); });
+  if (ctaFinal) ctaFinal.addEventListener('click', function() { fbq('trackCustom', 'AffiliateSignupClick', { position: 'final' }); });
+
+  var scrollFired = {};
+  window.addEventListener('scroll', function() {
+    var el = document.documentElement;
+    var top = el.scrollTop || document.body.scrollTop;
+    var max = el.scrollHeight - el.clientHeight;
+    var pct = max > 0 ? Math.round((top / max) * 100) : 0;
+    [25, 50, 75, 100].forEach(function(d) {
+      if (!scrollFired[d] && pct >= d) { scrollFired[d] = true; fbq('trackCustom', 'ScrollDepth', { depth: d, page: 'afiliados' }); }
+    });
+  }, { passive: true });
+})();
+</script>
+
+</body>
+</html>
