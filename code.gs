@@ -90,20 +90,36 @@ function doGet(e) {
 }
 
 // ── REST API (POST) ──────────────────────────────────────────
-// PATCH v4: detecta payload da Cakto antes de processar como CRM action
+// PATCH v5: detecta Cakto v2 (array) e roteia por produto
 function doPost(e) {
   var output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
   try {
-    var payload = JSON.parse(e.postData.contents);
+    var raw = JSON.parse(e.postData.contents);
 
-    // ── Cakto webhook ────────────────────────────────────────
-    // Payload da Cakto não tem 'action' nem 'token'.
-    // Tem transaction_id, order_id ou event_type com valor de compra.
+    // ── Cakto webhook v2 (formato array) ────────────────────
+    // A Cakto envia: [{ event, secret, data:{ id, customer, product, status,… } }]
+    // Detectamos pelo formato de array com data.id presente.
+    if (Array.isArray(raw) && raw.length > 0 && raw[0].data && raw[0].data.id) {
+      var caktoEvt = raw[0];
+      var pName    = String((caktoEvt.data.product && caktoEvt.data.product.name) || '');
+
+      // Ingresso do Seminário Fábio Luiz → módulo de eventos
+      if (isEventoFabioLuiz_(pName)) {
+        return processWebhookCaktoEvento_(caktoEvt);
+      }
+
+      // Demais produtos (Desafio 21 Dias, assinaturas, etc.) → handler legado
+      return processWebhookCakto_(flattenCaktoV2_(caktoEvt.data));
+    }
+
+    // ── Cakto webhook v1 (formato plano — legado) ────────────
+    // Mantido para retrocompatibilidade
+    var payload = raw;
     if (
       payload.transaction_id ||
       payload.order_id       ||
-      (payload.event_type && String(payload.event_type).toLowerCase().includes('purchase'))
+      (payload.event_type && String(payload.event_type).toLowerCase().indexOf('purchase') !== -1)
     ) {
       return processWebhookCakto_(payload);
     }
@@ -119,13 +135,15 @@ function doPost(e) {
     // verifyAndResetPassword: valida código e redefine senha
     // trackPageEvent:        rastreamento de visitantes (landing pages)
     // getEventoBySlug:       leitura pública de evento
+    // verificarIngresso:     valida UUID do ingresso no check-in (sem auth)
     else if (
       payload.action === 'login'                  ||
       payload.action === 'reaberturaAccess'       ||
       payload.action === 'sendPasswordReset'      ||
       payload.action === 'verifyAndResetPassword' ||
       payload.action === 'trackPageEvent'         ||
-      payload.action === 'getEventoBySlug'
+      payload.action === 'getEventoBySlug'        ||
+      payload.action === 'verificarIngresso'
     ) {
       output.setContent(JSON.stringify(handleRequest(payload)));
     }

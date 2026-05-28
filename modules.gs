@@ -231,6 +231,9 @@ function handleRequest(payload) {
     case 'getGrupoMensagens':    return getGrupoMensagens(token, data.afterId);
     case 'enviarMensagemGrupo':  return enviarMensagemGrupo(token, data.content);
 
+    // Ingressos — Check-in do Seminário (público — sem token)
+    case 'verificarIngresso':    return verificarIngressoUUID_(data.uuid);
+
     default:
       return { ok: false, error: 'Acao desconhecida: ' + action };
   }
