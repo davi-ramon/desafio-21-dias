@@ -326,12 +326,23 @@
   #ingressos{border-top:1px solid var(--bd);background:var(--bg)}
   .ing-inner{max-width:1140px;margin:0 auto;padding:80px 4%}
   .ing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:22px;margin-top:48px}
-  .ing-card{background:var(--sur);border:1px solid var(--bd);border-radius:22px;padding:34px 28px;position:relative;overflow:hidden;transition:transform 1s cubic-bezier(.16,1,.3,1),border-color .45s ease,box-shadow 1s cubic-bezier(.16,1,.3,1),filter 1s cubic-bezier(.16,1,.3,1);will-change:transform,box-shadow;transform-origin:center center}
+  .ing-card{background:var(--sur);border:1px solid var(--bd);border-radius:22px;padding:34px 28px;position:relative;overflow:hidden;transition:transform 1s cubic-bezier(.16,1,.3,1),border-color .45s ease,box-shadow 1s cubic-bezier(.16,1,.3,1),filter 1s cubic-bezier(.16,1,.3,1),opacity .4s ease;will-change:transform,box-shadow;transform-origin:center center}
   .ing-card::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle at top center,rgba(76,175,80,.14),transparent 58%);transition:opacity 1s cubic-bezier(.16,1,.3,1)}
   .ing-card:hover,.ing-card:focus-within,.ing-card:active{transform:translateY(-10px) scale(1.05);box-shadow:0 30px 90px rgba(0,0,0,.24);filter:saturate(1.03);border-color:rgba(76,175,80,.38)}
   .ing-card:hover::after,.ing-card:focus-within::after,.ing-card:active::after{opacity:1}
-  .ing-card.feat{border-color:rgba(76,175,80,.5);background:linear-gradient(135deg,rgba(76,175,80,.06) 0%,var(--sur) 65%)}
+  /* ── PRESENCIAL: destaque máximo com glow pulsante ── */
+  @keyframes featGlow{0%,100%{box-shadow:0 0 0 0 rgba(76,175,80,0),0 12px 48px rgba(0,0,0,.28)}50%{box-shadow:0 0 28px 6px rgba(76,175,80,.3),0 20px 70px rgba(0,0,0,.4)}}
+  @keyframes featBorder{0%,100%{border-color:rgba(76,175,80,.5)}50%{border-color:rgba(76,175,80,.95)}}
+  .ing-card.feat{border-color:rgba(76,175,80,.5);background:linear-gradient(135deg,rgba(76,175,80,.08) 0%,var(--sur) 60%);animation:featGlow 2.8s ease-in-out infinite,featBorder 2.8s ease-in-out infinite}
+  .ing-card.feat:hover,.ing-card.feat:focus-within{animation:none}
   .ing-card.feat::before{content:'MAIS ESCOLHIDO';position:absolute;top:14px;right:14px;background:var(--gr);color:#000;font-size:.6rem;font-weight:700;letter-spacing:.12em;padding:4px 9px;border-radius:99px}
+  .ing-card.feat .ing-price{background:linear-gradient(135deg,#66bb6a,#aed581);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  /* ── VIRTUAL: menor e mais discreto ── */
+  .ing-card.secondary{padding:24px 20px;opacity:.75;filter:saturate(.6) brightness(.86);border-color:rgba(255,255,255,.07)}
+  .ing-card.secondary .ing-price{font-size:clamp(1.8rem,3.6vw,2.7rem) !important;-webkit-text-fill-color:var(--wh) !important;background:none !important}
+  .ing-card.secondary .ing-tag{opacity:.68}
+  .ing-card.secondary .ing-features li{font-size:.84rem}
+  .ing-card.secondary:hover,.ing-card.secondary:focus-within{opacity:1;filter:saturate(1) brightness(1);border-color:rgba(76,175,80,.28)}
   .ing-tag{font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gr);margin-bottom:10px}
   .ing-price{font-family:var(--fh);font-size:clamp(2.6rem,5vw,3.8rem);color:var(--wh);line-height:1;margin-bottom:4px;transition:all .3s}
   .ing-note{font-size:.78rem;color:var(--crd);margin-bottom:18px}
@@ -639,7 +650,7 @@
       </div>
       <div class="hero-meta-chip">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <span>Investimento: R$ 87,00</span>
+        <span>A partir de R$ 77,00</span>
       </div>
     </div>
     <div class="hero-ctas" id="heroCtas">
@@ -862,10 +873,10 @@
         <a id="btnPresencial" href="https://pay.cakto.com.br/bpigd3u_893465" target="_blank" rel="noopener" class="btn-ing">🎟 Comprar ingresso presencial</a>
       </div>
       <!-- Virtual -->
-      <div class="ing-card" data-aos="fade-up" data-aos-delay="180">
+      <div class="ing-card secondary" data-aos="fade-up" data-aos-delay="180">
         <div class="ing-tag">💻 Online ao vivo</div>
-        <div class="ing-price" id="totalVirtual">R$ 87</div>
-        <p class="ing-note" id="noteVirtual">1 ingresso · R$ 87 cada</p>
+        <div class="ing-price" id="totalVirtual">R$ 77</div>
+        <p class="ing-note" id="noteVirtual">1 ingresso · R$ 77 cada</p>
         <div class="qty-row">
           <span class="qty-label">Quantidade</span>
           <button class="qty-btn" onclick="changeQty('virtual',-1)">−</button>
@@ -875,10 +886,10 @@
         <ul class="ing-features">
           <li>Transmissão ao vivo online</li>
           <li>Acompanhamento em tempo real de qualquer lugar do Brasil</li>
-          <li>Mesmo investimento do ingresso presencial</li>
-          <li>Acesso prático pelo link enviado após a compra</li>
+          <li>Link privado enviado por e-mail após a compra</li>
+          <li>Acesse de qualquer dispositivo</li>
         </ul>
-        <a id="btnVirtual" href="https://pay.cakto.com.br/bpigd3u_893465" target="_blank" rel="noopener" class="btn-ing sec">💻 Comprar ingresso virtual</a>
+        <a id="btnVirtual" href="https://pay.cakto.com.br/3fc7u2i" target="_blank" rel="noopener" class="btn-ing sec">💻 Comprar ingresso virtual</a>
       </div>
     </div>
   </div>
@@ -1013,9 +1024,9 @@ var CFG = {
   eventEndDate:    new Date('2026-07-26T12:00:00-03:00'),
   eventDateLabel:  '26 de Julho de 2026 · Domingo',
   precoPresencial: 87,   // número puro para cálculo
-  precoVirtual:    87,
+  precoVirtual:    77,
   linkPresencial:  'https://pay.cakto.com.br/bpigd3u_893465',
-  linkVirtual:     'https://pay.cakto.com.br/bpigd3u_893465',
+  linkVirtual:     'https://pay.cakto.com.br/3fc7u2i',
   whatsapp:        'https://wa.me/559484427988'
 };
 
