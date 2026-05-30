@@ -234,6 +234,10 @@ function handleRequest(payload) {
     // Ingressos — Check-in do Seminário (público — sem token)
     case 'verificarIngresso':    return verificarIngressoUUID_(data.uuid);
 
+    // Assinaturas — Ciclo de vida Cakto ↔ App
+    case 'getAssinaturaInfo':      return getAssinaturaInfo(token);
+    case 'setupAssinaturaTrigger': return setupAssinaturaTrigger();
+
     default:
       return { ok: false, error: 'Acao desconhecida: ' + action };
   }

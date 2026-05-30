@@ -786,6 +786,51 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 .page-header h2 { font-size: 22px; font-weight: 800; color: var(--text); }
 .page-header p  { font-size: 13px; color: var(--muted); margin-top: 3px; }
 
+/* ── Subscription Banner ───────────────────────────────────── */
+#subBanner {
+  position: fixed; bottom: 64px; left: 0; right: 0; z-index: 300;
+  padding: 10px 16px; font-size: 13px; font-weight: 600;
+  text-align: center; line-height: 1.4; cursor: pointer;
+  transition: all 0.3s ease;
+}
+#subBanner.sub-info    { background: rgba(33,150,243,0.15); color: #64b5f6; border-top: 1px solid rgba(33,150,243,0.3); }
+#subBanner.sub-warning { background: rgba(255,152,0,0.18);  color: #ffb74d; border-top: 1px solid rgba(255,152,0,0.35); }
+#subBanner.sub-yellow  { background: rgba(255,152,0,0.18);  color: #ffb74d; border-top: 1px solid rgba(255,152,0,0.35); }
+#subBanner.sub-red     { background: rgba(244,67,54,0.18);  color: #ef9a9a; border-top: 1px solid rgba(244,67,54,0.35); }
+#subBanner.sub-blocked { background: rgba(158,158,158,0.15);color: #bdbdbd; border-top: 1px solid rgba(158,158,158,0.3); }
+
+/* ── Subscription Card (Perfil) ────────────────────────────── */
+.assin-card    { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 12px; }
+.assin-header  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.assin-label   { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+.assin-badge   { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 99px; }
+.assin-plan    { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+.assin-info    { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+.assin-actions { display: flex; flex-direction: column; gap: 8px; }
+.assin-btn     { width: 100%; padding: 11px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; text-align: center; transition: opacity 0.2s; border: none; }
+.assin-btn:active { opacity: 0.75; }
+.assin-btn-primary { background: var(--accent); color: #000; }
+.assin-btn-sec     { background: transparent; border: 1px solid var(--border) !important; color: var(--muted); }
+.assin-btn-danger  { background: transparent; border: 1px solid rgba(244,67,54,0.3) !important; color: #ef5350; }
+
+/* ── Premium Blocked Overlay ───────────────────────────────── */
+.premium-block-overlay {
+  position: fixed; inset: 0; z-index: 800;
+  background: rgba(0,0,0,0.88); backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.premium-block-box {
+  background: var(--card); border-radius: 20px; padding: 28px 24px;
+  max-width: 340px; width: 100%; text-align: center;
+  border: 1px solid rgba(244,67,54,0.3);
+}
+.premium-block-icon  { font-size: 40px; margin-bottom: 12px; }
+.premium-block-title { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+.premium-block-msg   { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
+.premium-block-btn   { width: 100%; padding: 13px; border-radius: 10px; background: var(--accent); color: #000; font-weight: 700; font-size: 14px; border: none; cursor: pointer; margin-bottom: 8px; }
+.premium-block-close { background: transparent; border: none; color: var(--muted); font-size: 13px; cursor: pointer; width: 100%; padding: 8px; }
+
 /* Logout button */
 .btn-logout {
   width: 100%; padding: 13px;
@@ -2097,7 +2142,15 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 
+  <!-- ── ASSINATURA (sub-tela do Perfil) ──────────────────── -->
+  <div class="page" id="page-assinatura">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+
 </div>
+
+<!-- ═══ SUBSCRIPTION BANNER ═══════════════════════════════════ -->
+<div id="subBanner" style="display:none"></div>
 
 <!-- ═══ BOTTOM NAV ════════════════════════════════════════════ -->
 <nav class="bottom-nav">
@@ -2208,7 +2261,8 @@ const APP = {
   page:          'inicio',
   data:          null,
   conteudo:      null,
-  notificacoes:  []
+  notificacoes:  [],
+  subscription:  null,   // { allowed, status, plan, banner, trialRemaining, … }
 };
 
 sessionStorage.setItem('crm_token', APP.token);
@@ -2249,6 +2303,11 @@ async function loadAlunoData(silent) {
     const r = await rpc('getAlunoData', {});
     if (!r.ok) { toast(r.error || 'Erro ao carregar dados.', 'error'); return; }
     APP.data = r.data;
+    // Atualiza status de assinatura e exibe banner global
+    if (r.data && r.data.subscription) {
+      APP.subscription = r.data.subscription;
+    }
+    _renderSubBanner();
     if (!silent) renderInicio();
     if (APP.page !== 'inicio') renderPage(APP.page);
     // Notifica o parent (wpktavares.com.br/app) que o app está pronto
@@ -2272,12 +2331,194 @@ async function loadConteudo() {
 // ════════════════════════════════════════════════════════════
 // NAVIGATION
 // ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// SISTEMA DE ASSINATURAS — Banner, Gating, Tela Gerenciar
+// ════════════════════════════════════════════════════════════
+
+// ── Banner Global ─────────────────────────────────────────────
+function _renderSubBanner() {
+  const el = document.getElementById('subBanner');
+  if (!el) return;
+  const sub = APP.subscription;
+  if (!sub || !sub.banner) { el.style.display = 'none'; return; }
+
+  const typeClass = {
+    info:    'sub-info',
+    warning: 'sub-warning',
+    yellow:  'sub-yellow',
+    red:     'sub-red',
+    blocked: 'sub-blocked',
+  };
+
+  el.style.display = 'block';
+  el.className = typeClass[sub.banner.type] || 'sub-warning';
+  el.textContent = sub.banner.msg;
+  el.onclick = function() { navigate('perfil'); };
+}
+
+// ── Controle de Acesso Premium ───────────────────────────────
+/**
+ * Verifica se o usuário pode acessar conteúdo premium.
+ * Se bloqueado, exibe overlay explicativo e retorna false.
+ * Se sub = null (legado/admin), libera por padrão.
+ */
+function _checkPremium_(contentLabel) {
+  const sub = APP.subscription;
+  if (!sub || sub.status === 'legacy' || sub.allowed) return true;
+  _showPremiumBlock_(sub);
+  return false;
+}
+
+function _showPremiumBlock_(sub) {
+  // Remove overlay anterior se existir
+  const old = document.getElementById('premiumBlockOverlay');
+  if (old) old.remove();
+
+  const status = sub ? sub.status : 'blocked';
+  let msg = 'Atualize seu cartao para continuar utilizando o Desafio 21 Dias.';
+  if (status === 'cancelled') msg = 'Sua assinatura foi cancelada. Assine novamente para recuperar o acesso.';
+  if (status === 'paused')    msg = 'Sua assinatura esta pausada. Entre em contato para reativar.';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'premiumBlockOverlay';
+  overlay.className = 'premium-block-overlay';
+  overlay.innerHTML = `
+    <div class="premium-block-box">
+      <div class="premium-block-icon">🔒</div>
+      <div class="premium-block-title">Acesso Restrito</div>
+      <div class="premium-block-msg">${msg}</div>
+      <button class="premium-block-btn" onclick="navigate('perfil');document.getElementById('premiumBlockOverlay').remove()">
+        Gerenciar Assinatura
+      </button>
+      <button class="premium-block-close" onclick="document.getElementById('premiumBlockOverlay').remove()">
+        Fechar
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+// ── Tela Gerenciar Assinatura ────────────────────────────────
+function renderAssinatura() {
+  const sub = APP.subscription;
+  if (!sub || sub.status === 'legacy') {
+    navigate('perfil');
+    return;
+  }
+
+  const statusLabel = {
+    trial:       'Em Trial',
+    active:      'Ativa',
+    grace:       'Inadimplente',
+    grace_final: 'Inadimplente',
+    blocked:     'Bloqueada',
+    cancelled:   'Cancelada',
+    paused:      'Pausada',
+  };
+  const statusColor = {
+    trial:       '#2196F3',
+    active:      '#4caf50',
+    grace:       '#FF9800',
+    grace_final: '#f44336',
+    blocked:     '#757575',
+    cancelled:   '#757575',
+    paused:      '#FF9800',
+  };
+  const planLabel = { monthly: 'Mensal — R$ 17/mes', quarterly: 'Trimestral — R$ 47/trim', yearly: 'Anual — R$ 177/ano' };
+
+  const sLabel = statusLabel[sub.status] || sub.status;
+  const sColor = statusColor[sub.status] || '#757575';
+  const pLabel = planLabel[sub.plan] || (sub.plan || '');
+
+  // Info contextual por status
+  let infoLines = [];
+  if (sub.status === 'trial') {
+    infoLines.push('Periodo de teste: ' + (sub.trialRemaining || 0) + ' dia(s) restante(s)');
+    if (sub.trialEnd) infoLines.push('Vence em: ' + _fmtDateSub_(sub.trialEnd));
+    if (sub.nextBilling) infoLines.push('1a cobranca em: ' + _fmtDateSub_(sub.nextBilling));
+  } else if (sub.status === 'active') {
+    if (sub.nextBilling) infoLines.push('Proxima cobranca: ' + _fmtDateSub_(sub.nextBilling));
+  } else if (sub.status === 'grace' || sub.status === 'grace_final') {
+    infoLines.push('Falha no pagamento — dia ' + (sub.graceDay || 1) + ' do periodo de tolerancia');
+    if (sub.nextRetry) infoLines.push('Proxima tentativa: ' + _fmtDateSub_(sub.nextRetry));
+    if (sub.failedAt)  infoLines.push('Falhou em: ' + _fmtDateSub_(sub.failedAt));
+  } else if (sub.status === 'blocked') {
+    if (sub.blockedAt) infoLines.push('Bloqueado em: ' + _fmtDateSub_(sub.blockedAt));
+    infoLines.push('Atualize seu cartao para recuperar o acesso.');
+  } else if (sub.status === 'cancelled') {
+    if (sub.blockedAt) infoLines.push('Cancelado em: ' + _fmtDateSub_(sub.blockedAt));
+  }
+
+  const infoHTML = infoLines.map(l => `<div style="font-size:12px;color:var(--muted);margin-bottom:4px">${escH(l)}</div>`).join('');
+
+  // Banner de aviso dentro da tela
+  let alertHTML = '';
+  if (sub.banner) {
+    const alertColors = { info:'#2196F3', warning:'#FF9800', yellow:'#FF9800', red:'#f44336', blocked:'#757575' };
+    const ac = alertColors[sub.banner.type] || '#FF9800';
+    alertHTML = `<div style="background:${ac}22;border:1px solid ${ac}44;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:${ac};line-height:1.4">${escH(sub.banner.msg)}</div>`;
+  }
+
+  // Ações
+  const portalUrl = 'https://app.cakto.com.br/subscriptions';
+  let actionsHTML = `
+    <button class="assin-btn assin-btn-primary" onclick="window.open('${portalUrl}','_blank')">Gerenciar Assinatura</button>
+    <button class="assin-btn assin-btn-sec" onclick="window.open('${portalUrl}','_blank')">Atualizar Metodo de Pagamento</button>`;
+  if (sub.status !== 'cancelled') {
+    actionsHTML += `<button class="assin-btn assin-btn-danger" onclick="window.open('${portalUrl}','_blank')">Cancelar Assinatura</button>`;
+  }
+  // Upgrade (estrutura preparada — visível mas informativo)
+  actionsHTML += `<button class="assin-btn assin-btn-sec" style="opacity:0.5" onclick="toast('Em breve: upgrade de plano disponivel','info')">Upgrade de Plano (em breve)</button>`;
+
+  const el = document.getElementById('page-assinatura');
+  if (el) {
+    el.innerHTML = `
+    <div style="padding:0 0 24px">
+      <div style="display:flex;align-items:center;gap:10px;padding:16px 0 8px">
+        <button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:22px;padding:0" onclick="navigate('perfil')">‹</button>
+        <div style="font-size:17px;font-weight:800;color:var(--text)">Minha Assinatura</div>
+      </div>
+
+      <div class="assin-card">
+        <div class="assin-header">
+          <div class="assin-label">Status</div>
+          <span class="assin-badge" style="background:${sColor}22;color:${sColor}">${sLabel}</span>
+        </div>
+        ${pLabel ? `<div class="assin-plan">${escH(pLabel)}</div>` : ''}
+        <div style="margin-bottom:12px">${infoHTML}</div>
+        ${alertHTML}
+        <div class="assin-actions">${actionsHTML}</div>
+      </div>
+
+      <div style="font-size:11px;color:var(--muted);text-align:center;padding:8px 0">
+        Gerenciamento de pagamento fornecido por Cakto
+      </div>
+    </div>`;
+  }
+}
+
+function _fmtDateSub_(iso) {
+  try { return new Date(iso).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit',year:'numeric'}); }
+  catch(e) { return iso || ''; }
+}
+
 function navigate(page) {
   if (page !== 'comunidade') _grupoStopPolling();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  document.getElementById('nav-' + page).classList.add('active');
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+  document.getElementById('mainScroll').scrollTop = 0;
+  APP.page = page;
+  renderPage(page);
+}
+
+/** Navega para sub-tela (não tem nav-btn próprio) mantendo nav bar intacta */
+function navigateSub(page) {
+  _grupoStopPolling();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
   document.getElementById('mainScroll').scrollTop = 0;
   APP.page = page;
   renderPage(page);
@@ -2285,11 +2526,12 @@ function navigate(page) {
 
 function renderPage(page) {
   switch(page) {
-    case 'inicio':     renderInicio();     break;
-    case 'rotina':     renderRotina();     break;
-    case 'audios':     renderAudios();     break;
-    case 'comunidade': renderComunidade(); break;
-    case 'perfil':     renderPerfil();     break;
+    case 'inicio':      renderInicio();      break;
+    case 'rotina':      renderRotina();      break;
+    case 'audios':      renderAudios();      break;
+    case 'comunidade':  renderComunidade();  break;
+    case 'perfil':      renderPerfil();      break;
+    case 'assinatura':  renderAssinatura();  break;
   }
 }
 
@@ -2812,6 +3054,35 @@ function renderPerfil() {
     <div class="section-title" style="margin-bottom:6px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)">Ciclo do Desafio</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Reinicie o desafio para recomeçar do Dia 1 com hoje como nova data de início.</div>
     <button id="btnReiniciarDesafio" class="btn-reiniciar" onclick="reiniciarDesafio()">🔄 Reiniciar Desafio</button>
+  </div>`;
+  }
+
+  // Card de Assinatura — exibe se tiver dados de subscription
+  const sub = APP.subscription;
+  if (sub && sub.status && sub.status !== 'legacy') {
+    const sColors = { trial:'#2196F3', active:'#4caf50', grace:'#FF9800', grace_final:'#f44336', blocked:'#757575', cancelled:'#757575', paused:'#FF9800' };
+    const sLabels = { trial:'Em Trial', active:'Ativa', grace:'Inadimplente', grace_final:'Inadimplente', blocked:'Bloqueada', cancelled:'Cancelada', paused:'Pausada' };
+    const sc = sColors[sub.status] || '#757575';
+    const sl = sLabels[sub.status] || sub.status;
+    let subInfo = '';
+    if (sub.status === 'trial' && sub.trialRemaining !== undefined)
+      subInfo = `${sub.trialRemaining} dia(s) restante(s) de trial`;
+    else if (sub.status === 'active' && sub.nextBilling)
+      subInfo = 'Proxima cobranca: ' + _fmtDateSub_(sub.nextBilling);
+    else if ((sub.status === 'grace' || sub.status === 'grace_final') && sub.graceDay)
+      subInfo = 'Dia ' + sub.graceDay + ' do periodo de tolerancia';
+
+    html += `
+  <div class="card" style="padding:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700">Assinatura</div>
+      <span style="background:${sc}22;color:${sc};font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${sl}</span>
+    </div>
+    ${subInfo ? `<div style="font-size:12px;color:var(--muted);margin-bottom:12px">${escH(subInfo)}</div>` : ''}
+    <button class="btn-reiniciar" style="background:var(--accent);color:#000;border:none;width:100%"
+      onclick="navigateSub('assinatura')">
+      Gerenciar Assinatura ›
+    </button>
   </div>`;
   }
 
@@ -4142,6 +4413,7 @@ var MED_MSGS = [
 
 // ── Abrir overlay ────────────────────────────────────────────
 function openMeditacao() {
+  if (!_checkPremium_('meditacao')) return;
   if (APP.data && APP.data.pilaresHoje && APP.data.pilaresHoje['meditacao']) {
     toast('🧘 Meditação já concluída hoje! ✓', 'success');
     return;
@@ -4946,6 +5218,7 @@ function _leitGetProgress(bookId) {
 }
 
 function openLeitura() {
+  if (!_checkPremium_('leitura')) return;
   if (APP.data && APP.data.pilaresHoje && APP.data.pilaresHoje['leitura']) {
     toast('📖 Leitura já concluída hoje! ✓', 'success');
     return;

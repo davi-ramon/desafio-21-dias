@@ -90,31 +90,46 @@ function doGet(e) {
 }
 
 // ── REST API (POST) ──────────────────────────────────────────
-// PATCH v5: detecta Cakto v2 (array) e roteia por produto
+// PATCH v6: detecta Cakto nos dois formatos reais observados em produção
 function doPost(e) {
   var output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
   try {
     var raw = JSON.parse(e.postData.contents);
 
-    // ── Cakto webhook v2 (formato array) ────────────────────
-    // A Cakto envia: [{ event, secret, data:{ id, customer, product, status,… } }]
-    // Detectamos pelo formato de array com data.id presente.
+    // ── Cakto webhook formato PLANO (produção real) ──────────
+    // Formato real: { event, secret, data:{ id, customer, product, subscription?,… } }
+    if (raw && !Array.isArray(raw) && raw.data && raw.data.id && raw.event) {
+      var pName = String((raw.data.product && raw.data.product.name) || '');
+      // Ingresso do Seminário
+      if (isEventoFabioLuiz_(pName)) {
+        return processWebhookCaktoEvento_(raw);
+      }
+      // Produto de assinatura (tem objeto subscription) → roteia para gestor de assinaturas
+      // E também para o handler legado (cria registro em compradores se for 1ª compra)
+      if (raw.data.subscription) {
+        try { processWebhookCakto_(flattenCaktoV2_(raw.data)); } catch(_e) {}
+        return processWebhookAssinatura_(raw);
+      }
+      return processWebhookCakto_(flattenCaktoV2_(raw.data));
+    }
+
+    // ── Cakto webhook formato ARRAY (docs/testes) ───────────
+    // Formato alternativo: [{ event, secret, data:{ id,… } }]
     if (Array.isArray(raw) && raw.length > 0 && raw[0].data && raw[0].data.id) {
       var caktoEvt = raw[0];
       var pName    = String((caktoEvt.data.product && caktoEvt.data.product.name) || '');
-
-      // Ingresso do Seminário Fábio Luiz → módulo de eventos
       if (isEventoFabioLuiz_(pName)) {
         return processWebhookCaktoEvento_(caktoEvt);
       }
-
-      // Demais produtos (Desafio 21 Dias, assinaturas, etc.) → handler legado
+      if (caktoEvt.data.subscription) {
+        try { processWebhookCakto_(flattenCaktoV2_(caktoEvt.data)); } catch(_e) {}
+        return processWebhookAssinatura_(caktoEvt);
+      }
       return processWebhookCakto_(flattenCaktoV2_(caktoEvt.data));
     }
 
-    // ── Cakto webhook v1 (formato plano — legado) ────────────
-    // Mantido para retrocompatibilidade
+    // ── Cakto webhook v1 legado (campo transaction_id plano) ─
     var payload = raw;
     if (
       payload.transaction_id ||

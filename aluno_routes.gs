@@ -252,15 +252,19 @@ function getAlunoData(token) {
     audioUrlHoje = String(getConfig_('audio_' + dia) || '');
   }
 
+  // Injeta status da assinatura (null = legado sem controle de assinatura)
+  var subscriptionInfo = null;
+  try { subscriptionInfo = checkAcessoPremium_(aluno.user.email); } catch(ex) {}
+
   return {
     ok: true,
     data: {
       nome:          String(row[COL_COMP.NOME] || aluno.user.name || ''),
       email:         aluno.user.email,
       role:          aluno.user.role || 'aluno',
-      diaAtual:      dia,          // sempre ∈ [1,21], calculado de dataInicio
-      dataInicio:    dataInicio,   // "yyyy-MM-dd" | ""
-      horaAtualBR:   horaAtualBR, // 0-23, hora atual em Brasília
+      diaAtual:      dia,
+      dataInicio:    dataInicio,
+      horaAtualBR:   horaAtualBR,
       ativo:         row[COL_COMP.ATIVO] === true,
       diasConcluidos: stats.diasConcluidos,
       progresso:     stats.progresso,
@@ -276,7 +280,8 @@ function getAlunoData(token) {
       audioDescHoje:   audioDescHoje,
       grupoLink,
       salaLink,
-      salaJitsiRoom
+      salaJitsiRoom,
+      subscription:    subscriptionInfo,   // status de assinatura para controle de acesso no frontend
     }
   };
 }
