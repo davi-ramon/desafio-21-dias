@@ -4798,6 +4798,7 @@ var MED_MSGS = [
 
 // ── Abrir overlay ────────────────────────────────────────────
 function openMeditacao() {
+  if (!_checkPremium_()) return;
   var ov = document.getElementById('medOverlay');
   ov.classList.add('open');
   showMedScreen(1);
@@ -5855,6 +5856,7 @@ function _leitGetProgress(bookId) {
 
 // ── Open / Close ───────────────────────────────────────────────
 function openLeitura() {
+  if (!_checkPremium_()) return;
   if (APP.data && APP.data.pilaresHoje && APP.data.pilaresHoje['leitura']) {
     toast('📖 Leitura já concluída hoje! ✓', 'success');
     return;
