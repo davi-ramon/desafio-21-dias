@@ -2509,7 +2509,8 @@ const APP = {
   page:          'inicio',
   data:          null,
   conteudo:      null,
-  notificacoes:  []
+  notificacoes:  [],
+  subscription:  null,
 };
 
 // ════════════════════════════════════════════════════════════
@@ -2552,6 +2553,8 @@ async function loadAlunoData(silent) {
     const r = await rpc('getAlunoData', {});
     if (!r.ok) { toast(r.error || 'Erro ao carregar dados.', 'error'); return; }
     APP.data = r.data;
+    if (r.data && r.data.subscription) APP.subscription = r.data.subscription;
+    _renderSubBanner();
 
     // Se for admin e ainda não escolheu o painel → mostrar seletor
     if (r.data.role === 'admin') {
@@ -2608,7 +2611,115 @@ function renderPage(page) {
     case 'audios':     renderAudios();     break;
     case 'comunidade': renderComunidade(); break;
     case 'perfil':     renderPerfil();     break;
+    case 'assinatura': renderAssinatura(); break;
   }
+}
+
+// ════════════════════════════════════════════════════════════
+// SUBSCRIPTION — Banner, Gating, Tela Gerenciar
+// ════════════════════════════════════════════════════════════
+function _renderSubBanner() {
+  var el = document.getElementById('subBanner');
+  if (!el) return;
+  var sub = APP.subscription;
+  if (!sub || !sub.banner) { el.style.display = 'none'; return; }
+  var typeClass = {info:'sub-info',warning:'sub-warning',yellow:'sub-yellow',red:'sub-red',blocked:'sub-blocked'};
+  el.style.display = 'block';
+  el.className = typeClass[sub.banner.type] || 'sub-warning';
+  el.textContent = sub.banner.msg;
+  el.onclick = function() { navigate('perfil'); };
+}
+
+function _checkPremium_() {
+  var sub = APP.subscription;
+  if (!sub || sub.status === 'legacy' || sub.allowed) return true;
+  var msg = sub.status === 'cancelled'
+    ? 'Sua assinatura foi cancelada. Assine novamente para recuperar o acesso.'
+    : 'Seu método de pagamento apresentou falha. Atualize seu cartão para continuar.';
+  var ov = document.createElement('div');
+  ov.id = 'premiumBlockOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px';
+  ov.innerHTML = '<div style="background:#0f1412;border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;border:1px solid rgba(244,67,54,0.3)">' +
+    '<div style="font-size:40px;margin-bottom:12px">🔒</div>' +
+    '<div style="font-size:18px;font-weight:800;color:#dde8dd;margin-bottom:8px">Acesso Restrito</div>' +
+    '<div style="font-size:13px;color:#6e9070;line-height:1.5;margin-bottom:20px">' + msg + '</div>' +
+    '<button id="_pbGerenciar" style="width:100%;padding:13px;border-radius:10px;background:#4caf50;color:#000;font-weight:700;font-size:14px;border:none;cursor:pointer;margin-bottom:8px">Gerenciar Assinatura</button>' +
+    '<button id="_pbFechar" style="background:none;border:none;color:#6e9070;font-size:13px;cursor:pointer;width:100%;padding:8px">Fechar</button>' +
+    '</div>';
+  document.body.appendChild(ov);
+  document.getElementById('_pbGerenciar').onclick = function(){ ov.remove(); navigate('perfil'); };
+  document.getElementById('_pbFechar').onclick = function(){ ov.remove(); };
+  return false;
+}
+
+function navigateSub(page) {
+  _grupoStopPolling();
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  var el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
+  document.getElementById('mainScroll').scrollTop = 0;
+  APP.page = page;
+  renderPage(page);
+}
+
+function _fmtDateSub(iso) {
+  try { return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  catch(e){ return iso || ''; }
+}
+
+function renderAssinatura() {
+  var sub = APP.subscription;
+  var el = document.getElementById('page-assinatura');
+  if (!el) return;
+  if (!sub || sub.status === 'legacy') { navigate('perfil'); return; }
+
+  var sColors = {trial:'#2196F3',active:'#4caf50',grace:'#FF9800',grace_final:'#f44336',blocked:'#757575',cancelled:'#757575',paused:'#FF9800'};
+  var sLabels = {trial:'Em Trial',active:'Ativa',grace:'Inadimplente',grace_final:'Inadimplente',blocked:'Bloqueada',cancelled:'Cancelada',paused:'Pausada'};
+  var sc = sColors[sub.status]||'#757575', sl = sLabels[sub.status]||sub.status;
+  var planLabel = {monthly:'Mensal — R$ 17/mês',quarterly:'Trimestral — R$ 47/trim',yearly:'Anual — R$ 177/ano'}[sub.plan]||(sub.plan||'');
+
+  var infoLines = [];
+  if (sub.status === 'trial') {
+    infoLines.push('Período de teste: ' + (sub.trialRemaining||0) + ' dia(s) restante(s)');
+    if (sub.nextBilling) infoLines.push('1ª cobrança em: ' + _fmtDateSub(sub.nextBilling));
+  } else if (sub.status === 'active') {
+    if (sub.nextBilling) infoLines.push('Próxima cobrança: ' + _fmtDateSub(sub.nextBilling));
+  } else if (sub.status === 'grace' || sub.status === 'grace_final') {
+    infoLines.push('Falha no pagamento — dia ' + (sub.graceDay||1) + ' do período de tolerância');
+    if (sub.nextRetry) infoLines.push('Próxima tentativa: ' + _fmtDateSub(sub.nextRetry));
+  } else if (sub.status === 'blocked') {
+    if (sub.blockedAt) infoLines.push('Bloqueado em: ' + _fmtDateSub(sub.blockedAt));
+  }
+
+  var alertHTML = '';
+  if (sub.banner) {
+    var ac = {info:'#2196F3',warning:'#FF9800',yellow:'#FF9800',red:'#f44336',blocked:'#757575'}[sub.banner.type]||'#FF9800';
+    alertHTML = '<div style="background:'+ac+'22;border:1px solid '+ac+'44;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:'+ac+';line-height:1.4">'+escH(sub.banner.msg)+'</div>';
+  }
+
+  var portalUrl = 'https://app.cakto.com.br/subscriptions';
+  el.innerHTML = '<div style="padding:0 0 24px">' +
+    '<div style="display:flex;align-items:center;gap:10px;padding:16px 0 8px">' +
+      '<button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:24px;padding:0;line-height:1" onclick="navigate(\'perfil\')">‹</button>' +
+      '<div style="font-size:17px;font-weight:800;color:var(--text)">Minha Assinatura</div>' +
+    '</div>' +
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+        '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700">Status</div>' +
+        '<span style="background:'+sc+'22;color:'+sc+';font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">'+sl+'</span>' +
+      '</div>' +
+      (planLabel?'<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px">'+escH(planLabel)+'</div>':'') +
+      '<div style="margin-bottom:12px">'+infoLines.map(function(l){return '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">'+escH(l)+'</div>';}).join('')+'</div>' +
+      alertHTML +
+      '<div style="display:flex;flex-direction:column;gap:8px">' +
+        '<button style="width:100%;padding:11px;border-radius:10px;background:var(--green);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer" onclick="window.open(\''+portalUrl+'\',\'_blank\')">Gerenciar Assinatura</button>' +
+        '<button style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer" onclick="window.open(\''+portalUrl+'\',\'_blank\')">Atualizar Método de Pagamento</button>' +
+        (sub.status!=='cancelled'?'<button style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid rgba(244,67,54,0.3);color:#ef5350;font-weight:700;font-size:13px;cursor:pointer" onclick="window.open(\''+portalUrl+'\',\'_blank\')">Cancelar Assinatura</button>':'') +
+        '<button style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:13px;cursor:pointer;opacity:0.5" onclick="toast(\'Em breve: upgrade de plano\',\'info\')">Upgrade de Plano (em breve)</button>' +
+      '</div>' +
+    '</div>' +
+    '<div style="font-size:11px;color:var(--muted);text-align:center;padding:8px 0">Gerenciamento de pagamento fornecido por Cakto</div>' +
+  '</div>';
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3073,22 +3184,24 @@ function renderPerfil() {
       <div class="stat-lbl">Dias OK</div>
     </div>
     <div class="stat-pill">
-      <div class="stat-val">${21 - conc}</div>
-      <div class="stat-lbl">Restantes</div>
+      <div class="stat-val">${diaAt > 21 ? '🔥' : Math.max(0, 21 - conc)}</div>
+      <div class="stat-lbl">${diaAt > 21 ? 'Streak' : 'Restantes'}</div>
     </div>
   </div>`;
 
-  // Progresso visual
+  // Progresso visual — todos os dias até diaAt (continua após 21)
+  const maxGrid = Math.max(21, diaAt);
   html += `
   <div class="card">
-    <div class="section-title" style="margin-bottom:14px">Histórico dos 21 Dias</div>
+    <div class="section-title" style="margin-bottom:14px">Histórico — ${maxGrid > 21 ? 'Dia ' + maxGrid : '21 Dias'}</div>
     <div class="progress-grid">`;
 
-  for (let i = 1; i <= 21; i++) {
+  for (let i = 1; i <= maxGrid; i++) {
     const pDia    = pilaresJson[String(i)] || {};
     const marcados = ['meditacao','leitura','exercicio','audio','checkin'].filter(p => pDia[p] === true).length;
     const classe  = i < diaAt ? (marcados >= 3 ? 'done' : marcados > 0 ? 'partial' : '') : i === diaAt ? 'today' : '';
-    html += `<div class="day-dot ${classe}">${i}</div>`;
+    const marco   = i === 21 ? ' style="outline:2px solid var(--green);outline-offset:2px"' : '';
+    html += `<div class="day-dot ${classe}"${marco}>${i}</div>`;
   }
 
   html += '</div></div>';
@@ -3096,11 +3209,11 @@ function renderPerfil() {
   // Barra de progresso
   html += `
   <div class="card">
-    <div class="section-title" style="margin-bottom:10px">Progresso Geral</div>
+    <div class="section-title" style="margin-bottom:10px">Progresso — Pilares Concluídos</div>
     <div class="progress-bar" style="height:12px;margin-bottom:8px">
       <div class="progress-fill" style="width:${prog}%"></div>
     </div>
-    <div style="font-size:13px;color:var(--muted)">${conc} de 21 dias concluídos</div>
+    <div style="font-size:13px;color:var(--muted)">${conc} dias com 3+ pilares ${diaAt > 21 ? '(de ' + diaAt + ' dias)' : 'de 21'}</div>
   </div>`;
 
   // Configurações admin — visível apenas para admin
@@ -3147,15 +3260,39 @@ function renderPerfil() {
   </div>`;
   }
 
+  // Card de Assinatura
+  const sub = APP.subscription;
+  if (sub && sub.status && sub.status !== 'legacy') {
+    const subC = {trial:'#2196F3',active:'#4caf50',grace:'#FF9800',grace_final:'#f44336',blocked:'#757575',cancelled:'#757575',paused:'#FF9800'};
+    const subL = {trial:'Em Trial',active:'Ativa',grace:'Inadimplente',grace_final:'Inadimplente',blocked:'Bloqueada',cancelled:'Cancelada',paused:'Pausada'};
+    const c2 = subC[sub.status]||'#757575', l2 = subL[sub.status]||sub.status;
+    let si = '';
+    if (sub.status === 'trial' && sub.trialRemaining !== undefined) si = sub.trialRemaining + ' dia(s) restante(s) de trial';
+    else if (sub.status === 'active' && sub.nextBilling) si = 'Próxima cobrança: ' + new Date(sub.nextBilling).toLocaleDateString('pt-BR');
+    else if ((sub.status === 'grace' || sub.status === 'grace_final') && sub.graceDay) si = 'Dia ' + sub.graceDay + ' do período de tolerância';
+    html += `
+  <div class="card" style="padding:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700">Assinatura</div>
+      <span style="background:${c2}22;color:${c2};font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${l2}</span>
+    </div>
+    ${si ? `<div style="font-size:12px;color:var(--muted);margin-bottom:12px">${escH(si)}</div>` : ''}
+    <button class="btn-reiniciar" style="background:var(--green);color:#000;border:none;width:100%" onclick="navigateSub('assinatura')">Gerenciar Assinatura ›</button>
+  </div>`;
+  }
+
   // Sair
   html += `<button class="btn-logout" onclick="doLogout()">Sair da conta</button>`;
 
   document.getElementById('page-perfil').innerHTML = html;
 
-  // Confetti de conclusão dos 21 dias (dispara uma vez por sessão)
-  if (d && d.concluido && !window._confettiShown) {
-    window._confettiShown = true;
-    setTimeout(function() { _launchConfetti(); _showConcluidoModal(); }, 600);
+  // Confetti + modal apenas 1 vez por e-mail (localStorage)
+  if (d && d.concluido) {
+    var celebKey = 'celebrado21_' + (APP.userEmail || d.email || '');
+    if (!localStorage.getItem(celebKey)) {
+      localStorage.setItem(celebKey, '1');
+      setTimeout(function() { _launchConfetti(); _showConcluidoModal(); }, 600);
+    }
   }
 }
 
@@ -3872,15 +4009,18 @@ function _launchConfetti(durationMs) {
 
 function _showConcluidoModal() {
   var overlay = document.createElement('div');
+  overlay.id = 'concluidoModal21';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px)';
   overlay.innerHTML =
     '<div style="background:#0d1a12;border:1px solid rgba(76,175,80,0.35);border-radius:20px;padding:36px 28px;max-width:320px;width:100%;text-align:center;animation:panel-in .5s cubic-bezier(.22,1,.36,1) both">' +
       '<div style="font-size:56px;margin-bottom:12px">🏆</div>' +
-      '<div style="font-size:22px;font-weight:800;color:#eeeadc;margin-bottom:8px">Você conseguiu!</div>' +
-      '<div style="font-size:14px;color:#6e9070;line-height:1.7;margin-bottom:24px">Parabéns! Você completou os 21 dias do desafio.<br>Sua disciplina transformou sua vida!</div>' +
-      '<button onclick="this.closest(\'div[style]\').remove()" style="width:100%;padding:14px;background:#4caf50;color:#fff;border:none;border-radius:12px;font-family:\'DM Sans\',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 24px rgba(76,175,80,.4)">🚀 Continuar</button>' +
+      '<div style="font-size:22px;font-weight:800;color:#eeeadc;margin-bottom:8px">21 Dias Concluídos!</div>' +
+      '<div style="font-size:14px;color:#6e9070;line-height:1.7;margin-bottom:24px">Você criou o hábito. Isso é disciplina real.<br><br>Continue executando todos os dias — o desafio não tem fim. Seu dia de amanhã já está te esperando!</div>' +
+      '<button id="_btnModal21" style="width:100%;padding:14px;background:#4caf50;color:#fff;border:none;border-radius:12px;font-family:\'DM Sans\',sans-serif;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 24px rgba(76,175,80,.4)">🚀 Continuar o Desafio</button>' +
     '</div>';
   document.body.appendChild(overlay);
+  document.getElementById('_btnModal21').onclick = function(){ overlay.remove(); navigate('inicio'); };
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -6201,7 +6341,7 @@ function _leitHandleBack() {
        onerror="this.style.display='none';document.getElementById('biaFabInitials').style.display=''">
   <span id="biaFabInitials" class="bia-fab-initials">BIA</span>
 </div>
-<div id="biaModal" class="bia-modal hidden">
+<div id="biaModal" class="bia-modal hidden" style="display:none">
   <div class="bia-modal-header">
     <span>✨ Bia — Assistente do Desafio</span>
     <button onclick="_biaClose()" aria-label="Fechar">✕</button>
@@ -6284,30 +6424,28 @@ function _leitHandleBack() {
 
 <script>
 // ═══════════════════════════════════════════════════════════
-// BIA — Assistente Flutuante
+// BIA — Assistente Flutuante com Drag & Drop + Spring Snap
 // ═══════════════════════════════════════════════════════════
-var _biaOpen = false;
-var _biaForced = false; // forçado a esconder por overlay
+var _biaOpen = false, _biaForced = false, _biaDragging = false;
 
-function _biaShow() {
-  _biaForced = false;
-  var btn = document.getElementById('biaBtn');
-  if (btn) btn.classList.remove('hidden');
-}
-function _biaHide() {
-  _biaForced = true;
-  _biaClose();
-  var btn = document.getElementById('biaBtn');
-  if (btn) btn.classList.add('hidden');
-}
-function _biaToggle() {
-  if (_biaOpen) { _biaClose(); } else { _biaOpenModal(); }
-}
+// Foto da Bia carregada imediatamente
+(function() {
+  var img = document.getElementById('biaFabPhoto');
+  var txt = document.getElementById('biaFabInitials');
+  if (img) {
+    img.src = 'https://i.imgur.com/ixZb0qL.png';
+    img.style.display = 'block';
+    if (txt) txt.style.display = 'none';
+  }
+})();
+
+function _biaShow() { _biaForced=false; var b=document.getElementById('biaBtn'); if(b) b.classList.remove('hidden'); }
+function _biaHide() { _biaForced=true; _biaClose(); var b=document.getElementById('biaBtn'); if(b) b.classList.add('hidden'); }
+function _biaToggle() { if (_biaDragging) return; if (_biaOpen) _biaClose(); else _biaOpenModal(); }
 function _biaOpenModal() {
   _biaOpen = true;
   var m = document.getElementById('biaModal');
   if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
-  // Lazy-load iframe: só carrega quando o usuário abrir pela primeira vez
   var frame = document.getElementById('biaFrame');
   if (frame && !frame.src) {
     frame.src = 'https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/iframe';
@@ -6318,16 +6456,58 @@ function _biaClose() {
   var m = document.getElementById('biaModal');
   if (m) { m.classList.add('hidden'); m.style.display = 'none'; }
 }
-// Define foto do botão (chamado após APP.data carregar)
 function _biaSetPhoto(url) {
   var img = document.getElementById('biaFabPhoto');
   var txt = document.getElementById('biaFabInitials');
-  if (img && url) {
-    img.src = url;
-    img.style.display = 'block';
-    if (txt) txt.style.display = 'none';
-  }
+  if (img && url) { img.src = url; img.style.display='block'; if(txt) txt.style.display='none'; }
 }
+
+// ── Drag & Drop com snap de canto + spring ──────────────────
+(function() {
+  var btn = document.getElementById('biaBtn');
+  if (!btn) return;
+  var startX, startY, startLeft, startBottom;
+  var MARGIN = 14, BW = 60, NAVH = 72;
+  try {
+    var saved = JSON.parse(localStorage.getItem('bia_corner') || 'null');
+    if (saved) { btn.style.right='auto'; btn.style.left=saved.left+'px'; btn.style.bottom=saved.bottom+'px'; }
+  } catch(_) {}
+  function snapToCorner(cx, cy) {
+    var ww=window.innerWidth, wh=window.innerHeight;
+    var nl = cx > ww/2 ? (ww-BW-MARGIN) : MARGIN;
+    var nb = cy > wh/2 ? (NAVH+MARGIN)  : (wh-BW-MARGIN-60);
+    btn.style.transition='left .45s cubic-bezier(.34,1.56,.64,1),bottom .45s cubic-bezier(.34,1.56,.64,1)';
+    btn.style.right='auto'; btn.style.left=nl+'px'; btn.style.bottom=nb+'px';
+    setTimeout(function(){ btn.style.transition=''; }, 500);
+    try { localStorage.setItem('bia_corner', JSON.stringify({left:nl,bottom:nb})); } catch(_) {}
+  }
+  function startDrag(cx, cy) {
+    var r=btn.getBoundingClientRect();
+    startX=cx; startY=cy; startLeft=r.left; startBottom=window.innerHeight-r.bottom;
+    _biaDragging=false; btn.style.transition='none';
+  }
+  function moveDrag(cx, cy) {
+    var dx=cx-startX, dy=cy-startY;
+    if (!_biaDragging && Math.abs(dx)<6 && Math.abs(dy)<6) return;
+    _biaDragging=true;
+    btn.style.right='auto'; btn.style.left=(startLeft+dx)+'px'; btn.style.bottom=(startBottom-dy)+'px';
+  }
+  function endDrag() {
+    if (!_biaDragging) return;
+    var r=btn.getBoundingClientRect();
+    snapToCorner(r.left+r.width/2, r.top+r.height/2);
+    setTimeout(function(){ _biaDragging=false; }, 50);
+  }
+  btn.addEventListener('touchstart', function(e){ if(e.touches.length!==1)return; startDrag(e.touches[0].clientX,e.touches[0].clientY); }, {passive:true});
+  btn.addEventListener('touchmove',  function(e){ if(e.touches.length!==1)return; moveDrag(e.touches[0].clientX,e.touches[0].clientY); if(_biaDragging) e.preventDefault(); }, {passive:false});
+  btn.addEventListener('touchend',   function(){ endDrag(); });
+  btn.addEventListener('mousedown',  function(e) {
+    e.preventDefault(); startDrag(e.clientX,e.clientY);
+    function mm(e){ moveDrag(e.clientX,e.clientY); }
+    function mu(){ document.removeEventListener('mousemove',mm); document.removeEventListener('mouseup',mu); endDrag(); }
+    document.addEventListener('mousemove',mm); document.addEventListener('mouseup',mu);
+  });
+})();
 
 // ═══════════════════════════════════════════════════════════
 // JITSI — Sala de Leitura Embedded

@@ -10,8 +10,10 @@ var _EVENTO_ = {
   SHEET:       'ingressos_evento',
   PRODUTO_KEY: 'fabio luiz',            // substring normalizada p/ detectar produto
 
-  // E-mail remetente (deve ser uma conta autorizada no GAS)
-  FROM_EMAIL:  'wpktavares@gmail.com',
+  // E-mail remetente — deve ser a conta PROPRIETÁRIA do Apps Script.
+  // Enquanto o script estiver sob ads.deyvid@gmail.com, use esse e-mail.
+  // Quando transferir propriedade para wpktavares@gmail.com, troque aqui.
+  FROM_EMAIL:  'ads.deyvid@gmail.com',
   FROM_NAME:   'WPK Tavares — Eventos',
 
   // URL base do check-in (Firebase Hosting)
@@ -26,6 +28,14 @@ var _EVENTO_ = {
   LOCAL_NOME:  'Hotel Ibis',
   LOCAL_CIDADE:'Bacabal / MA',
   LOGO:        'https://i.imgur.com/bOf9i1R.png',
+
+  // Imagem do ingresso visual (banner principal do e-mail)
+  BANNER_IMG:  'https://i.imgur.com/Z93ZB0M.jpeg',
+
+  // Imgur API — Client-ID para upload de QR Codes
+  // Registre em: https://api.imgur.com/oauth2/addclient (anônimo, sem login obrigatório)
+  // Deixe '' para usar o serviço qrserver.com com cid: inline
+  IMGUR_CLIENT_ID: '',
 };
 
 // Índices das colunas (base-0) na aba ingressos_evento
@@ -306,164 +316,183 @@ function _marcarEmailEnviado_(orderId) {
 
 // ─────────────────────────────────────────────────────────────
 // ENVIO DO E-MAIL COM INGRESSO HTML
+// Estratégia de QR Code em cascata:
+//   1. Imgur API (se IMGUR_CLIENT_ID configurado) → URL pública confiável
+//   2. qrserver.com como blob cid: (fallback)
+//   3. URL direta no <img src> (último recurso)
 // ─────────────────────────────────────────────────────────────
 function enviarEmailIngresso_(g) {
-  var html    = _buildIngressoHTML_(g);
-  var assunto = '🎟️ Seu ingresso — ' + _EVENTO_.TITULO + ' ' + _EVENTO_.SUBTITULO;
+  var checkinUrl = _EVENTO_.CHECKIN_URL + '?id=' + encodeURIComponent(g.uuid);
+  var assunto    = 'Ingresso Confirmado | ' + _EVENTO_.TITULO + ' ' + _EVENTO_.SUBTITULO;
 
+  // ── Estratégia 1: Imgur API ────────────────────────────────
+  if (_EVENTO_.IMGUR_CLIENT_ID) {
+    try {
+      var qrImgurUrl = _uploadQRToImgur_(checkinUrl);
+      var html = _buildIngressoHTML_(g, qrImgurUrl);
+      GmailApp.sendEmail(g.email, assunto, '', {
+        from: _EVENTO_.FROM_EMAIL, name: _EVENTO_.FROM_NAME,
+        htmlBody: html, replyTo: _EVENTO_.FROM_EMAIL,
+      });
+      return;
+    } catch(e) {
+      logAction('system', 'EVENTO_IMGUR_ERRO', 'email', g.orderId, e.message);
+    }
+  }
+
+  // ── Estratégia 2: qrserver.com → blob cid: ────────────────
+  try {
+    var qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/'
+                 + '?size=200x200&ecc=H&format=png&data='
+                 + encodeURIComponent(checkinUrl);
+    var resp = UrlFetchApp.fetch(qrApiUrl, { muteHttpExceptions: true });
+    if (resp.getResponseCode() === 200) {
+      var qrBlob = resp.getBlob().setName('qrcode.png');
+      var html   = _buildIngressoHTML_(g, 'cid:qrcode');
+      GmailApp.sendEmail(g.email, assunto, '', {
+        from: _EVENTO_.FROM_EMAIL, name: _EVENTO_.FROM_NAME,
+        htmlBody: html, replyTo: _EVENTO_.FROM_EMAIL,
+        inlineImages: { qrcode: qrBlob },
+      });
+      return;
+    }
+  } catch(e) {
+    logAction('system', 'EVENTO_QR_BLOB_ERRO', 'email', g.orderId, e.message);
+  }
+
+  // ── Estratégia 3: URL direta (último recurso) ──────────────
+  var qrDirectUrl = 'https://api.qrserver.com/v1/create-qr-code/'
+                  + '?size=200x200&ecc=H&format=png&data='
+                  + encodeURIComponent(checkinUrl);
+  var html = _buildIngressoHTML_(g, qrDirectUrl);
   GmailApp.sendEmail(g.email, assunto, '', {
-    from:     _EVENTO_.FROM_EMAIL,
-    name:     _EVENTO_.FROM_NAME,
-    htmlBody: html,
-    replyTo:  _EVENTO_.FROM_EMAIL,
+    from: _EVENTO_.FROM_EMAIL, name: _EVENTO_.FROM_NAME,
+    htmlBody: html, replyTo: _EVENTO_.FROM_EMAIL,
   });
 }
 
 // ─────────────────────────────────────────────────────────────
-// TEMPLATE HTML DO INGRESSO (inline CSS, compatível com Gmail/Outlook)
+// IMGUR API — sobe o QR Code e retorna URL pública permanente
 // ─────────────────────────────────────────────────────────────
-function _buildIngressoHTML_(g) {
-  var checkinUrl = _EVENTO_.CHECKIN_URL + '?id=' + encodeURIComponent(g.uuid);
-  var qrUrl      = 'https://chart.googleapis.com/chart?cht=qr&chs=220x220&chld=H|1&chl='
-                   + encodeURIComponent(checkinUrl);
+function _uploadQRToImgur_(checkinUrl) {
+  var qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/'
+               + '?size=200x200&ecc=H&format=png&data='
+               + encodeURIComponent(checkinUrl);
+  var qrBytes  = UrlFetchApp.fetch(qrApiUrl).getContent();
+  var base64   = Utilities.base64Encode(qrBytes);
 
-  return [
-'<!DOCTYPE html>',
-'<html lang="pt-BR">',
-'<head>',
-'<meta charset="UTF-8">',
-'<meta name="viewport" content="width=device-width,initial-scale=1">',
-'<title>Seu Ingresso — ' + _EVENTO_.TITULO + ' ' + _EVENTO_.SUBTITULO + '</title>',
-'</head>',
-'<body style="margin:0;padding:0;background:#f0f0f0;font-family:Arial,Helvetica,sans-serif;">',
+  var resp = UrlFetchApp.fetch('https://api.imgur.com/3/image', {
+    method:  'post',
+    headers: { 'Authorization': 'Client-ID ' + _EVENTO_.IMGUR_CLIENT_ID },
+    payload: { image: base64, type: 'base64', title: 'QR-' + Utilities.getUuid().substring(0,8) },
+    muteHttpExceptions: true,
+  });
+  var data = JSON.parse(resp.getContentText());
+  if (!data.success) throw new Error('Imgur upload falhou: ' + JSON.stringify(data.data));
+  return data.data.link;
+}
 
-'<!-- Wrapper -->',
-'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f0f0;padding:32px 0;">',
-'<tr><td align="center">',
+// ─────────────────────────────────────────────────────────────
+// TEMPLATE HTML DO INGRESSO
+// Layout: imagem do ingresso como hero → saudação → QR + dados → footer
+// Sem emoji (causam ????? no GmailApp). QR via cid:qrcode (sempre exibido).
+// ─────────────────────────────────────────────────────────────
+function _buildIngressoHTML_(g, qrSrc) {
+  qrSrc = qrSrc || 'cid:qrcode';
 
-'<!-- Container -->',
-'<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">',
+  var html = '<!DOCTYPE html>'
++ '<html lang="pt-BR">'
++ '<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>'
++ '<body style="margin:0;padding:0;background:#111111;font-family:Arial,Helvetica,sans-serif;">'
 
-'<!-- HEADER LOGO -->',
-'<tr><td style="background:#0d1b4b;padding:28px 32px;text-align:center;border-radius:12px 12px 0 0;">',
-'<img src="' + _EVENTO_.LOGO + '" alt="WPK Tavares" height="52" style="max-height:52px;display:block;margin:0 auto 12px;">',
-'<p style="margin:0;color:#c8d4ff;font-size:13px;letter-spacing:1px;text-transform:uppercase;">Ingresso Digital Oficial</p>',
-'</td></tr>',
+// Wrapper
++ '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#111111;padding:24px 0;">'
++ '<tr><td align="center">'
++ '<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">'
 
-'<!-- TITULO EVENTO -->',
-'<tr><td style="background:#1a237e;padding:28px 32px;text-align:center;">',
-'<h1 style="margin:0 0 4px;color:#ffffff;font-size:28px;font-weight:900;letter-spacing:-0.5px;">' + _EVENTO_.TITULO + '</h1>',
-'<h2 style="margin:0;color:#90caf9;font-size:22px;font-weight:700;">' + _EVENTO_.SUBTITULO + '</h2>',
-'</td></tr>',
+// ── HERO: imagem do ingresso (100% largura, sem padding lateral) ──
++ '<tr><td style="padding:0;line-height:0;">'
++ '<img src="' + _EVENTO_.BANNER_IMG + '" alt="Ingresso ' + _escHtml_(_EVENTO_.TITULO) + '"'
++ ' width="600" style="display:block;width:100%;max-width:600px;border:0;border-radius:10px 10px 0 0;">'
++ '</td></tr>'
 
-'<!-- FAIXA DATA/LOCAL -->',
-'<tr><td style="background:#283593;padding:16px 32px;">',
-'<table width="100%" cellpadding="0" cellspacing="0" border="0">',
-'<tr>',
-'<td style="text-align:center;color:#e8eaf6;font-size:14px;border-right:1px solid #3949ab;padding:0 16px;">',
-'<span style="display:block;font-size:24px;">📅</span>',
-'<strong style="font-size:15px;color:#fff;">' + _EVENTO_.DIASEM + '</strong><br>',
-_EVENTO_.DATA_EXT,
-'</td>',
-'<td style="text-align:center;color:#e8eaf6;font-size:14px;border-right:1px solid #3949ab;padding:0 16px;">',
-'<span style="display:block;font-size:24px;">🕘</span>',
-'<strong style="font-size:15px;color:#fff;">' + _EVENTO_.HORA + 'h</strong><br>',
-'Abertura dos portões',
-'</td>',
-'<td style="text-align:center;color:#e8eaf6;font-size:14px;padding:0 16px;">',
-'<span style="display:block;font-size:24px;">📍</span>',
-'<strong style="font-size:15px;color:#fff;">' + _EVENTO_.LOCAL_NOME + '</strong><br>',
-_EVENTO_.LOCAL_CIDADE,
-'</td>',
-'</tr>',
-'</table>',
-'</td></tr>',
+// ── FAIXA PRETA: "Seu ingresso está confirmado" ──
++ '<tr><td style="background:#0a0a0a;padding:20px 28px;border-left:1px solid #222;border-right:1px solid #222;">'
++ '<p style="margin:0;font-size:15px;color:#e0e0e0;line-height:1.6;">'
++ 'Ola, <strong style="color:#ffffff;">' + _escHtml_(g.nome) + '</strong>!'
++ '<br>Seu ingresso esta confirmado. Apresente o QR Code abaixo na entrada do evento.'
++ '</p>'
++ '</td></tr>'
 
-'<!-- BODY BRANCO -->',
-'<tr><td style="background:#ffffff;padding:32px;">',
+// ── SECAO VERDE ESCURO: QR Code + dados do participante ──
++ '<tr><td style="background:#0d1a0d;padding:0;border:1px solid #1a3d1a;border-top:none;">'
++ '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
 
-'<!-- Saudação -->',
-'<p style="margin:0 0 20px;font-size:16px;color:#212121;">',
-'Olá, <strong>' + _escHtml_(g.nome) + '</strong>! 🎉<br>',
-'Seu ingresso está confirmado. Apresente o QR Code abaixo na entrada do evento.',
-'</p>',
+// Coluna esquerda — QR Code
++ '<td width="200" style="padding:24px 16px 24px 24px;text-align:center;'
++ 'border-right:1px dashed #2d5a2d;vertical-align:middle;">'
++ '<div style="background:#ffffff;padding:8px;display:inline-block;border-radius:8px;">'
++ '<img src="' + qrSrc + '" alt="QR Code" width="156" height="156"'
++ ' style="display:block;">'
++ '</div>'
++ '<p style="margin:8px 0 0;font-size:10px;color:#4caf50;letter-spacing:1px;text-transform:uppercase;font-weight:700;">Aponte a camera</p>'
++ '</td>'
 
-'<!-- INGRESSO — linha tracejada -->',
-'<table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:2px dashed #3f51b5;border-radius:12px;overflow:hidden;">',
-'<tr>',
+// Coluna direita — dados
++ '<td style="padding:24px;vertical-align:middle;">'
 
-'<!-- Lado esquerdo — QR Code -->',
-'<td width="240" style="padding:24px;text-align:center;background:#f8f9ff;border-right:2px dashed #3f51b5;vertical-align:middle;">',
-'<img src="' + qrUrl + '" alt="QR Code" width="180" height="180"',
-' style="display:block;margin:0 auto;border:6px solid #1a237e;border-radius:8px;">',
-'<p style="margin:10px 0 0;font-size:11px;color:#9e9e9e;letter-spacing:1px;text-transform:uppercase;">Aponte a câmera</p>',
-'</td>',
++ '<div style="margin-bottom:14px;">'
++ '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#4caf50;margin-bottom:3px;">Participante</div>'
++ '<div style="font-size:16px;font-weight:700;color:#ffffff;">' + _escHtml_(g.nome) + '</div>'
++ '</div>'
 
-'<!-- Lado direito — dados -->',
-'<td style="padding:24px;vertical-align:middle;">',
++ '<div style="margin-bottom:14px;">'
++ '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#4caf50;margin-bottom:3px;">CPF</div>'
++ '<div style="font-size:14px;font-weight:600;color:#e0e0e0;">' + _escHtml_(g.cpf) + '</div>'
++ '</div>'
 
-'<table cellpadding="0" cellspacing="0" border="0" width="100%">',
++ '<div style="margin-bottom:14px;">'
++ '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#4caf50;margin-bottom:3px;">Tipo de ingresso</div>'
++ '<div style="font-size:13px;font-weight:600;color:#e0e0e0;">Ingresso Virtual</div>'
++ '</div>'
 
-'<tr><td style="padding-bottom:14px;">',
-'<span style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#9e9e9e;">Participante</span>',
-'<strong style="font-size:16px;color:#1a237e;">' + _escHtml_(g.nome) + '</strong>',
-'</td></tr>',
++ '<div>'
++ '<div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#4caf50;margin-bottom:6px;">Codigo do ingresso</div>'
++ '<div style="display:inline-block;background:#1b5e20;border:1px solid #4caf50;'
++ 'color:#ffffff;font-size:20px;font-weight:900;letter-spacing:5px;'
++ 'padding:8px 16px;border-radius:6px;font-family:Courier,monospace;">'
++ _escHtml_(g.codigo)
++ '</div>'
++ '</div>'
 
-'<tr><td style="padding-bottom:14px;">',
-'<span style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#9e9e9e;">CPF</span>',
-'<strong style="font-size:14px;color:#212121;">' + _escHtml_(g.cpf) + '</strong>',
-'</td></tr>',
++ '</td>'
++ '</tr></table>'
++ '</td></tr>'
 
-'<tr><td style="padding-bottom:14px;">',
-'<span style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#9e9e9e;">Ingresso</span>',
-'<strong style="font-size:13px;color:#212121;">' + _escHtml_(g.produto) + '</strong>',
-'</td></tr>',
+// ── AVISO ──
++ '<tr><td style="background:#0a0a0a;padding:14px 28px;'
++ 'border-left:1px solid #222;border-right:1px solid #222;">'
++ '<p style="margin:0;font-size:11px;color:#757575;text-align:center;">'
++ 'ATENCAO: Este ingresso e pessoal e intransferivel. Sera validado <strong style="color:#9e9e9e;">uma unica vez</strong> na entrada.'
++ '</p>'
++ '</td></tr>'
 
-'<tr><td style="padding-bottom:14px;">',
-'<span style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#9e9e9e;">Valor pago</span>',
-'<strong style="font-size:14px;color:#212121;">' + _escHtml_(g.valor) + '</strong>',
-'</td></tr>',
+// ── FOOTER ──
++ '<tr><td style="background:#050505;padding:16px 28px;text-align:center;'
++ 'border:1px solid #1a1a1a;border-top:1px solid #222;border-radius:0 0 10px 10px;">'
++ '<p style="margin:0;color:#424242;font-size:11px;">'
++ 'Duvidas? Fale conosco via WhatsApp ou em '
++ '<a href="mailto:wpktavares@gmail.com" style="color:#4caf50;">wpktavares@gmail.com</a>'
++ '</p>'
++ '<p style="margin:5px 0 0;color:#2e2e2e;font-size:10px;">(c) 2026 WPK Tavares — Todos os direitos reservados</p>'
++ '</td></tr>'
 
-'<!-- Código de exibição -->',
-'<tr><td>',
-'<span style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#9e9e9e;margin-bottom:4px;">Código</span>',
-'<span style="display:inline-block;background:#1a237e;color:#ffffff;font-size:18px;font-weight:900;',
-'letter-spacing:4px;padding:8px 16px;border-radius:6px;font-family:Courier,monospace;">' + g.codigo + '</span>',
-'</td></tr>',
++ '</table>'
++ '</td></tr>'
++ '</table>'
++ '</body></html>';
 
-'</table>',
-'</td>',
-'</tr>',
-'</table>',
-'<!-- fim ingresso tracejado -->',
-
-'<!-- Aviso -->',
-'<p style="margin:24px 0 0;font-size:13px;color:#757575;text-align:center;',
-'border-top:1px solid #f0f0f0;padding-top:16px;">',
-'⚠️ Este ingresso é pessoal e intransferível. Será validado <strong>uma única vez</strong> na entrada.',
-'</p>',
-
-'</td></tr>',
-'<!-- fim body branco -->',
-
-'<!-- FOOTER -->',
-'<tr><td style="background:#0d1b4b;padding:20px 32px;text-align:center;border-radius:0 0 12px 12px;">',
-'<p style="margin:0;color:#7986cb;font-size:12px;">',
-'Dúvidas? Fale conosco via WhatsApp ou em <a href="mailto:wpktavares@gmail.com" style="color:#90caf9;">wpktavares@gmail.com</a>',
-'</p>',
-'<p style="margin:6px 0 0;color:#3f51b5;font-size:11px;">© 2026 WPK Tavares — Todos os direitos reservados</p>',
-'</td></tr>',
-
-'</table>',
-'<!-- fim container -->',
-
-'</td></tr>',
-'</table>',
-'<!-- fim wrapper -->',
-
-'</body>',
-'</html>',
-  ].join('\n');
+  return html;
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -84,12 +84,13 @@ function _calcDiaAtualFromInicio_(pilaresJson, row) {
     const startMs  = new Date(sy, sm - 1, sd).getTime();
     const todayMs  = new Date(ty, tm - 1, td).getTime();
     const diffDays = Math.floor((todayMs - startMs) / (24 * 60 * 60 * 1000));
-    const dia      = Math.min(21, Math.max(1, diffDays + 1));
+    // Sem limite — dias 22, 23, ... continuam contando após os 21 dias iniciais
+    const dia = Math.max(1, diffDays + 1);
     return { dia, dataInicio: inicioCiclo };
   }
 
-  // 3. Fallback final: coluna DIA_ATUAL (já cap 21)
-  const diaStored = Math.min(21, parseInt(row[COL_COMP.DIA_ATUAL]) || 1);
+  // 3. Fallback final: coluna DIA_ATUAL (sem cap)
+  const diaStored = Math.max(1, parseInt(row[COL_COMP.DIA_ATUAL]) || 1);
   return { dia: diaStored, dataInicio: null };
 }
 
@@ -97,19 +98,24 @@ function _calcDiaAtualFromInicio_(pilaresJson, row) {
 function _calcProgresso_(row, pilaresJson) {
   const dia = parseInt(row[COL_COMP.DIA_ATUAL]) || 1;
   let diasConcluidos = 0;
+  // Conta todos os dias registrados no pilaresJson (além de 21)
+  const maxDia = Math.max(21, dia);
 
-  for (let d = 1; d <= 21; d++) {
+  for (let d = 1; d <= maxDia; d++) {
     const pDia = pilaresJson[String(d)] || {};
-    // Considera dia concluído se marcou ao menos 3 pilares
     const marcados = PILARES_PADRAO.filter(p => pDia[p] === true).length;
     if (marcados >= 3) diasConcluidos++;
-    // Também aceita check-in via WhatsApp (colunas D1..D21)
-    const wsStatus = String(row[COL_COMP.D1 + (d - 1)] || '').toUpperCase();
-    if (wsStatus === 'SIM' && marcados < 3) diasConcluidos++;
+    // Aceita check-in via WhatsApp só nas primeiras 21 colunas D1..D21
+    if (d <= 21) {
+      const wsStatus = String(row[COL_COMP.D1 + (d - 1)] || '').toUpperCase();
+      if (wsStatus === 'SIM' && marcados < 3) diasConcluidos++;
+    }
   }
 
   return {
     diasConcluidos,
+    // progresso: base 21 dias para manter a barra significativa;
+    // quando supera 21 dias concluídos, mostra 100%
     progresso: Math.min(100, Math.round((diasConcluidos / 21) * 100)),
     diaAtual: dia
   };
@@ -265,11 +271,14 @@ function getAlunoData(token) {
       diaAtual:      dia,
       dataInicio:    dataInicio,
       horaAtualBR:   horaAtualBR,
-      ativo:         row[COL_COMP.ATIVO] === true,
+      // Ativo: true mesmo quando ATIVO=false pós-ciclo1 (aluno continua usando o app)
+      ativo:         row[COL_COMP.ATIVO] === true || String(row[COL_COMP.DIA_CONC] || '') !== '',
       diasConcluidos: stats.diasConcluidos,
       progresso:     stats.progresso,
       ultimoCheckin: String(row[COL_COMP.ULT_CHECK] || ''),
-      concluido:     row[COL_COMP.ATIVO] === false && String(row[COL_COMP.DIA_CONC] || '') !== '',
+      // concluido: verdadeiro quando completou 21 dias reais de pilares
+      // O frontend usa localStorage para mostrar o modal só 1 vez
+      concluido:     stats.diasConcluidos >= 21,
       pilaresHoje,
       pilaresJson,
       ebookUrl,

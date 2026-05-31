@@ -120,25 +120,16 @@
       text-align: center;
     }
 
-    /* Estado: já utilizado 🔄 */
-    #stateUsado { display: none; }
-    #stateUsado .card-header {
-      background: #e65100;
-      padding: 28px 24px 20px;
+    /* Badge de revalidação (ingresso já utilizado mas verde) */
+    #vRevalidadoBadge {
+      display: none;
+      background: #f57f17;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
       text-align: center;
-    }
-    #stateUsado .card-header .icon { font-size: 56px; line-height: 1; }
-    #stateUsado .card-header h1 {
-      font-size: 22px; font-weight: 900; color: #fff; margin-top: 10px;
-    }
-    #stateUsado .card-header p { font-size: 13px; color: #ffccbc; margin-top: 4px; }
-    #stateUsado .card-body { background: #fff3e0; padding: 24px; }
-    #stateUsado .card-body .info-value { color: #e65100; }
-    #stateUsado .alerta {
-      background: #ff6d00; color: #fff;
-      border-radius: 8px; padding: 12px 16px;
-      font-size: 13px; font-weight: 700;
-      text-align: center; margin-top: 16px;
+      padding: 8px 16px;
+      letter-spacing: 0.5px;
     }
 
     /* Estado: inválido / não encontrado 🚫 */
@@ -203,12 +194,13 @@
     </div>
   </div>
 
-  <!-- ── Estado: válido ✅ ── -->
+  <!-- ── Estado: válido ✅ (também usado para ja_utilizado, com badge) ── -->
   <div class="card" id="stateValido">
+    <div id="vRevalidadoBadge">⚠️ Ingresso já havia sido validado anteriormente</div>
     <div class="card-header">
       <div class="icon">✅</div>
       <h1>INGRESSO VÁLIDO</h1>
-      <p>Check-in realizado com sucesso</p>
+      <p id="vSubtitulo">Check-in realizado com sucesso</p>
     </div>
     <div class="card-body">
       <div class="info-row">
@@ -235,31 +227,7 @@
     </div>
   </div>
 
-  <!-- ── Estado: já utilizado 🔄 ── -->
-  <div class="card" id="stateUsado">
-    <div class="card-header">
-      <div class="icon">⚠️</div>
-      <h1>JÁ UTILIZADO</h1>
-      <p>Este ingresso já foi validado anteriormente</p>
-    </div>
-    <div class="card-body">
-      <div class="info-row">
-        <div class="info-label">Participante</div>
-        <div class="info-value" id="uNome">—</div>
-      </div>
-      <div class="info-row">
-        <div class="info-label">CPF</div>
-        <div class="info-value" id="uCpf">—</div>
-      </div>
-      <div class="info-row">
-        <div class="info-label">Código</div>
-        <div class="codigo-badge" id="uCodigo" style="background:#e65100;">——</div>
-      </div>
-      <div class="alerta" id="uCheckinTime">
-        ⏰ Validado em: —
-      </div>
-    </div>
-  </div>
+  <!-- stateUsado removido — ja_utilizado agora usa stateValido com badge laranja -->
 
   <!-- ── Estado: inválido / não encontrado 🚫 ── -->
   <div class="card" id="stateInvalido">
@@ -294,11 +262,11 @@
   <script>
     // ── Configuração ─────────────────────────────────────────
     // IMPORTANTE: substitua pela URL do deployment do Google Apps Script
-    var GAS_URL = 'https://script.google.com/macros/s/COLE_O_DEPLOYMENT_ID_AQUI/exec';
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
 
     // ── Utilitários ──────────────────────────────────────────
     function show(id) {
-      ['stateLoading','stateValido','stateUsado','stateInvalido','stateSemId']
+      ['stateLoading','stateValido','stateInvalido','stateSemId']
         .forEach(function(s) {
           document.getElementById(s).style.display = s === id ? 'block' : 'none';
         });
@@ -329,10 +297,13 @@
       // Chama o GAS para validar
       show('stateLoading');
 
+      // NOTA: sem Content-Type header → browser usa text/plain por padrão
+      // Isso evita o CORS preflight (OPTIONS) que o GAS não responde.
+      // O body continua sendo JSON válido — GAS consegue parsear normalmente.
       fetch(GAS_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ action: 'verificarIngresso', data: { uuid: uuid } }),
+        method:   'POST',
+        redirect: 'follow',
+        body:     JSON.stringify({ action: 'verificarIngresso', data: { uuid: uuid } }),
       })
       .then(function(res) { return res.json(); })
       .then(function(r) {
@@ -348,27 +319,24 @@
           return;
         }
 
-        if (r.tipo === 'valido') {
-          // Primeira validação — sucesso ✅
+        if (r.tipo === 'valido' || r.tipo === 'ja_utilizado') {
+          // Ambos mostram tela verde — ja_utilizado ganha badge laranja no topo
+          var revalidado = r.tipo === 'ja_utilizado';
+          document.getElementById('vRevalidadoBadge').style.display =
+            revalidado ? 'block' : 'none';
+          document.getElementById('vSubtitulo').textContent =
+            revalidado ? 'Ingresso já havia sido validado' : 'Check-in realizado com sucesso';
+
           setText('vNome',    r.nome);
           setText('vCpf',     r.cpf);
           setText('vEmail',   r.email);
           setText('vProduto', r.produto);
           setText('vCodigo',  r.codigo);
           document.getElementById('vCheckinTime').textContent =
-            '✅ Check-in registrado: ' + fmtDate(r.checkinAt);
+            revalidado
+              ? '⏰ Validado anteriormente em: ' + fmtDate(r.checkinAt)
+              : '✅ Check-in registrado agora: ' + fmtDate(r.checkinAt);
           show('stateValido');
-          return;
-        }
-
-        if (r.tipo === 'ja_utilizado') {
-          // Já foi usado ⚠️
-          setText('uNome',   r.nome);
-          setText('uCpf',    r.cpf);
-          setText('uCodigo', r.codigo);
-          document.getElementById('uCheckinTime').textContent =
-            '⏰ Já validado em: ' + fmtDate(r.checkinAt);
-          show('stateUsado');
           return;
         }
 
