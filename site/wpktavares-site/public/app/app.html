@@ -2041,6 +2041,37 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 .has-miniplayer #commGrupo { padding-bottom: 70px; }
 
 /* ═══════════════════════════════════════════════════════════
+   SUBSCRIPTION BANNER
+═══════════════════════════════════════════════════════════ */
+#subBanner {
+  position: fixed; bottom: var(--nav-h); left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; z-index: 95;
+  padding: 10px 16px; font-size: 13px; font-weight: 600;
+  text-align: center; line-height: 1.4; cursor: pointer;
+}
+#subBanner.sub-info    { background: rgba(33,150,243,0.16); color: #64b5f6; border-top: 1px solid rgba(33,150,243,0.35); }
+#subBanner.sub-warning,#subBanner.sub-yellow { background: rgba(255,152,0,0.18); color: #ffb74d; border-top: 1px solid rgba(255,152,0,0.4); }
+#subBanner.sub-red     { background: rgba(244,67,54,0.18); color: #ef9a9a; border-top: 1px solid rgba(244,67,54,0.4); }
+#subBanner.sub-blocked { background: rgba(158,158,158,0.16); color: #cfcfcf; border-top: 1px solid rgba(158,158,158,0.35); }
+
+/* ═══════════════════════════════════════════════════════════
+   DESKTOP — frame central tipo aplicativo (corrige layout esticado)
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 820px) {
+  body { background: #040605; align-items: center; }
+  .topbar     { max-width: 560px; margin: 0 auto; width: 100%; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .main-scroll{ max-width: 560px; margin: 0 auto; width: 100%; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .bottom-nav { max-width: 560px; left: 50%; transform: translateX(-50%); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  #subBanner  { max-width: 560px; }
+  .bia-fab    { left: 50%; margin-left: 218px; right: auto; }
+  .bia-modal  { left: 50%; margin-left: -110px; right: auto; }
+}
+@media (min-width: 1200px) {
+  .topbar, .main-scroll, .bottom-nav, #subBanner { max-width: 600px; }
+  .bia-fab { margin-left: 238px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
    JITSI — Sala de Leitura Embedded
 ═══════════════════════════════════════════════════════════ */
 .jitsi-overlay {
@@ -2392,7 +2423,15 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 
+  <!-- ── ASSINATURA (sub-tela do Perfil) ──────────────────── -->
+  <div class="page" id="page-assinatura">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+
 </div>
+
+<!-- ═══ SUBSCRIPTION BANNER ═══════════════════════════════════ -->
+<div id="subBanner" style="display:none"></div>
 
 <!-- ═══ BOTTOM NAV ════════════════════════════════════════════ -->
 <nav class="bottom-nav">
