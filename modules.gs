@@ -235,8 +235,10 @@ function handleRequest(payload) {
     case 'verificarIngresso':    return verificarIngressoUUID_(data.uuid);
 
     // Assinaturas — Ciclo de vida Cakto ↔ App
-    case 'getAssinaturaInfo':      return getAssinaturaInfo(token);
-    case 'setupAssinaturaTrigger': return setupAssinaturaTrigger();
+    case 'getAssinaturaInfo':         return getAssinaturaInfo(token);
+    case 'setupAssinaturaTrigger':    return setupAssinaturaTrigger();
+    case 'setupReconciliacaoTrigger': return setupReconciliacaoTrigger();
+    case 'rodarReconciliacao':        return rodarReconciliacaoAgora();
 
     default:
       return { ok: false, error: 'Acao desconhecida: ' + action };

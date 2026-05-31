@@ -174,8 +174,73 @@ function _onPurchaseApproved_(email, d, sub) {
   });
 
   _syncAcesso_(email, appStatus);
+
+  // PRIMEIRO ACESSO: cria login automático + envia senha por e-mail
+  // (só na primeira compra — se o usuário já existe, não faz nada)
+  try { _garantirLoginAluno_(email); } catch(e) {
+    logAction('system', 'ASSIN_LOGIN_ERRO', 'assinatura', email, e.message);
+  }
+
   logAction('system', 'ASSIN_' + appStatus.toUpperCase(), 'assinatura', email, plan);
   return _okAssinatura_('ok', appStatus + ' · ' + plan);
+}
+
+/**
+ * Garante que o aluno tenha login (aba users).
+ * Se não existir, cria com senha provisória e envia e-mail de boas-vindas.
+ * Retorna true se criou um novo login, false se já existia.
+ */
+function _garantirLoginAluno_(email) {
+  var ss    = getSpreadsheet_();
+  var users = ss.getSheetByName(SHEET_USERS);
+  if (!users) return false;
+
+  var emailNorm = String(email).toLowerCase().trim();
+  var rows      = users.getDataRange().getValues();
+  var headers   = rows[0].map(function(h){ return String(h); });
+  var emailIdx  = headers.indexOf('email');
+
+  // Já existe login? não faz nada
+  for (var i = 1; i < rows.length; i++) {
+    if (String(rows[i][emailIdx]).toLowerCase().trim() === emailNorm) return false;
+  }
+
+  // Busca nome em compradores
+  var nome = '';
+  var comp = ss.getSheetByName(SHEET_COMPRADORES);
+  if (comp) {
+    var cRows = comp.getDataRange().getValues();
+    for (var k = 1; k < cRows.length; k++) {
+      if (String(cRows[k][COL_COMP.EMAIL]).toLowerCase().trim() === emailNorm) {
+        nome = String(cRows[k][COL_COMP.NOME] || ''); break;
+      }
+    }
+  }
+
+  // Cria login com senha provisória (reusa gerador legível do reabertura.gs)
+  var senha = (typeof _gerarSenhaTemp_ === 'function')
+    ? _gerarSenhaTemp_()
+    : Math.random().toString(36).slice(-8);
+  var hash  = hashPassword(senha);
+  users.appendRow([generateId(), nome, emailNorm, hash, 'aluno', '', true, nowISO()]);
+
+  // E-mail de boas-vindas (reusa template HTML bonito do reabertura.gs)
+  try {
+    var wsNome = 'WPK Tavares';
+    try { wsNome = getWorkspaceConfig().nome || wsNome; } catch(e) {}
+    var appUrl  = 'https://app.wpktavares.com.br';
+    _enviarCredenciaisReinabertura_(emailNorm, nome || emailNorm, senha, wsNome, appUrl);
+  } catch(e) {
+    // Fallback texto simples
+    try {
+      MailApp.sendEmail(emailNorm, 'Bem-vindo ao Desafio 21 Dias — seu acesso',
+        'E-mail: ' + emailNorm + '\nSenha provisoria: ' + senha +
+        '\n\nAcesse: https://app.wpktavares.com.br');
+    } catch(e2) {}
+  }
+
+  logAction('system', 'ASSIN_LOGIN_CRIADO', 'user', emailNorm, nome);
+  return true;
 }
 
 /** payment_failed — cobrança recusada */
