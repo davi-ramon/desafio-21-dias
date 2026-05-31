@@ -86,15 +86,23 @@ function processWebhookAssinatura_(caktoEvt) {
     }
 
     switch (eventType) {
-      case 'purchase_approved':
+      // Eventos REAIS da Cakto (confirmados na doc) + aliases legados
+      case 'purchase_approved':       // pagamento aprovado (1ª compra ou trial)
+      case 'subscription_created':    // assinatura criada
+      case 'subscription_renewed':    // renovação cobrada com sucesso
         return _onPurchaseApproved_(email, d, sub);
 
-      case 'payment_failed':
-      case 'subscription_payment_failed':
+      case 'subscription_renewal_refused': // renovação recusada (Cakto real)
+      case 'purchase_refused':             // compra recusada
+      case 'payment_failed':               // alias legado
+      case 'subscription_payment_failed':  // alias legado
         return _onPaymentFailed_(email, d, sub);
 
-      case 'subscription_cancelled':
+      case 'subscription_canceled':   // cancelada (Cakto real — 1 L)
+      case 'subscription_cancelled':  // alias legado (2 L)
       case 'purchase_cancelled':
+      case 'chargeback':              // chargeback → bloqueia
+      case 'refund':                  // reembolso → bloqueia
       case 'subscription_refunded':
         return _onCancelled_(email, d);
 
