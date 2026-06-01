@@ -3001,22 +3001,25 @@ function renderPerfil() {
       <div class="stat-lbl">Dias OK</div>
     </div>
     <div class="stat-pill">
-      <div class="stat-val">${21 - conc}</div>
-      <div class="stat-lbl">Restantes</div>
+      <div class="stat-val">${diaAt > 21 ? '🔥' : Math.max(0, 21 - conc)}</div>
+      <div class="stat-lbl">${diaAt > 21 ? 'Streak' : 'Restantes'}</div>
     </div>
   </div>`;
 
-  // Progresso visual
+  // Progresso visual — mostra todos os dias até diaAt
+  const maxGrid = Math.max(21, diaAt);
   html += `
   <div class="card">
-    <div class="section-title" style="margin-bottom:14px">Histórico dos 21 Dias</div>
+    <div class="section-title" style="margin-bottom:14px">Histórico — ${maxGrid > 21 ? 'Dia ' + maxGrid : '21 Dias'}</div>
     <div class="progress-grid">`;
 
-  for (let i = 1; i <= 21; i++) {
+  for (let i = 1; i <= maxGrid; i++) {
     const pDia    = pilaresJson[String(i)] || {};
     const marcados = ['meditacao','leitura','exercicio','audio','checkin'].filter(p => pDia[p] === true).length;
     const classe  = i < diaAt ? (marcados >= 3 ? 'done' : marcados > 0 ? 'partial' : '') : i === diaAt ? 'today' : '';
-    html += `<div class="day-dot ${classe}">${i}</div>`;
+    // Marco especial no dia 21
+    const marcador = i === 21 ? ' style="outline:2px solid var(--green);outline-offset:2px"' : '';
+    html += `<div class="day-dot ${classe}"${marcador}>${i}</div>`;
   }
 
   html += '</div></div>';
@@ -3024,11 +3027,11 @@ function renderPerfil() {
   // Barra de progresso
   html += `
   <div class="card">
-    <div class="section-title" style="margin-bottom:10px">Progresso Geral</div>
+    <div class="section-title" style="margin-bottom:10px">Progresso — Pilares Concluídos</div>
     <div class="progress-bar" style="height:12px;margin-bottom:8px">
       <div class="progress-fill" style="width:${prog}%"></div>
     </div>
-    <div style="font-size:13px;color:var(--muted)">${conc} de 21 dias concluídos</div>
+    <div style="font-size:13px;color:var(--muted)">${conc} dias com 3+ pilares concluídos ${diaAt > 21 ? '(ao longo de ' + diaAt + ' dias)' : 'de 21'}</div>
   </div>`;
 
   // Configurações admin — visível apenas para admin
@@ -3091,10 +3094,15 @@ function renderPerfil() {
 
   document.getElementById('page-perfil').innerHTML = html;
 
-  // Confetti + modal quando desafio foi concluído (uma vez por sessão)
-  if (d && d.concluido && !window._confettiShown) {
-    window._confettiShown = true;
-    setTimeout(function() { _launchConfetti(); _showConcluidoModal(); }, 600);
+  // Confetti + modal SOMENTE se:
+  //   1. completou 21 dias (concluido = true)
+  //   2. nunca mostrou antes (localStorage por e-mail do aluno)
+  if (d && d.concluido) {
+    var celebKey = 'celebrado21_' + (APP.userEmail || '');
+    if (!localStorage.getItem(celebKey)) {
+      localStorage.setItem(celebKey, '1');
+      setTimeout(function() { _launchConfetti(); _showConcluidoModal(); }, 600);
+    }
   }
 }
 
@@ -3831,15 +3839,24 @@ function _showConcluidoModal() {
     'box-shadow:0 12px 64px rgba(0,0,0,0.7),0 0 0 1px rgba(76,175,80,0.1)">',
     '<div style="font-size:56px;margin-bottom:12px">🏆</div>',
     '<div style="font-size:22px;font-weight:800;color:var(--green);margin-bottom:10px;line-height:1.2">',
-    'Você conseguiu!<br>Parabéns! 🎉</div>',
+    '21 Dias Concluídos!</div>',
     '<div style="font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:22px">',
-    'Você completou os <strong style="color:var(--text)">21 dias</strong> do Desafio.<br>',
-    'Isso é uma conquista real — continue com os hábitos!</div>',
-    '<button onclick="document.getElementById(\'concluidoModal\').remove()" ',
+    'Você criou o hábito. Isso é disciplina real.<br><br>',
+    'Continue executando todos os dias — o desafio não tem fim.',
+    ' Seu dia de amanhã já está te esperando!</div>',
+    '<button id="btnConcluidoContinuar" ',
     'style="width:100%;padding:14px;background:var(--green);color:#fff;border:none;',
     'border-radius:12px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer">',
-    '🚀 Continuar</button></div>'
+    '🚀 Continuar o Desafio</button></div>'
   ].join('');
+  // Botão Continuar: fecha modal e navega para início
+  setTimeout(function() {
+    var btn = document.getElementById('btnConcluidoContinuar');
+    if (btn) btn.addEventListener('click', function() {
+      m.remove();
+      navigate('inicio');
+    });
+  }, 100);
   document.body.appendChild(m);
   m.addEventListener('click', function(e) { if (e.target === m) m.remove(); });
 }
@@ -5676,7 +5693,7 @@ function _leitHandleBack() {
   <img id="biaFabPhoto" class="bia-fab-photo" src="" alt="Bia" style="display:none" onerror="this.style.display='none';document.getElementById('biaFabInitials').style.display=''">
   <span id="biaFabInitials" class="bia-fab-initials">BIA</span>
 </div>
-<div id="biaModal" class="bia-modal hidden">
+<div id="biaModal" class="bia-modal hidden" style="display:none">
   <div class="bia-modal-header"><span>✨ Bia — Assistente do Desafio</span><button onclick="_biaClose()">✕</button></div>
   <iframe id="biaFrame" src="" allow="microphone;" frameborder="0" class="bia-iframe" title="Bia"></iframe>
 </div>
@@ -5723,14 +5740,160 @@ function _leitHandleBack() {
 </div>
 
 <script>
-// BIA
-var _biaOpen=false,_biaForced=false;
-function _biaShow(){_biaForced=false;var b=document.getElementById('biaBtn');if(b)b.classList.remove('hidden');}
-function _biaHide(){_biaForced=true;_biaClose();var b=document.getElementById('biaBtn');if(b)b.classList.add('hidden');}
-function _biaToggle(){if(_biaOpen)_biaClose();else _biaOpenModal();}
-function _biaOpenModal(){_biaOpen=true;var m=document.getElementById('biaModal');if(m){m.classList.remove('hidden');m.style.display='flex';}var f=document.getElementById('biaFrame');if(f&&!f.src){f.src='https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/iframe';}}
-function _biaClose(){_biaOpen=false;var m=document.getElementById('biaModal');if(m){m.classList.add('hidden');m.style.display='none';}}
-function _biaSetPhoto(url){var img=document.getElementById('biaFabPhoto');var txt=document.getElementById('biaFabInitials');if(img&&url){img.src=url;img.style.display='block';if(txt)txt.style.display='none';}}
+// ════════════════════════════════════════════════════════════
+// BIA — Assistente Flutuante
+// ════════════════════════════════════════════════════════════
+var _biaOpen = false, _biaForced = false, _biaDragging = false;
+
+// Foto da Bia — carregada no init
+(function() {
+  var img = document.getElementById('biaFabPhoto');
+  var txt = document.getElementById('biaFabInitials');
+  if (img) {
+    img.src = 'https://i.imgur.com/ixZb0qL.png';
+    img.style.display = 'block';
+    if (txt) txt.style.display = 'none';
+  }
+})();
+
+function _biaShow(){ _biaForced=false; var b=document.getElementById('biaBtn'); if(b) b.classList.remove('hidden'); }
+function _biaHide(){ _biaForced=true; _biaClose(); var b=document.getElementById('biaBtn'); if(b) b.classList.add('hidden'); }
+
+function _biaToggle() {
+  if (_biaDragging) return;
+  if (_biaOpen) _biaClose(); else _biaOpenModal();
+}
+
+function _biaOpenModal() {
+  _biaOpen = true;
+  var m = document.getElementById('biaModal');
+  if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
+  var f = document.getElementById('biaFrame');
+  if (f && !f.src) {
+    f.src = 'https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/iframe';
+  }
+  // Reposiciona modal próximo ao botão Bia
+  _biaPositionModal();
+}
+
+function _biaClose() {
+  _biaOpen = false;
+  var m = document.getElementById('biaModal');
+  if (m) { m.classList.add('hidden'); m.style.display = 'none'; }
+}
+
+function _biaSetPhoto(url) {
+  var img = document.getElementById('biaFabPhoto');
+  var txt = document.getElementById('biaFabInitials');
+  if (img && url) { img.src = url; img.style.display = 'block'; if(txt) txt.style.display = 'none'; }
+}
+
+function _biaPositionModal() {
+  var btn = document.getElementById('biaBtn');
+  var m   = document.getElementById('biaModal');
+  if (!btn || !m) return;
+  var rect = btn.getBoundingClientRect();
+  var ww = window.innerWidth, wh = window.innerHeight;
+  var mW = Math.min(380, ww - 24), mH = 540;
+  // Aparece acima ou abaixo do botão dependendo do espaço
+  var fromRight = ww - rect.right < wW / 2;
+  m.style.right = fromRight ? (ww - rect.right - 4) + 'px' : 'auto';
+  m.style.left  = fromRight ? 'auto' : Math.max(12, rect.left - mW + 60) + 'px';
+  m.style.bottom = (wh - rect.top + 8) + 'px';
+  m.style.top = 'auto';
+  m.style.width = mW + 'px';
+  m.style.maxHeight = (wh - (wh - rect.top + 16)) + 'px';
+}
+
+// ── Drag & Drop com snap de canto ──────────────────────────────
+(function() {
+  var btn = document.getElementById('biaBtn');
+  if (!btn) return;
+
+  var startX, startY, startLeft, startBottom;
+  var MARGIN = 14; // margem dos cantos
+  var BW = 60;     // largura aprox. do botão
+  var NAVH = 64;   // altura da bottom nav
+
+  // Restaura posição salva
+  try {
+    var saved = JSON.parse(localStorage.getItem('bia_corner') || 'null');
+    if (saved) {
+      btn.style.right  = 'auto';
+      btn.style.left   = saved.left   + 'px';
+      btn.style.bottom = saved.bottom + 'px';
+    }
+  } catch(_) {}
+
+  function snapToCorner(cx, cy) {
+    var ww = window.innerWidth, wh = window.innerHeight;
+    var toRight  = cx > ww / 2;
+    var toBottom = cy > wh / 2;
+    var newLeft   = toRight  ? (ww - BW - MARGIN) : MARGIN;
+    var newBottom = toBottom ? (NAVH + MARGIN)     : (wh - BW - MARGIN - 60);
+
+    btn.style.transition = 'left .45s cubic-bezier(.34,1.56,.64,1), bottom .45s cubic-bezier(.34,1.56,.64,1)';
+    btn.style.right  = 'auto';
+    btn.style.left   = newLeft   + 'px';
+    btn.style.bottom = newBottom + 'px';
+    setTimeout(function() { btn.style.transition = ''; }, 500);
+
+    try { localStorage.setItem('bia_corner', JSON.stringify({ left: newLeft, bottom: newBottom })); } catch(_) {}
+    if (_biaOpen) _biaPositionModal();
+  }
+
+  function startDrag(clientX, clientY) {
+    var rect = btn.getBoundingClientRect();
+    startX      = clientX;
+    startY      = clientY;
+    startLeft   = rect.left;
+    startBottom = window.innerHeight - rect.bottom;
+    _biaDragging = false;
+    btn.style.transition = 'none';
+  }
+  function moveDrag(clientX, clientY) {
+    var dx = clientX - startX, dy = clientY - startY;
+    if (!_biaDragging && Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+    _biaDragging = true;
+    btn.style.right  = 'auto';
+    btn.style.left   = (startLeft + dx) + 'px';
+    btn.style.bottom = (startBottom - dy) + 'px';
+  }
+  function endDrag(clientX, clientY) {
+    if (!_biaDragging) return;
+    var rect = btn.getBoundingClientRect();
+    snapToCorner(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    setTimeout(function() { _biaDragging = false; }, 50);
+  }
+
+  // Touch
+  btn.addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) return;
+    startDrag(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  btn.addEventListener('touchmove', function(e) {
+    if (e.touches.length !== 1) return;
+    moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+    if (_biaDragging) e.preventDefault();
+  }, { passive: false });
+  btn.addEventListener('touchend', function(e) {
+    endDrag();
+  });
+
+  // Mouse
+  btn.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    startDrag(e.clientX, e.clientY);
+    function mm(e) { moveDrag(e.clientX, e.clientY); }
+    function mu(e) {
+      document.removeEventListener('mousemove', mm);
+      document.removeEventListener('mouseup', mu);
+      endDrag(e.clientX, e.clientY);
+    }
+    document.addEventListener('mousemove', mm);
+    document.addEventListener('mouseup', mu);
+  });
+})();
 // JITSI
 function _openJitsi(){var r=(APP.data&&APP.data.salaJitsiRoom)||'desafio21dias-wpktavares';var f=document.getElementById('jitsiFrame');if(f)f.src='https://meet.jit.si/'+r+'#config.prejoinPageEnabled=false&config.startWithAudioMuted=false&config.disableDeepLinking=true';var o=document.getElementById('jitsiOverlay');if(o)o.classList.add('active');_biaHide();}
 function _closeJitsi(){var f=document.getElementById('jitsiFrame');if(f)f.src='';var o=document.getElementById('jitsiOverlay');if(o)o.classList.remove('active');_biaShow();}
