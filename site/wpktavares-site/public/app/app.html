@@ -2055,20 +2055,157 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 #subBanner.sub-blocked { background: rgba(158,158,158,0.16); color: #cfcfcf; border-top: 1px solid rgba(158,158,158,0.35); }
 
 /* ═══════════════════════════════════════════════════════════
-   DESKTOP — frame central tipo aplicativo (corrige layout esticado)
+   PROGRESS RING (hero) — escondido no mobile, ativo no desktop
 ═══════════════════════════════════════════════════════════ */
-@media (min-width: 820px) {
+.hero-ring { display: none; }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE/TABLET ESTREITO (até 1023px) — frame central
+   Mantém o layout mobile atual intacto, só centraliza em tablets.
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 600px) and (max-width: 1023px) {
   body { background: #040605; align-items: center; }
-  .topbar     { max-width: 560px; margin: 0 auto; width: 100%; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
-  .main-scroll{ max-width: 560px; margin: 0 auto; width: 100%; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
-  .bottom-nav { max-width: 560px; left: 50%; transform: translateX(-50%); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
-  #subBanner  { max-width: 560px; }
-  .bia-fab    { left: 50%; margin-left: 218px; right: auto; }
+  .topbar     { max-width: 600px; margin: 0 auto; width: 100%; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .main-scroll{ max-width: 600px; margin: 0 auto; width: 100%; border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .bottom-nav { max-width: 600px; left: 50%; transform: translateX(-50%); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  #subBanner  { max-width: 600px; }
+  .bia-fab    { left: 50%; margin-left: 238px; right: auto; }
   .bia-modal  { left: 50%; margin-left: -110px; right: auto; }
 }
-@media (min-width: 1200px) {
-  .topbar, .main-scroll, .bottom-nav, #subBanner { max-width: 600px; }
-  .bia-fab { margin-left: 238px; }
+
+/* ═══════════════════════════════════════════════════════════
+   DESKTOP DASHBOARD (1024px+) — Sidebar + Grid 2 colunas
+   Estilo SaaS (Notion/Linear/Spotify). Mobile permanece intacto.
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  body { background: #040605; }
+
+  /* ── SIDEBAR a partir da bottom-nav existente ── */
+  .bottom-nav {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: 248px; height: 100vh;
+    flex-direction: column; justify-content: flex-start;
+    align-items: stretch;
+    padding: 0 14px;
+    border-top: none; border-right: 1px solid var(--border);
+    background: var(--surface);
+    gap: 4px;
+  }
+  /* Cabeçalho da sidebar (logo injetado via ::before) */
+  .bottom-nav::before {
+    content: '⚡  Desafio 21 Dias';
+    display: flex; align-items: center;
+    height: 72px; padding: 0 12px;
+    font-size: 15px; font-weight: 800; color: var(--text);
+    letter-spacing: -0.3px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .nav-btn {
+    flex-direction: row; justify-content: flex-start;
+    gap: 14px; padding: 12px 14px;
+    border-radius: 10px;
+    flex: none;
+  }
+  .nav-btn span { font-size: 14px; font-weight: 600; }
+  .nav-btn:hover { background: var(--surface2); }
+  .nav-btn.active { background: var(--green-glow); color: var(--green); }
+  .nav-btn.active svg { transform: none; }
+
+  /* ── TOPBAR vira header da área de conteúdo ── */
+  .topbar {
+    position: fixed; top: 0; left: 248px; right: 0; z-index: 90;
+    height: 72px; padding: 0 36px;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  /* Esconde o logo da topbar (já está na sidebar) */
+  .topbar .topbar-logo { opacity: 0; pointer-events: none; }
+
+  /* ── ÁREA DE CONTEÚDO ── */
+  .main-scroll {
+    margin-left: 248px; margin-top: 72px;
+    padding: 32px 36px 48px;
+    max-width: none;
+    height: calc(100vh - 72px);
+  }
+
+  /* Páginas internas: largura confortável centralizada */
+  .page { max-width: 1180px; margin: 0 auto; padding: 0; }
+
+  /* ── SUBSCRIPTION BANNER vira faixa no topo do conteúdo ── */
+  #subBanner {
+    position: fixed; top: 72px; left: 248px; right: 0; bottom: auto;
+    max-width: none; transform: none; z-index: 80;
+  }
+
+  /* ── DASHBOARD GRID ── */
+  .home-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-areas:
+      "hero    hero"
+      "stats   stats"
+      "msg     pilares"
+      "audio   pilares"
+      "sala    pilares";
+    gap: 18px;
+    align-items: start;
+  }
+  .ga-hero    { grid-area: hero;    margin-bottom: 0; }
+  .ga-stats   { grid-area: stats;   margin-bottom: 0; }
+  .ga-msg     { grid-area: msg;     margin-bottom: 0; }
+  .ga-pilares { grid-area: pilares; margin-bottom: 0; align-self: stretch; }
+  .ga-audio   { grid-area: audio;   margin-bottom: 0; }
+  .ga-sala    { grid-area: sala;    margin-bottom: 0; }
+  .ga-adminbar { grid-column: 1 / -1; }
+
+  /* ── HERO com progress ring ── */
+  .ga-hero {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 32px; padding: 32px 36px;
+  }
+  .ga-hero .hero-content { flex: 1; }
+  .ga-hero .hero-title { font-size: 32px; }
+  .ga-hero .progress-wrap { max-width: 420px; }
+  .hero-ring {
+    display: flex; flex-shrink: 0;
+    width: 150px; height: 150px; border-radius: 50%;
+    align-items: center; justify-content: center;
+    background:
+      radial-gradient(closest-side, var(--surface) 78%, transparent 79% 100%),
+      conic-gradient(var(--green) var(--ring-deg, 0deg), var(--surface3) 0deg);
+  }
+  .hero-ring-inner {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    width: 100%; height: 100%;
+  }
+  .hero-ring-val { font-size: 34px; font-weight: 800; color: var(--green); line-height: 1; }
+  .hero-ring-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.08em; }
+  /* esconde a barra horizontal quando o ring está visível */
+  .ga-hero .progress-bar { display: none; }
+
+  /* ── STATS em linha, altura compacta ── */
+  .ga-stats .stat-pill { padding: 18px 12px; }
+  .ga-stats .stat-val  { font-size: 30px; }
+  .ga-stats .stat-lbl  { font-size: 12px; }
+
+  /* ── PILARES em grid 2x2 ── */
+  .ga-pilares .pilar-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ga-pilares .pilar-item { flex-direction: column; align-items: flex-start; gap: 10px; padding: 18px; min-height: 120px; }
+  .ga-pilares .pilar-arrow { position: absolute; top: 14px; right: 14px; }
+  .ga-pilares .pilar-item { position: relative; }
+
+  /* ── BIA fica no canto inferior direito da viewport (fora da sidebar) ── */
+  .bia-fab   { right: 28px; left: auto; bottom: 28px; margin: 0; }
+  .bia-modal { right: 28px; left: auto; bottom: 100px; margin: 0; }
+
+  /* Esconde a sala de leitura duplicada do mobile (mantém só no grid) */
+}
+
+/* Telas muito largas (2K/4K) — limita o conteúdo, mais respiro */
+@media (min-width: 1600px) {
+  .page { max-width: 1320px; }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -2830,24 +2967,26 @@ function renderInicio() {
   </div>`;
   }
 
-  // Hero
-  html += `
-  <div class="hero">
-    <div class="hero-tag">${concluido ? '🏆 Desafio Concluído' : 'Em andamento'}</div>
-    <div class="hero-title">${escH(saudacao)}, ${escH(primeiroNome)}!</div>
-    <div class="hero-sub">Desafio 21 Dias · ${concluido ? 'Parabéns, você chegou ao fim!' : 'Dia ' + dia + ' de 21'}</div>
-    <div class="progress-wrap">
-      <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
-      <div class="progress-label">${prog}% concluído</div>
-    </div>
-  </div>`;
+  // ── Abre o grid de dashboard ──
+  // .home-grid: mobile = display:contents (não afeta layout); desktop = CSS grid 2 colunas
+  html += `<div class="home-grid">`;
 
-  // Stats
+  // Hero — com progress ring (visível só no desktop via CSS)
+  const _ringDeg = Math.round((prog / 100) * 360);
   html += `
-  <div class="stats-row">
-    <div class="stat-pill"><div class="stat-val">${dia}</div><div class="stat-lbl">Dia atual</div></div>
-    <div class="stat-pill"><div class="stat-val">${d.diasConcluidos || 0}</div><div class="stat-lbl">Concluídos</div></div>
-    <div class="stat-pill"><div class="stat-val">${Math.max(0, 21 - (d.diasConcluidos || 0))}</div><div class="stat-lbl">Restantes</div></div>
+  <div class="hero ga-hero">
+    <div class="hero-content">
+      <div class="hero-tag">${concluido ? '🏆 Desafio Concluído' : 'Em andamento'}</div>
+      <div class="hero-title">${escH(saudacao)}, ${escH(primeiroNome)}!</div>
+      <div class="hero-sub">Desafio 21 Dias · ${concluido ? 'Parabéns, você chegou ao fim!' : 'Dia ' + dia + ' de 21'}</div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
+        <div class="progress-label">${prog}% concluído</div>
+      </div>
+    </div>
+    <div class="hero-ring" style="--ring-deg:${_ringDeg}deg">
+      <div class="hero-ring-inner"><span class="hero-ring-val">${prog}%</span><span class="hero-ring-lbl">concluído</span></div>
+    </div>
   </div>`;
 
   if (!concluido) {
@@ -2869,7 +3008,7 @@ function renderInicio() {
       pendentesHtml = pendentes.map(p => '<span class="msg-dinamica-tag">' + pilaresNomes[p] + '</span>').join('');
     }
     if (msgTitle) {
-      html += `<div class="msg-dinamica"><div class="msg-dinamica-badge">${msgBadge}</div><div class="msg-dinamica-title">${msgTitle}</div><div class="msg-dinamica-sub">${msgSub}</div>${pendentesHtml ? '<div class="msg-dinamica-pendentes">' + pendentesHtml + '</div>' : ''}</div>`;
+      html += `<div class="msg-dinamica ga-msg"><div class="msg-dinamica-badge">${msgBadge}</div><div class="msg-dinamica-title">${msgTitle}</div><div class="msg-dinamica-sub">${msgSub}</div>${pendentesHtml ? '<div class="msg-dinamica-pendentes">' + pendentesHtml + '</div>' : ''}</div>`;
     }
 
     var audioOnclick = d.audioUrlHoje
@@ -2877,7 +3016,7 @@ function renderInicio() {
       : 'navigate(\'audios\')';
 
     html += `
-    <div class="card">
+    <div class="card ga-pilares">
       <div class="section-title">Seus Pilares de Hoje</div>
       <div class="section-sub">Complete todos os pilares diários</div>
       <div class="pilar-list">
@@ -2900,7 +3039,7 @@ function renderInicio() {
              onerror="this.style.display='none';document.getElementById('audioHomePh${_diaN}').style.display='flex'">`
         : '';
       html += `
-<div class="audio-card" style="padding:0;overflow:hidden">
+<div class="audio-card ga-audio" style="padding:0;overflow:hidden">
   ${_heroCover}
   <div id="audioHomePh${_diaN}" class="audio-home-ph" style="${_aCapa ? 'display:none' : ''}">🎧</div>
   <div style="padding:14px 16px 16px">
@@ -2924,7 +3063,7 @@ function renderInicio() {
     const checkinBloq    = !checkinFeito && checkinBloqMsg !== '';
 
     html += `
-    <div class="checkin-card">
+    <div class="checkin-card ga-checkin">
       <div class="checkin-icon-row"><div class="checkin-icon">📋</div><div><div class="checkin-header">Check-in do Dia</div></div></div>
       <div class="checkin-sub">${checkinFeito ? 'Check-in realizado com sucesso! ✅' : checkinBloqMsg ? checkinBloqMsg : 'Registre sua conquista e avance no desafio'}</div>
       <button class="btn-checkin${checkinFeito ? ' done' : ''}" id="checkinBtn" onclick="fazerCheckin()" ${(checkinFeito || checkinBloq) ? 'disabled' : ''}>
@@ -2932,12 +3071,15 @@ function renderInicio() {
       </button>
     </div>`;
   } else {
-    html += `<div class="card" style="text-align:center;padding:32px 20px"><div style="font-size:48px;margin-bottom:12px">🏆</div><div style="font-size:20px;font-weight:800;color:var(--green);margin-bottom:8px">Desafio Concluído!</div><div style="font-size:13px;color:var(--muted)">Você completou os 21 dias. Continue com seus hábitos!</div></div>`;
+    html += `<div class="card ga-checkin" style="text-align:center;padding:32px 20px"><div style="font-size:48px;margin-bottom:12px">🏆</div><div style="font-size:20px;font-weight:800;color:var(--green);margin-bottom:8px">Desafio Concluído!</div><div style="font-size:13px;color:var(--muted)">Você completou os 21 dias. Continue com seus hábitos!</div></div>`;
   }
 
   if (d.salaLink) {
-    html += `<a href="${escH(d.salaLink)}" target="_blank" class="link-card" style="text-decoration:none"><div class="link-card-icon" style="background:rgba(59,130,246,0.15)">🌅</div><div class="link-card-info"><div class="link-card-title">Sala de Leitura</div><div class="link-card-sub">Seg–Qui às 05h55 · Clique para entrar</div></div><div class="link-card-arrow">→</div></a>`;
+    html += `<a href="${escH(d.salaLink)}" target="_blank" class="link-card ga-sala" style="text-decoration:none"><div class="link-card-icon" style="background:rgba(59,130,246,0.15)">🌅</div><div class="link-card-info"><div class="link-card-title">Sala de Leitura</div><div class="link-card-sub">Seg–Qui às 05h55 · Clique para entrar</div></div><div class="link-card-arrow">→</div></a>`;
   }
+
+  // Fecha o wrapper do dashboard grid
+  html += `</div>`;
 
   document.getElementById('page-inicio').innerHTML = html;
 }
