@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planos e Preços — Desafio 21 Dias</title>
+<meta name="description" content="Escolha o plano ideal do Desafio 21 Dias. Mensal R$17, Trimestral R$47 (7% OFF) ou Anual R$177 (14% OFF). Acesso imediato, cancele quando quiser.">
+<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Meta Pixel -->
+<script>
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+  n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+  document,'script','https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init','4212748045603496'); fbq('track','PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=4212748045603496&ev=PageView&noscript=1"/></noscript>
+
+<style>
+  :root {
+    --bg:    #07090a; --surf: #0f1412; --surf2: #141c18;
+    --green: #4caf50; --gbright: #6dde71; --gdim: #2e6b31;
+    --cream: #eeeadc; --muted: #6e9070;
+    --border: rgba(76,175,80,0.16);
+    --gold:  #f5c842; --gold-dim: rgba(245,200,66,0.2);
+    --red:   #e84040;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: #dde8dd;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px; line-height: 1.65;
+    overflow-x: hidden;
+  }
+  body::before {
+    content:''; position:fixed; inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:0;
+  }
+
+  /* ── Header ── */
+  .page-header {
+    position: relative; z-index: 1;
+    background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(76,175,80,0.12) 0%, transparent 65%), var(--bg);
+    padding: 60px 20px 48px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { width: 52px; height: 52px; border-radius: 13px; margin-bottom: 20px; border: 1px solid var(--border); }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--green);
+    background: rgba(76,175,80,0.08); border: 1px solid var(--border);
+    border-radius: 100px; padding: 6px 18px; margin-bottom: 20px;
+  }
+  .page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(44px, 10vw, 72px);
+    color: var(--cream); line-height: 0.95; margin-bottom: 14px;
+  }
+  .page-title .accent { color: var(--gbright); }
+  .page-sub {
+    font-family: 'Instrument Serif', serif;
+    font-style: italic; font-size: 18px; color: var(--muted);
+  }
+
+  /* ── Trial banner (aparece se veio do app) ── */
+  .trial-banner {
+    position: relative; z-index: 1;
+    background: rgba(76,175,80,0.07);
+    border-bottom: 1px solid rgba(76,175,80,0.15);
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 14px; color: var(--gbright);
+    display: none;
+  }
+  .trial-banner.show { display: block; }
+  .trial-banner strong { color: #fff; }
+
+  /* ── Plans grid ── */
+  .plans-section {
+    position: relative; z-index: 1;
+    padding: 56px 20px 80px;
+  }
+  .plans-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    max-width: 960px;
+    margin: 0 auto;
+    align-items: start;
+  }
+  @media (max-width: 768px) {
+    .plans-grid {
+      grid-template-columns: 1fr;
+      max-width: 420px;
+    }
+    /* Reordena: anual (destaque) primeiro no mobile */
+    .plan-card.best { order: -1; }
+  }
+
+  /* ── Plan card base ── */
+  .plan-card {
+    background: var(--surf);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 28px 28px;
+    display: flex; flex-direction: column;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .plan-card:hover {
+    border-color: var(--gdim);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+  }
+
+  /* ── BEST card (anual) — dourado ── */
+  .plan-card.best {
+    border-color: rgba(245,200,66,0.3);
+    background: linear-gradient(180deg, #141208 0%, var(--surf) 40%);
+    transform: scale(1.03);
+    box-shadow: 0 8px 40px rgba(245,200,66,0.1), 0 24px 60px rgba(0,0,0,0.5);
+  }
+  .plan-card.best:hover {
+    border-color: rgba(245,200,66,0.5);
+    transform: scale(1.03) translateY(-4px);
+    box-shadow: 0 12px 56px rgba(245,200,66,0.15), 0 32px 72px rgba(0,0,0,0.55);
+  }
+
+  .popular-tag {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #c8890a, #f5c842);
+    color: #0a0700;
+    font-size: 10px; font-weight: 800; letter-spacing: 0.18em;
+    text-transform: uppercase; padding: 5px 20px;
+    border-radius: 0 0 10px 10px;
+  }
+
+  .plan-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 0.04em;
+    color: var(--cream); margin-bottom: 4px;
+  }
+  .plan-best .plan-name { color: var(--gold); }
+
+  .plan-desc { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+  .plan-price-wrap { margin-bottom: 6px; }
+  .plan-price {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 68px; line-height: 1; letter-spacing: -0.02em;
+    color: var(--gbright);
+  }
+  .plan-card.best .plan-price { color: var(--gold); }
+  .plan-price sup { font-size: 28px; vertical-align: top; margin-top: 12px; display: inline-block; }
+  .plan-price sub { font-size: 20px; font-weight: 400; letter-spacing: 0; vertical-align: baseline; color: var(--muted); }
+
+  .plan-equiv { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .plan-equiv strong { color: var(--gbright); }
+
+  .plan-savings {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(76,175,80,0.1);
+    border: 1px solid rgba(76,175,80,0.2);
+    border-radius: 8px; padding: 6px 12px;
+    font-size: 12px; font-weight: 600; color: var(--gbright);
+    margin-bottom: 24px;
+  }
+  .plan-card.best .plan-savings {
+    background: var(--gold-dim);
+    border-color: rgba(245,200,66,0.3);
+    color: var(--gold);
+  }
+  .plan-savings .old { text-decoration: line-through; color: var(--muted); font-weight: 400; }
+
+  .plan-divider { height: 1px; background: var(--border); margin-bottom: 20px; }
+
+  .plan-features { list-style: none; margin-bottom: 28px; flex: 1; }
+  .plan-features li {
+    font-size: 13px; color: #a0c4a0;
+    padding: 8px 0; border-bottom: 1px solid rgba(76,175,80,0.06);
+    display: flex; gap: 10px; align-items: flex-start; line-height: 1.4;
+  }
+  .plan-features li:last-child { border-bottom: none; }
+  .chk { color: var(--green); font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+
+  /* CTA buttons */
+  .plan-btn {
+    display: block; width: 100%; padding: 17px;
+    border-radius: 12px; border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 700;
+    text-decoration: none; text-align: center;
+    cursor: pointer; transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .plan-btn::after {
+    content:''; position:absolute; top:0; left:-100%; width:55%; height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.13),transparent);
+    transition:left 0.45s;
+  }
+  .plan-btn:hover::after { left:160%; }
+
+  .plan-btn.green {
+    background: var(--green); color: #fff;
+    box-shadow: 0 4px 20px rgba(76,175,80,0.25);
+  }
+  .plan-btn.green:hover { background: var(--gbright); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(76,175,80,0.35); }
+
+  .plan-btn.gold {
+    background: linear-gradient(135deg, #c8890a, #f5c842); color: #0a0700;
+    box-shadow: 0 4px 20px rgba(245,200,66,0.25);
+  }
+  .plan-btn.gold:hover { filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(245,200,66,0.38); }
+
+  @keyframes glow-pulse { 0%,100%{box-shadow:0 4px 20px rgba(245,200,66,0.25);} 50%{box-shadow:0 4px 36px rgba(245,200,66,0.5);} }
+  .plan-btn.gold { animation: glow-pulse 2.5s ease-in-out infinite; }
+
+  .plan-btn-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 10px; }
+
+  /* ── FAQ / guarantee ── */
+  .guarantee-section {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    background: var(--surf);
+    padding: 52px 20px;
+    text-align: center;
+  }
+  .guarantee-inner {
+    max-width: 640px; margin: 0 auto;
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+  }
+  .gua-icon { font-size: 48px; }
+  .gua-title { font-family: 'Bebas Neue',sans-serif; font-size: 36px; color: var(--cream); }
+  .gua-text { font-size: 15px; color: var(--muted); line-height: 1.7; max-width: 480px; }
+
+  .trust-strip {
+    display: flex; justify-content: center; flex-wrap: wrap;
+    gap: 16px 28px; margin-top: 20px;
+  }
+  .trust-item { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+
+  /* ── Footer ── */
+  footer {
+    position: relative; z-index: 1;
+    background: var(--surf); border-top: 1px solid var(--border);
+    padding: 40px 20px; text-align: center;
+    font-size: 12px; color: #3a5a3a; line-height: 1.8;
+  }
+  footer a { color: var(--green); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<!-- Trial banner (aparece quando ?from=trial na URL) -->
+<div class="trial-banner" id="trialBanner">
+  ⏰ <strong>Seu período gratuito encerrou.</strong> Escolha um plano para continuar com acesso completo e não perder seu progresso.
+</div>
+
+<!-- Header -->
+<header class="page-header">
+  <img src="https://i.imgur.com/bOf9i1R.png" alt="Logo" class="logo">
+  <div class="eyebrow">✦ Desafio 21 Dias</div>
+  <h1 class="page-title">Escolha seu<br><span class="accent">Plano</span></h1>
+  <p class="page-sub">Acesso completo ao app, biblioteca, Bia IA e sala ao vivo.</p>
+</header>
+
+<!-- Plans -->
+<section class="plans-section">
+  <div class="plans-grid">
+
+    <!-- MENSAL -->
+    <div class="plan-card">
+      <div class="plan-name">Mensal</div>
+      <div class="plan-desc">Flexibilidade total. Cancele quando quiser.</div>
+      <div class="plan-price-wrap">
+        <div class="plan-price"><sup>R$</sup>17<sub>/mês</sub></div>
+      </div>
+      <div class="plan-equiv">Cobrado mensalmente</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li><span class="chk">✓</span> App exclusivo — celular, tablet e computador</li>
+        <li><span class="chk">✓</span> Biblioteca digital + e-book 24 páginas</li>
+        <li><span class="chk">✓</span> Bia — assistente IA 24h</li>
+        <li><span class="chk">✓</span> 21 áudios motivacionais</li>
+        <li><span class="chk">✓</span> Sala de leitura ao vivo (seg–qui)</li>
+        <li><span class="chk">✓</span> Meditação guiada + exercícios</li>
+        <li><span class="chk">✓</span> Comunidade exclusiva</li>
+        <li><span class="chk">✓</span> Cancele quando quiser</li>
+      </ul>
+      <a href="https://pay.cakto.com.br/rsi55kc" class="plan-btn green" target="_blank" rel="noopener"
+         onclick="fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias – Mensal',value:17,currency:'BRL'})">
+        ASSINAR MENSAL
+      </a>
+      <p class="plan-btn-note">Garantia de 7 dias</p>
+    </div>
+
+    <!-- ANUAL (destaque) -->
+    <div class="plan-card best">
+      <div class="popular-tag">⭐ Melhor opção</div>
+      <div class="plan-name" style="margin-top:12px;color:var(--gold)">Anual</div>
+      <div class="plan-desc">Máxima economia. Compromisso de um ano.</div>
+      <div class="plan-price-wrap">
+        <div class="plan-price" style="color:var(--gold)"><sup>R$</sup>177<sub>/ano</sub></div>
+      </div>
+      <div class="plan-equiv">equivale a <strong style="color:var(--gold)">R$14,75/mês</strong></div>
+      <div class="plan-savings">
+        🏆 Economize R$27 vs. mensal — <span class="old">R$204/ano</span>
+      </div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li><span class="chk">✓</span> App exclusivo — celular, tablet e computador</li>
+        <li><span class="chk">✓</span> Biblioteca digital + e-book 24 páginas</li>
+        <li><span class="chk">✓</span> Bia — assistente IA 24h</li>
+        <li><span class="chk">✓</span> 21 áudios motivacionais</li>
+        <li><span class="chk">✓</span> Sala de leitura ao vivo (seg–qui)</li>
+        <li><span class="chk">✓</span> Meditação guiada + exercícios</li>
+        <li><span class="chk">✓</span> Comunidade exclusiva</li>
+        <li><span class="chk">✓</span> Cancele quando quiser</li>
+      </ul>
+      <a href="https://pay.cakto.com.br/3cxxfra" class="plan-btn gold" target="_blank" rel="noopener"
+         onclick="fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias – Anual 14off',value:177,currency:'BRL'})">
+        ASSINAR ANUAL — 14% OFF
+      </a>
+      <p class="plan-btn-note">Garantia de 7 dias</p>
+    </div>
+
+    <!-- TRIMESTRAL -->
+    <div class="plan-card">
+      <div class="plan-name">Trimestral</div>
+      <div class="plan-desc">Desconto sem compromisso anual.</div>
+      <div class="plan-price-wrap">
+        <div class="plan-price"><sup>R$</sup>47<sub>/trim</sub></div>
+      </div>
+      <div class="plan-equiv">equivale a <strong style="color:var(--gbright)">R$15,67/mês</strong></div>
+      <div class="plan-savings">
+        💰 Economize R$4 vs. mensal — <span class="old">R$51/trim</span>
+      </div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li><span class="chk">✓</span> App exclusivo — celular, tablet e computador</li>
+        <li><span class="chk">✓</span> Biblioteca digital + e-book 24 páginas</li>
+        <li><span class="chk">✓</span> Bia — assistente IA 24h</li>
+        <li><span class="chk">✓</span> 21 áudios motivacionais</li>
+        <li><span class="chk">✓</span> Sala de leitura ao vivo (seg–qui)</li>
+        <li><span class="chk">✓</span> Meditação guiada + exercícios</li>
+        <li><span class="chk">✓</span> Comunidade exclusiva</li>
+        <li><span class="chk">✓</span> Cancele quando quiser</li>
+      </ul>
+      <a href="https://pay.cakto.com.br/3877gd6" class="plan-btn green" target="_blank" rel="noopener"
+         onclick="fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias – Trimestral 7off',value:47,currency:'BRL'})">
+        ASSINAR TRIMESTRAL
+      </a>
+      <p class="plan-btn-note">Garantia de 7 dias</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- Garantia -->
+<section class="guarantee-section">
+  <div class="guarantee-inner">
+    <div class="gua-icon">🛡️</div>
+    <div class="gua-title">Garantia de 7 dias</div>
+    <p class="gua-text">Se nos primeiros 7 dias você não estiver satisfeito por qualquer motivo, devolvemos 100% do seu dinheiro. Sem perguntas, sem burocracia. É só pedir pelo e-mail ou WhatsApp.</p>
+    <div class="trust-strip">
+      <div class="trust-item"><span>🔒</span> Pagamento seguro</div>
+      <div class="trust-item"><span>⚡</span> Acesso imediato</div>
+      <div class="trust-item"><span>🛡️</span> Garantia 7 dias</div>
+      <div class="trust-item"><span>📱</span> App no celular</div>
+      <div class="trust-item"><span>🔄</span> Cancele quando quiser</div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>© 2026 WPK Tavares — Equipe Lapidados</p>
+  <p style="margin-top:6px">
+    <a href="mailto:wpktavares@gmail.com">wpktavares@gmail.com</a> ·
+    <a href="https://wa.me/559484427988" target="_blank">WhatsApp</a> ·
+    <a href="https://wpktavares.com.br/politica-de-privacidade/" target="_blank">Política de Privacidade</a> ·
+    <a href="https://wpktavares.com.br/termos-de-uso/" target="_blank">Termos de Uso</a>
+  </p>
+</footer>
+
+<script async src="https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/float.js"></script>
+<script>
+(function(){
+  // Mostra banner se veio do app (trial encerrado) ou se ?from=trial
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('from') === 'trial') {
+    document.getElementById('trialBanner').classList.add('show');
+  }
+})();
+</script>
+
+</body>
+</html>

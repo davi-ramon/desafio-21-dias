@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acesso Gratuito — Desafio 21 Dias</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #07090a;
+    --surf:    #0f1412;
+    --surf2:   #141c18;
+    --green:   #4caf50;
+    --gbright: #6dde71;
+    --cream:   #eeeadc;
+    --muted:   #6e9070;
+    --border:  rgba(76,175,80,0.18);
+    --red:     #e84040;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: #dde8dd;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+  }
+
+  /* ── grain ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+
+  .card {
+    position: relative; z-index: 1;
+    background: var(--surf);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 460px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(76,175,80,0.06);
+    animation: fadeUp 0.55s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(28px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ── Header ── */
+  .card-header {
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(76,175,80,0.13) 0%, transparent 70%),
+                linear-gradient(180deg, #0d1e0d 0%, #0a130a 100%);
+    padding: 32px 36px 28px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { width: 52px; height: 52px; border-radius: 13px; margin-bottom: 16px; border: 1px solid var(--border); }
+  .trial-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: rgba(76,175,80,0.12);
+    border: 1px solid rgba(76,175,80,0.28);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--gbright);
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(32px, 7vw, 44px);
+    color: var(--cream);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .card-title .accent { color: var(--gbright); }
+  .card-sub { font-size: 14px; color: var(--muted); line-height: 1.55; }
+
+  /* ── No-card badge ── */
+  .no-card {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 16px;
+    font-size: 12px; font-weight: 600; color: var(--gbright);
+  }
+  .no-card svg { flex-shrink: 0; }
+
+  /* ── Form ── */
+  .card-body { padding: 32px 36px 36px; }
+
+  .field { margin-bottom: 20px; }
+  .field label {
+    display: block;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .field-wrap { position: relative; }
+  .field input {
+    width: 100%;
+    background: var(--surf2);
+    border: 1.5px solid rgba(76,175,80,0.15);
+    border-radius: 10px;
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 14px 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    -webkit-appearance: none;
+  }
+  .field input::placeholder { color: rgba(110,144,112,0.55); }
+  .field input:focus {
+    border-color: var(--green);
+    background: #111a13;
+    box-shadow: 0 0 0 3px rgba(76,175,80,0.12);
+  }
+  .field input.error {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(232,64,64,0.1);
+  }
+  .field input.valid {
+    border-color: rgba(76,175,80,0.5);
+  }
+  .field-error {
+    font-size: 12px; color: var(--red);
+    margin-top: 6px; display: none;
+  }
+  .field-error.show { display: block; }
+
+  /* WhatsApp field */
+  .wa-wrap { display: flex; gap: 0; }
+  .wa-prefix {
+    background: rgba(76,175,80,0.08);
+    border: 1.5px solid rgba(76,175,80,0.15);
+    border-right: none;
+    border-radius: 10px 0 0 10px;
+    padding: 14px 14px;
+    color: var(--muted);
+    font-size: 14px; font-weight: 600;
+    white-space: nowrap;
+    display: flex; align-items: center; gap: 6px;
+    transition: border-color 0.2s;
+    user-select: none;
+  }
+  .wa-wrap input {
+    border-radius: 0 10px 10px 0 !important;
+    flex: 1;
+  }
+  .wa-wrap:focus-within .wa-prefix {
+    border-color: var(--green);
+    background: rgba(76,175,80,0.12);
+  }
+
+  /* ── CTA ── */
+  .btn-submit {
+    width: 100%; padding: 18px;
+    background: var(--green);
+    color: #fff;
+    border: none; border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px; font-weight: 700; letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(76,175,80,0.3);
+    position: relative; overflow: hidden;
+    margin-top: 8px;
+  }
+  .btn-submit::after {
+    content: '';
+    position: absolute; top: 0; left: -100%; width: 55%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.13), transparent);
+    transition: left 0.45s;
+  }
+  .btn-submit:not(:disabled):hover {
+    background: var(--gbright); transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(76,175,80,0.38);
+  }
+  .btn-submit:not(:disabled):hover::after { left: 160%; }
+  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block; width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle; margin-right: 8px;
+  }
+
+  /* ── Trust strip ── */
+  .trust { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 22px; }
+  .trust-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+
+  /* ── Server error ── */
+  .server-error {
+    background: rgba(232,64,64,0.08);
+    border: 1px solid rgba(232,64,64,0.2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 13px; color: #ff7070;
+    margin-bottom: 16px; display: none;
+  }
+  .server-error.show { display: block; }
+
+  /* ── Footer ── */
+  .page-footer {
+    position: relative; z-index: 1;
+    margin-top: 28px;
+    font-size: 11px; color: #2a3d2a;
+    text-align: center; line-height: 1.8;
+  }
+  .page-footer a { color: rgba(76,175,80,0.5); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="card" id="formCard">
+  <div class="card-header">
+    <img src="https://i.imgur.com/bOf9i1R.png" alt="Logo" class="logo">
+    <div class="trial-badge" id="trialBadge">
+      🎁 <span id="badgeText">7 dias grátis</span>
+    </div>
+    <h1 class="card-title">
+      Acesso<br><span class="accent" id="titleDays">7 Dias</span><br>Gratuito
+    </h1>
+    <p class="card-sub">Preencha abaixo e receba seu acesso imediato por e-mail.</p>
+    <div class="no-card">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="8" y1="15" x2="10" y2="15"/></svg>
+      Sem necessidade de cartão de crédito
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="server-error" id="serverError"></div>
+
+    <form id="trialForm" novalidate>
+
+      <div class="field">
+        <label for="nome">Nome completo</label>
+        <div class="field-wrap">
+          <input type="text" id="nome" name="nome" placeholder="Seu nome e sobrenome" autocomplete="name" inputmode="text">
+        </div>
+        <div class="field-error" id="nomeError">Digite seu nome completo.</div>
+      </div>
+
+      <div class="field">
+        <label for="email">E-mail</label>
+        <div class="field-wrap">
+          <input type="email" id="email" name="email" placeholder="seu@email.com" autocomplete="email" inputmode="email">
+        </div>
+        <div class="field-error" id="emailError">E-mail inválido.</div>
+      </div>
+
+      <div class="field">
+        <label for="whatsapp">WhatsApp</label>
+        <div class="field-wrap wa-wrap">
+          <div class="wa-prefix">🇧🇷 +55</div>
+          <input type="tel" id="whatsapp" name="whatsapp" placeholder="(11) 99999-9999" autocomplete="tel" inputmode="numeric" maxlength="15">
+        </div>
+        <div class="field-error" id="whatsappError">Digite seu WhatsApp com DDD.</div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">
+        QUERO MEU ACESSO GRATUITO →
+      </button>
+
+    </form>
+
+    <div class="trust">
+      <div class="trust-item">🔒 Dados seguros</div>
+      <div class="trust-item">⚡ Acesso imediato</div>
+      <div class="trust-item">❌ Sem cartão</div>
+    </div>
+  </div>
+</div>
+
+<div class="page-footer">
+  <a href="https://wpktavares.com.br">wpktavares.com.br</a> ·
+  <a href="https://wpktavares.com.br/politica-de-privacidade/" target="_blank">Política de Privacidade</a>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+
+  // ── Lê parâmetro ?dias= ──────────────────────────────────
+  var params = new URLSearchParams(window.location.search);
+  var dias   = parseInt(params.get('dias')) || 7;
+  if ([7, 14, 21].indexOf(dias) < 0) dias = 7;
+
+  document.getElementById('badgeText').textContent  = dias + ' dias grátis';
+  document.getElementById('titleDays').textContent  = dias + ' Dias';
+  document.title = 'Acesso ' + dias + ' Dias Grátis — Desafio 21 Dias';
+
+  // ── Formatação WhatsApp ──────────────────────────────────
+  var waInput = document.getElementById('whatsapp');
+  waInput.addEventListener('input', function() {
+    var v = this.value.replace(/\D/g, '').slice(0, 11);
+    var f = v;
+    if (v.length > 2 && v.length <= 7)  f = '(' + v.slice(0,2) + ') ' + v.slice(2);
+    if (v.length > 7 && v.length <= 11) f = '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
+    this.value = f;
+  });
+
+  // ── Validação em tempo real ──────────────────────────────
+  function showError(id, msg) {
+    var el = document.getElementById(id);
+    el.textContent = msg || el.textContent;
+    el.classList.add('show');
+    document.getElementById(id.replace('Error', '')).classList.add('error');
+    document.getElementById(id.replace('Error', '')).classList.remove('valid');
+  }
+  function clearError(inputId) {
+    document.getElementById(inputId + 'Error').classList.remove('show');
+    document.getElementById(inputId).classList.remove('error');
+  }
+  function setValid(inputId) {
+    document.getElementById(inputId).classList.add('valid');
+    document.getElementById(inputId).classList.remove('error');
+    document.getElementById(inputId + 'Error').classList.remove('show');
+  }
+
+  ['nome','email','whatsapp'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.addEventListener('blur', function() { validateField(id); });
+    el.addEventListener('input', function() {
+      if (this.classList.contains('error')) validateField(id);
+    });
+  });
+
+  function validateField(id) {
+    var val = document.getElementById(id).value.trim();
+    if (id === 'nome') {
+      if (!val || val.length < 3 || val.indexOf(' ') < 0) { showError('nomeError', 'Digite nome e sobrenome.'); return false; }
+      setValid('nome');
+    }
+    if (id === 'email') {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { showError('emailError', 'E-mail inválido.'); return false; }
+      setValid('email');
+    }
+    if (id === 'whatsapp') {
+      var digits = val.replace(/\D/g, '');
+      if (digits.length < 10 || digits.length > 11) { showError('whatsappError', 'Digite com DDD (ex: 11 99999-9999).'); return false; }
+      setValid('whatsapp');
+    }
+    clearError(id);
+    return true;
+  }
+
+  function validateAll() {
+    return validateField('nome') & validateField('email') & validateField('whatsapp');
+  }
+
+  // ── Submit ───────────────────────────────────────────────
+  document.getElementById('trialForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    document.getElementById('serverError').classList.remove('show');
+
+    if (!validateAll()) return;
+
+    var btn   = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Criando seu acesso...';
+
+    var nome     = document.getElementById('nome').value.trim();
+    var email    = document.getElementById('email').value.trim();
+    var whatsapp = document.getElementById('whatsapp').value.replace(/\D/g, '');
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'registrarTrial',
+        data:   { nome: nome, email: email, whatsapp: whatsapp, dias: dias }
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (res.ok) {
+        window.location.href = '/obrigado-trial/?dias=' + dias + '&nome=' + encodeURIComponent(nome.split(' ')[0]);
+      } else {
+        document.getElementById('serverError').textContent = res.error || 'Erro ao criar acesso. Tente novamente.';
+        document.getElementById('serverError').classList.add('show');
+        btn.disabled = false;
+        btn.innerHTML = 'QUERO MEU ACESSO GRATUITO →';
+      }
+    })
+    .catch(function() {
+      document.getElementById('serverError').textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
+      document.getElementById('serverError').classList.add('show');
+      btn.disabled = false;
+      btn.innerHTML = 'QUERO MEU ACESSO GRATUITO →';
+    });
+  });
+
+})();
+</script>
+
+</body>
+</html>
