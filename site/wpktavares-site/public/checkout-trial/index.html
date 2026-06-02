@@ -6,407 +6,1278 @@
 <title>Acesso Gratuito — Desafio 21 Dias</title>
 <meta name="robots" content="noindex">
 <link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','4212748045603496');fbq('track','PageView');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:      #07090a;
-    --surf:    #0f1412;
-    --surf2:   #141c18;
-    --green:   #4caf50;
-    --gbright: #6dde71;
-    --cream:   #eeeadc;
-    --muted:   #6e9070;
-    --border:  rgba(76,175,80,0.18);
-    --red:     #e84040;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg);
-    color: #dde8dd;
-    font-family: 'DM Sans', sans-serif;
-    min-height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 20px;
-  }
+/* ═══════════════════════════════════════════
+   RESET + VARIABLES
+═══════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050505;
+  --card:#0D0D0D;
+  --card2:#111111;
+  --card3:#131313;
+  --border:#1e1e1e;
+  --border2:#252525;
+  --green:#39FF14;
+  --green-dim:rgba(57,255,20,0.12);
+  --green-mid:rgba(57,255,20,0.25);
+  --green-glow:0 0 24px rgba(57,255,20,0.28);
+  --green-glow-sm:0 0 12px rgba(57,255,20,0.2);
+  --text:#FFFFFF;
+  --sec:#A1A1A1;
+  --muted:#555;
+  --red:#ff4444;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:14px;
+  line-height:1.5;
+}
 
-  /* ── grain ── */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none; z-index: 0;
-  }
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:4px}
 
-  .card {
-    position: relative; z-index: 1;
-    background: var(--surf);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    width: 100%;
-    max-width: 460px;
-    overflow: hidden;
-    box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(76,175,80,0.06);
-    animation: fadeUp 0.55s ease both;
-  }
-  @keyframes fadeUp {
-    from { opacity:0; transform:translateY(28px); }
-    to   { opacity:1; transform:translateY(0); }
-  }
+/* ═══════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════ */
+.top-bar{
+  height:60px;
+  background:#0a0a0a;
+  border-bottom:1px solid var(--border);
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  align-items:center;
+  padding:0 28px;
+  position:relative;
+  z-index:100;
+  flex-shrink:0;
+}
+.top-brand{display:flex;align-items:center;gap:12px}
+.top-brand img{width:40px;height:40px;border-radius:10px;border:1px solid var(--border2)}
+.top-brand-text{display:flex;flex-direction:column}
+.top-brand-name{font-size:13px;font-weight:700;color:var(--green);letter-spacing:0.08em;text-transform:uppercase}
+.top-brand-sub{font-size:10px;color:var(--sec);letter-spacing:0.06em;text-transform:uppercase}
+.top-headline{text-align:center}
+.top-headline h1{
+  font-size:15px;font-weight:800;
+  color:var(--text);letter-spacing:0.04em;
+  text-transform:uppercase;line-height:1.3;
+}
+.top-headline h1 span{color:var(--green)}
+.top-security{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.top-security-icon{
+  width:36px;height:36px;
+  background:var(--green-dim);
+  border:1px solid rgba(57,255,20,0.25);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;
+}
+.top-security-text strong{display:block;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.1em}
+.top-security-text span{font-size:10px;color:var(--sec)}
 
-  /* ── Header ── */
-  .card-header {
-    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(76,175,80,0.13) 0%, transparent 70%),
-                linear-gradient(180deg, #0d1e0d 0%, #0a130a 100%);
-    padding: 32px 36px 28px;
-    text-align: center;
-    border-bottom: 1px solid var(--border);
-  }
-  .logo { width: 52px; height: 52px; border-radius: 13px; margin-bottom: 16px; border: 1px solid var(--border); }
-  .trial-badge {
-    display: inline-flex; align-items: center; gap: 7px;
-    background: rgba(76,175,80,0.12);
-    border: 1px solid rgba(76,175,80,0.28);
-    border-radius: 100px;
-    padding: 6px 16px;
-    font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
-    text-transform: uppercase; color: var(--gbright);
-    margin-bottom: 14px;
-  }
-  .card-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(32px, 7vw, 44px);
-    color: var(--cream);
-    line-height: 1;
-    margin-bottom: 8px;
-  }
-  .card-title .accent { color: var(--gbright); }
-  .card-sub { font-size: 14px; color: var(--muted); line-height: 1.55; }
+/* ═══════════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════════ */
+.page-shell{display:flex;flex-direction:column;height:100vh}
+.main-layout{
+  flex:1;
+  display:grid;
+  grid-template-columns:320px 1fr 360px;
+  overflow:hidden;
+  min-height:0;
+}
 
-  /* ── No-card badge ── */
-  .no-card {
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    margin-top: 16px;
-    font-size: 12px; font-weight: 600; color: var(--gbright);
-  }
-  .no-card svg { flex-shrink: 0; }
+/* ═══════════════════════════════════════════
+   SIDEBARS
+═══════════════════════════════════════════ */
+.sidebar{
+  border-right:1px solid var(--border);
+  overflow-y:auto;
+  padding:18px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  background:linear-gradient(180deg,#080808 0%,#050505 100%);
+}
+.sidebar-right{
+  border-right:none;
+  border-left:1px solid var(--border);
+  padding:16px 14px;
+}
 
-  /* ── Form ── */
-  .card-body { padding: 32px 36px 36px; }
+/* ── Section heading ── */
+.sec-head{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.dot-live{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--green);
+  box-shadow:var(--green-glow-sm);
+  animation:blink 1.6s ease-in-out infinite;
+  flex-shrink:0;
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.35}}
+.sec-title{font-size:11px;font-weight:700;color:var(--green);letter-spacing:0.14em;text-transform:uppercase}
+.sec-sub{font-size:11px;color:var(--sec);margin-bottom:10px}
 
-  .field { margin-bottom: 20px; }
-  .field label {
-    display: block;
-    font-size: 11px; font-weight: 700; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--muted);
-    margin-bottom: 8px;
-  }
-  .field-wrap { position: relative; }
-  .field input {
-    width: 100%;
-    background: var(--surf2);
-    border: 1.5px solid rgba(76,175,80,0.15);
-    border-radius: 10px;
-    color: var(--cream);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    padding: 14px 16px;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-    -webkit-appearance: none;
-  }
-  .field input::placeholder { color: rgba(110,144,112,0.55); }
-  .field input:focus {
-    border-color: var(--green);
-    background: #111a13;
-    box-shadow: 0 0 0 3px rgba(76,175,80,0.12);
-  }
-  .field input.error {
-    border-color: var(--red);
-    box-shadow: 0 0 0 3px rgba(232,64,64,0.1);
-  }
-  .field input.valid {
-    border-color: rgba(76,175,80,0.5);
-  }
-  .field-error {
-    font-size: 12px; color: var(--red);
-    margin-top: 6px; display: none;
-  }
-  .field-error.show { display: block; }
+/* ── Card base ── */
+.card-block{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px;
+}
 
-  /* WhatsApp field */
-  .wa-wrap { display: flex; gap: 0; }
-  .wa-prefix {
-    background: rgba(76,175,80,0.08);
-    border: 1.5px solid rgba(76,175,80,0.15);
-    border-right: none;
-    border-radius: 10px 0 0 10px;
-    padding: 14px 14px;
-    color: var(--muted);
-    font-size: 14px; font-weight: 600;
-    white-space: nowrap;
-    display: flex; align-items: center; gap: 6px;
-    transition: border-color 0.2s;
-    user-select: none;
-  }
-  .wa-wrap input {
-    border-radius: 0 10px 10px 0 !important;
-    flex: 1;
-  }
-  .wa-wrap:focus-within .wa-prefix {
-    border-color: var(--green);
-    background: rgba(76,175,80,0.12);
-  }
+/* ── Activity feed ── */
+.activity-item{
+  display:flex;align-items:center;gap:10px;
+  transition:opacity 0.4s;
+}
+.activity-avatar{
+  width:38px;height:38px;border-radius:50%;
+  object-fit:cover;border:2px solid var(--border2);
+  flex-shrink:0;
+}
+.activity-initials{
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:#050505;
+  flex-shrink:0;
+}
+.activity-body{flex:1;min-width:0}
+.activity-text{font-size:13px;color:var(--text);line-height:1.4}
+.activity-text strong{color:var(--text);font-weight:600}
+.activity-time{font-size:11px;color:var(--sec);margin-top:2px}
+.activity-check{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--green-dim);border:1px solid var(--green-mid);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--green);flex-shrink:0;
+}
 
-  /* ── CTA ── */
-  .btn-submit {
-    width: 100%; padding: 18px;
-    background: var(--green);
-    color: #fff;
-    border: none; border-radius: 12px;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 16px; font-weight: 700; letter-spacing: 0.02em;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-    box-shadow: 0 4px 24px rgba(76,175,80,0.3);
-    position: relative; overflow: hidden;
-    margin-top: 8px;
-  }
-  .btn-submit::after {
-    content: '';
-    position: absolute; top: 0; left: -100%; width: 55%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.13), transparent);
-    transition: left 0.45s;
-  }
-  .btn-submit:not(:disabled):hover {
-    background: var(--gbright); transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(76,175,80,0.38);
-  }
-  .btn-submit:not(:disabled):hover::after { left: 160%; }
-  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+/* ── Interest counter ── */
+.interest-row{display:flex;align-items:flex-start;gap:10px}
+.interest-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.interest-body{flex:1}
+.interest-count{
+  font-size:22px;font-weight:800;color:var(--green);
+  line-height:1;margin-bottom:3px;
+  transition:all 0.3s;
+}
+.interest-label{font-size:12px;color:var(--sec);line-height:1.4}
+.interest-chart{margin-top:8px}
 
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner {
-    display: inline-block; width: 18px; height: 18px;
-    border: 2.5px solid rgba(255,255,255,0.3);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    vertical-align: middle; margin-right: 8px;
-  }
+/* ── Avatars ── */
+.avatars-overlap{display:flex;align-items:center;margin:10px 0}
+.avatars-overlap img,.avatar-more-chip{
+  width:34px;height:34px;border-radius:50%;
+  border:2px solid var(--bg);
+  object-fit:cover;
+  margin-left:-10px;
+}
+.avatars-overlap img:first-child{margin-left:0}
+.avatar-more-chip{
+  background:var(--green-dim);
+  border-color:rgba(57,255,20,0.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;color:var(--green);
+  flex-shrink:0;
+}
+.students-count{
+  font-size:20px;font-weight:800;color:var(--green);
+  margin-bottom:2px;
+}
+.lives-line{font-size:12px;color:var(--sec)}
+.lives-line strong{color:var(--text)}
 
-  /* ── Trust strip ── */
-  .trust { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 22px; }
-  .trust-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+/* ── Recent purchases ── */
+.purchase-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 0;
+  border-bottom:1px solid var(--border);
+}
+.purchase-item:last-child{border-bottom:none}
+.purchase-avatar{
+  width:32px;height:32px;border-radius:50%;
+  object-fit:cover;border:1px solid var(--border2);
+  flex-shrink:0;
+}
+.purchase-body{flex:1;min-width:0}
+.purchase-name{font-size:12px;font-weight:600;color:var(--text)}
+.purchase-event{font-size:11px;color:var(--sec)}
+.purchase-icon{font-size:15px;flex-shrink:0}
 
-  /* ── Server error ── */
-  .server-error {
-    background: rgba(232,64,64,0.08);
-    border: 1px solid rgba(232,64,64,0.2);
-    border-radius: 10px;
-    padding: 12px 16px;
-    font-size: 13px; color: #ff7070;
-    margin-bottom: 16px; display: none;
-  }
-  .server-error.show { display: block; }
+/* ═══════════════════════════════════════════
+   CENTER — CHECKOUT
+═══════════════════════════════════════════ */
+.checkout-center{
+  overflow-y:auto;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:20px 32px;
+  background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(57,255,20,0.04) 0%,transparent 60%),
+             var(--bg);
+}
+.checkout-card{
+  width:100%;
+  max-width:640px;
+  background:var(--card);
+  border:1px solid var(--border2);
+  border-radius:16px;
+  padding:30px 36px 28px;
+  box-shadow:0 0 60px rgba(57,255,20,0.06),0 32px 80px rgba(0,0,0,0.7);
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
 
-  /* ── Footer ── */
-  .page-footer {
-    position: relative; z-index: 1;
-    margin-top: 28px;
-    font-size: 11px; color: #2a3d2a;
-    text-align: center; line-height: 1.8;
-  }
-  .page-footer a { color: rgba(76,175,80,0.5); text-decoration: none; }
+/* ── Checkout header ── */
+.ck-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--green-dim);
+  border:1px solid rgba(57,255,20,0.22);
+  border-radius:6px;padding:6px 14px;
+  font-size:11px;font-weight:700;letter-spacing:0.16em;
+  text-transform:uppercase;color:var(--green);
+  align-self:center;
+  margin-bottom:4px;
+}
+.ck-badge .bolt{font-size:14px}
+
+/* ── Pricing ── */
+.ck-price-wrap{text-align:center}
+.ck-price{
+  font-size:64px;font-weight:900;color:var(--green);
+  line-height:1;letter-spacing:-0.02em;
+}
+.ck-price .currency{font-size:28px;vertical-align:top;margin-top:10px;display:inline-block;font-weight:800}
+.ck-price .period{font-size:22px;font-weight:500;color:var(--sec)}
+.ck-old-price{
+  font-size:15px;color:var(--muted);
+  text-decoration:line-through;
+  margin-top:4px;
+}
+.ck-trial-label{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(57,255,20,0.08);
+  border:1px solid rgba(57,255,20,0.2);
+  border-radius:100px;padding:4px 14px;
+  font-size:11px;font-weight:700;color:var(--green);
+  letter-spacing:0.1em;text-transform:uppercase;
+  margin-top:8px;
+}
+
+/* ── Benefits icons ── */
+.ck-benefits{
+  display:flex;justify-content:space-between;
+  background:var(--card2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:14px 10px;
+  gap:4px;
+}
+.benefit-icon-item{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  flex:1;text-align:center;
+}
+.benefit-icon-circle{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--green-dim);
+  border:1px solid rgba(57,255,20,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;
+}
+.benefit-icon-label{font-size:10px;color:var(--sec);line-height:1.3;font-weight:500}
+
+/* ── Form ── */
+.ck-form-label{
+  font-size:13px;font-weight:600;color:var(--sec);
+  margin-bottom:14px;
+}
+.form-group{margin-bottom:14px}
+.form-group label{
+  display:block;font-size:11px;font-weight:600;
+  color:var(--sec);letter-spacing:0.1em;
+  text-transform:uppercase;margin-bottom:6px;
+}
+.form-input{
+  width:100%;
+  background:#0a0a0a;
+  border:1.5px solid var(--border2);
+  border-radius:8px;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:14px;
+  padding:13px 16px;
+  outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.form-input::placeholder{color:#3a3a3a}
+.form-input:focus{
+  border-color:rgba(57,255,20,0.5);
+  box-shadow:0 0 0 3px rgba(57,255,20,0.08);
+}
+.form-input.error{border-color:var(--red)}
+.wa-row{display:flex}
+.wa-prefix{
+  background:#0a0a0a;
+  border:1.5px solid var(--border2);
+  border-right:none;
+  border-radius:8px 0 0 8px;
+  padding:13px 12px;
+  font-size:13px;color:var(--sec);
+  display:flex;align-items:center;gap:6px;
+  white-space:nowrap;
+  transition:border-color 0.2s;
+}
+.wa-row:focus-within .wa-prefix{border-color:rgba(57,255,20,0.5)}
+.wa-row .form-input{border-radius:0 8px 8px 0}
+
+/* ── Payment methods ── */
+.payment-section{display:flex;flex-direction:column;gap:8px}
+.payment-label{font-size:11px;color:var(--sec);font-weight:600;letter-spacing:0.1em;text-transform:uppercase}
+.payment-methods{display:flex;gap:8px}
+.pay-btn{
+  flex:1;padding:10px 8px;
+  background:#0a0a0a;
+  border:1.5px solid var(--border2);
+  border-radius:8px;
+  color:var(--sec);
+  font-family:'Inter',sans-serif;
+  font-size:12px;font-weight:600;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  transition:all 0.2s;
+}
+.pay-btn.active,.pay-btn:hover{
+  border-color:rgba(57,255,20,0.45);
+  color:var(--green);
+  background:rgba(57,255,20,0.05);
+}
+.pay-btn .pay-icon{font-size:15px}
+
+/* ── CTA button ── */
+.cta-btn{
+  width:100%;padding:20px;
+  background:var(--green);
+  color:#050505;
+  border:none;border-radius:10px;
+  font-family:'Inter',sans-serif;
+  font-size:15px;font-weight:800;
+  letter-spacing:0.06em;text-transform:uppercase;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:filter 0.2s,transform 0.15s;
+  animation:pulse-btn 2.5s ease-in-out infinite;
+  position:relative;overflow:hidden;
+}
+.cta-btn::after{
+  content:'';position:absolute;top:0;left:-100%;width:55%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);
+  transition:left 0.45s;
+}
+.cta-btn:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.cta-btn:hover::after{left:160%}
+.cta-btn:disabled{opacity:0.6;cursor:not-allowed;animation:none}
+@keyframes pulse-btn{
+  0%,100%{box-shadow:0 0 24px rgba(57,255,20,0.35),0 6px 20px rgba(57,255,20,0.2)}
+  50%{box-shadow:0 0 44px rgba(57,255,20,0.6),0 8px 28px rgba(57,255,20,0.35)}
+}
+.cta-bolt{font-size:18px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-sm{
+  display:inline-block;width:18px;height:18px;
+  border:2.5px solid rgba(5,5,5,0.3);border-top-color:#050505;
+  border-radius:50%;animation:spin 0.7s linear infinite;
+}
+
+/* ── Seals row ── */
+.seals-row{
+  display:flex;justify-content:center;gap:20px;
+  padding-top:4px;
+}
+.seal-item{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;color:var(--sec);
+}
+.seal-item span{font-size:13px}
+
+/* ── Form error ── */
+.form-server-error{
+  background:rgba(255,68,68,0.08);
+  border:1px solid rgba(255,68,68,0.2);
+  border-radius:8px;padding:10px 14px;
+  font-size:13px;color:#ff8888;
+  display:none;
+}
+.form-server-error.show{display:block}
+
+/* ═══════════════════════════════════════════
+   RIGHT SIDEBAR — TESTIMONIALS
+═══════════════════════════════════════════ */
+.testimonials-list{
+  display:flex;flex-direction:column;gap:10px;
+  flex:1;overflow-y:auto;
+  padding-right:2px;
+}
+.video-card{
+  background:var(--card2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow:hidden;
+  transition:border-color 0.2s;
+  cursor:pointer;
+}
+.video-card:hover{border-color:rgba(57,255,20,0.25)}
+.video-card.active{border-color:rgba(57,255,20,0.45)}
+.video-wrap{
+  position:relative;
+  width:100%;
+  padding-top:56.25%;/* 16:9 */
+  background:#000;overflow:hidden;
+}
+.video-wrap video{
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  object-fit:cover;
+}
+.video-overlay{
+  position:absolute;top:0;left:0;right:0;bottom:0;
+  display:flex;align-items:flex-end;
+  background:linear-gradient(to top,rgba(0,0,0,0.7) 0%,transparent 50%);
+  padding:8px;
+  gap:8px;
+}
+.video-mute-btn{
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(57,255,20,0.15);
+  border:1px solid rgba(57,255,20,0.3);
+  color:var(--green);font-size:12px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+  flex-shrink:0;
+}
+.video-mute-btn:hover{background:rgba(57,255,20,0.25)}
+.video-person{display:flex;align-items:center;gap:6px;flex:1}
+.video-person-img{width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid var(--border2)}
+.video-person-name{font-size:11px;font-weight:600;color:#eee}
+.video-body{padding:10px 12px}
+.video-quote{font-size:12px;color:var(--sec);line-height:1.5;font-style:italic}
+
+.see-more-btn{
+  width:100%;margin-top:8px;
+  background:transparent;
+  border:1px solid var(--border2);
+  border-radius:8px;padding:10px;
+  color:var(--sec);
+  font-family:'Inter',sans-serif;
+  font-size:12px;font-weight:600;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all 0.2s;
+}
+.see-more-btn:hover{border-color:rgba(57,255,20,0.3);color:var(--green)}
+
+/* ── Extra videos (hidden by default) ── */
+.video-card.hidden{display:none}
+.video-card.visible{display:block}
+
+/* ═══════════════════════════════════════════
+   BOTTOM BENEFITS BAR
+═══════════════════════════════════════════ */
+.benefits-bar{
+  height:72px;
+  background:#080808;
+  border-top:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+  flex-shrink:0;
+}
+.bbar-item{
+  display:flex;align-items:center;gap:10px;
+  padding:0 28px;
+  border-right:1px solid var(--border);
+  flex:1;
+  justify-content:center;
+}
+.bbar-item:last-child{border-right:none}
+.bbar-icon{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--green-dim);
+  border:1px solid rgba(57,255,20,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;
+}
+.bbar-text strong{display:block;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.1em}
+.bbar-text span{font-size:10px;color:var(--sec)}
+
+/* ═══════════════════════════════════════════
+   TOAST NOTIFICATION
+═══════════════════════════════════════════ */
+.toast{
+  position:fixed;
+  bottom:24px;left:20px;
+  background:#111;
+  border:1px solid var(--border2);
+  border-left:3px solid var(--green);
+  border-radius:10px;
+  padding:12px 14px 12px 12px;
+  display:flex;align-items:center;gap:10px;
+  min-width:260px;max-width:300px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.6),var(--green-glow-sm);
+  z-index:9999;
+  transition:all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  transform:translateX(-120%);opacity:0;
+}
+.toast.show{transform:translateX(0);opacity:1}
+.toast-av{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;
+  color:#050505;flex-shrink:0;
+  font-family:'Inter',sans-serif;
+}
+.toast-body{flex:1;min-width:0}
+.toast-name{font-size:13px;font-weight:700;color:var(--text)}
+.toast-event{font-size:12px;color:var(--sec);display:block}
+.toast-time{font-size:10px;color:var(--muted);display:block;margin-top:1px}
+.toast-close{
+  background:none;border:none;color:var(--muted);
+  cursor:pointer;font-size:14px;padding:2px;
+  flex-shrink:0;transition:color 0.2s;
+}
+.toast-close:hover{color:var(--sec)}
+
+/* ── Interest counter mini chart SVG ── */
+.mini-chart{margin-top:8px;opacity:0.8}
+
+/* ── Fade in animation ── */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn 0.35s ease both}
 </style>
 </head>
 <body>
 
-<div class="card" id="formCard">
-  <div class="card-header">
-    <img src="https://i.imgur.com/bOf9i1R.png" alt="Logo" class="logo">
-    <div class="trial-badge" id="trialBadge">
-      🎁 <span id="badgeText">7 dias grátis</span>
-    </div>
-    <h1 class="card-title">
-      Acesso<br><span class="accent" id="titleDays">7 Dias</span><br>Gratuito
-    </h1>
-    <p class="card-sub">Preencha abaixo e receba seu acesso imediato por e-mail.</p>
-    <div class="no-card">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="8" y1="15" x2="10" y2="15"/></svg>
-      Sem necessidade de cartão de crédito
+<div class="page-shell">
+
+<!-- ══════════════════════════════════════
+     TOP BAR
+══════════════════════════════════════ -->
+<header class="top-bar">
+  <div class="top-brand">
+    <img src="https://i.imgur.com/bOf9i1R.png" alt="WPK Tavares">
+    <div class="top-brand-text">
+      <span class="top-brand-name">App Desafio 21 Dias</span>
+      <span class="top-brand-sub">Wagner Tavares</span>
     </div>
   </div>
+  <div class="top-headline">
+    <h1>Transforme sua rotina,<br><span>Transforme Sua Vida.</span></h1>
+  </div>
+  <div class="top-security">
+    <div class="top-security-icon">🛡️</div>
+    <div class="top-security-text">
+      <strong>Compra 100% Segura</strong>
+      <span>Seus dados protegidos com criptografia SSL.</span>
+    </div>
+  </div>
+</header>
 
-  <div class="card-body">
-    <div class="server-error" id="serverError"></div>
+<!-- ══════════════════════════════════════
+     MAIN 3-COLUMN
+══════════════════════════════════════ -->
+<div class="main-layout">
 
-    <form id="trialForm" novalidate>
+  <!-- ════════════════
+       LEFT SIDEBAR
+  ════════════════ -->
+  <aside class="sidebar">
 
-      <div class="field">
-        <label for="nome">Nome completo</label>
-        <div class="field-wrap">
-          <input type="text" id="nome" name="nome" placeholder="Seu nome e sobrenome" autocomplete="name" inputmode="text">
+    <!-- Atividade em tempo real -->
+    <div>
+      <div class="sec-head">
+        <div class="dot-live"></div>
+        <span class="sec-title">Atividade em tempo real</span>
+      </div>
+      <div class="sec-sub">Pessoas reais, resultados reais</div>
+      <div class="card-block" id="activityCard">
+        <div class="activity-item fade-in" id="activityItem">
+          <img src="https://i.imgur.com/Swmkl7B.jpeg" alt="" class="activity-avatar" id="activityAvatar">
+          <div class="activity-body">
+            <div class="activity-text" id="activityText"><strong>Wagner Tavares</strong> assinou o plano</div>
+            <div class="activity-time" id="activityTime">há 3 horas</div>
+          </div>
+          <div class="activity-check">✓</div>
         </div>
-        <div class="field-error" id="nomeError">Digite seu nome completo.</div>
+      </div>
+    </div>
+
+    <!-- Contador de interesse -->
+    <div class="card-block">
+      <div class="interest-row">
+        <div class="interest-icon">👥</div>
+        <div class="interest-body">
+          <div class="interest-count" id="interestCount">79</div>
+          <div class="interest-label">pessoas se interessaram por este plano<br><strong style="color:var(--text)">nas últimas horas</strong></div>
+          <div class="mini-chart">
+            <svg width="100%" height="22" viewBox="0 0 200 22" preserveAspectRatio="none">
+              <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#39FF14" stop-opacity="0.25"/>
+                <stop offset="100%" stop-color="#39FF14" stop-opacity="0"/>
+              </linearGradient></defs>
+              <polyline points="0,20 30,16 55,14 80,10 105,8 130,6 160,4 185,2 200,1"
+                fill="none" stroke="#39FF14" stroke-width="1.8"/>
+              <polygon points="0,20 30,16 55,14 80,10 105,8 130,6 160,4 185,2 200,1 200,22 0,22"
+                fill="url(#cg)"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alunos -->
+    <div class="card-block">
+      <div class="students-count">+100 Alunos do Desafio 21 Dias</div>
+      <div class="sec-sub" style="margin-bottom:8px">Vidas que já transformaram sua rotina e sua vida.</div>
+      <div class="avatars-overlap" id="avatarsList">
+        <img src="https://i.imgur.com/Swmkl7B.jpeg" alt="Wagner">
+        <img src="https://i.imgur.com/W1OHWzg.jpeg" alt="Apolyanara">
+        <img src="https://i.imgur.com/34VBNg8.jpeg" alt="Ireuza">
+        <img src="https://i.imgur.com/yjuuIAA.jpeg" alt="Leide">
+        <img src="https://i.imgur.com/l863Cu2.jpeg" alt="Ademilton">
+        <img src="https://i.imgur.com/Lz9D41Q.jpeg" alt="Maria Sônia">
+        <img src="https://i.imgur.com/inzje19.jpeg" alt="Alice">
+        <img src="https://i.imgur.com/wSqHWXJ.jpeg" alt="Eliciane">
+        <img src="https://i.imgur.com/kjaGe9f.jpeg" alt="Luciana">
+        <img src="https://i.imgur.com/RGXkGGz.jpeg" alt="Marcos">
+        <div class="avatar-more-chip">+107</div>
+      </div>
+      <div class="lives-line">+ de <strong>124 vidas</strong> transformadas</div>
+    </div>
+
+    <!-- Compras recentes -->
+    <div class="card-block" style="flex:1">
+      <div class="sec-head" style="margin-bottom:4px">
+        <span class="sec-title">Compras recentes</span>
+      </div>
+      <div class="sec-sub">Pessoas reais, compras reais</div>
+      <div id="recentList">
+        <div class="purchase-item">
+          <img src="https://i.imgur.com/Swmkl7B.jpeg" class="purchase-avatar" alt="">
+          <div class="purchase-body">
+            <div class="purchase-name">Wagner Tavares</div>
+            <div class="purchase-event">comprou o plano · há 3 horas</div>
+          </div>
+          <div class="purchase-icon">🛒</div>
+        </div>
+        <div class="purchase-item">
+          <img src="https://i.imgur.com/W1OHWzg.jpeg" class="purchase-avatar" alt="">
+          <div class="purchase-body">
+            <div class="purchase-name">Apolyanara</div>
+            <div class="purchase-event">assinou o plano mensal · há 5 horas</div>
+          </div>
+          <div class="purchase-icon">🛒</div>
+        </div>
+        <div class="purchase-item">
+          <img src="https://i.imgur.com/34VBNg8.jpeg" class="purchase-avatar" alt="">
+          <div class="purchase-body">
+            <div class="purchase-name">Ireuza Cazuza</div>
+            <div class="purchase-event">assinou pela primeira vez · há 8 horas</div>
+          </div>
+          <div class="purchase-icon">🛒</div>
+        </div>
+        <div class="purchase-item">
+          <img src="https://i.imgur.com/RGXkGGz.jpeg" class="purchase-avatar" alt="">
+          <div class="purchase-body">
+            <div class="purchase-name">Marcos Antônio</div>
+            <div class="purchase-event">renovou o plano anual · há 12 horas</div>
+          </div>
+          <div class="purchase-icon">🛒</div>
+        </div>
+        <div class="purchase-item">
+          <img src="https://i.imgur.com/kjaGe9f.jpeg" class="purchase-avatar" alt="">
+          <div class="purchase-body">
+            <div class="purchase-name">Luciana</div>
+            <div class="purchase-event">assinou o plano trimestral · há 16 horas</div>
+          </div>
+          <div class="purchase-icon">🛒</div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ════════════════
+       CENTER — CHECKOUT
+  ════════════════ -->
+  <main class="checkout-center">
+    <div class="checkout-card">
+
+      <!-- Badge -->
+      <div style="text-align:center">
+        <div class="ck-badge">
+          <span class="bolt">⚡</span>
+          <span id="ckBadge">Acesso 7 Dias Grátis</span>
+        </div>
       </div>
 
-      <div class="field">
-        <label for="email">E-mail</label>
-        <div class="field-wrap">
-          <input type="email" id="email" name="email" placeholder="seu@email.com" autocomplete="email" inputmode="email">
+      <!-- Preço -->
+      <div class="ck-price-wrap">
+        <div class="ck-price">
+          <span class="currency">R$</span>17<span class="period">,00/mês</span>
         </div>
-        <div class="field-error" id="emailError">E-mail inválido.</div>
+        <div class="ck-old-price">DE R$ 60,00</div>
+        <div style="display:flex;justify-content:center">
+          <div class="ck-trial-label" id="trialLabel">🎁 7 dias grátis · Sem cartão de crédito</div>
+        </div>
       </div>
 
-      <div class="field">
-        <label for="whatsapp">WhatsApp</label>
-        <div class="field-wrap wa-wrap">
-          <div class="wa-prefix">🇧🇷 +55</div>
-          <input type="tel" id="whatsapp" name="whatsapp" placeholder="(11) 99999-9999" autocomplete="tel" inputmode="numeric" maxlength="15">
+      <!-- Benefícios ícones -->
+      <div class="ck-benefits">
+        <div class="benefit-icon-item">
+          <div class="benefit-icon-circle">✅</div>
+          <div class="benefit-icon-label">Todos os<br>recursos</div>
         </div>
-        <div class="field-error" id="whatsappError">Digite seu WhatsApp com DDD.</div>
+        <div class="benefit-icon-item">
+          <div class="benefit-icon-circle">🔄</div>
+          <div class="benefit-icon-label">Cancele<br>quando quiser</div>
+        </div>
+        <div class="benefit-icon-item">
+          <div class="benefit-icon-circle">📅</div>
+          <div class="benefit-icon-label">Cobrança<br>mensal automática</div>
+        </div>
+        <div class="benefit-icon-item">
+          <div class="benefit-icon-circle">🔓</div>
+          <div class="benefit-icon-label">Sem<br>fidelidade</div>
+        </div>
+        <div class="benefit-icon-item">
+          <div class="benefit-icon-circle">🎧</div>
+          <div class="benefit-icon-label">Suporte e<br>conteúdo exclusivos</div>
+        </div>
       </div>
 
-      <button type="submit" class="btn-submit" id="submitBtn">
-        QUERO MEU ACESSO GRATUITO →
+      <!-- Formulário -->
+      <div>
+        <p class="ck-form-label">Preencha seus dados para começar agora:</p>
+        <div class="form-server-error" id="serverError"></div>
+
+        <div class="form-group">
+          <label for="nome">Nome completo</label>
+          <input type="text" id="nome" class="form-input" placeholder="Ex: Ana Paula da Silva" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="whatsapp">WhatsApp</label>
+          <div class="wa-row">
+            <div class="wa-prefix">🇧🇷 +55</div>
+            <input type="tel" id="whatsapp" class="form-input" placeholder="(99) 99999-9999" inputmode="numeric" maxlength="15">
+          </div>
+        </div>
+      </div>
+
+      <!-- Método de pagamento (visual) -->
+      <div class="payment-section">
+        <div class="payment-label">Método de pagamento após o trial:</div>
+        <div class="payment-methods">
+          <button class="pay-btn active" onclick="selectPay(this)">
+            <span class="pay-icon">💳</span> Cartão de crédito
+          </button>
+          <button class="pay-btn" onclick="selectPay(this)">
+            <span class="pay-icon">⚡</span> Pix
+          </button>
+          <button class="pay-btn" onclick="selectPay(this)">
+            <span class="pay-icon">📄</span> Boleto
+          </button>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <button class="cta-btn" id="ctaBtn" onclick="handleSubmit()">
+        <span class="cta-bolt">⚡</span>
+        <span id="ctaText">QUERO TRANSFORMAR MINHA VIDA AGORA</span>
       </button>
 
-    </form>
+      <!-- Seals -->
+      <div class="seals-row">
+        <div class="seal-item"><span>🔒</span> Compra 100% segura</div>
+        <div class="seal-item"><span>🔄</span> Cancele quando quiser</div>
+        <div class="seal-item"><span>✅</span> Satisfação garantida</div>
+      </div>
 
-    <div class="trust">
-      <div class="trust-item">🔒 Dados seguros</div>
-      <div class="trust-item">⚡ Acesso imediato</div>
-      <div class="trust-item">❌ Sem cartão</div>
+    </div>
+  </main>
+
+  <!-- ════════════════
+       RIGHT SIDEBAR — DEPOIMENTOS
+  ════════════════ -->
+  <aside class="sidebar sidebar-right" style="display:flex;flex-direction:column;gap:10px">
+
+    <div>
+      <div class="sec-head">
+        <div class="dot-live"></div>
+        <span class="sec-title">Depoimentos Reais</span>
+      </div>
+      <div class="sec-sub">Histórias que inspiram</div>
+    </div>
+
+    <div class="testimonials-list" id="testimonialsList">
+
+      <div class="video-card visible" data-idx="0">
+        <div class="video-wrap">
+          <video src="https://i.imgur.com/N9UhM0w.mp4" autoplay muted loop playsinline data-video="0"></video>
+          <div class="video-overlay">
+            <button class="video-mute-btn" onclick="toggleMute(0)" id="muteBtn0" title="Ativar som">🔇</button>
+            <div class="video-person">
+              <img src="https://i.imgur.com/W1OHWzg.jpeg" class="video-person-img" alt="">
+              <span class="video-person-name">Apolyanara</span>
+            </div>
+          </div>
+        </div>
+        <div class="video-body">
+          <div class="video-quote">"O Milagre da Manhã tem mudado minha vida de forma incrível..."</div>
+        </div>
+      </div>
+
+      <div class="video-card visible" data-idx="1">
+        <div class="video-wrap">
+          <video src="https://i.imgur.com/1nrH1Z5.mp4" autoplay muted loop playsinline data-video="1"></video>
+          <div class="video-overlay">
+            <button class="video-mute-btn" onclick="toggleMute(1)" id="muteBtn1" title="Ativar som">🔇</button>
+            <div class="video-person">
+              <img src="https://i.imgur.com/34VBNg8.jpeg" class="video-person-img" alt="">
+              <span class="video-person-name">Ireuza Cazuza</span>
+            </div>
+          </div>
+        </div>
+        <div class="video-body">
+          <div class="video-quote">"Com esse sistema aprendi a aproveitar bem o meu tempo..."</div>
+        </div>
+      </div>
+
+      <div class="video-card visible" data-idx="2">
+        <div class="video-wrap">
+          <video src="https://i.imgur.com/5XcREqO.mp4" autoplay muted loop playsinline data-video="2"></video>
+          <div class="video-overlay">
+            <button class="video-mute-btn" onclick="toggleMute(2)" id="muteBtn2" title="Ativar som">🔇</button>
+            <div class="video-person">
+              <img src="https://i.imgur.com/inzje19.jpeg" class="video-person-img" alt="">
+              <span class="video-person-name">Alice Lima</span>
+            </div>
+          </div>
+        </div>
+        <div class="video-body">
+          <div class="video-quote">"Incrível! Equipe comprometida e totalmente treinada com saúde e tempo..."</div>
+        </div>
+      </div>
+
+      <div class="video-card hidden" data-idx="3">
+        <div class="video-wrap">
+          <video src="https://i.imgur.com/utJiZZi.mp4" muted loop playsinline data-video="3"></video>
+          <div class="video-overlay">
+            <button class="video-mute-btn" onclick="toggleMute(3)" id="muteBtn3" title="Ativar som">🔇</button>
+            <div class="video-person">
+              <img src="https://i.imgur.com/l863Cu2.jpeg" class="video-person-img" alt="">
+              <span class="video-person-name">Ademilton</span>
+            </div>
+          </div>
+        </div>
+        <div class="video-body">
+          <div class="video-quote">"Agora levantamos todos os dias às 5 da manhã com novos hábitos..."</div>
+        </div>
+      </div>
+
+      <div class="video-card hidden" data-idx="4">
+        <div class="video-wrap">
+          <video src="https://i.imgur.com/wN5ysgI.mp4" muted loop playsinline data-video="4"></video>
+          <div class="video-overlay">
+            <button class="video-mute-btn" onclick="toggleMute(4)" id="muteBtn4" title="Ativar som">🔇</button>
+            <div class="video-person">
+              <img src="https://i.imgur.com/yjuuIAA.jpeg" class="video-person-img" alt="">
+              <span class="video-person-name">Leide Danhane</span>
+            </div>
+          </div>
+        </div>
+        <div class="video-body">
+          <div class="video-quote">"A experiência do Milagre da Manhã tem sido incrível! Tinha inconstância..."</div>
+        </div>
+      </div>
+
+    </div>
+
+    <button class="see-more-btn" id="seeMoreBtn" onclick="toggleMoreVideos()">
+      Ver mais depoimentos &nbsp;›
+    </button>
+
+  </aside>
+
+</div><!-- /main-layout -->
+
+<!-- ══════════════════════════════════════
+     BOTTOM BENEFITS BAR
+══════════════════════════════════════ -->
+<footer class="benefits-bar">
+  <div class="bbar-item">
+    <div class="bbar-icon">🛡️</div>
+    <div class="bbar-text">
+      <strong>7 Dias Grátis</strong>
+      <span>Teste sem risco.</span>
     </div>
   </div>
+  <div class="bbar-item">
+    <div class="bbar-icon">🔄</div>
+    <div class="bbar-text">
+      <strong>Cancele quando quiser</strong>
+      <span>Sem burocracia e sem pegadinhas.</span>
+    </div>
+  </div>
+  <div class="bbar-item">
+    <div class="bbar-icon">✅</div>
+    <div class="bbar-text">
+      <strong>Satisfação garantida</strong>
+      <span>7.824+ vidas transformadas</span>
+    </div>
+  </div>
+  <div class="bbar-item">
+    <div class="bbar-icon">🔒</div>
+    <div class="bbar-text">
+      <strong>Dados protegidos</strong>
+      <span>Seus dados 100% seguros com SSL.</span>
+    </div>
+  </div>
+  <div class="bbar-item">
+    <div class="bbar-icon" style="font-size:18px;font-weight:900;color:var(--green)">7</div>
+    <div class="bbar-text">
+      <strong>Garantia 7 dias</strong>
+      <span>Se não ficar satisfeito, devolvemos 100%.</span>
+    </div>
+  </div>
+</footer>
+
+</div><!-- /page-shell -->
+
+<!-- ══════════════════════════════════════
+     TOAST NOTIFICATION
+══════════════════════════════════════ -->
+<div class="toast" id="toast">
+  <div class="toast-av" id="toastAv">M</div>
+  <div class="toast-body">
+    <span class="toast-name" id="toastName">Mariana</span>
+    <span class="toast-event" id="toastEvent">assinou o plano</span>
+    <span class="toast-time" id="toastTime">há poucos segundos</span>
+  </div>
+  <button class="toast-close" onclick="hideToast()">✕</button>
 </div>
 
-<div class="page-footer">
-  <a href="https://wpktavares.com.br">wpktavares.com.br</a> ·
-  <a href="https://wpktavares.com.br/politica-de-privacidade/" target="_blank">Política de Privacidade</a>
-</div>
-
+<!-- ══════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════ -->
 <script>
-(function() {
-  'use strict';
+(function(){
+'use strict';
 
-  var GAS_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+/* ─── CONFIG ──────────────────────────── */
+var GAS_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
 
-  // ── Lê parâmetro ?dias= ──────────────────────────────────
-  var params = new URLSearchParams(window.location.search);
-  var dias   = parseInt(params.get('dias')) || 7;
-  if ([7, 14, 21].indexOf(dias) < 0) dias = 7;
+var params = new URLSearchParams(window.location.search);
+var dias   = parseInt(params.get('dias')) || 7;
+if ([7,14,21].indexOf(dias) < 0) dias = 7;
 
-  document.getElementById('badgeText').textContent  = dias + ' dias grátis';
-  document.getElementById('titleDays').textContent  = dias + ' Dias';
-  document.title = 'Acesso ' + dias + ' Dias Grátis — Desafio 21 Dias';
+/* ─── URL PARAM: adapta textos ────────── */
+document.getElementById('ckBadge').textContent    = 'Acesso ' + dias + ' Dias Grátis';
+document.getElementById('trialLabel').textContent = '🎁 ' + dias + ' dias grátis · Sem cartão de crédito';
+document.title = 'Acesso ' + dias + ' Dias Grátis — Desafio 21 Dias';
 
-  // ── Formatação WhatsApp ──────────────────────────────────
-  var waInput = document.getElementById('whatsapp');
-  waInput.addEventListener('input', function() {
-    var v = this.value.replace(/\D/g, '').slice(0, 11);
-    var f = v;
-    if (v.length > 2 && v.length <= 7)  f = '(' + v.slice(0,2) + ') ' + v.slice(2);
-    if (v.length > 7 && v.length <= 11) f = '(' + v.slice(0,2) + ') ' + v.slice(2,7) + '-' + v.slice(7);
-    this.value = f;
-  });
+/* ─── DADOS ───────────────────────────── */
+var PROFILES = [
+  { nome:'Wagner Tavares',  foto:'https://i.imgur.com/Swmkl7B.jpeg' },
+  { nome:'Apolyanara',      foto:'https://i.imgur.com/W1OHWzg.jpeg' },
+  { nome:'Ireuza Cazuza',   foto:'https://i.imgur.com/34VBNg8.jpeg' },
+  { nome:'Leide Danhane',   foto:'https://i.imgur.com/yjuuIAA.jpeg' },
+  { nome:'Ademilton',       foto:'https://i.imgur.com/l863Cu2.jpeg' },
+  { nome:'Maria Sônia',     foto:'https://i.imgur.com/Lz9D41Q.jpeg' },
+  { nome:'Alice Lima',      foto:'https://i.imgur.com/inzje19.jpeg' },
+  { nome:'Eliciane',        foto:'https://i.imgur.com/wSqHWXJ.jpeg' },
+  { nome:'Luciana',         foto:'https://i.imgur.com/kjaGe9f.jpeg' },
+  { nome:'Marcos Antônio',  foto:'https://i.imgur.com/RGXkGGz.jpeg' },
+];
 
-  // ── Validação em tempo real ──────────────────────────────
-  function showError(id, msg) {
-    var el = document.getElementById(id);
-    el.textContent = msg || el.textContent;
-    el.classList.add('show');
-    document.getElementById(id.replace('Error', '')).classList.add('error');
-    document.getElementById(id.replace('Error', '')).classList.remove('valid');
-  }
-  function clearError(inputId) {
-    document.getElementById(inputId + 'Error').classList.remove('show');
-    document.getElementById(inputId).classList.remove('error');
-  }
-  function setValid(inputId) {
-    document.getElementById(inputId).classList.add('valid');
-    document.getElementById(inputId).classList.remove('error');
-    document.getElementById(inputId + 'Error').classList.remove('show');
-  }
+var EXTRA_NAMES = [
+  'Mariana S.','Carlos Henrique','Beatriz Santos','Fernanda Costa',
+  'Rafael Lima','Juliana Ferreira','Paulo Mendes','Ana Paula Rocha',
+  'Rodrigo Alves','Camila Souza','Thiago Melo','Natalia Carvalho',
+  'Diego Silva','Carolina Nunes','Gustavo Pereira','Patricia Ramos',
+  'José Carlos','Renata Lopes','Simone Andrade','Bruno Oliveira'
+];
 
-  ['nome','email','whatsapp'].forEach(function(id) {
-    var el = document.getElementById(id);
-    el.addEventListener('blur', function() { validateField(id); });
-    el.addEventListener('input', function() {
-      if (this.classList.contains('error')) validateField(id);
-    });
-  });
+var EVENTS = [
+  'comprou o Desafio 21 Dias',
+  'assinou o plano mensal',
+  'assinou o plano trimestral',
+  'assinou o plano anual',
+  'renovou o plano mensal',
+  'renovou o plano trimestral',
+  'renovou o plano anual',
+  'assinou pela primeira vez'
+];
 
-  function validateField(id) {
-    var val = document.getElementById(id).value.trim();
-    if (id === 'nome') {
-      if (!val || val.length < 3 || val.indexOf(' ') < 0) { showError('nomeError', 'Digite nome e sobrenome.'); return false; }
-      setValid('nome');
-    }
-    if (id === 'email') {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { showError('emailError', 'E-mail inválido.'); return false; }
-      setValid('email');
-    }
-    if (id === 'whatsapp') {
-      var digits = val.replace(/\D/g, '');
-      if (digits.length < 10 || digits.length > 11) { showError('whatsappError', 'Digite com DDD (ex: 11 99999-9999).'); return false; }
-      setValid('whatsapp');
-    }
-    clearError(id);
-    return true;
-  }
+var TIMES = [
+  'há 3 horas','há 2 horas','há 1 hora','há 25 minutos',
+  'há 12 minutos','há 10 minutos','há 35 segundos',
+  'há 20 segundos','agora mesmo'
+];
 
-  function validateAll() {
-    return validateField('nome') & validateField('email') & validateField('whatsapp');
-  }
+var GREEN_SHADES = [
+  '#39FF14','#2dd614','#44ee22','#33cc11','#4afa20',
+  '#55e61c','#3cd416','#48f518','#2ec910','#41e818'
+];
 
-  // ── Submit ───────────────────────────────────────────────
-  document.getElementById('trialForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    document.getElementById('serverError').classList.remove('show');
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
-    if (!validateAll()) return;
+/* ─── INTEREST COUNTER ────────────────── */
+function genInterest(){
+  var n;
+  do { n = Math.floor(Math.random()*91)+10; } while(n%10===0);
+  return n;
+}
+function animateCount(el, to){
+  var from = parseInt(el.textContent)||0;
+  var diff = to-from; var steps=20; var step=0;
+  var iv = setInterval(function(){
+    step++;
+    el.textContent = Math.round(from + (diff * step/steps));
+    if(step>=steps){ el.textContent=to; clearInterval(iv); }
+  },30);
+}
+var interestEl = document.getElementById('interestCount');
+setInterval(function(){
+  animateCount(interestEl, genInterest());
+}, 15000);
 
-    var btn   = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Criando seu acesso...';
+/* ─── ACTIVITY FEED (left sidebar) ───── */
+var allPeople = PROFILES.concat(
+  EXTRA_NAMES.map(function(n){ return {nome:n, foto:null}; })
+);
+var actIdx = 0;
 
-    var nome     = document.getElementById('nome').value.trim();
-    var email    = document.getElementById('email').value.trim();
-    var whatsapp = document.getElementById('whatsapp').value.replace(/\D/g, '');
+function updateActivity(){
+  var person = allPeople[actIdx % allPeople.length];
+  var ev   = rand(EVENTS);
+  var tm   = rand(TIMES);
+  var item = document.getElementById('activityItem');
+  var av   = document.getElementById('activityAvatar');
 
-    fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        action: 'registrarTrial',
-        data:   { nome: nome, email: email, whatsapp: whatsapp, dias: dias }
-      })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) {
-        window.location.href = '/obrigado-trial/?dias=' + dias + '&nome=' + encodeURIComponent(nome.split(' ')[0]);
-      } else {
-        document.getElementById('serverError').textContent = res.error || 'Erro ao criar acesso. Tente novamente.';
-        document.getElementById('serverError').classList.add('show');
-        btn.disabled = false;
-        btn.innerHTML = 'QUERO MEU ACESSO GRATUITO →';
+  item.style.opacity='0';
+  setTimeout(function(){
+    if(person.foto){
+      av.src = person.foto;
+      av.style.display='';
+      av.classList.remove('activity-initials');
+      av.classList.add('activity-avatar');
+    } else {
+      // initials circle
+      var color = GREEN_SHADES[actIdx % GREEN_SHADES.length];
+      av.style.display='none';
+      var existing = document.querySelector('#activityItem .activity-initials');
+      if(!existing){
+        var ic = document.createElement('div');
+        ic.className='activity-initials';
+        ic.id='activityInitials';
+        item.insertBefore(ic, item.children[1]);
       }
-    })
-    .catch(function() {
-      document.getElementById('serverError').textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
-      document.getElementById('serverError').classList.add('show');
-      btn.disabled = false;
-      btn.innerHTML = 'QUERO MEU ACESSO GRATUITO →';
-    });
+      var ini = document.getElementById('activityInitials') || document.querySelector('#activityItem .activity-initials');
+      if(ini){
+        ini.textContent=person.nome.charAt(0);
+        ini.style.background=color;
+      }
+    }
+    document.getElementById('activityText').innerHTML='<strong>'+person.nome+'</strong> '+ev;
+    document.getElementById('activityTime').textContent=tm;
+    item.style.opacity='1';
+    actIdx++;
+  },300);
+}
+setInterval(updateActivity, 15000);
+
+/* ─── TOAST NOTIFICATION ──────────────── */
+var toastIdx=0, toastTimer, toastHideTimer;
+var toastEl = document.getElementById('toast');
+
+function showToast(){
+  var person = allPeople[toastIdx % allPeople.length];
+  var ev   = rand(EVENTS);
+  var tm   = rand(TIMES);
+  var color = GREEN_SHADES[toastIdx % GREEN_SHADES.length];
+
+  document.getElementById('toastAv').textContent   = person.nome.charAt(0);
+  document.getElementById('toastAv').style.background = color;
+  document.getElementById('toastName').textContent  = person.nome;
+  document.getElementById('toastEvent').textContent = ev;
+  document.getElementById('toastTime').textContent  = tm;
+
+  toastEl.classList.add('show');
+  toastIdx++;
+
+  clearTimeout(toastHideTimer);
+  toastHideTimer = setTimeout(function(){
+    toastEl.classList.remove('show');
+  }, 5000);
+}
+
+function hideToast(){ toastEl.classList.remove('show'); clearTimeout(toastHideTimer); }
+window.hideToast = hideToast;
+
+/* Show first toast after 3s, then every 20-30s */
+setTimeout(function(){
+  showToast();
+  toastTimer = setInterval(function(){
+    showToast();
+  }, 20000 + Math.random()*10000);
+}, 3000);
+
+/* ─── PAYMENT METHOD TOGGLE ───────────── */
+window.selectPay = function(btn){
+  document.querySelectorAll('.pay-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+};
+
+/* ─── MORE VIDEOS TOGGLE ──────────────── */
+var videosExpanded = false;
+window.toggleMoreVideos = function(){
+  videosExpanded = !videosExpanded;
+  var btn = document.getElementById('seeMoreBtn');
+  document.querySelectorAll('.video-card.hidden,.video-card.visible').forEach(function(card){
+    var idx = parseInt(card.dataset.idx);
+    if(videosExpanded){
+      card.classList.remove('hidden');
+      card.classList.add('visible');
+      // Play the newly visible videos
+      var v = card.querySelector('video');
+      if(v) v.play();
+    } else {
+      if(idx >= 3){
+        card.classList.add('hidden');
+        card.classList.remove('visible');
+        var v = card.querySelector('video');
+        if(v){ v.pause(); v.muted=true; }
+        document.getElementById('muteBtn'+idx).textContent='🔇';
+      }
+    }
   });
+  btn.textContent = videosExpanded ? '‹ Mostrar menos' : 'Ver mais depoimentos  ›';
+};
+
+/* ─── VIDEO MUTE TOGGLE ───────────────── */
+window.toggleMute = function(idx){
+  // Mute all first
+  document.querySelectorAll('[data-video]').forEach(function(v){
+    v.muted=true;
+    var bi = parseInt(v.getAttribute('data-video'));
+    var mb = document.getElementById('muteBtn'+bi);
+    if(mb) mb.textContent='🔇';
+  });
+  // Unmute target
+  var target = document.querySelector('[data-video="'+idx+'"]');
+  var btn    = document.getElementById('muteBtn'+idx);
+  if(target && target.muted){
+    target.muted=false;
+    target.play();
+    if(btn) btn.textContent='🔊';
+  } else if(target){
+    target.muted=true;
+    if(btn) btn.textContent='🔇';
+  }
+};
+
+/* ─── WHATSAPP FORMATTING ─────────────── */
+document.getElementById('whatsapp').addEventListener('input', function(){
+  var v = this.value.replace(/\D/g,'').slice(0,11);
+  var f = v;
+  if(v.length>2 && v.length<=7)  f='('+v.slice(0,2)+') '+v.slice(2);
+  if(v.length>7 && v.length<=11) f='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
+  this.value=f;
+});
+
+/* ─── FORM SUBMIT ─────────────────────── */
+window.handleSubmit = function(){
+  var nome     = document.getElementById('nome').value.trim();
+  var waRaw    = document.getElementById('whatsapp').value.replace(/\D/g,'');
+  var errEl    = document.getElementById('serverError');
+  var btn      = document.getElementById('ctaBtn');
+  var nomeEl   = document.getElementById('nome');
+  var waEl     = document.getElementById('whatsapp');
+
+  errEl.classList.remove('show');
+  nomeEl.classList.remove('error');
+  waEl.classList.remove('error');
+
+  var ok = true;
+  if(!nome || nome.length<3 || nome.indexOf(' ')<0){
+    nomeEl.classList.add('error'); ok=false;
+  }
+  if(waRaw.length<10 || waRaw.length>11){
+    waEl.classList.add('error'); ok=false;
+  }
+  if(!ok){
+    errEl.textContent='Por favor, preencha seu nome completo e WhatsApp com DDD.';
+    errEl.classList.add('show');
+    return;
+  }
+
+  btn.disabled=true;
+  document.getElementById('ctaText').innerHTML='<span class="spinner-sm"></span> Criando seu acesso...';
+
+  var whatsapp = waRaw.startsWith('55') ? waRaw : '55'+waRaw;
+
+  fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias – Trial '+dias+' dias',value:0,currency:'BRL'});
+
+  fetch(GAS_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({action:'registrarTrial',data:{nome:nome,email:'',whatsapp:whatsapp,dias:dias}})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    if(res.ok){
+      fbq('track','Lead',{content_name:'Desafio 21 Dias – Trial '+dias+' dias'});
+      var firstName=nome.split(' ')[0];
+      window.location.href='/obrigado-trial/?dias='+dias+'&nome='+encodeURIComponent(firstName);
+    } else {
+      errEl.textContent=res.error||'Erro ao criar acesso. Tente novamente.';
+      errEl.classList.add('show');
+      btn.disabled=false;
+      document.getElementById('ctaText').textContent='QUERO TRANSFORMAR MINHA VIDA AGORA';
+    }
+  })
+  .catch(function(){
+    errEl.textContent='Erro de conexão. Verifique sua internet e tente novamente.';
+    errEl.classList.add('show');
+    btn.disabled=false;
+    document.getElementById('ctaText').textContent='QUERO TRANSFORMAR MINHA VIDA AGORA';
+  });
+};
+
+/* ─── KEYBOARD SUBMIT ─────────────────── */
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter') handleSubmit();
+});
 
 })();
 </script>
