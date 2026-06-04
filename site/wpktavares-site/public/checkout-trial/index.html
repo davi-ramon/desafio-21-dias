@@ -475,14 +475,15 @@ svg{display:block;flex-shrink:0}
 .video-wrap{
   position:relative;
   width:100%;
-  padding-top:100%; /* square */
+  aspect-ratio:9/16;
   background:#000;
   overflow:hidden;
+  cursor:pointer;
 }
 .video-wrap video{
   position:absolute;top:0;left:0;
   width:100%;height:100%;
-  object-fit:cover;object-position:center top;
+  object-fit:cover;object-position:center center;
 }
 .video-overlay{
   position:absolute;top:0;left:0;right:0;bottom:0;
@@ -602,18 +603,35 @@ footer{
 }
 
 /* ══════════════════════════════════
-   RESPONSIVE NOTE (mobile fallback)
+   RESPONSIVE — mobile
 ══════════════════════════════════ */
 @media(max-width:1100px){
+  /* topbar */
+  .topbar{grid-template-columns:auto 1fr auto;padding:0 12px;gap:6px;height:52px}
+  .topbar-headline{font-size:12px;white-space:normal;line-height:1.2}
+  .brand-text-sub{display:none}
+  .security-text{display:none}
+  .security-badge{padding:6px 8px;gap:4px}
+  /* layout */
   .main{grid-template-columns:1fr}
   .notif-col{display:none}
-  .videos-col{position:static;max-height:none;order:3}
-  .checkout-col{border:none;min-height:auto;order:2}
+  .videos-col{position:static;max-height:none}
+  .checkout-col{border:none;min-height:auto;padding:16px 12px}
+  /* checkout card */
+  .checkout-card{padding:22px 20px 20px}
+  .ck-price{font-size:56px}
+  .ck-benefits{padding:12px 4px}
+  .benefit-icon-wrap{width:32px;height:32px}
+  /* footer */
   .footer-top{grid-template-columns:1fr}
   .footer-links{align-items:flex-start}
   .footer-benefits{flex-direction:column;border-radius:12px}
-  .footer-benefit{border-right:none;border-bottom:1px solid var(--border)}
+  .footer-benefit{border-right:none;border-bottom:1px solid var(--border);min-width:unset}
   .footer-benefit:last-child{border-bottom:none}
+}
+@media(max-width:480px){
+  .topbar-headline{display:none}
+  .topbar{grid-template-columns:1fr auto}
 }
 </style>
 </head>
@@ -786,10 +804,10 @@ footer{
     </div>
 
     <div class="video-card">
-      <div class="video-wrap">
-        <video src="https://i.imgur.com/N9UhM0w.mp4" autoplay muted loop playsinline data-idx="0"></video>
+      <div class="video-wrap" onclick="toggleMute(0)">
+        <video src="https://i.imgur.com/N9UhM0w.mp4" autoplay muted loop playsinline data-idx="0" poster="https://i.imgur.com/W1OHWzg.jpeg"></video>
         <div class="video-overlay">
-          <button class="mute-btn" onclick="toggleMute(0)" id="mb0">
+          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(0)" id="mb0">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
           </button>
           <div class="video-person">
@@ -802,10 +820,10 @@ footer{
     </div>
 
     <div class="video-card">
-      <div class="video-wrap">
-        <video src="https://i.imgur.com/1nrH1Z5.mp4" autoplay muted loop playsinline data-idx="1"></video>
+      <div class="video-wrap" onclick="toggleMute(1)">
+        <video src="https://i.imgur.com/1nrH1Z5.mp4" autoplay muted loop playsinline data-idx="1" poster="https://i.imgur.com/34VBNg8.jpeg"></video>
         <div class="video-overlay">
-          <button class="mute-btn" onclick="toggleMute(1)" id="mb1">
+          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(1)" id="mb1">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
           </button>
           <div class="video-person">
@@ -818,10 +836,10 @@ footer{
     </div>
 
     <div class="video-card">
-      <div class="video-wrap">
-        <video src="https://i.imgur.com/5XcREqO.mp4" autoplay muted loop playsinline data-idx="2"></video>
+      <div class="video-wrap" onclick="toggleMute(2)">
+        <video src="https://i.imgur.com/5XcREqO.mp4" autoplay muted loop playsinline data-idx="2" poster="https://i.imgur.com/inzje19.jpeg"></video>
         <div class="video-overlay">
-          <button class="mute-btn" onclick="toggleMute(2)" id="mb2">
+          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(2)" id="mb2">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
           </button>
           <div class="video-person">
@@ -834,10 +852,10 @@ footer{
     </div>
 
     <div class="video-card hidden" id="vc3">
-      <div class="video-wrap">
-        <video src="https://i.imgur.com/utJiZZi.mp4" muted loop playsinline data-idx="3"></video>
+      <div class="video-wrap" onclick="toggleMute(3)">
+        <video src="https://i.imgur.com/utJiZZi.mp4" muted loop playsinline data-idx="3" poster="https://i.imgur.com/l863Cu2.jpeg"></video>
         <div class="video-overlay">
-          <button class="mute-btn" onclick="toggleMute(3)" id="mb3">
+          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(3)" id="mb3">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
           </button>
           <div class="video-person">
@@ -850,10 +868,10 @@ footer{
     </div>
 
     <div class="video-card hidden" id="vc4">
-      <div class="video-wrap">
-        <video src="https://i.imgur.com/wN5ysgI.mp4" muted loop playsinline data-idx="4"></video>
+      <div class="video-wrap" onclick="toggleMute(4)">
+        <video src="https://i.imgur.com/wN5ysgI.mp4" muted loop playsinline data-idx="4" poster="https://i.imgur.com/yjuuIAA.jpeg"></video>
         <div class="video-overlay">
-          <button class="mute-btn" onclick="toggleMute(4)" id="mb4">
+          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(4)" id="mb4">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
           </button>
           <div class="video-person">
@@ -984,12 +1002,22 @@ var PROFILES = [
   { nome:'Marcos Antônio', foto:'https://i.imgur.com/RGXkGGz.jpeg' },
 ];
 var EXTRAS = [
-  'Mariana S.','Carlos Henrique','Beatriz Santos','Fernanda Costa',
-  'Rafael Lima','Juliana Ferreira','Paulo Mendes','Ana Paula Rocha',
-  'Rodrigo Alves','Camila Souza','Thiago Melo','Natalia Carvalho',
-  'Diego Silva','Carolina Nunes','Gustavo Pereira','Patricia Ramos',
-  'José Carlos','Renata Lopes','Simone Andrade','Bruno Oliveira',
-  'Viviane Torres','Márcio Duarte','Isabela Faria','Henrique Matos',
+  'Ana Paula Rocha','Beatriz Nunes','Bruno Oliveira','Camila Souza',
+  'Carlos Henrique','Carolina Alves','Cristiane Melo','Daniel Farias',
+  'Daniela Costa','Diego Ferreira','Eduardo Santos','Elza Teixeira',
+  'Fabiana Lima','Felipe Duarte','Fernanda Carvalho','Gabriel Pinto',
+  'Giovanna Reis','Gustavo Pereira','Helena Borges','Isabela Faria',
+  'João Pedro M.','Jonas Barbosa','Josiane Leal','Juliana Ferreira',
+  'Kátia Macedo','Larissa Moura','Leonardo Gomes','Letícia Vieira',
+  'Luana Pessoa','Lucas Freitas','Luciana Monteiro','Luiz Henrique',
+  'Marcela Cunha','Marcos Vinícius','Marina Rodrigues','Marisa Costa',
+  'Mateus Araújo','Natalia Carvalho','Pablo Corrêa','Patricia Ramos',
+  'Paulo Mendes','Priscila Barros','Rafael Lima','Raquel Andrade',
+  'Renata Lopes','Ricardo Dias','Roberto Cruz','Rodrigo Alves',
+  'Sandra Batista','Simone Torres','Tânia Guimarães','Tatiana Pires',
+  'Thiago Melo','Tiago Nascimento','Ubiratã Silva','Valéria Coelho',
+  'Vanessa Saraiva','Vera Lúcia M.','Viviane Moraes','William Santos',
+  'Adriana Peixoto','Alexandre Lima','Amanda Ferreira','Antônio Sousa',
 ];
 var ALL_PEOPLE = PROFILES.concat(EXTRAS.map(function(n){ return {nome:n,foto:null}; }));
 
@@ -997,6 +1025,7 @@ var PURCHASE_EVENTS = [
   'comprou o Desafio 21 Dias',
   'assinou o plano mensal',
   'assinou pela primeira vez',
+  'acabou de entrar para o desafio',
 ];
 var RENEWAL_EVENTS = [
   'assinou o plano trimestral',
@@ -1004,18 +1033,30 @@ var RENEWAL_EVENTS = [
   'renovou o plano mensal',
   'renovou o plano trimestral',
   'renovou o plano anual',
+  'garantiu mais um ano de acesso',
 ];
 var TIMES = [
-  'agora mesmo','há 20 segundos','há 35 segundos',
-  'há 10 minutos','há 12 minutos','há 25 minutos',
-  'há 1 hora','há 2 horas','há 3 horas',
+  'agora mesmo','há 15 segundos','há 30 segundos','há 1 minuto',
+  'há 3 minutos','há 7 minutos','há 10 minutos','há 18 minutos',
+  'há 25 minutos','há 42 minutos','há 1 hora','há 2 horas','há 3 horas',
 ];
 var AVATAR_COLORS = [
   '#4caf50','#66bb6a','#43a047','#388e3c','#2e7d32',
-  '#81c784','#a5d6a7','#1b5e20','#558b2f','#33691e',
+  '#81c784','#558b2f','#33691e','#1b5e20','#a5d6a7',
 ];
 function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 function randInt(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+
+/* Fisher-Yates shuffle — ordem diferente a cada reload */
+function shuffle(arr){
+  var a = arr.slice();
+  for(var i = a.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+ALL_PEOPLE = shuffle(ALL_PEOPLE);
 
 /* ── NOTIFICATION SOUND ── */
 function playSound(){
@@ -1086,46 +1127,66 @@ function removeNotifCard(card){
 }
 
 /* ── NOTIFICATION TIMERS ── */
-var pIdx = 0, rIdx = 0;
-
 function firePurchase(){
-  var person = ALL_PEOPLE[(pIdx * 7) % ALL_PEOPLE.length];
-  addNotif(person, rand(PURCHASE_EVENTS), rand(TIMES));
-  pIdx++;
+  addNotif(rand(ALL_PEOPLE), rand(PURCHASE_EVENTS), rand(TIMES));
 }
 function fireRenewal(){
-  var person = ALL_PEOPLE[(rIdx * 11 + 5) % ALL_PEOPLE.length];
-  addNotif(person, rand(RENEWAL_EVENTS), rand(TIMES));
-  rIdx++;
+  addNotif(rand(ALL_PEOPLE), rand(RENEWAL_EVENTS), rand(TIMES));
 }
 
-/* First fire: stagger them */
-setTimeout(firePurchase, 2000);
-setTimeout(fireRenewal,  8000);
+/* First fire: stagger com tempo aleatório */
+setTimeout(firePurchase, 1500 + Math.random()*1500);
+setTimeout(fireRenewal,  6000 + Math.random()*3000);
 
-/* Recurring: 15s purchase, 30s renewal */
-setInterval(firePurchase, 15000);
-setInterval(fireRenewal,  30000);
+/* Recurring: ~15s compra, ~30s renovação (com jitter pra parecer natural) */
+function scheduleNext(fn, base, jitter){
+  setTimeout(function(){
+    fn();
+    scheduleNext(fn, base, jitter);
+  }, base + Math.random()*jitter);
+}
+scheduleNext(firePurchase, 12000, 6000);
+scheduleNext(fireRenewal,  26000, 8000);
 
 /* ── VIDEO MUTE TOGGLE ── */
-window.toggleMute = function(idx){
-  var svgMuted   = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
-  var svgUnmuted = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>';
+var _activeVideo = -1; // índice do vídeo ativo; -1 = todos mudos
 
+var _SVG_OPEN  = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+var _SVG_MUTED = _SVG_OPEN
+  + '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>'
+  + '<line x1="23" y1="9" x2="17" y2="15"/>'
+  + '<line x1="17" y1="9" x2="23" y2="15"/></svg>';
+var _SVG_SOUND = _SVG_OPEN
+  + '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>'
+  + '<path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+
+function _muteAll(){
   document.querySelectorAll('[data-idx]').forEach(function(v){
     v.muted = true;
-    var bi = v.getAttribute('data-idx');
-    var mb = document.getElementById('mb' + bi);
-    if(mb) mb.innerHTML = svgMuted;
+    var mb = document.getElementById('mb' + v.getAttribute('data-idx'));
+    if(mb) mb.innerHTML = _SVG_MUTED;
   });
+  _activeVideo = -1;
+}
 
-  var target = document.querySelector('[data-idx="' + idx + '"]');
-  var btn    = document.getElementById('mb' + idx);
-  if(target){
-    if(/* was muted */true){
+window.toggleMute = function(idx){
+  if(_activeVideo === idx){
+    // Mesmo vídeo clicado → muta
+    var v = document.querySelector('[data-idx="' + idx + '"]');
+    if(v) v.muted = true;
+    var mb = document.getElementById('mb' + idx);
+    if(mb) mb.innerHTML = _SVG_MUTED;
+    _activeVideo = -1;
+  } else {
+    // Muta todos, ativa só este
+    _muteAll();
+    var target = document.querySelector('[data-idx="' + idx + '"]');
+    var btn    = document.getElementById('mb' + idx);
+    if(target){
       target.muted = false;
-      target.play();
-      if(btn) btn.innerHTML = svgUnmuted;
+      target.play().catch(function(){});
+      if(btn) btn.innerHTML = _SVG_SOUND;
+      _activeVideo = idx;
     }
   }
 };
@@ -1146,7 +1207,8 @@ window.toggleMoreVideos = function(){
       var v = el.querySelector('video');
       if(v){ v.pause(); v.muted=true; }
       var mb = el.querySelector('.mute-btn');
-      if(mb) mb.innerHTML = '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>';
+      if(mb) mb.innerHTML = _SVG_MUTED;
+      if(_activeVideo === parseInt(id.replace('vc','')) ) _activeVideo = -1;
     }
   });
   btn.innerHTML = expanded
