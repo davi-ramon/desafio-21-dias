@@ -29,6 +29,11 @@ fbq('init','4212748045603496');fbq('track','PageView');
   --green:        #4caf50;
   --green-bright: #6dde71;
   --green-dim:    #2e6b31;
+  --neon:         #7CFF6B;
+  --gold:         #f5c842;
+  --blue:         #4fa8ff;
+  --orange:       #ff9d4a;
+  --pink:         #ff6b9d;
   --cream:        #eeeadc;
   --red:          #e84040;
   --text:         #dde8dd;
@@ -51,6 +56,11 @@ fbq('init','4212748045603496');fbq('track','PageView');
   --green:        #3a8a3d;
   --green-bright: #4caf50;
   --green-dim:    #c6e6c7;
+  --neon:         #2eb82e;
+  --gold:         #d99e00;
+  --blue:         #2b7fd4;
+  --orange:       #e07f1f;
+  --pink:         #d63d72;
   --cream:        #1a2a1a;
   --text:         #1e301e;
   --muted:        #4a6e4a;
@@ -114,12 +124,28 @@ svg{display:block;flex-shrink:0}
 .brand-text-sub{font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase}
 .topbar-headline{
   text-align:center;
-  font-family:'Bebas Neue',sans-serif;
-  font-size:18px;letter-spacing:0.06em;
-  color:var(--cream);line-height:1.1;
+  line-height:1;
   white-space:nowrap;
 }
-.topbar-headline span{color:var(--green-bright)}
+.topbar-headline .th-line1{
+  display:block;
+  font-family:'Instrument Serif',serif;
+  font-style:italic;
+  font-size:14px;
+  color:var(--muted);
+  letter-spacing:0.01em;
+  margin-bottom:1px;
+}
+.topbar-headline .th-line2{
+  display:block;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:24px;letter-spacing:0.05em;
+  color:var(--cream);
+}
+.topbar-headline .th-line2 span{
+  color:var(--neon);
+  text-shadow:0 0 16px rgba(124,255,107,0.35);
+}
 .topbar-right{display:flex;align-items:center;gap:12px;justify-content:flex-end}
 .security-badge{
   display:flex;align-items:center;gap:8px;
@@ -189,12 +215,22 @@ svg{display:block;flex-shrink:0}
   padding:11px 13px;
   display:flex;align-items:flex-start;gap:10px;
   box-shadow:0 4px 16px rgba(0,0,0,0.25),var(--glow);
-  animation:slideNotif 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
-  transition:opacity 0.5s;
+  animation:slideNotif 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  transition:opacity 0.45s ease,transform 0.45s ease,margin 0.45s ease,max-height 0.45s ease;
+  max-height:120px;
 }
-.notif-card.removing{opacity:0;transform:translateX(-12px)}
+/* borda colorida por tipo */
+.notif-card.nc-visit{border-left-color:var(--blue)}
+.notif-card.nc-visit .notif-icon{color:var(--blue)}
+.notif-card.nc-renew{border-left-color:var(--gold)}
+.notif-card.nc-renew .notif-icon{color:var(--gold)}
+.notif-card.removing{
+  opacity:0;transform:translateX(-24px) scale(0.92);
+  max-height:0;margin-top:-8px;padding-top:0;padding-bottom:0;
+  overflow:hidden;
+}
 @keyframes slideNotif{
-  from{opacity:0;transform:translateX(-18px) scale(0.97)}
+  from{opacity:0;transform:translateX(-22px) scale(0.95)}
   to{opacity:1;transform:translateX(0) scale(1)}
 }
 .notif-av{
@@ -211,6 +247,54 @@ svg{display:block;flex-shrink:0}
 .notif-event{font-size:12px;color:var(--muted);margin-top:1px}
 .notif-time{font-size:10px;color:var(--muted);margin-top:3px;opacity:0.7}
 .notif-icon{color:var(--green);flex-shrink:0;margin-top:2px}
+
+/* ══════════════════════════════════
+   MOBILE TOAST (estilo notificação iPhone)
+══════════════════════════════════ */
+.mobile-toast{
+  display:none; /* só aparece no mobile via media query */
+  position:fixed;
+  top:8px;left:8px;right:8px;
+  z-index:9999;
+  background:rgba(20,28,24,0.92);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border:1px solid var(--border2);
+  border-radius:18px;
+  padding:11px 14px;
+  align-items:center;gap:11px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.04);
+  transform:translateY(-130%);
+  opacity:0;
+  transition:transform 0.45s cubic-bezier(0.34,1.4,0.5,1),opacity 0.35s ease;
+}
+.mobile-toast.show{
+  display:flex;
+  transform:translateY(0);
+  opacity:1;
+}
+.mobile-toast.hide{
+  transform:translateY(-130%);
+  opacity:0;
+}
+.mt-av{
+  width:40px;height:40px;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;color:#050505;
+  flex-shrink:0;overflow:hidden;
+}
+.mt-av img{width:40px;height:40px;object-fit:cover;border-radius:11px}
+.mt-body{flex:1;min-width:0}
+.mt-title{font-size:13px;font-weight:700;color:var(--cream);line-height:1.25}
+.mt-event{font-size:12px;color:var(--text);opacity:0.85;line-height:1.3}
+.mt-time{font-size:10px;color:var(--muted);margin-top:2px}
+.mt-app{
+  display:flex;align-items:center;gap:5px;
+  font-size:9px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:0.08em;
+  margin-bottom:3px;
+}
+.mt-app img{width:13px;height:13px;border-radius:3px}
 
 /* ══════════════════════════════════
    CENTER — CHECKOUT
@@ -230,52 +314,57 @@ svg{display:block;flex-shrink:0}
   transition:background 0.3s,box-shadow 0.3s;
 }
 
-/* badge */
+/* badge — amarelo (acesso grátis) */
 .ck-badge{
   display:inline-flex;align-items:center;gap:8px;
-  background:rgba(76,175,80,0.08);
-  border:1px solid var(--border2);
+  background:rgba(245,200,66,0.1);
+  border:1px solid rgba(245,200,66,0.32);
   border-radius:100px;
   padding:7px 20px;
   font-size:11px;font-weight:700;
   letter-spacing:0.2em;text-transform:uppercase;
-  color:var(--green);
+  color:var(--gold);
   margin:0 auto 16px;
   width:fit-content;display:flex;
 }
+.ck-badge svg{color:var(--gold)}
 
-/* price */
+/* price — 17 em verde neon de destaque */
 .ck-price-wrap{text-align:center;margin-bottom:4px}
 .ck-price{
   font-family:'Bebas Neue',sans-serif;
-  font-size:72px;line-height:1;
-  color:var(--green-bright);
+  font-size:78px;line-height:1;
+  color:var(--neon);
   letter-spacing:-0.01em;
+  text-shadow:0 0 28px rgba(124,255,107,0.4);
 }
-.ck-price sup{font-size:30px;vertical-align:top;margin-top:10px;display:inline-block}
+.ck-price sup{font-size:30px;vertical-align:top;margin-top:10px;display:inline-block;color:var(--green-bright);text-shadow:none}
 .ck-price sub{
   font-size:24px;font-weight:400;
   letter-spacing:0;
   vertical-align:baseline;
   color:var(--muted);
+  text-shadow:none;
 }
 .ck-old{
   font-family:'Instrument Serif',serif;
   font-style:italic;
-  font-size:14px;color:var(--muted);
+  font-size:15px;color:var(--red);
   text-decoration:line-through;
-  margin-top:2px;
+  text-decoration-color:rgba(232,64,64,0.7);
+  margin-top:2px;opacity:0.85;
 }
 .ck-trial-chip{
   display:inline-flex;align-items:center;gap:6px;
-  background:rgba(76,175,80,0.07);
-  border:1px solid var(--border);
+  background:rgba(245,200,66,0.08);
+  border:1px solid rgba(245,200,66,0.25);
   border-radius:100px;
   padding:4px 14px;
-  font-size:11px;font-weight:600;color:var(--green);
+  font-size:11px;font-weight:600;color:var(--gold);
   letter-spacing:0.08em;text-transform:uppercase;
   margin:8px auto 0;width:fit-content;display:flex;
 }
+.ck-trial-chip svg{color:var(--gold)}
 
 /* divider */
 .ck-divider{height:1px;background:var(--border);margin:18px 0}
@@ -299,12 +388,16 @@ svg{display:block;flex-shrink:0}
 .benefit-item:last-child{border-right:none}
 .benefit-icon-wrap{
   width:38px;height:38px;
-  background:rgba(76,175,80,0.09);
-  border:1px solid var(--border);
   border-radius:10px;
   display:flex;align-items:center;justify-content:center;
 }
-.benefit-icon-wrap svg{color:var(--green)}
+/* cores distintas por benefício */
+.bi-green{background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.28)}
+.bi-green svg{color:var(--green-bright)}
+.bi-blue{background:rgba(79,168,255,0.1);border:1px solid rgba(79,168,255,0.28)}
+.bi-blue svg{color:var(--blue)}
+.bi-orange{background:rgba(255,157,74,0.1);border:1px solid rgba(255,157,74,0.28)}
+.bi-orange svg{color:var(--orange)}
 .benefit-label{font-size:11px;color:var(--muted);line-height:1.3;font-weight:500}
 
 /* form */
@@ -436,7 +529,9 @@ svg{display:block;flex-shrink:0}
   display:flex;align-items:center;gap:5px;
   font-size:11px;color:var(--muted);
 }
-.seal svg{color:var(--green)}
+.seal-green svg{color:var(--green-bright)}
+.seal-blue svg{color:var(--blue)}
+.seal-gold svg{color:var(--gold)}
 
 /* ══════════════════════════════════
    RIGHT — VIDEO TESTIMONIALS
@@ -475,7 +570,7 @@ svg{display:block;flex-shrink:0}
 .video-wrap{
   position:relative;
   width:100%;
-  aspect-ratio:9/16;
+  aspect-ratio:4/5;   /* desktop: compacto pro painel lateral */
   background:#000;
   overflow:hidden;
   cursor:pointer;
@@ -559,12 +654,17 @@ footer{
 .footer-benefit:last-child{border-right:none}
 .fb-icon{
   width:36px;height:36px;flex-shrink:0;
-  background:rgba(76,175,80,0.08);
-  border:1px solid var(--border);
   border-radius:9px;
   display:flex;align-items:center;justify-content:center;
 }
-.fb-icon svg{color:var(--green)}
+.fbi-green{background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.28)}
+.fbi-green svg{color:var(--green-bright)}
+.fbi-blue{background:rgba(79,168,255,0.1);border:1px solid rgba(79,168,255,0.28)}
+.fbi-blue svg{color:var(--blue)}
+.fbi-gold{background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.28)}
+.fbi-gold svg{color:var(--gold)}
+.fbi-pink{background:rgba(255,107,157,0.1);border:1px solid rgba(255,107,157,0.28)}
+.fbi-pink svg{color:var(--pink)}
 .fb-text strong{display:block;font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.1em}
 .fb-text span{font-size:10px;color:var(--muted);line-height:1.4}
 
@@ -608,7 +708,8 @@ footer{
 @media(max-width:1100px){
   /* topbar */
   .topbar{grid-template-columns:auto 1fr auto;padding:0 12px;gap:6px;height:52px}
-  .topbar-headline{font-size:12px;white-space:normal;line-height:1.2}
+  .topbar-headline .th-line1{font-size:11px}
+  .topbar-headline .th-line2{font-size:18px}
   .brand-text-sub{display:none}
   .security-text{display:none}
   .security-badge{padding:6px 8px;gap:4px}
@@ -619,9 +720,11 @@ footer{
   .checkout-col{border:none;min-height:auto;padding:16px 12px}
   /* checkout card */
   .checkout-card{padding:22px 20px 20px}
-  .ck-price{font-size:56px}
+  .ck-price{font-size:62px}
   .ck-benefits{padding:12px 4px}
   .benefit-icon-wrap{width:32px;height:32px}
+  /* vídeos voltam ao formato original 9:16 no mobile */
+  .video-wrap{aspect-ratio:9/16}
   /* footer */
   .footer-top{grid-template-columns:1fr}
   .footer-links{align-items:flex-start}
@@ -630,8 +733,8 @@ footer{
   .footer-benefit:last-child{border-bottom:none}
 }
 @media(max-width:480px){
-  .topbar-headline{display:none}
-  .topbar{grid-template-columns:1fr auto}
+  .topbar-headline .th-line1{display:none}
+  .topbar-headline .th-line2{font-size:16px}
 }
 </style>
 </head>
@@ -648,7 +751,8 @@ footer{
   </div>
 
   <div class="topbar-headline">
-    Transforme sua rotina,<br><span>Transforme Sua Vida.</span>
+    <span class="th-line1">Transforme sua rotina,</span>
+    <span class="th-line2">Transforme <span>Sua Vida.</span></span>
   </div>
 
   <div class="topbar-right">
@@ -665,6 +769,17 @@ footer{
     </button>
   </div>
 </header>
+
+<!-- ══════════ MOBILE TOAST (iPhone style) ══════════ -->
+<div class="mobile-toast" id="mobileToast">
+  <div class="mt-av" id="mtAv">M</div>
+  <div class="mt-body">
+    <div class="mt-app"><img src="https://i.imgur.com/bOf9i1R.png" alt=""> Desafio 21 Dias</div>
+    <div class="mt-title" id="mtTitle">Mariana</div>
+    <div class="mt-event" id="mtEvent">assinou o plano</div>
+    <div class="mt-time" id="mtTime">agora mesmo</div>
+  </div>
+</div>
 
 <!-- ══════════ MAIN GRID ══════════ -->
 <div class="main">
@@ -700,22 +815,22 @@ footer{
 
       <div class="ck-divider"></div>
 
-      <!-- 3 benefícios com SVG -->
+      <!-- 3 benefícios com SVG coloridos -->
       <div class="ck-benefits">
         <div class="benefit-item">
-          <div class="benefit-icon-wrap">
+          <div class="benefit-icon-wrap bi-green">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
           </div>
           <div class="benefit-label">Todos os<br>recursos</div>
         </div>
         <div class="benefit-item">
-          <div class="benefit-icon-wrap">
+          <div class="benefit-icon-wrap bi-blue">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           </div>
           <div class="benefit-label">Cancele<br>quando quiser</div>
         </div>
         <div class="benefit-item">
-          <div class="benefit-icon-wrap">
+          <div class="benefit-icon-wrap bi-orange">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
           </div>
           <div class="benefit-label">Sem<br>fidelidade</div>
@@ -774,17 +889,17 @@ footer{
         </div>
       </div>
 
-      <!-- Seals -->
+      <!-- Seals coloridos -->
       <div class="seals">
-        <div class="seal">
+        <div class="seal seal-green">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Compra 100% segura
         </div>
-        <div class="seal">
+        <div class="seal seal-blue">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
           Cancele quando quiser
         </div>
-        <div class="seal">
+        <div class="seal seal-gold">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Satisfação garantida
         </div>
@@ -895,7 +1010,7 @@ footer{
 <footer>
   <div class="footer-benefits">
     <div class="footer-benefit">
-      <div class="fb-icon">
+      <div class="fb-icon fbi-gold">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       </div>
       <div class="fb-text">
@@ -904,7 +1019,7 @@ footer{
       </div>
     </div>
     <div class="footer-benefit">
-      <div class="fb-icon">
+      <div class="fb-icon fbi-blue">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </div>
       <div class="fb-text">
@@ -913,7 +1028,7 @@ footer{
       </div>
     </div>
     <div class="footer-benefit">
-      <div class="fb-icon">
+      <div class="fb-icon fbi-green">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <div class="fb-text">
@@ -922,7 +1037,7 @@ footer{
       </div>
     </div>
     <div class="footer-benefit">
-      <div class="fb-icon">
+      <div class="fb-icon fbi-pink">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
       <div class="fb-text">
@@ -1075,49 +1190,58 @@ function playSound(){
   } catch(e){}
 }
 
-/* ── STACKING NOTIFICATIONS ── */
+/* ── ÍCONES SVG por tipo ── */
+var _ICON_CART  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="notif-icon"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
+var _ICON_RENEW = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="notif-icon"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+var _ICON_EYE   = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="notif-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+var _GROUP_SVG  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#050505" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+
+var isMobile = function(){ return window.matchMedia('(max-width:1100px)').matches; };
+
+/* ── STACKING NOTIFICATIONS (desktop) ── */
 var notifFeed = document.getElementById('notifFeed');
 var notifIdx  = 0;
 var MAX_VISIBLE = 5;
 
-function addNotif(person, event, time){
-  /* Remove oldest if at max */
+/* opts: { nome, foto, event, time, type:'purchase'|'renew'|'visit', count } */
+function addNotif(opts){
+  playSound();
+  if(isMobile()){ showMobileToast(opts); return; }
+
   var cards = notifFeed.querySelectorAll('.notif-card');
   if(cards.length >= MAX_VISIBLE){
     removeNotifCard(cards[cards.length - 1]);
   }
 
   var card = document.createElement('div');
-  card.className = 'notif-card';
+  card.className = 'notif-card' + (opts.type === 'visit' ? ' nc-visit' : (opts.type === 'renew' ? ' nc-renew' : ''));
 
   /* Avatar */
   var av;
-  if(person.foto){
-    av = '<img src="' + person.foto + '" style="width:34px;height:34px;border-radius:50%;object-fit:cover" alt="">';
+  if(opts.type === 'visit'){
+    av = '<div class="notif-av" style="background:linear-gradient(135deg,#4fa8ff,#6dc6ff);width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">' + _GROUP_SVG + '</div>';
+  } else if(opts.foto){
+    av = '<img src="' + opts.foto + '" style="width:34px;height:34px;border-radius:50%;object-fit:cover" alt="">';
   } else {
     var color = AVATAR_COLORS[notifIdx % AVATAR_COLORS.length];
     av = '<div class="notif-av" style="background:' + color + ';width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#050505;flex-shrink:0">'
-       + person.nome.charAt(0) + '</div>';
+       + opts.nome.charAt(0) + '</div>';
   }
 
-  /* Icon SVG */
-  var iconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="notif-icon"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>';
+  var icon = opts.type === 'visit' ? _ICON_EYE : (opts.type === 'renew' ? _ICON_RENEW : _ICON_CART);
 
   card.innerHTML = av +
     '<div class="notif-body">' +
-      '<div class="notif-name">' + person.nome + '</div>' +
-      '<div class="notif-event">' + event + '</div>' +
-      '<div class="notif-time">' + time + '</div>' +
+      '<div class="notif-name">' + opts.nome + '</div>' +
+      '<div class="notif-event">' + opts.event + '</div>' +
+      '<div class="notif-time">' + opts.time + '</div>' +
     '</div>' +
-    iconSvg;
+    icon;
 
   notifFeed.insertBefore(card, notifFeed.firstChild);
   notifIdx++;
 
-  playSound();
-
-  /* Auto-remove after 10s */
-  setTimeout(function(){ removeNotifCard(card); }, 10000);
+  setTimeout(function(){ removeNotifCard(card); }, 9000);
 }
 
 function removeNotifCard(card){
@@ -1126,27 +1250,65 @@ function removeNotifCard(card){
   setTimeout(function(){ if(card.parentNode) card.parentNode.removeChild(card); }, 500);
 }
 
-/* ── NOTIFICATION TIMERS ── */
+/* ── MOBILE TOAST (iPhone style) ── */
+var mToast = document.getElementById('mobileToast');
+var mToastTimer;
+function showMobileToast(opts){
+  var av = document.getElementById('mtAv');
+  if(opts.type === 'visit'){
+    av.style.background = 'linear-gradient(135deg,#4fa8ff,#6dc6ff)';
+    av.innerHTML = _GROUP_SVG;
+  } else if(opts.foto){
+    av.style.background = 'transparent';
+    av.innerHTML = '<img src="' + opts.foto + '" alt="">';
+  } else {
+    av.style.background = AVATAR_COLORS[notifIdx % AVATAR_COLORS.length];
+    av.innerHTML = opts.nome.charAt(0);
+  }
+  document.getElementById('mtTitle').textContent = opts.nome;
+  document.getElementById('mtEvent').textContent = opts.event;
+  document.getElementById('mtTime').textContent  = opts.time;
+  notifIdx++;
+
+  mToast.classList.remove('hide');
+  mToast.classList.add('show');
+
+  clearTimeout(mToastTimer);
+  mToastTimer = setTimeout(function(){
+    mToast.classList.remove('show');
+    mToast.classList.add('hide');
+  }, 5000);
+}
+
+/* ── GERADORES por tipo ── */
 function firePurchase(){
-  addNotif(rand(ALL_PEOPLE), rand(PURCHASE_EVENTS), rand(TIMES));
+  var p = rand(ALL_PEOPLE);
+  addNotif({ nome:p.nome, foto:p.foto, event:rand(PURCHASE_EVENTS), time:rand(TIMES), type:'purchase' });
 }
 function fireRenewal(){
-  addNotif(rand(ALL_PEOPLE), rand(RENEWAL_EVENTS), rand(TIMES));
+  var p = rand(ALL_PEOPLE);
+  addNotif({ nome:p.nome, foto:p.foto, event:rand(RENEWAL_EVENTS), time:rand(TIMES), type:'renew' });
+}
+function fireVisit(){
+  var n = randInt(50,150);
+  addNotif({ nome:n + ' pessoas', foto:null, event:'se interessaram por este plano nas últimas horas', time:'em tempo real', type:'visit' });
 }
 
-/* First fire: stagger com tempo aleatório */
-setTimeout(firePurchase, 1500 + Math.random()*1500);
-setTimeout(fireRenewal,  6000 + Math.random()*3000);
+/* First fire: escalonado */
+setTimeout(firePurchase, 2000);
+setTimeout(fireVisit,    14000);
+setTimeout(fireRenewal,  24000);
 
-/* Recurring: ~15s compra, ~30s renovação (com jitter pra parecer natural) */
+/* Recorrente com jitter — intervalos maiores p/ não poluir */
 function scheduleNext(fn, base, jitter){
   setTimeout(function(){
     fn();
     scheduleNext(fn, base, jitter);
   }, base + Math.random()*jitter);
 }
-scheduleNext(firePurchase, 12000, 6000);
-scheduleNext(fireRenewal,  26000, 8000);
+scheduleNext(firePurchase, 25000, 8000);   // ~25-33s
+scheduleNext(fireRenewal,  38000, 10000);  // ~38-48s
+scheduleNext(fireVisit,    45000, 15000);  // ~45-60s
 
 /* ── VIDEO MUTE TOGGLE ── */
 var _activeVideo = -1; // índice do vídeo ativo; -1 = todos mudos
