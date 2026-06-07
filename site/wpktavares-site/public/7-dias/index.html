@@ -46,8 +46,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 
-<!-- ══ WISTIA ══ -->
-<script src="https://fast.wistia.com/assets/external/E-v1.js" async></script>
+<!-- ══ VSL PLAYER ══ -->
+<link rel="stylesheet" href="/assets/vsl-player.css">
 
 <style>
   :root {
@@ -463,7 +463,7 @@
     Assista o vídeo abaixo.
   </p>
   <div class="vsl-wrap" id="vsl-wrapper">
-    <div class="wistia_embed wistia_async_fvf0f1zx46 videoFoam=true"></div>
+    <div class="vsl-player" data-vsl-src="https://i.imgur.com/8r7AKRu.mp4"></div>
   </div>
   <p class="vsl-note">▲ Assista até o final — os detalhes da oferta estão no vídeo</p>
 </section>
@@ -750,6 +750,9 @@
 <!-- BIA TAVARES FLOATING CHAT -->
 <script async src="https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/float.js"></script>
 
+<!-- VSL PLAYER -->
+<script src="/assets/vsl-player.js" defer></script>
+
 <!-- SCRIPTS -->
 <script>
 (function() {
@@ -782,26 +785,6 @@
       if (!scrollFired[d] && pct >= d) { scrollFired[d] = true; fbq('trackCustom', 'ScrollDepth', { depth: d }); }
     });
   }, { passive: true });
-
-  window._wq = window._wq || [];
-  window._wq.push({
-    id: 'fvf0f1zx46',
-    onReady: function(video) {
-      var vslFired = {};
-      video.bind('play', function() {
-        if (!vslFired.play) { vslFired.play = true; fbq('trackCustom', 'VSLPlay'); }
-      });
-      video.bind('percentwatchedchanged', function(pct) {
-        [0.25, 0.50, 0.75, 1.0].forEach(function(m) {
-          var key = 'p' + Math.round(m * 100);
-          if (!vslFired[key] && pct >= m) { vslFired[key] = true; fbq('trackCustom', 'VSLWatched', { percent: Math.round(m * 100) }); }
-        });
-      });
-      video.bind('end', function() {
-        if (!vslFired.end) { vslFired.end = true; fbq('trackCustom', 'VSLCompleted'); }
-      });
-    }
-  });
 
   var ctaMain   = document.getElementById('cta-main');
   var ctaBottom = document.getElementById('cta-bottom');

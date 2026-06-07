@@ -42,7 +42,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-<script src="https://fast.wistia.com/assets/external/E-v1.js" async></script>
+<link rel="stylesheet" href="/assets/vsl-player.css">
 
 <style>
   :root { --bg:#07090a; --surface:#0f1412; --surface2:#141c18; --green:#4caf50; --green-bright:#6dde71; --green-dim:#2e6b31; --cream:#eeeadc; --red:#e84040; --text:#dde8dd; --muted:#6e9070; --border:rgba(76,175,80,0.16); --glow:0 0 48px rgba(76,175,80,0.12); }
@@ -173,7 +173,7 @@
   <h1 class="hero-title">Construa uma<br><span class="accent">Disciplina<br>Inabalável</span> em 21 Dias</h1>
   <p class="hero-sub">Mesmo que você seja totalmente indisciplinado hoje.<br>Assista o vídeo abaixo.</p>
   <div class="vsl-wrap" id="vsl-wrapper">
-    <div class="wistia_embed wistia_async_fvf0f1zx46 videoFoam=true"></div>
+    <div class="vsl-player" data-vsl-src="https://i.imgur.com/8r7AKRu.mp4"></div>
   </div>
   <p class="vsl-note">▲ Assista até o final — os detalhes da oferta estão no vídeo</p>
 </section>
@@ -363,5 +363,8 @@
   if (waLink) waLink.addEventListener('click', function() { fbq('trackCustom', 'WhatsAppClick'); });
 })();
 </script>
+
+<!-- VSL PLAYER -->
+<script src="/assets/vsl-player.js" defer></script>
 </body>
 </html>
