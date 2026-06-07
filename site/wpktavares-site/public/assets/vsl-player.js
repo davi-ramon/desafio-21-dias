@@ -1,27 +1,41 @@
 /* ============================================================
    vsl-player.js — Player VSL high-conversion (Desafio 21 Dias)
-   Monta-se sobre: <div class="vsl-player" data-vsl-src="...">
-   - autoplay mutado, sem loop, sem seek
+   <div class="vsl-player" data-vsl-src="..." [data-dias="7"]>
+   - vídeo vertical 9:16, autoplay mutado, sem loop, sem seek
    - 1º clique: ativa áudio + reinicia + centraliza
    - barra de progresso psicológica (3 fases)
-   - tracking VSL_STARTED / 25 / 50 / 75 / 95 / COMPLETED
-   - PiP custom ao rolar
-   - modal de pausa + exit-intent + beforeunload
+   - PiP custom: FLIP animado, drag & drop, snap nos 4 cantos
+   - tracking VSL_* + PIP_* via Pixel E CAPI (GAS) c/ dedup
    ============================================================ */
 (function(){
   'use strict';
 
-  function track(name, params){
-    try{ if(typeof fbq === 'function') fbq('trackCustom', name, params || {}); }catch(e){}
+  var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+
+  function getCookie(n){ var m=document.cookie.match('(^|;)\\s*'+n+'\\s*=\\s*([^;]+)'); return m?m.pop():''; }
+  function diasFromUrl(){ var d=parseInt(new URLSearchParams(location.search).get('dias'))||7; return [7,14,21].indexOf(d)<0?7:d; }
+
+  // dispara para Pixel (com eventID) E CAPI (servidor) usando o MESMO id → dedup
+  function trackEvent(name){
+    var id = name + '_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+    try{ if(typeof fbq==='function') fbq('trackCustom', name, {}, {eventID:id}); }catch(e){}
+    try{
+      fetch(GAS,{
+        method:'POST', headers:{'Content-Type':'text/plain'}, keepalive:true,
+        body: JSON.stringify({ action:'trackVsl', data:{
+          event_name:name, event_id:id, dias:diasFromUrl(),
+          fbp:getCookie('_fbp'), fbc:getCookie('_fbc'),
+          client_ua:navigator.userAgent, url:location.href
+        }})
+      }).catch(function(){});
+    }catch(e){}
   }
 
   function buildPlayer(mount){
     var src = mount.getAttribute('data-vsl-src');
     if(!src) return;
-
     mount.classList.add('vslp');
 
-    // ── estrutura interna ──
     mount.innerHTML =
       '<video playsinline muted preload="auto" webkit-playsinline></video>' +
       '<div class="vslp-progress"><div class="vslp-progress-fill"></div></div>' +
@@ -50,149 +64,200 @@
     var icPause    = mount.querySelector('.vslp-ic-pause');
     var pipClose   = mount.querySelector('.vslp-pip-close');
 
-    // placeholder p/ segurar layout no PiP
     var placeholder = document.createElement('div');
     placeholder.className = 'vslp-placeholder';
     mount.parentNode.insertBefore(placeholder, mount.nextSibling);
 
-    video.src = src;
-    video.muted = true;
-    video.loop = false;
+    video.src = src; video.muted = true; video.loop = false;
 
-    var started   = false;   // áudio ativado (1º clique dado)
-    var fired      = {};      // marcos de tracking
-    var pipOn     = false;
-    var pipClosed = false;
+    var started=false, fired={}, pipOn=false, pipClosed=false;
+    var pipCorner='br', dragging=false, dragMoved=false, dragDX=0, dragDY=0;
+    var PIP_MARGIN=16;
 
-    // autoplay mudo
-    video.play().catch(function(){ /* alguns browsers exigem gesto; overlay cobre isso */ });
+    video.play().catch(function(){});
 
-    // ── barra psicológica: real → visual ──
     function visualPct(r){
-      if(r <= 0.25) return (r/0.25)*50;             // rápido
-      if(r <= 0.55) return 50 + ((r-0.25)/0.30)*30; // normal
-      return Math.min(100, 80 + ((r-0.55)/0.45)*20);// lento
+      if(r<=0.25) return (r/0.25)*50;
+      if(r<=0.55) return 50+((r-0.25)/0.30)*30;
+      return Math.min(100, 80+((r-0.55)/0.45)*20);
     }
-
     function setIcon(paused){
-      icPlay.style.display  = paused ? '' : 'none';
-      icPause.style.display = paused ? 'none' : '';
-      mount.classList.toggle('paused', paused);
+      icPlay.style.display=paused?'':'none';
+      icPause.style.display=paused?'none':'';
+      mount.classList.toggle('paused',paused);
     }
 
-    // ── 1º clique: ativa áudio, reinicia, centraliza ──
     function activate(){
       if(started) return;
-      started = true;
+      started=true;
       unmute.classList.add('hidden');
-      video.currentTime = 0;
-      video.muted = false;
-      video.volume = 1;
+      video.currentTime=0; video.muted=false; video.volume=1;
       video.play().catch(function(){});
       setIcon(false);
-      track('VSL_STARTED');
-      // centraliza a VSL na viewport
-      try{ mount.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){}
-      // ativa proteção de saída só depois que engajou
+      trackEvent('VSL_STARTED');
+      try{ mount.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){}
       enableBeforeUnload();
     }
-
-    // ── play/pause (após ativado) ──
     function togglePlay(){
-      if(video.paused){
-        video.play().catch(function(){});
-        pauseModal.classList.remove('show');
-        setIcon(false);
-      } else {
-        video.pause();
-        setIcon(true);
-        pauseModal.classList.add('show');  // modal de pausa
-      }
+      if(video.paused){ video.play().catch(function(){}); pauseModal.classList.remove('show'); setIcon(false); }
+      else { video.pause(); setIcon(true); pauseModal.classList.add('show'); }
     }
 
-    // clique no container
     mount.addEventListener('click', function(e){
-      if(e.target === pipClose || pipClose.contains(e.target)) return;
+      if(dragMoved) return;                        // ignora clique que foi drag
+      if(pipClose.contains(e.target)) return;
       if(pauseModal.contains(e.target)) return;
       if(!started){ activate(); return; }
       togglePlay();
     });
-
     pauseModal.querySelector('.vslp-pausemodal-btn').addEventListener('click', function(e){
-      e.stopPropagation();
-      video.play().catch(function(){});
-      pauseModal.classList.remove('show');
-      setIcon(false);
+      e.stopPropagation(); video.play().catch(function(){}); pauseModal.classList.remove('show'); setIcon(false);
     });
 
-    // ── progresso + marcos ──
     video.addEventListener('timeupdate', function(){
       if(!video.duration) return;
-      var r = video.currentTime / video.duration;
-      fill.style.width = visualPct(r).toFixed(1) + '%';
-
+      var r=video.currentTime/video.duration;
+      fill.style.width=visualPct(r).toFixed(1)+'%';
       [['VSL_25',0.25],['VSL_50',0.50],['VSL_75',0.75],['VSL_95',0.95]].forEach(function(m){
-        if(!fired[m[0]] && r >= m[1]){ fired[m[0]] = true; track(m[0]); }
+        if(!fired[m[0]] && r>=m[1]){ fired[m[0]]=true; trackEvent(m[0]); }
       });
     });
     video.addEventListener('ended', function(){
-      if(!fired.done){ fired.done = true; track('VSL_COMPLETED'); }
+      if(!fired.done){ fired.done=true; trackEvent('VSL_COMPLETED'); }
       setIcon(true);
     });
 
-    // ── PiP custom ao rolar ──
+    // ── PIP corner positions ──
+    function cornerPos(corner){
+      var w=mount.offsetWidth || 150, h=mount.offsetHeight || 267;
+      var vw=window.innerWidth, vh=window.innerHeight;
+      var L = (corner.indexOf('l')>=0) ? PIP_MARGIN : (vw - w - PIP_MARGIN);
+      var T = (corner.indexOf('t')>=0) ? PIP_MARGIN : (vh - h - PIP_MARGIN);
+      return {left:L, top:T};
+    }
+    function applyCorner(corner, animate){
+      pipCorner=corner;
+      var p=cornerPos(corner);
+      if(!animate) mount.classList.add('vslp-flip');
+      mount.style.left=p.left+'px';
+      mount.style.top =p.top +'px';
+      if(!animate){ mount.offsetHeight; mount.classList.remove('vslp-flip'); }
+    }
+
+    // FLIP: anima do lugar original → canto (entrada) e vice-versa (saída)
     function enterPip(){
-      if(pipOn || pipClosed) return;
-      pipOn = true;
-      placeholder.style.height = mount.offsetHeight + 'px';
+      if(pipOn||pipClosed||!started) return;
+      pipOn=true;
+      var rect0=mount.getBoundingClientRect();
+      placeholder.style.height=rect0.height+'px';
       placeholder.classList.add('active');
-      mount.classList.add('vslp-pip');
+
+      mount.classList.add('vslp-pip','vslp-flip');
+      var p=cornerPos(pipCorner);
+      mount.style.left=p.left+'px'; mount.style.top=p.top+'px';
+      var destW=mount.offsetWidth, destH=mount.offsetHeight;
+      // transform inverso → parece estar na posição original
+      var dx=rect0.left-p.left, dy=rect0.top-p.top, sc=rect0.width/destW;
+      mount.style.transform='translate('+dx+'px,'+dy+'px) scale('+sc+')';
+      mount.style.transformOrigin='top left';
+      mount.offsetHeight; // reflow
+      mount.classList.remove('vslp-flip');
+      mount.style.transform='';   // anima até o canto
+      trackEvent('PIP_ENTER');
     }
     function exitPip(){
       if(!pipOn) return;
-      pipOn = false;
-      mount.classList.remove('vslp-pip');
-      placeholder.classList.remove('active');
-      placeholder.style.height = '';
+      pipOn=false;
+      var rect0=placeholder.getBoundingClientRect();
+      var cur=mount.getBoundingClientRect();
+      // anima do canto de volta pro lugar original
+      var dx=rect0.left-cur.left, dy=rect0.top-cur.top, sc=rect0.width/cur.width;
+      mount.style.transformOrigin='top left';
+      mount.style.transform='translate('+dx+'px,'+dy+'px) scale('+sc+')';
+      var done=function(){
+        mount.classList.remove('vslp-pip');
+        mount.style.left=''; mount.style.top=''; mount.style.transform='';
+        placeholder.classList.remove('active'); placeholder.style.height='';
+        mount.removeEventListener('transitionend',done);
+      };
+      mount.addEventListener('transitionend',done);
+      setTimeout(done,520); // fallback
+      trackEvent('PIP_EXIT');
+    }
+
+    // visibilidade por scroll (threshold ~50%)
+    function visRatio(el){
+      var r=el.getBoundingClientRect(), vh=window.innerHeight;
+      var vis=Math.max(0, Math.min(r.bottom,vh)-Math.max(r.top,0));
+      return r.height>0 ? vis/r.height : 0;
     }
     function checkPip(){
-      if(!started || pipClosed) return;
-      var ref = pipOn ? placeholder : mount;
-      var rect = ref.getBoundingClientRect();
-      if(!pipOn && rect.bottom < 60){ enterPip(); }
-      else if(pipOn && rect.top > -40 && rect.top < window.innerHeight){ exitPip(); }
+      if(!started||pipClosed||dragging) return;
+      if(!pipOn){ if(visRatio(mount) < 0.5) enterPip(); }
+      else { if(visRatio(placeholder) >= 0.6) exitPip(); }
     }
     window.addEventListener('scroll', checkPip, {passive:true});
-    window.addEventListener('resize', checkPip, {passive:true});
+    window.addEventListener('resize', function(){ if(pipOn) applyCorner(pipCorner,false); checkPip(); }, {passive:true});
+
+    // ── DRAG & DROP + SNAP ──
+    function onDown(e){
+      if(!pipOn) return;
+      if(pipClose.contains(e.target)) return;
+      dragging=true; dragMoved=false;
+      mount.classList.add('vslp-dragging');
+      var pt=e.touches?e.touches[0]:e;
+      var r=mount.getBoundingClientRect();
+      dragDX=pt.clientX-r.left; dragDY=pt.clientY-r.top;
+      e.preventDefault();
+    }
+    function onMove(e){
+      if(!dragging) return;
+      var pt=e.touches?e.touches[0]:e;
+      var L=pt.clientX-dragDX, T=pt.clientY-dragDY;
+      // limita à viewport
+      var w=mount.offsetWidth, h=mount.offsetHeight;
+      L=Math.max(4, Math.min(L, window.innerWidth-w-4));
+      T=Math.max(4, Math.min(T, window.innerHeight-h-4));
+      mount.style.left=L+'px'; mount.style.top=T+'px';
+      dragMoved=true;
+    }
+    function onUp(){
+      if(!dragging) return;
+      dragging=false;
+      mount.classList.remove('vslp-dragging');
+      // snap pro canto mais próximo
+      var r=mount.getBoundingClientRect();
+      var cx=r.left+r.width/2, cy=r.top+r.height/2;
+      var corner=(cy<window.innerHeight/2?'t':'b')+(cx<window.innerWidth/2?'l':'r');
+      applyCorner(corner, true);
+      setTimeout(function(){ dragMoved=false; }, 50);
+    }
+    mount.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    mount.addEventListener('touchstart', onDown, {passive:false});
+    window.addEventListener('touchmove', onMove, {passive:false});
+    window.addEventListener('touchend', onUp);
 
     pipClose.addEventListener('click', function(e){
-      e.stopPropagation();
-      pipClosed = true;
-      exitPip();
-      video.pause();
-      setIcon(true);
+      e.stopPropagation(); pipClosed=true; exitPip(); video.pause(); setIcon(true);
     });
 
-    // ── beforeunload (proteção de saída) ──
-    var beforeUnloadOn = false;
+    var beforeUnloadOn=false;
     function enableBeforeUnload(){
-      if(beforeUnloadOn) return;
-      beforeUnloadOn = true;
+      if(beforeUnloadOn) return; beforeUnloadOn=true;
       window.addEventListener('beforeunload', function(e){
-        if(fired.done) return;            // já viu tudo, não atrapalha
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
+        if(fired.done) return;
+        e.preventDefault(); e.returnValue=''; return '';
       });
     }
   }
 
-  // ── EXIT-INTENT da landing (modal) ──
   function initExitIntent(){
-    if(window.matchMedia('(max-width:1100px)').matches) return; // desktop only
-    var overlay = document.createElement('div');
-    overlay.className = 'vslp-exit-overlay';
-    overlay.innerHTML =
+    if(window.matchMedia('(max-width:1100px)').matches) return;
+    var overlay=document.createElement('div');
+    overlay.className='vslp-exit-overlay';
+    overlay.innerHTML=
       '<div class="vslp-exit-modal">' +
         '<div class="vslp-exit-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>' +
         '<div class="vslp-exit-title">Espere. Você realmente quer sair antes de entender como funciona o Desafio 21 Dias?</div>' +
@@ -201,34 +266,21 @@
         '<button class="vslp-exit-secondary" type="button">Sair mesmo assim</button>' +
       '</div>';
     document.body.appendChild(overlay);
-
-    var shown = false;
-    function open(){
-      if(shown || sessionStorage.getItem('vslpExitShown')) return;
-      shown = true; sessionStorage.setItem('vslpExitShown','1');
-      overlay.classList.add('show');
-      track('LandingExitIntent');
-    }
+    var shown=false;
+    function open(){ if(shown||sessionStorage.getItem('vslpExitShown'))return; shown=true; sessionStorage.setItem('vslpExitShown','1'); overlay.classList.add('show'); trackEvent('LandingExitIntent'); }
     function close(){ overlay.classList.remove('show'); }
-
-    document.addEventListener('mouseout', function(e){
-      if(e.clientY <= 0 && !e.relatedTarget && !e.toElement){ open(); }
-    });
-    overlay.querySelector('.vslp-exit-primary').addEventListener('click', function(){
-      close();
-      var v = document.querySelector('.vslp'); if(v) v.scrollIntoView({behavior:'smooth',block:'center'});
-    });
+    document.addEventListener('mouseout', function(e){ if(e.clientY<=0 && !e.relatedTarget && !e.toElement) open(); });
+    overlay.querySelector('.vslp-exit-primary').addEventListener('click', function(){ close(); var v=document.querySelector('.vslp'); if(v) v.scrollIntoView({behavior:'smooth',block:'center'}); });
     overlay.querySelector('.vslp-exit-secondary').addEventListener('click', close);
-    overlay.addEventListener('click', function(e){ if(e.target === overlay) close(); });
+    overlay.addEventListener('click', function(e){ if(e.target===overlay) close(); });
   }
 
   function init(){
-    var mounts = document.querySelectorAll('.vsl-player[data-vsl-src]');
+    var mounts=document.querySelectorAll('.vsl-player[data-vsl-src]');
     if(!mounts.length) return;
     mounts.forEach(buildPlayer);
     initExitIntent();
   }
-
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
