@@ -12,6 +12,25 @@
 
   var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
 
+  // ── Whitelist de navegação do funil ──
+  // Clique em qualquer link/CTA real libera o beforeunload (avanço intencional).
+  // Fechar aba / F5 / voltar / digitar URL continuam protegidos.
+  var allowNav = false;
+  function armNavWhitelist(){
+    document.addEventListener('click', function(e){
+      var a = e.target.closest ? e.target.closest('a[href], button[type="submit"], .cta-btn, [data-cta]') : null;
+      if(!a) return;
+      if(a.tagName === 'A'){
+        var href = (a.getAttribute('href')||'').toLowerCase();
+        var tgt  = (a.getAttribute('target')||'');
+        if(tgt === '_blank') return;                 // nova aba não dispara beforeunload
+        if(!href || href.charAt(0)==='#' || href.indexOf('javascript:')===0) return;
+      }
+      allowNav = true;
+      setTimeout(function(){ allowNav = false; }, 2000); // reset se a navegação não ocorrer
+    }, true);
+  }
+
   function getCookie(n){ var m=document.cookie.match('(^|;)\\s*'+n+'\\s*=\\s*([^;]+)'); return m?m.pop():''; }
   function diasFromUrl(){ var d=parseInt(new URLSearchParams(location.search).get('dias'))||7; return [7,14,21].indexOf(d)<0?7:d; }
 
@@ -254,7 +273,8 @@
     function enableBeforeUnload(){
       if(beforeUnloadOn) return; beforeUnloadOn=true;
       window.addEventListener('beforeunload', function(e){
-        if(fired.done) return;
+        if(fired.done) return;     // já viu a VSL toda
+        if(allowNav) return;       // clicou num CTA/link do funil → não atrapalha
         e.preventDefault(); e.returnValue=''; return '';
       });
     }
@@ -285,6 +305,7 @@
   function init(){
     var mounts=document.querySelectorAll('.vsl-player[data-vsl-src]');
     if(!mounts.length) return;
+    armNavWhitelist();
     mounts.forEach(buildPlayer);
     initExitIntent();
   }
