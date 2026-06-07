@@ -754,6 +754,188 @@ footer{
 }
 
 /* ══════════════════════════════════
+   ESCASSEZ — vagas restantes
+══════════════════════════════════ */
+.scarcity{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,157,74,0.07);
+  border:1px solid rgba(255,157,74,0.25);
+  border-radius:10px;
+  padding:10px 14px;
+  margin-bottom:16px;
+}
+.scarcity-icon{color:var(--orange);flex-shrink:0}
+.scarcity-body{flex:1}
+.scarcity-text{font-size:12px;color:var(--text);line-height:1.3}
+.scarcity-text strong{color:var(--orange);font-weight:700}
+.scarcity-bar{
+  height:5px;border-radius:4px;background:rgba(255,255,255,0.07);
+  margin-top:6px;overflow:hidden;
+}
+.scarcity-fill{
+  height:100%;border-radius:4px;
+  background:linear-gradient(90deg,var(--orange),#ffb878);
+  transition:width 0.8s ease;
+}
+
+/* ══════════════════════════════════
+   BARRA DE PROGRESSO do formulário
+══════════════════════════════════ */
+.form-progress{margin-bottom:14px}
+.form-progress-head{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:6px;
+}
+.form-progress-label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.06em}
+.form-progress-pct{font-size:11px;color:var(--green-bright);font-weight:700}
+.form-progress-track{
+  height:6px;border-radius:4px;
+  background:rgba(255,255,255,0.06);overflow:hidden;
+}
+.form-progress-fill{
+  height:100%;width:0%;border-radius:4px;
+  background:linear-gradient(90deg,var(--green),var(--neon));
+  transition:width 0.4s ease;
+  box-shadow:0 0 12px rgba(124,255,107,0.4);
+}
+
+/* ══════════════════════════════════
+   MICROCOPY (reforço sob campos)
+══════════════════════════════════ */
+.field-hint{
+  display:flex;align-items:center;gap:5px;
+  font-size:10.5px;color:var(--muted);
+  margin-top:5px;opacity:0.85;
+}
+.field-hint svg{color:var(--green);flex-shrink:0}
+
+/* ══════════════════════════════════
+   GARANTIA AMPLIADA (bloco de confiança)
+══════════════════════════════════ */
+.guarantee-box{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px 16px;
+  margin-top:14px;
+}
+.guarantee-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;
+}
+.guarantee-pt{
+  display:flex;align-items:center;gap:8px;
+  font-size:11.5px;color:var(--text);line-height:1.25;
+}
+.guarantee-pt svg{flex-shrink:0}
+.gp-green svg{color:var(--green-bright)}
+.gp-blue svg{color:var(--blue)}
+.gp-gold svg{color:var(--gold)}
+.gp-pink svg{color:var(--pink)}
+
+/* ══════════════════════════════════
+   FAQ accordion
+══════════════════════════════════ */
+.faq{margin-top:18px}
+.faq-title{
+  font-size:11px;font-weight:700;letter-spacing:0.14em;
+  text-transform:uppercase;color:var(--muted);
+  margin-bottom:10px;text-align:center;
+}
+.faq-item{
+  border:1px solid var(--border);
+  border-radius:10px;
+  margin-bottom:8px;
+  overflow:hidden;
+  background:var(--surface2);
+}
+.faq-q{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:13px 15px;cursor:pointer;
+  font-size:13px;font-weight:600;color:var(--text);
+  transition:color 0.2s;
+}
+.faq-q:hover{color:var(--green-bright)}
+.faq-q .faq-chevron{
+  color:var(--green);flex-shrink:0;
+  transition:transform 0.3s;
+}
+.faq-item.open .faq-chevron{transform:rotate(180deg)}
+.faq-a{
+  max-height:0;overflow:hidden;
+  transition:max-height 0.35s ease,padding 0.35s ease;
+  font-size:12.5px;color:var(--muted);line-height:1.55;
+  padding:0 15px;
+}
+.faq-item.open .faq-a{max-height:200px;padding:0 15px 14px}
+
+/* ══════════════════════════════════
+   EXIT-INTENT MODAL
+══════════════════════════════════ */
+.exit-overlay{
+  position:fixed;inset:0;z-index:10000;
+  background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  opacity:0;visibility:hidden;
+  transition:opacity 0.3s,visibility 0.3s;
+}
+.exit-overlay.show{opacity:1;visibility:visible}
+.exit-modal{
+  background:var(--card-bg);
+  border:1px solid var(--border2);
+  border-radius:18px;
+  max-width:420px;width:100%;
+  padding:32px 30px 28px;
+  text-align:center;
+  box-shadow:0 32px 80px rgba(0,0,0,0.6),var(--glow);
+  transform:scale(0.9) translateY(20px);
+  transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.exit-overlay.show .exit-modal{transform:scale(1) translateY(0)}
+.exit-emoji{
+  width:64px;height:64px;border-radius:50%;
+  background:rgba(245,200,66,0.12);
+  border:1px solid rgba(245,200,66,0.3);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 18px;
+}
+.exit-emoji svg{color:var(--gold)}
+.exit-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:30px;line-height:1.05;color:var(--cream);
+  margin-bottom:10px;
+}
+.exit-title span{color:var(--neon)}
+.exit-text{font-size:14px;color:var(--muted);line-height:1.55;margin-bottom:18px}
+.exit-perks{
+  display:flex;flex-direction:column;gap:8px;
+  text-align:left;margin-bottom:22px;
+}
+.exit-perk{
+  display:flex;align-items:center;gap:9px;
+  font-size:13px;color:var(--text);
+}
+.exit-perk svg{color:var(--green-bright);flex-shrink:0}
+.exit-btn-primary{
+  width:100%;padding:17px;
+  background:var(--green);color:#fff;
+  border:none;border-radius:12px;
+  font-family:'DM Sans',sans-serif;
+  font-size:15px;font-weight:700;letter-spacing:0.02em;
+  cursor:pointer;transition:background 0.2s,transform 0.15s;
+  box-shadow:0 4px 24px rgba(76,175,80,0.3);
+}
+.exit-btn-primary:hover{background:var(--green-bright);transform:translateY(-2px)}
+.exit-btn-secondary{
+  width:100%;padding:12px;margin-top:10px;
+  background:transparent;border:none;
+  color:var(--muted);font-family:'DM Sans',sans-serif;
+  font-size:12px;cursor:pointer;transition:color 0.2s;
+}
+.exit-btn-secondary:hover{color:var(--text)}
+
+/* ══════════════════════════════════
    RESPONSIVE — mobile
 ══════════════════════════════════ */
 @media(max-width:1100px){
@@ -889,8 +1071,27 @@ footer{
 
       <div class="ck-divider"></div>
 
+      <!-- ESCASSEZ — vagas restantes -->
+      <div class="scarcity">
+        <svg class="scarcity-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div class="scarcity-body">
+          <div class="scarcity-text"><strong id="scarcityNum">23 vagas</strong> restantes nesta turma</div>
+          <div class="scarcity-bar"><div class="scarcity-fill" id="scarcityFill"></div></div>
+        </div>
+      </div>
+
       <!-- FORM -->
       <p class="ck-form-hint">Preencha seus dados para começar agora:</p>
+
+      <!-- Barra de progresso -->
+      <div class="form-progress">
+        <div class="form-progress-head">
+          <span class="form-progress-label">Seu cadastro</span>
+          <span class="form-progress-pct" id="progressPct">0%</span>
+        </div>
+        <div class="form-progress-track"><div class="form-progress-fill" id="progressFill"></div></div>
+      </div>
+
       <div class="server-err" id="serverErr"></div>
 
       <div class="form-group">
@@ -902,6 +1103,10 @@ footer{
         <label class="form-label" for="email">E-mail</label>
         <input type="email" id="email" class="form-input" placeholder="seu@email.com" autocomplete="email" inputmode="email">
         <div class="form-error" id="emailErr">E-mail inválido.</div>
+        <div class="field-hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Usado apenas para enviar seu acesso e suporte.
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label" for="whatsapp">WhatsApp</label>
@@ -913,6 +1118,10 @@ footer{
           <input type="tel" id="whatsapp" class="form-input" placeholder="(99) 99999-9999" inputmode="numeric" maxlength="15">
         </div>
         <div class="form-error" id="waErr">Digite seu WhatsApp com DDD.</div>
+        <div class="field-hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+          Usamos apenas para enviar seu acesso. Zero spam.
+        </div>
       </div>
 
       <!-- CTA -->
@@ -939,6 +1148,28 @@ footer{
         </div>
       </div>
 
+      <!-- Garantia ampliada -->
+      <div class="guarantee-box">
+        <div class="guarantee-grid">
+          <div class="guarantee-pt gp-green">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Sem cartão de crédito
+          </div>
+          <div class="guarantee-pt gp-blue">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Cancelamento imediato
+          </div>
+          <div class="guarantee-pt gp-pink">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Dados protegidos (SSL)
+          </div>
+          <div class="guarantee-pt gp-gold">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Acesso completo grátis
+          </div>
+        </div>
+      </div>
+
       <!-- Seals coloridos -->
       <div class="seals">
         <div class="seal seal-green">
@@ -952,6 +1183,35 @@ footer{
         <div class="seal seal-gold">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Satisfação garantida
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="faq">
+        <div class="faq-title">Perguntas frequentes</div>
+        <div class="faq-item">
+          <div class="faq-q">Vou precisar de cartão de crédito? <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="faq-a">Não. O acesso de teste é 100% gratuito e não pede nenhum dado de pagamento. Você só decide se quer assinar depois que experimentar.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Como funciona o período gratuito? <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="faq-a">Você recebe acesso completo ao app por todo o período do teste, sem nenhuma limitação. Ao final, você escolhe se quer continuar com um plano.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Posso cancelar quando quiser? <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="faq-a">Sim. Sem fidelidade e sem burocracia. Durante o teste não há nada a cancelar — e se assinar depois, cancela em 1 clique a qualquer momento.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Funciona no celular? <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="faq-a">Sim — funciona no celular, tablet e computador. É só acessar pelo navegador, sem precisar instalar nada.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Quando recebo meu acesso? <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="faq-a">Na hora. Assim que você completa o cadastro, enviamos suas credenciais por e-mail e você já pode entrar imediatamente.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">O que está incluso? <svg class="faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+          <div class="faq-a">App completo, biblioteca digital + e-book, Bia (IA 24h), 21 áudios motivacionais, sala de leitura ao vivo, meditação, exercícios e a comunidade exclusiva.</div>
         </div>
       </div>
 
@@ -1053,6 +1313,24 @@ footer{
     </div>
   </div>
 </footer>
+
+<!-- ══════════ EXIT-INTENT MODAL ══════════ -->
+<div class="exit-overlay" id="exitOverlay">
+  <div class="exit-modal">
+    <div class="exit-emoji">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <h2 class="exit-title">Espere! Seu acesso<br><span id="exitDays">7 dias grátis</span> está reservado</h2>
+    <p class="exit-text">Você está a 1 passo de começar. Não perca seu acesso gratuito — leva menos de 30 segundos.</p>
+    <div class="exit-perks">
+      <div class="exit-perk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <span id="exitPerkDays">7 dias grátis</span>, sem pagar nada</div>
+      <div class="exit-perk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Sem cartão de crédito</div>
+      <div class="exit-perk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Acesso completo, cancele quando quiser</div>
+    </div>
+    <button class="exit-btn-primary" id="exitContinue">Continuar meu cadastro</button>
+    <button class="exit-btn-secondary" id="exitClose">Fechar mesmo assim</button>
+  </div>
+</div>
 
 <script async src="https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/float.js"></script>
 
@@ -1507,6 +1785,146 @@ window.handleSubmit = function(){
 document.addEventListener('keydown', function(e){
   if(e.key === 'Enter' && !['INPUT'].includes(document.activeElement.tagName)) handleSubmit();
 });
+
+/* ══════════════════════════════════
+   ESCASSEZ — vagas restantes (real-ish, não reseta no F5)
+   Estruturado p/ trocar por dado real do backend depois.
+══════════════════════════════════ */
+function getVagasRestantes(){
+  // determinístico por dia+período → decresce ao longo da semana, estável no reload
+  var now   = new Date();
+  var TOTAL = 40;
+  var base  = TOTAL - (now.getDay() * 4) - Math.floor(now.getHours() / 8);
+  return { restantes: Math.max(7, base), total: TOTAL };
+}
+(function initScarcity(){
+  var v = getVagasRestantes();
+  var el = document.getElementById('scarcityNum');
+  var fill = document.getElementById('scarcityFill');
+  if(el)   el.textContent = v.restantes + ' vagas';
+  if(fill){
+    // barra de OCUPAÇÃO: quanto menos vagas, mais cheia (urgência)
+    var ocup = Math.round((1 - v.restantes / v.total) * 100);
+    setTimeout(function(){ fill.style.width = Math.max(35, ocup) + '%'; }, 200);
+  }
+})();
+
+/* ══════════════════════════════════
+   BARRA DE PROGRESSO do formulário
+══════════════════════════════════ */
+function updateProgress(){
+  var nome  = document.getElementById('nome').value.trim();
+  var email = document.getElementById('email').value.trim();
+  var wa    = document.getElementById('whatsapp').value.replace(/\D/g,'');
+  var done = 0;
+  if(nome && nome.indexOf(' ') > 0) done++;
+  if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) done++;
+  if(wa.length >= 10 && wa.length <= 11) done++;
+  var pct = Math.round((done / 3) * 100);
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+}
+['nome','email','whatsapp'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', updateProgress);
+});
+
+/* ══════════════════════════════════
+   CAPTURA DE ABANDONO (lead incompleto)
+══════════════════════════════════ */
+var _leadSaved = { nome:'', email:'', whatsapp:'' };
+function getFormData(stage){
+  return {
+    nome:     document.getElementById('nome').value.trim(),
+    email:    document.getElementById('email').value.trim(),
+    whatsapp: document.getElementById('whatsapp').value.replace(/\D/g,''),
+    dias:     dias,
+    estagio:  stage || '',
+    origem:   window.location.pathname + window.location.search
+  };
+}
+function saveIncompleteLead(stage){
+  var d = getFormData(stage);
+  // só salva se tem identificador e algo mudou
+  var hasId = d.email || d.whatsapp.length >= 10;
+  if(!hasId) return;
+  if(d.email === _leadSaved.email && d.whatsapp === _leadSaved.whatsapp && d.nome === _leadSaved.nome) return;
+  _leadSaved = { nome:d.nome, email:d.email, whatsapp:d.whatsapp };
+  try{
+    fetch(GAS, {
+      method:'POST', headers:{'Content-Type':'text/plain'}, keepalive:true,
+      body: JSON.stringify({ action:'salvarLeadIncompleto', data:d })
+    }).catch(function(){});
+  }catch(e){}
+}
+// salva quando sai de cada campo preenchido
+['nome','email','whatsapp'].forEach(function(id){
+  document.getElementById(id).addEventListener('blur', function(){ saveIncompleteLead(id); });
+});
+// última tentativa ao sair da página (sendBeacon)
+window.addEventListener('beforeunload', function(){
+  var d = getFormData('beforeunload');
+  if(!(d.email || d.whatsapp.length >= 10)) return;
+  try{
+    var blob = new Blob([JSON.stringify({action:'salvarLeadIncompleto', data:d})], {type:'text/plain'});
+    navigator.sendBeacon(GAS, blob);
+  }catch(e){}
+});
+
+/* ══════════════════════════════════
+   FAQ accordion
+══════════════════════════════════ */
+document.querySelectorAll('.faq-item').forEach(function(item){
+  item.querySelector('.faq-q').addEventListener('click', function(){
+    var wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(function(i){ i.classList.remove('open'); });
+    if(!wasOpen) item.classList.add('open');
+  });
+});
+
+/* ══════════════════════════════════
+   EXIT-INTENT MODAL
+══════════════════════════════════ */
+(function initExitIntent(){
+  var overlay = document.getElementById('exitOverlay');
+  if(!overlay) return;
+  var shown = false;
+
+  // adapta textos ao nº de dias
+  var dl = document.getElementById('exitDays');
+  var dp = document.getElementById('exitPerkDays');
+  if(dl) dl.textContent = dias + ' dias grátis';
+  if(dp) dp.textContent = dias + ' dias grátis';
+
+  function openExit(){
+    if(shown || sessionStorage.getItem('exitShown')) return;
+    shown = true;
+    sessionStorage.setItem('exitShown','1');
+    overlay.classList.add('show');
+    if(typeof fbq === 'function') fbq('trackCustom','ExitIntentShown');
+  }
+  function closeExit(){ overlay.classList.remove('show'); }
+
+  // Desktop: mouse sai pela parte superior
+  document.addEventListener('mouseout', function(e){
+    if(e.clientY <= 0 && !e.relatedTarget && !e.toElement){ openExit(); }
+  });
+
+  // Mobile: intercepta o botão "voltar"
+  if(isMobile()){
+    history.pushState(null, '', location.href);
+    window.addEventListener('popstate', function(){
+      if(!shown){ openExit(); history.pushState(null, '', location.href); }
+    });
+  }
+
+  document.getElementById('exitContinue').addEventListener('click', function(){
+    closeExit();
+    document.getElementById('nome').focus();
+    document.querySelector('.checkout-card').scrollIntoView({behavior:'smooth', block:'center'});
+  });
+  document.getElementById('exitClose').addEventListener('click', closeExit);
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) closeExit(); });
+})();
 
 })();
 </script>
