@@ -64,9 +64,10 @@
     var icPause    = mount.querySelector('.vslp-ic-pause');
     var pipClose   = mount.querySelector('.vslp-pip-close');
 
+    var originalParent = mount.parentNode;
     var placeholder = document.createElement('div');
     placeholder.className = 'vslp-placeholder';
-    mount.parentNode.insertBefore(placeholder, mount.nextSibling);
+    originalParent.insertBefore(placeholder, mount.nextSibling);
 
     video.src = src; video.muted = true; video.loop = false;
 
@@ -150,16 +151,21 @@
       pipOn=true;
       var rect0=mount.getBoundingClientRect();
       placeholder.style.height=rect0.height+'px';
+      placeholder.style.width=rect0.width+'px';
       placeholder.classList.add('active');
+
+      // PORTAL: move pro <body> p/ escapar de stacking contexts
+      // (ancestrais com transform/overflow prendiam o position:fixed)
+      document.body.appendChild(mount);
 
       mount.classList.add('vslp-pip','vslp-flip');
       var p=cornerPos(pipCorner);
       mount.style.left=p.left+'px'; mount.style.top=p.top+'px';
-      var destW=mount.offsetWidth, destH=mount.offsetHeight;
+      var destW=mount.offsetWidth;
       // transform inverso → parece estar na posição original
       var dx=rect0.left-p.left, dy=rect0.top-p.top, sc=rect0.width/destW;
-      mount.style.transform='translate('+dx+'px,'+dy+'px) scale('+sc+')';
       mount.style.transformOrigin='top left';
+      mount.style.transform='translate('+dx+'px,'+dy+'px) scale('+sc+')';
       mount.offsetHeight; // reflow
       mount.classList.remove('vslp-flip');
       mount.style.transform='';   // anima até o canto
@@ -170,15 +176,16 @@
       pipOn=false;
       var rect0=placeholder.getBoundingClientRect();
       var cur=mount.getBoundingClientRect();
-      // anima do canto de volta pro lugar original
       var dx=rect0.left-cur.left, dy=rect0.top-cur.top, sc=rect0.width/cur.width;
       mount.style.transformOrigin='top left';
       mount.style.transform='translate('+dx+'px,'+dy+'px) scale('+sc+')';
       var done=function(){
+        mount.removeEventListener('transitionend',done);
         mount.classList.remove('vslp-pip');
         mount.style.left=''; mount.style.top=''; mount.style.transform='';
-        placeholder.classList.remove('active'); placeholder.style.height='';
-        mount.removeEventListener('transitionend',done);
+        // PORTAL: devolve ao lugar original (antes do placeholder)
+        originalParent.insertBefore(mount, placeholder);
+        placeholder.classList.remove('active'); placeholder.style.height=''; placeholder.style.width='';
       };
       mount.addEventListener('transitionend',done);
       setTimeout(done,520); // fallback
