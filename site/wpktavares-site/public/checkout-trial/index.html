@@ -534,16 +534,16 @@ svg{display:block;flex-shrink:0}
 .seal-gold svg{color:var(--gold)}
 
 /* ══════════════════════════════════
-   RIGHT — VIDEO TESTIMONIALS
+   RIGHT — VIDEO TESTIMONIALS (COVERFLOW 3D)
 ══════════════════════════════════ */
 .videos-col{
   padding:20px 14px;
   position:sticky;top:58px;
-  max-height:calc(100dvh - 58px);
-  overflow-y:auto;
-  display:flex;flex-direction:column;gap:10px;
+  height:calc(100dvh - 58px);
+  display:flex;flex-direction:column;
+  overflow:hidden;
 }
-.videos-head{margin-bottom:4px}
+.videos-head{margin-bottom:10px;flex-shrink:0}
 .videos-head-label{
   font-size:10px;font-weight:700;
   color:var(--muted);letter-spacing:0.18em;
@@ -556,74 +556,125 @@ svg{display:block;flex-shrink:0}
   font-style:italic;
   font-size:13px;color:var(--muted);
 }
-.video-card{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:12px;
-  overflow:hidden;
-  transition:border-color 0.2s,box-shadow 0.2s;
-}
-.video-card:hover{
-  border-color:var(--border2);
-  box-shadow:0 8px 24px rgba(0,0,0,0.3);
-}
-.video-wrap{
+
+/* palco do coverflow */
+.coverflow{
   position:relative;
-  width:100%;
-  aspect-ratio:4/5;   /* desktop: compacto pro painel lateral */
-  background:#000;
+  flex:1;
+  min-height:0;
+  perspective:1200px;
+  display:flex;align-items:center;justify-content:center;
   overflow:hidden;
-  cursor:pointer;
 }
-.video-wrap video{
-  position:absolute;top:0;left:0;
+.cf-stage{
+  position:relative;
+  width:240px;
+  height:427px;            /* 240 * 16/9 ≈ 427 (9:16) */
+  max-height:100%;
+  transform-style:preserve-3d;
+}
+.cf-item{
+  position:absolute;
+  top:50%;left:50%;
+  width:240px;
+  aspect-ratio:9/16;
+  margin:-213px 0 0 -120px; /* metade de h/w p/ centralizar */
+  border-radius:16px;
+  overflow:hidden;
+  background:#000;
+  cursor:pointer;
+  border:1px solid var(--border);
+  box-shadow:0 20px 50px rgba(0,0,0,0.55);
+  transition:transform 0.6s cubic-bezier(0.22,0.61,0.36,1),opacity 0.6s ease,filter 0.6s ease;
+  will-change:transform,opacity;
+  backface-visibility:hidden;
+}
+.cf-item video{
   width:100%;height:100%;
   object-fit:cover;object-position:center center;
+  display:block;
 }
-.video-overlay{
-  position:absolute;top:0;left:0;right:0;bottom:0;
-  background:linear-gradient(to top,rgba(0,0,0,0.65) 0%,transparent 45%);
-  display:flex;align-items:flex-end;
-  padding:8px 10px;gap:8px;
+/* posições relativas ao central (data-pos) */
+.cf-item[data-pos="0"]{
+  transform:translateX(0) scale(1) rotateY(0deg);
+  opacity:1;z-index:5;filter:none;
+  border-color:var(--border2);
+  box-shadow:0 24px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(76,175,80,0.15),var(--glow);
 }
-.mute-btn{
-  width:26px;height:26px;border-radius:50%;
-  background:rgba(76,175,80,0.18);
-  border:1px solid rgba(76,175,80,0.3);
+.cf-item[data-pos="1"]{
+  transform:translateX(78%) scale(0.8) rotateY(-32deg);
+  opacity:0.55;z-index:3;filter:brightness(0.6);
+}
+.cf-item[data-pos="-1"]{
+  transform:translateX(-78%) scale(0.8) rotateY(32deg);
+  opacity:0.55;z-index:3;filter:brightness(0.6);
+}
+.cf-item[data-pos="2"]{
+  transform:translateX(128%) scale(0.62) rotateY(-42deg);
+  opacity:0.28;z-index:1;filter:brightness(0.4);
+}
+.cf-item[data-pos="-2"]{
+  transform:translateX(-128%) scale(0.62) rotateY(42deg);
+  opacity:0.28;z-index:1;filter:brightness(0.4);
+}
+.cf-item[data-pos="hidden"]{
+  transform:translateX(0) scale(0.5) rotateY(0deg);
+  opacity:0;z-index:0;pointer-events:none;
+}
+/* legenda do vídeo central */
+.cf-caption-overlay{
+  position:absolute;left:0;right:0;bottom:0;
+  background:linear-gradient(to top,rgba(0,0,0,0.78) 0%,transparent 60%);
+  padding:12px 12px 12px;
+  display:flex;flex-direction:column;gap:6px;
+  pointer-events:none;
+}
+.cf-person{display:flex;align-items:center;gap:7px}
+.cf-person img{width:22px;height:22px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.3)}
+.cf-person-name{font-size:12px;font-weight:700;color:#fff}
+.cf-quote{
+  font-family:'Instrument Serif',serif;font-style:italic;
+  font-size:12px;color:rgba(255,255,255,0.85);line-height:1.4;
+}
+/* ícone de som no central */
+.cf-sound{
+  position:absolute;top:10px;right:10px;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(0,0,0,0.55);
+  backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,0.2);
+  display:flex;align-items:center;justify-content:center;
+  z-index:6;pointer-events:none;
+  transition:opacity 0.3s;
+}
+.cf-sound svg{color:#fff}
+/* só mostra ícone de som no central */
+.cf-item:not([data-pos="0"]) .cf-caption-overlay,
+.cf-item:not([data-pos="0"]) .cf-sound{opacity:0}
+
+/* controles */
+.cf-controls{
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  margin-top:12px;flex-shrink:0;
+}
+.cf-arrow{
+  width:38px;height:38px;border-radius:50%;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--green);
   cursor:pointer;
   display:flex;align-items:center;justify-content:center;
-  transition:background 0.2s;
-  flex-shrink:0;
+  transition:background 0.2s,border-color 0.2s,transform 0.15s;
 }
-.mute-btn:hover{background:rgba(76,175,80,0.3)}
-.mute-btn svg{color:var(--green)}
-.video-person{display:flex;align-items:center;gap:6px;flex:1}
-.video-person img{width:18px;height:18px;border-radius:50%;object-fit:cover}
-.video-person-name{font-size:11px;font-weight:600;color:#f0f0f0}
-.video-body{padding:9px 12px 10px}
-.video-quote{
-  font-family:'Instrument Serif',serif;
-  font-style:italic;
-  font-size:12px;color:var(--muted);
-  line-height:1.5;
+.cf-arrow:hover{background:rgba(76,175,80,0.1);border-color:var(--green);transform:scale(1.08)}
+.cf-arrow:active{transform:scale(0.95)}
+.cf-dots{display:flex;gap:6px;align-items:center}
+.cf-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--border2);
+  cursor:pointer;transition:all 0.3s;
 }
-.video-card.hidden{display:none}
-
-.see-more-btn{
-  width:100%;
-  background:transparent;
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:10px;
-  color:var(--muted);
-  font-family:'DM Sans',sans-serif;
-  font-size:12px;font-weight:600;
-  cursor:pointer;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:all 0.2s;
-}
-.see-more-btn:hover{border-color:var(--border2);color:var(--green)}
-.see-more-btn svg{color:var(--green)}
+.cf-dot.active{background:var(--green);width:20px;border-radius:4px}
 
 /* ══════════════════════════════════
    FOOTER
@@ -716,15 +767,14 @@ footer{
   /* layout */
   .main{grid-template-columns:1fr}
   .notif-col{display:none}
-  .videos-col{position:static;max-height:none}
+  .videos-col{position:static;height:auto;padding:24px 12px 8px}
+  .coverflow{height:500px;flex:none}
   .checkout-col{border:none;min-height:auto;padding:16px 12px}
   /* checkout card */
   .checkout-card{padding:22px 20px 20px}
   .ck-price{font-size:62px}
   .ck-benefits{padding:12px 4px}
   .benefit-icon-wrap{width:32px;height:32px}
-  /* vídeos voltam ao formato original 9:16 no mobile */
-  .video-wrap{aspect-ratio:9/16}
   /* footer */
   .footer-top{grid-template-columns:1fr}
   .footer-links{align-items:flex-start}
@@ -908,7 +958,7 @@ footer{
     </div>
   </section>
 
-  <!-- RIGHT — VÍDEOS -->
+  <!-- RIGHT — DEPOIMENTOS (COVERFLOW 3D) -->
   <aside class="videos-col">
     <div class="videos-head">
       <div class="videos-head-label">
@@ -918,90 +968,19 @@ footer{
       <div class="videos-head-sub">Histórias que inspiram</div>
     </div>
 
-    <div class="video-card">
-      <div class="video-wrap" onclick="toggleMute(0)">
-        <video src="https://i.imgur.com/N9UhM0w.mp4" autoplay muted loop playsinline data-idx="0" poster="https://i.imgur.com/W1OHWzg.jpeg"></video>
-        <div class="video-overlay">
-          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(0)" id="mb0">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-          </button>
-          <div class="video-person">
-            <img src="https://i.imgur.com/W1OHWzg.jpeg" alt="">
-            <span class="video-person-name">Apolyanara</span>
-          </div>
-        </div>
-      </div>
-      <div class="video-body"><div class="video-quote">"O Milagre da Manhã tem mudado minha vida de forma incrível..."</div></div>
+    <div class="coverflow">
+      <div class="cf-stage" id="cfStage"><!-- itens gerados via JS --></div>
     </div>
 
-    <div class="video-card">
-      <div class="video-wrap" onclick="toggleMute(1)">
-        <video src="https://i.imgur.com/1nrH1Z5.mp4" autoplay muted loop playsinline data-idx="1" poster="https://i.imgur.com/34VBNg8.jpeg"></video>
-        <div class="video-overlay">
-          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(1)" id="mb1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-          </button>
-          <div class="video-person">
-            <img src="https://i.imgur.com/34VBNg8.jpeg" alt="">
-            <span class="video-person-name">Ireuza Cazuza</span>
-          </div>
-        </div>
-      </div>
-      <div class="video-body"><div class="video-quote">"Com esse sistema aprendi a aproveitar bem o meu tempo..."</div></div>
+    <div class="cf-controls">
+      <button class="cf-arrow" id="cfPrev" aria-label="Anterior">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="cf-dots" id="cfDots"></div>
+      <button class="cf-arrow" id="cfNext" aria-label="Próximo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
     </div>
-
-    <div class="video-card">
-      <div class="video-wrap" onclick="toggleMute(2)">
-        <video src="https://i.imgur.com/5XcREqO.mp4" autoplay muted loop playsinline data-idx="2" poster="https://i.imgur.com/inzje19.jpeg"></video>
-        <div class="video-overlay">
-          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(2)" id="mb2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-          </button>
-          <div class="video-person">
-            <img src="https://i.imgur.com/inzje19.jpeg" alt="">
-            <span class="video-person-name">Alice Lima</span>
-          </div>
-        </div>
-      </div>
-      <div class="video-body"><div class="video-quote">"Incrível! Equipe comprometida e totalmente treinada..."</div></div>
-    </div>
-
-    <div class="video-card hidden" id="vc3">
-      <div class="video-wrap" onclick="toggleMute(3)">
-        <video src="https://i.imgur.com/utJiZZi.mp4" muted loop playsinline data-idx="3" poster="https://i.imgur.com/l863Cu2.jpeg"></video>
-        <div class="video-overlay">
-          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(3)" id="mb3">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-          </button>
-          <div class="video-person">
-            <img src="https://i.imgur.com/l863Cu2.jpeg" alt="">
-            <span class="video-person-name">Ademilton</span>
-          </div>
-        </div>
-      </div>
-      <div class="video-body"><div class="video-quote">"Agora levantamos todos os dias às 5 da manhã..."</div></div>
-    </div>
-
-    <div class="video-card hidden" id="vc4">
-      <div class="video-wrap" onclick="toggleMute(4)">
-        <video src="https://i.imgur.com/wN5ysgI.mp4" muted loop playsinline data-idx="4" poster="https://i.imgur.com/yjuuIAA.jpeg"></video>
-        <div class="video-overlay">
-          <button class="mute-btn" onclick="event.stopPropagation();toggleMute(4)" id="mb4">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-          </button>
-          <div class="video-person">
-            <img src="https://i.imgur.com/yjuuIAA.jpeg" alt="">
-            <span class="video-person-name">Leide Danhane</span>
-          </div>
-        </div>
-      </div>
-      <div class="video-body"><div class="video-quote">"A experiência tem sido incrível! Tinha inconstância..."</div></div>
-    </div>
-
-    <button class="see-more-btn" id="seeMoreBtn" onclick="toggleMoreVideos()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      Ver mais depoimentos
-    </button>
   </aside>
 
 </div><!-- /main -->
@@ -1310,73 +1289,147 @@ scheduleNext(firePurchase, 25000, 8000);   // ~25-33s
 scheduleNext(fireRenewal,  38000, 10000);  // ~38-48s
 scheduleNext(fireVisit,    45000, 15000);  // ~45-60s
 
-/* ── VIDEO MUTE TOGGLE ── */
-var _activeVideo = -1; // índice do vídeo ativo; -1 = todos mudos
+/* ══════════════════════════════════
+   COVERFLOW 3D — depoimentos verticais
+══════════════════════════════════ */
+var TESTIMONIALS = [
+  { src:'https://i.imgur.com/N9UhM0w.mp4', foto:'https://i.imgur.com/W1OHWzg.jpeg', nome:'Apolyanara',     quote:'"O Milagre da Manhã tem mudado minha vida de forma incrível..."' },
+  { src:'https://i.imgur.com/1nrH1Z5.mp4', foto:'https://i.imgur.com/34VBNg8.jpeg', nome:'Ireuza Cazuza',  quote:'"Com esse sistema aprendi a aproveitar bem o meu tempo..."' },
+  { src:'https://i.imgur.com/5XcREqO.mp4', foto:'https://i.imgur.com/inzje19.jpeg', nome:'Alice Lima',     quote:'"Incrível! Equipe comprometida e totalmente treinada..."' },
+  { src:'https://i.imgur.com/utJiZZi.mp4', foto:'https://i.imgur.com/l863Cu2.jpeg', nome:'Ademilton',      quote:'"Agora levantamos todos os dias às 5 da manhã..."' },
+  { src:'https://i.imgur.com/wN5ysgI.mp4', foto:'https://i.imgur.com/yjuuIAA.jpeg', nome:'Leide Danhane',  quote:'"A experiência tem sido incrível! Tinha inconstância..."' },
+];
 
-var _SVG_OPEN  = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
-var _SVG_MUTED = _SVG_OPEN
-  + '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>'
-  + '<line x1="23" y1="9" x2="17" y2="15"/>'
-  + '<line x1="17" y1="9" x2="23" y2="15"/></svg>';
-var _SVG_SOUND = _SVG_OPEN
-  + '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>'
-  + '<path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+var _SOUND_OFF = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+var _SOUND_ON  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
 
-function _muteAll(){
-  document.querySelectorAll('[data-idx]').forEach(function(v){
-    v.muted = true;
-    var mb = document.getElementById('mb' + v.getAttribute('data-idx'));
-    if(mb) mb.innerHTML = _SVG_MUTED;
+var cfStage   = document.getElementById('cfStage');
+var cfDots    = document.getElementById('cfDots');
+var cfCurrent = 0;
+var cfTotal   = TESTIMONIALS.length;
+var cfTimer   = null;
+var cfPaused  = false;       // true quando usuário liberou áudio
+var cfRotMs   = 10000;       // rotação a cada 10s
+
+/* monta os itens */
+TESTIMONIALS.forEach(function(t, i){
+  var item = document.createElement('div');
+  item.className = 'cf-item';
+  item.setAttribute('data-i', i);
+  item.innerHTML =
+    '<div class="cf-sound" id="cfSound' + i + '">' + _SOUND_OFF + '</div>' +
+    '<video src="' + t.src + '" muted loop playsinline preload="metadata" poster="' + t.foto + '"></video>' +
+    '<div class="cf-caption-overlay">' +
+      '<div class="cf-person"><img src="' + t.foto + '" alt=""><span class="cf-person-name">' + t.nome + '</span></div>' +
+      '<div class="cf-quote">' + t.quote + '</div>' +
+    '</div>';
+  item.addEventListener('click', function(){ cfItemClick(i); });
+  cfStage.appendChild(item);
+
+  /* dot */
+  var dot = document.createElement('div');
+  dot.className = 'cf-dot';
+  dot.addEventListener('click', function(){ cfGoTo(i, true); });
+  cfDots.appendChild(dot);
+});
+
+var cfItems = cfStage.querySelectorAll('.cf-item');
+var cfVideos = cfStage.querySelectorAll('video');
+var cfDotEls = cfDots.querySelectorAll('.cf-dot');
+
+/* posiciona itens em relação ao central */
+function cfRender(){
+  cfItems.forEach(function(item, i){
+    var offset = i - cfCurrent;
+    // wrap-around para caminho mais curto
+    if(offset > cfTotal/2)  offset -= cfTotal;
+    if(offset < -cfTotal/2) offset += cfTotal;
+    var pos = (Math.abs(offset) <= 2) ? String(offset) : 'hidden';
+    item.setAttribute('data-pos', pos);
   });
-  _activeVideo = -1;
+  cfDotEls.forEach(function(d, i){ d.classList.toggle('active', i === cfCurrent); });
+
+  // controla playback: central toca; resto pausa
+  cfVideos.forEach(function(v, i){
+    if(i === cfCurrent){
+      v.play().catch(function(){});
+    } else {
+      v.pause();
+      v.muted = true;
+      var s = document.getElementById('cfSound' + i);
+      if(s) s.innerHTML = _SOUND_OFF;
+    }
+  });
 }
 
-window.toggleMute = function(idx){
-  if(_activeVideo === idx){
-    // Mesmo vídeo clicado → muta
-    var v = document.querySelector('[data-idx="' + idx + '"]');
-    if(v) v.muted = true;
-    var mb = document.getElementById('mb' + idx);
-    if(mb) mb.innerHTML = _SVG_MUTED;
-    _activeVideo = -1;
-  } else {
-    // Muta todos, ativa só este
-    _muteAll();
-    var target = document.querySelector('[data-idx="' + idx + '"]');
-    var btn    = document.getElementById('mb' + idx);
-    if(target){
-      target.muted = false;
-      target.play().catch(function(){});
-      if(btn) btn.innerHTML = _SVG_SOUND;
-      _activeVideo = idx;
-    }
+function cfGoTo(idx, manual){
+  // ao trocar, muta o anterior e retoma autoplay (a menos que pausado por clique no novo)
+  if(cfPaused){
+    // sai do modo "som ligado" ao navegar
+    var prev = cfVideos[cfCurrent];
+    if(prev){ prev.muted = true; }
+    var ps = document.getElementById('cfSound' + cfCurrent);
+    if(ps) ps.innerHTML = _SOUND_OFF;
+    cfPaused = false;
   }
-};
+  cfCurrent = (idx + cfTotal) % cfTotal;
+  cfRender();
+  if(manual) cfResetTimer();
+}
 
-/* ── SEE MORE VIDEOS ── */
-var expanded = false;
-window.toggleMoreVideos = function(){
-  expanded = !expanded;
-  var btn = document.getElementById('seeMoreBtn');
-  ['vc3','vc4'].forEach(function(id){
-    var el = document.getElementById(id);
-    if(expanded){
-      el.classList.remove('hidden');
-      var v = el.querySelector('video');
-      if(v){ v.muted=true; v.play(); }
-    } else {
-      el.classList.add('hidden');
-      var v = el.querySelector('video');
-      if(v){ v.pause(); v.muted=true; }
-      var mb = el.querySelector('.mute-btn');
-      if(mb) mb.innerHTML = _SVG_MUTED;
-      if(_activeVideo === parseInt(id.replace('vc','')) ) _activeVideo = -1;
-    }
-  });
-  btn.innerHTML = expanded
-    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg> Mostrar menos'
-    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg> Ver mais depoimentos';
-};
+function cfNext(manual){ cfGoTo(cfCurrent + 1, manual); }
+function cfPrev(manual){ cfGoTo(cfCurrent - 1, manual); }
+
+/* clique num item */
+function cfItemClick(i){
+  if(i !== cfCurrent){
+    // clicou num lateral → centraliza
+    cfGoTo(i, true);
+    return;
+  }
+  // clicou no central → alterna áudio
+  var v = cfVideos[i];
+  var s = document.getElementById('cfSound' + i);
+  if(v.muted){
+    v.muted = false;
+    v.play().catch(function(){});
+    if(s) s.innerHTML = _SOUND_ON;
+    cfPaused = true;        // pausa rotação automática
+    cfStopTimer();
+  } else {
+    v.muted = true;
+    if(s) s.innerHTML = _SOUND_OFF;
+    cfPaused = false;       // retoma rotação
+    cfResetTimer();
+  }
+}
+
+/* timer de rotação */
+function cfStartTimer(){
+  cfStopTimer();
+  if(cfPaused) return;
+  cfTimer = setInterval(function(){ if(!cfPaused) cfNext(false); }, cfRotMs);
+}
+function cfStopTimer(){ if(cfTimer){ clearInterval(cfTimer); cfTimer = null; } }
+function cfResetTimer(){ cfStartTimer(); }
+
+/* setas */
+document.getElementById('cfNext').addEventListener('click', function(){ cfNext(true); });
+document.getElementById('cfPrev').addEventListener('click', function(){ cfPrev(true); });
+
+/* swipe touch (mobile/tablet) */
+var cfTouchX = null;
+cfStage.addEventListener('touchstart', function(e){ cfTouchX = e.touches[0].clientX; }, {passive:true});
+cfStage.addEventListener('touchend', function(e){
+  if(cfTouchX === null) return;
+  var dx = e.changedTouches[0].clientX - cfTouchX;
+  if(Math.abs(dx) > 40){ if(dx < 0) cfNext(true); else cfPrev(true); }
+  cfTouchX = null;
+});
+
+/* init */
+cfRender();
+cfStartTimer();
 
 /* ── WHATSAPP FORMAT ── */
 document.getElementById('whatsapp').addEventListener('input', function(){
