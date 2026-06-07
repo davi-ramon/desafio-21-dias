@@ -1455,6 +1455,12 @@ var _GROUP_SVG  = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" s
 
 var isMobile = function(){ return window.matchMedia('(max-width:1100px)').matches; };
 
+/* lê cookie (p/ _fbp e _fbc do Meta Pixel → dedup CAPI) */
+function getCookie(name){
+  var m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return m ? m.pop() : '';
+}
+
 /* ── STACKING NOTIFICATIONS (desktop) ── */
 var notifFeed = document.getElementById('notifFeed');
 var notifIdx  = 0;
@@ -1753,18 +1759,32 @@ window.handleSubmit = function(){
 
   var whatsapp = wa.startsWith('55') ? wa : '55' + wa;
 
+  // event_id compartilhado p/ deduplicação Pixel + CAPI
+  var eventId = 'trial_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+  var fbp = getCookie('_fbp');
+  var fbc = getCookie('_fbc');
+
   if(typeof fbq === 'function')
     fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias Trial '+dias+' dias',value:0,currency:'BRL'});
 
   fetch(GAS, {
     method:'POST',
     headers:{'Content-Type':'text/plain'},
-    body: JSON.stringify({action:'registrarTrial', data:{nome:nome,email:email,whatsapp:whatsapp,dias:dias}})
+    body: JSON.stringify({action:'registrarTrial', data:{
+      nome:nome, email:email, whatsapp:whatsapp, dias:dias,
+      event_id:eventId, fbp:fbp, fbc:fbc,
+      client_ua:navigator.userAgent,
+      origem: window.location.href
+    }})
   })
   .then(function(r){ return r.json(); })
   .then(function(res){
     if(res.ok){
-      if(typeof fbq === 'function') fbq('track','Lead',{content_name:'Desafio 21 Dias Trial '+dias+' dias'});
+      // Pixel com MESMO eventID → dedup com o CAPI do servidor
+      if(typeof fbq === 'function'){
+        fbq('track','Lead',{content_name:'Desafio 21 Dias Trial '+dias+' dias'},{eventID:eventId});
+        fbq('track','CompleteRegistration',{content_name:'Desafio 21 Dias Trial '+dias+' dias'},{eventID:eventId});
+      }
       var fn = nome.split(' ')[0];
       window.location.href = '/obrigado-trial/?dias=' + dias + '&nome=' + encodeURIComponent(fn);
     } else {
