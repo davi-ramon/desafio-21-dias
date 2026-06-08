@@ -103,9 +103,137 @@
     aplicarTilt();
   }
 
+  /* ───────── FASE 2: Notification ticker ───────── */
+  var tickerEl, tickerInner, fila = [], filaIdx = 0, tickerTimer;
+  function tipoDoBanner(cls){
+    cls = cls || '';
+    if(/sub-red|sub-blocked/.test(cls)) return 'urgent';
+    if(/sub-warning|sub-yellow/.test(cls)) return 'warning';
+    if(/sub-success|sub-green/.test(cls)) return 'success';
+    return 'info';
+  }
+  var TICK_ICO = { info:'ℹ️', success:'✅', warning:'⚠️', urgent:'🔴' };
+  function buildTicker(){
+    var bar = document.querySelector('.topbar'); if(!bar || tickerEl) return;
+    var right = bar.querySelector('.topbar-right');
+    tickerEl = document.createElement('div');
+    tickerEl.className = 'notif-ticker t-info';
+    tickerInner = document.createElement('div');
+    tickerInner.className = 'notif-ticker-item';
+    tickerEl.appendChild(tickerInner);
+    bar.insertBefore(tickerEl, right || null);
+
+    // lê o subBanner (status assinatura) e observa mudanças
+    var sb = document.getElementById('subBanner');
+    function syncFromBanner(){
+      if(!sb) return;
+      var txt = (sb.textContent || '').trim();
+      // remove notif de banner antiga da fila
+      fila = fila.filter(function(f){ return f.src !== 'banner'; });
+      if(txt) fila.unshift({ src:'banner', tipo:tipoDoBanner(sb.className), txt:txt });
+      if(filaIdx >= fila.length) filaIdx = 0;
+      renderTick();
+    }
+    if(sb){
+      var mo = new MutationObserver(syncFromBanner);
+      mo.observe(sb, { childList:true, characterData:true, subtree:true, attributes:true });
+    }
+    // mensagem de boas-vindas padrão caso não haja banner
+    setTimeout(function(){
+      syncFromBanner();
+      if(!fila.length){ fila.push({ src:'sys', tipo:'success', txt:'Bem-vindo de volta! 🎯 Complete seus pilares de hoje.' }); }
+      renderTick();
+    }, 600);
+
+    // rotação
+    tickerTimer = setInterval(function(){
+      if(fila.length <= 1) return;
+      filaIdx = (filaIdx + 1) % fila.length;
+      renderTick();
+    }, 5000);
+  }
+  function renderTick(){
+    if(!tickerInner || !fila.length) return;
+    var item = fila[filaIdx % fila.length];
+    tickerInner.classList.remove('show');
+    setTimeout(function(){
+      tickerEl.className = 'notif-ticker t-' + item.tipo;
+      tickerInner.innerHTML = '<span class="notif-ticker-ico">' + (TICK_ICO[item.tipo]||'ℹ️') + '</span><span class="notif-ticker-txt">' + item.txt + '</span>';
+      tickerInner.classList.add('show');
+    }, 200);
+  }
+  // API pública p/ adicionar notificações ao ticker
+  window.appNotify = function(txt, tipo){
+    fila.push({ src:'sys', tipo: tipo||'info', txt: txt });
+    renderTick();
+  };
+
+  /* ───────── FASE 2: Configurações (⚙ + drawer) ───────── */
+  function buildConfig(){
+    // injeta botão ⚙ no rodapé da sidebar
+    var nav = document.querySelector('.bottom-nav');
+    if(nav && !document.getElementById('navConfig')){
+      var btn = document.createElement('button');
+      btn.className = 'nav-btn nav-config'; btn.id = 'navConfig'; btn.type = 'button';
+      btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Configurações</span>';
+      btn.addEventListener('click', openConfig);
+      nav.appendChild(btn);
+    }
+    // overlay/drawer
+    if(document.getElementById('cfgOverlay')) return;
+    var ov = document.createElement('div');
+    ov.className = 'cfg-overlay'; ov.id = 'cfgOverlay';
+    ov.innerHTML =
+      '<div class="cfg-drawer">' +
+        '<div class="cfg-head"><h2>⚙ Configurações</h2><button class="cfg-close" id="cfgClose">✕</button></div>' +
+        '<div class="cfg-body" id="cfgBody"></div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click', function(e){ if(e.target === ov) closeConfig(); });
+    document.getElementById('cfgClose').addEventListener('click', closeConfig);
+  }
+  function _appUser(){
+    try { if(window.APP) return { nome: APP.userName||APP.nome||'', email: APP.userEmail||APP.email||'' }; } catch(e){}
+    var av = document.getElementById('avatarEl');
+    return { nome: (av && av.textContent) || '', email: '' };
+  }
+  function openConfig(){
+    var u = _appUser();
+    var muted = window.appFx ? window.appFx.isMuted() : false;
+    var body = document.getElementById('cfgBody');
+    body.innerHTML =
+      '<div class="cfg-sec"><div class="cfg-sec-title">Perfil</div>' +
+        '<div class="cfg-row"><div><div class="cfg-row-label">' + (u.nome||'Aluno') + '</div>' + (u.email?'<div class="cfg-row-sub">'+u.email+'</div>':'') + '</div></div>' +
+      '</div>' +
+      '<div class="cfg-sec"><div class="cfg-sec-title">Preferências</div>' +
+        '<div class="cfg-row"><div><div class="cfg-row-label">Som do app</div><div class="cfg-row-sub">Cliques e confirmações</div></div>' +
+          '<label class="cfg-switch"><input type="checkbox" id="cfgSom" ' + (muted?'':'checked') + '><span class="cfg-slider"></span></label></div>' +
+        '<div class="cfg-row"><div><div class="cfg-row-label">Tema</div><div class="cfg-row-sub">Escuro (padrão)</div></div><span class="cfg-soon">em breve</span></div>' +
+        '<div class="cfg-row"><div><div class="cfg-row-label">Organização dos cards</div><div class="cfg-row-sub">Arrastar e reordenar</div></div><span class="cfg-soon">Fase 3</span></div>' +
+      '</div>' +
+      '<div class="cfg-sec"><div class="cfg-sec-title">Notificações</div>' +
+        '<div class="cfg-row"><div class="cfg-row-label">E-mail</div><span class="cfg-soon">em breve</span></div>' +
+        '<div class="cfg-row"><div class="cfg-row-label">Telegram</div><span class="cfg-soon">em breve</span></div>' +
+        '<div class="cfg-row"><div class="cfg-row-label">Push (celular)</div><span class="cfg-soon">em breve</span></div>' +
+      '</div>' +
+      '<div class="cfg-sec"><div class="cfg-sec-title">Sistema</div>' +
+        '<div class="cfg-row"><div class="cfg-row-label">Versão</div><span class="cfg-val">Desafio 21 Dias · 2026.06</span></div>' +
+      '</div>';
+    var som = document.getElementById('cfgSom');
+    if(som) som.addEventListener('change', function(){
+      if(window.appFx){ window.appFx.setMute(!som.checked); if(som.checked) fxClick(); }
+      appToast(som.checked?'Som ativado':'Som desativado', 'info');
+    });
+    document.getElementById('cfgOverlay').classList.add('show');
+  }
+  function closeConfig(){ var o=document.getElementById('cfgOverlay'); if(o) o.classList.remove('show'); }
+  window.openConfig = openConfig;
+
   function init(){
     ensureWrap();
     initObserver();
+    buildTicker();
+    buildConfig();
     // reaplica/limpa tilt ao cruzar o breakpoint desktop/mobile
     window.addEventListener('resize', function(){
       if(!isDesktop()){

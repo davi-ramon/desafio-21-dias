@@ -91,3 +91,112 @@
     box-shadow: 0 12px 32px rgba(0,0,0,0.35);
   }
 }
+
+/* ════════════════════════════════════════════════════════════
+   FASE 2 — Notification Center, Sidebar expansível, Configurações
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Notification ticker (header) — substitui a faixa azul ── */
+#subBanner { display: none !important; }   /* lógica mantida, faixa oculta; ticker assume */
+
+.notif-ticker {
+  flex: 1; min-width: 0; margin: 0 14px;
+  height: 38px; display: flex; align-items: center;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 10px; padding: 0 14px;
+  overflow: hidden; cursor: default;
+  transition: border-color .3s, background .3s;
+}
+.notif-ticker.t-info    { border-left-color: #4fa8ff; }
+.notif-ticker.t-success { border-left-color: #4caf50; }
+.notif-ticker.t-warning { border-left-color: #f5c842; }
+.notif-ticker.t-urgent  { border-left-color: #e84040; }
+.notif-ticker-item {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: var(--text); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; width: 100%;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .4s ease, transform .4s ease;
+}
+.notif-ticker-item.show { opacity: 1; transform: translateY(0); }
+.notif-ticker-ico { flex-shrink: 0; font-size: 14px; }
+.notif-ticker-txt { overflow: hidden; text-overflow: ellipsis; }
+.notif-ticker-txt b { color: var(--green-bright, #6dde71); font-weight: 700; }
+@media (max-width: 1023px) {
+  .notif-ticker { height: 34px; margin: 0 8px; font-size: 12px; }
+}
+
+/* ── Sidebar expansível (desktop) ── */
+@media (min-width: 1024px) {
+  .bottom-nav {
+    width: 76px !important;
+    overflow: hidden; z-index: 95;
+    transition: width .3s ease, box-shadow .3s ease;
+  }
+  .bottom-nav:hover {
+    width: 248px !important;
+    box-shadow: 10px 0 40px rgba(0,0,0,0.45);
+  }
+  /* logo: recolhido só ⚡, expandido nome completo */
+  .bottom-nav::before { content: '⚡' !important; justify-content: center; font-size: 24px; padding: 0 !important; white-space: nowrap; overflow: hidden; }
+  .bottom-nav:hover::before { content: '⚡  Desafio 21 Dias' !important; justify-content: flex-start; font-size: 15px; padding: 0 12px !important; }
+  /* labels somem recolhidos */
+  .bottom-nav .nav-btn span { opacity: 0; white-space: nowrap; transition: opacity .2s; }
+  .bottom-nav:hover .nav-btn span { opacity: 1; }
+  .bottom-nav:not(:hover) .nav-btn { justify-content: center; padding-left: 0; padding-right: 0; }
+  /* conteúdo acompanha a largura RECOLHIDA — sidebar expande como overlay */
+  .topbar { left: 76px !important; }
+  .main-scroll { margin-left: 76px !important; }
+
+  /* botão Configurações no rodapé da sidebar */
+  .nav-btn.nav-config { margin-top: auto; margin-bottom: 16px; }
+}
+/* botão config escondido no mobile (acesso via Perfil futuramente) */
+@media (max-width: 1023px) { .nav-btn.nav-config { display: none; } }
+
+/* ── Drawer de Configurações ── */
+.cfg-overlay {
+  position: fixed; inset: 0; z-index: 100000;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+  opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s;
+}
+.cfg-overlay.show { opacity: 1; visibility: visible; }
+.cfg-drawer {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 420px; max-width: 92vw;
+  background: var(--surface, #0f1412);
+  border-left: 1px solid var(--border);
+  box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+  transform: translateX(100%); transition: transform .35s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+.cfg-overlay.show .cfg-drawer { transform: translateX(0); }
+.cfg-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 22px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface, #0f1412); z-index: 2;
+}
+.cfg-head h2 { font-size: 18px; font-weight: 800; color: var(--text); }
+.cfg-close { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1; }
+.cfg-close:hover { color: var(--text); }
+.cfg-body { padding: 18px 22px 30px; }
+.cfg-sec { margin-bottom: 26px; }
+.cfg-sec-title { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.cfg-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 13px 14px; background: var(--surface2, #141c18);
+  border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px;
+}
+.cfg-row-label { font-size: 14px; color: var(--text); }
+.cfg-row-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.cfg-val { font-size: 13px; color: var(--muted); }
+.cfg-soon { font-size: 10px; color: var(--muted); background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 100px; }
+/* toggle switch */
+.cfg-switch { position: relative; width: 44px; height: 25px; flex-shrink: 0; cursor: pointer; }
+.cfg-switch input { opacity: 0; width: 0; height: 0; }
+.cfg-slider { position: absolute; inset: 0; background: #2a352c; border-radius: 25px; transition: .25s; }
+.cfg-slider::before { content: ''; position: absolute; height: 19px; width: 19px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .25s; }
+.cfg-switch input:checked + .cfg-slider { background: var(--green, #4caf50); }
+.cfg-switch input:checked + .cfg-slider::before { transform: translateX(19px); }
