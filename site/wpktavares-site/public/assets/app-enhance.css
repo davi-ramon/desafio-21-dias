@@ -9,8 +9,8 @@
   transform-style: preserve-3d;
   will-change: transform;
 }
-/* glare do vanilla-tilt discreto */
-.js-tilt-glare { border-radius: inherit; }
+/* glare do vanilla-tilt discreto — NUNCA captura clique (fix item 1) */
+.js-tilt-glare, .js-tilt-glare-inner { border-radius: inherit; pointer-events: none !important; }
 
 /* press feedback ao clicar (escala 0.98) */
 @media (hover:hover) {
@@ -98,6 +98,7 @@
 
 /* ── Notification ticker (header) — substitui a faixa azul ── */
 #subBanner { display: none !important; }   /* lógica mantida, faixa oculta; ticker assume */
+.sb-brand { display: none; }                /* mobile: oculto (só aparece na sidebar desktop) */
 
 .notif-ticker {
   flex: 1; min-width: 0; margin: 0 14px;
@@ -139,13 +140,26 @@
     width: 248px !important;
     box-shadow: 10px 0 40px rgba(0,0,0,0.45);
   }
-  /* logo: recolhido só ⚡, expandido nome completo */
-  .bottom-nav::before { content: '⚡' !important; justify-content: center; font-size: 24px; padding: 0 !important; white-space: nowrap; overflow: hidden; }
-  .bottom-nav:hover::before { content: '⚡  Desafio 21 Dias' !important; justify-content: flex-start; font-size: 15px; padding: 0 12px !important; }
-  /* labels somem recolhidos */
-  .bottom-nav .nav-btn span { opacity: 0; white-space: nowrap; transition: opacity .2s; }
-  .bottom-nav:hover .nav-btn span { opacity: 1; }
+  /* logo textual original (raio) oculto — brand com ícone "21" via JS */
+  .bottom-nav::before { display: none !important; }
+  /* marca (ícone 21) injetada no topo da sidebar */
+  .sb-brand {
+    display: flex; align-items: center; gap: 10px;
+    height: 72px; padding: 0 18px;
+    border-bottom: 1px solid var(--border); margin-bottom: 12px;
+    overflow: hidden; white-space: nowrap;
+  }
+  .sb-brand img { width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0; }
+  .sb-brand span { font-size: 15px; font-weight: 800; color: var(--text); opacity: 0; transition: opacity .2s; }
+  .bottom-nav:hover .sb-brand span { opacity: 1; }
+  .bottom-nav:not(:hover) .sb-brand { padding: 0; justify-content: center; }
+
+  /* labels: somem recolhidos (display none evita empurrar o ícone), aparecem no hover */
+  .bottom-nav .nav-btn span { display: none; white-space: nowrap; }
+  .bottom-nav:hover .nav-btn span { display: inline; }
   .bottom-nav:not(:hover) .nav-btn { justify-content: center; padding-left: 0; padding-right: 0; }
+  /* ícones sempre visíveis quando recolhida */
+  .bottom-nav .nav-btn svg { flex-shrink: 0; }
   /* conteúdo acompanha a largura RECOLHIDA — sidebar expande como overlay */
   .topbar { left: 76px !important; }
   .main-scroll { margin-left: 76px !important; }
@@ -200,3 +214,19 @@
 .cfg-slider::before { content: ''; position: absolute; height: 19px; width: 19px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .25s; }
 .cfg-switch input:checked + .cfg-slider { background: var(--green, #4caf50); }
 .cfg-switch input:checked + .cfg-slider::before { transform: translateX(19px); }
+
+/* ── Mini player flutuante (desktop) — fix item 2 ── */
+@media (min-width: 1024px) {
+  .mini-player.active {
+    left: auto !important; right: 24px; bottom: 24px !important; top: auto;
+    width: 380px; max-width: calc(100vw - 120px);
+    border: 1px solid var(--border2); border-top: 1px solid var(--border2);
+    border-radius: 16px; padding: 12px 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    cursor: grab;
+    animation: none !important; transform: none !important;
+  }
+  .mini-player.active.mp-dragging { cursor: grabbing; transition: none !important; box-shadow: 0 26px 64px rgba(0,0,0,0.75); }
+  /* não arrastar ao clicar nos controles */
+  .mini-player .mini-btn, .mini-player button, .mini-player [onclick] { cursor: pointer; }
+}

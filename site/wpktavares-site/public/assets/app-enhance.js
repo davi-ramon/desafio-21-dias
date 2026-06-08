@@ -64,8 +64,10 @@
     isMuted: function(){ return SOM_OFF; }
   };
 
-  /* ───────── TILT 3D ───────── */
-  var TILT_SEL = '.card, .audio-card, .hero, .msg-dinamica';
+  /* ───────── TILT 3D ─────────
+     Aplica nos cards de pilar individuais + cards de display.
+     NÃO no contêiner .card.ga-pilares (agrupa clicáveis). Glare = pointer-events:none. */
+  var TILT_SEL = '.pilar-item:not(.locked), .audio-card, .hero, .msg-dinamica, .ga-checkin';
   function aplicarTilt(){
     if(reduced || !isDesktop() || !window.VanillaTilt) return;
     var els = document.querySelectorAll(TILT_SEL);
@@ -97,7 +99,7 @@
     var deb;
     var mo = new MutationObserver(function(){
       clearTimeout(deb);
-      deb = setTimeout(aplicarTilt, 180);
+      deb = setTimeout(function(){ aplicarTilt(); aplicarPilarMedia(); }, 180);
     });
     mo.observe(alvo, { childList: true, subtree: true });
     aplicarTilt();
@@ -229,9 +231,81 @@
   function closeConfig(){ var o=document.getElementById('cfgOverlay'); if(o) o.classList.remove('show'); }
   window.openConfig = openConfig;
 
+  /* ───────── FASE 2 fix: marca (ícone 21) no topo da sidebar ───────── */
+  function buildSidebarBrand(){
+    var nav = document.querySelector('.bottom-nav');
+    if(!nav || document.querySelector('.sb-brand')) return;
+    var b = document.createElement('div');
+    b.className = 'sb-brand';
+    b.innerHTML = '<img src="/icons/icon-192.png" alt="Desafio 21 Dias"><span>Desafio 21 Dias</span>';
+    nav.insertBefore(b, nav.firstChild);
+  }
+
+  /* ───────── FASE 2 fix: mini player arrastável + snap (desktop) ───────── */
+  function initMiniPlayerDrag(){
+    var mp = document.getElementById('miniPlayer');
+    if(!mp || mp._dragInit) return; mp._dragInit = true;
+    var dragging=false, moved=false, dx=0, dy=0;
+    function isCtrl(t){ return t.closest('button, .mini-btn, [onclick], input, a'); }
+    function down(e){
+      if(!isDesktop()) return;
+      if(isCtrl(e.target)) return;          // não arrasta ao clicar controle
+      dragging=true; moved=false;
+      mp.classList.add('mp-dragging');
+      var p=e.touches?e.touches[0]:e, r=mp.getBoundingClientRect();
+      dx=p.clientX-r.left; dy=p.clientY-r.top;
+      e.preventDefault();
+    }
+    function move(e){
+      if(!dragging) return;
+      var p=e.touches?e.touches[0]:e;
+      var L=p.clientX-dx, T=p.clientY-dy, w=mp.offsetWidth, h=mp.offsetHeight;
+      L=Math.max(8, Math.min(L, window.innerWidth-w-8));
+      T=Math.max(8, Math.min(T, window.innerHeight-h-8));
+      mp.style.left=L+'px'; mp.style.top=T+'px'; mp.style.right='auto'; mp.style.bottom='auto';
+      moved=true;
+    }
+    function up(){
+      if(!dragging) return; dragging=false;
+      mp.classList.remove('mp-dragging');
+      if(!moved) return;
+      // snap horizontal: esquerda / centro / direita (sempre base inferior)
+      var r=mp.getBoundingClientRect(), cx=r.left+r.width/2, vw=window.innerWidth, w=mp.offsetWidth;
+      mp.style.top='auto'; mp.style.bottom='24px';
+      if(cx < vw*0.33){ mp.style.left='24px'; mp.style.right='auto'; }
+      else if(cx > vw*0.66){ mp.style.left='auto'; mp.style.right='24px'; }
+      else { mp.style.left='50%'; mp.style.right='auto'; mp.style.transform='translateX(-50%)'; }
+      setTimeout(function(){ if(mp.style.left!=='50%') mp.style.transform=''; }, 0);
+    }
+    mp.addEventListener('mousedown', down);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+
+  /* ───────── FASE 5 (preparação): mídia custom dos pilares ─────────
+     Define window.PILAR_MEDIA = { meditacao:{img|gif}, leitura:{...}, ... }
+     e os ícones emoji são trocados por <img>. Vazio = mantém emoji (fallback). */
+  window.PILAR_MEDIA = window.PILAR_MEDIA || {};
+  function aplicarPilarMedia(){
+    var map = window.PILAR_MEDIA; if(!map) return;
+    document.querySelectorAll('.pilar-item[data-pilar], .pilar-item').forEach(function(it){
+      var key = it.getAttribute('data-pilar');
+      // tenta inferir pelo conteúdo se não houver data-pilar (fallback)
+      if(!key) return;
+      var media = map[key]; if(!media) return;
+      var iconEl = it.querySelector('.pilar-icon'); if(!iconEl || iconEl._mediaApplied) return;
+      var url = media.gif || media.img; if(!url) return;
+      iconEl.innerHTML = '<img src="'+url+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">';
+      iconEl._mediaApplied = true;
+    });
+  }
+  window.appSetPilarMedia = function(key, media){ window.PILAR_MEDIA[key]=media; aplicarPilarMedia(); };
+
   function init(){
     ensureWrap();
+    buildSidebarBrand();
     initObserver();
+    initMiniPlayerDrag();
     buildTicker();
     buildConfig();
     // reaplica/limpa tilt ao cruzar o breakpoint desktop/mobile
