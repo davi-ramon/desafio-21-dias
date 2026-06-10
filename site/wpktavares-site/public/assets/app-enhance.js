@@ -30,6 +30,20 @@
   }
   function fxClick(){ beep(620, 480, 0.08, 0.05); }
   function fxSuccess(){ beep(660, 880, 0.12, 0.07); setTimeout(function(){ beep(880, 1100, 0.14, 0.06); }, 90); }
+  /* som sutil de página virando (ruído filtrado curto) */
+  function fxPage(){
+    if(SOM_OFF) return; var c = ctx(); if(!c) return;
+    try {
+      var dur = 0.17, buf = c.createBuffer(1, Math.floor(c.sampleRate*dur), c.sampleRate);
+      var d = buf.getChannelData(0);
+      for(var i=0;i<d.length;i++){ d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 2.2); }
+      var src = c.createBufferSource(); src.buffer = buf;
+      var f = c.createBiquadFilter(); f.type='lowpass'; f.frequency.value=2800;
+      var g = c.createGain(); g.gain.value=0.05;
+      src.connect(f); f.connect(g); g.connect(c.destination);
+      src.start();
+    } catch(e){}
+  }
 
   /* ───────── TOAST ───────── */
   var wrap;
@@ -88,7 +102,9 @@
 
   /* ───────── DELEGATION (som de clique tátil) ───────── */
   document.addEventListener('click', function(e){
-    var alvo = e.target.closest('.pilar-item:not(.locked), .card[onclick], .audio-card, .nav-btn, button, .btn, [role="button"]');
+    // som de página ao virar no leitor
+    if(e.target.closest('.leit-tap-zone')){ fxPage(); return; }
+    var alvo = e.target.closest('.pilar-item:not(.locked), .card[onclick], .audio-card, .nav-btn, button, .btn, [role="button"], .leit-book-card');
     if(!alvo) return;
     fxClick();
   }, true);

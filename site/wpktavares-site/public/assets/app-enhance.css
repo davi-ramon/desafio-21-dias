@@ -230,3 +230,87 @@
   /* não arrastar ao clicar nos controles */
   .mini-player .mini-btn, .mini-player button, .mini-player [onclick] { cursor: pointer; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   LEITURA — redesign desktop (não afeta mobile)
+   ════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+
+  /* ── 1. Galeria/biblioteca: vários livros por linha ── */
+  .leit-library-body { padding: 30px 48px 60px; }
+  .leit-library-heading { font-size: 26px; }
+  .leit-library-sub { font-size: 15px; margin-bottom: 26px; }
+  .leit-book-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 24px 22px;
+    max-width: 1180px; margin: 0 auto;
+    perspective: 1400px;
+  }
+  .leit-book-card {
+    border-radius: 12px;
+    transition: transform .35s cubic-bezier(.22,.61,.36,1), box-shadow .3s, opacity .3s, filter .3s, border-color .2s;
+    transform-style: preserve-3d;
+  }
+  /* hover: livro em destaque + 3D + páginas; vizinhos recuam */
+  .leit-book-grid:hover .leit-book-card:not(:hover) { opacity: .62; transform: scale(.96); filter: brightness(.8); }
+  .leit-book-card:hover {
+    transform: translateY(-10px) scale(1.12) rotateX(3deg);
+    box-shadow: 0 30px 60px rgba(0,0,0,.6);
+    z-index: 5; border-color: var(--accent, #6dde71);
+  }
+  /* simula páginas saindo na lateral */
+  .leit-book-card:hover .leit-book-cover-wrap::after {
+    content: ''; position: absolute; top: 4%; right: -7px; width: 10px; height: 92%;
+    background: linear-gradient(90deg, rgba(255,255,255,.85), rgba(255,255,255,.15));
+    border-radius: 2px; filter: blur(.6px); transform: rotateY(-18deg); transform-origin: left;
+  }
+  .leit-book-info { padding: 12px 12px 10px; }
+  .leit-book-title { font-size: 13px; }
+  .leit-book-author { font-size: 11px; }
+
+  /* ── 3 & 4. "Você escolheu" / preparação: 2 colunas ── */
+  .leit-onboard {
+    display: grid !important;
+    grid-template-columns: 220px minmax(0, 460px);
+    grid-template-areas: "media title" "media booktitle" "media body" "media footer";
+    column-gap: 48px; row-gap: 14px;
+    align-content: center; justify-content: center;
+    text-align: left !important; padding: 40px;
+  }
+  .leit-onboard-cover, .leit-onboard-cover-fallback {
+    grid-area: media; width: 220px !important; height: 330px !important;
+    align-self: center; border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+  }
+  .leit-onboard-emoji, .leit-onboard-timer-emoji {
+    grid-area: media; align-self: center; justify-self: center; font-size: 120px !important;
+  }
+  .leit-onboard-title { grid-area: title; align-self: end; font-size: 30px !important; }
+  .leit-onboard-book-title { grid-area: booktitle; font-size: 19px !important; }
+  .leit-onboard-body { grid-area: body; max-width: none !important; font-size: 15px !important; }
+  .leit-onboard-footer { grid-area: footer; align-self: start; max-width: 360px !important; margin-top: 10px; }
+  /* bg blur da capa atrás (suave) */
+  .leit-onboard-bg { opacity: .5; }
+
+  /* ── 5. Leitor: setas visíveis + melhor enquadramento ── */
+  .leit-tap-zone { width: 70px !important; display: flex; align-items: center; justify-content: center; }
+  .leit-tap-zone::before {
+    font-size: 30px; color: rgba(0,0,0,.35); font-weight: 700;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,.6); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity .2s; box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  }
+  .leit-tap-zone.left::before  { content: '‹'; }
+  .leit-tap-zone.right::before { content: '›'; }
+  .leit-tap-zone:hover::before { opacity: 1; }
+  .leit-page-info { font-size: 12px; padding: 6px 10px; }
+
+  /* ── 6. Hover/3D nos botões da experiência ── */
+  .leit-btn-primary, .leit-btn-secondary, .leit-back-btn, .leit-complete-btn {
+    transition: transform .15s ease, box-shadow .2s ease, opacity .15s, background .2s;
+  }
+  .leit-btn-primary:hover  { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .leit-btn-secondary:hover { transform: translateY(-2px); border-color: var(--accent, #6dde71); color: var(--text); }
+  .leit-back-btn:hover { transform: translateX(-2px) scale(1.05); }
+}
