@@ -248,17 +248,14 @@
   }
   .leit-book-card {
     border-radius: 12px;
-    transition: transform .35s cubic-bezier(.22,.61,.36,1), box-shadow .3s, opacity .3s, filter .3s, border-color .2s;
+    transition: box-shadow .3s, opacity .3s, filter .3s, border-color .2s;
     transform-style: preserve-3d;
   }
-  /* hover: livro em destaque + 3D + páginas; vizinhos recuam */
-  .leit-book-grid:hover .leit-book-card:not(:hover) { opacity: .62; transform: scale(.96); filter: brightness(.8); }
-  .leit-book-card:hover {
-    transform: translateY(-10px) scale(1.12) rotateX(3deg);
-    box-shadow: 0 30px 60px rgba(0,0,0,.6);
-    z-index: 5; border-color: var(--accent, #6dde71);
-  }
-  /* simula páginas saindo na lateral */
+  /* tilt 3D real seguindo o mouse via vanilla-tilt (JS).
+     Vizinhos recuam SÓ via opacity/filter (sem transform p/ não brigar c/ tilt). */
+  .leit-book-grid:hover .leit-book-card:not(:hover) { opacity: .55; filter: brightness(.75); }
+  .leit-book-card:hover { box-shadow: 0 30px 60px rgba(0,0,0,.6); z-index: 5; border-color: var(--accent, #6dde71); }
+  /* simula páginas saindo na lateral durante o hover */
   .leit-book-card:hover .leit-book-cover-wrap::after {
     content: ''; position: absolute; top: 4%; right: -7px; width: 10px; height: 92%;
     background: linear-gradient(90deg, rgba(255,255,255,.85), rgba(255,255,255,.15));
@@ -291,22 +288,21 @@
   .leit-onboard-footer { grid-area: footer; align-self: start; max-width: 360px !important; margin-top: 10px; }
   /* bg blur da capa atrás (suave) */
   .leit-onboard-bg { opacity: .5; }
+  /* CTA verde padrão Desafio 21 Dias */
+  .leit-onboard .leit-btn-primary { background: var(--green, #4caf50) !important; color: #fff !important; }
 
-  /* ── 5. Leitor: setas visíveis + melhor enquadramento ── */
-  .leit-tap-zone { width: 70px !important; display: flex; align-items: center; justify-content: center; }
-  .leit-tap-zone::before {
-    font-size: 30px; color: rgba(0,0,0,.35); font-weight: 700;
-    width: 44px; height: 44px; border-radius: 50%;
-    background: rgba(255,255,255,.6); backdrop-filter: blur(4px);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity .2s; box-shadow: 0 4px 16px rgba(0,0,0,.2);
+  /* ── 5. Leitor: 1 controle por lateral (botão nativo), aparece perto da borda.
+     As .leit-tap-zone seguem invisíveis (área de clique). SEM setas próprias. */
+  .leit-epub-nav {
+    opacity: 0; transition: opacity .25s ease, filter .15s ease, box-shadow .2s;
+    background: rgba(255,255,255,.72); backdrop-filter: blur(6px);
+    color: rgba(0,0,0,.55); box-shadow: 0 6px 20px rgba(0,0,0,.25); z-index: 15;
   }
-  .leit-tap-zone.left::before  { content: '‹'; }
-  .leit-tap-zone.right::before { content: '›'; }
-  .leit-tap-zone:hover::before { opacity: 1; }
+  .leit-epub-nav.near { opacity: 1; }
+  .leit-epub-nav:hover { filter: brightness(1.12); box-shadow: 0 8px 26px rgba(0,0,0,.35); }
   .leit-page-info { font-size: 12px; padding: 6px 10px; }
 
-  /* ── 6. Hover/3D nos botões da experiência ── */
+  /* ── 6. Hover nos botões da experiência ── */
   .leit-btn-primary, .leit-btn-secondary, .leit-back-btn, .leit-complete-btn {
     transition: transform .15s ease, box-shadow .2s ease, opacity .15s, background .2s;
   }
@@ -314,3 +310,14 @@
   .leit-btn-secondary:hover { transform: translateY(-2px); border-color: var(--accent, #6dde71); color: var(--text); }
   .leit-back-btn:hover { transform: translateX(-2px) scale(1.05); }
 }
+
+/* bg fullscreen da capa (blur + zoom lento) — global; injetado via JS só no desktop */
+.leit-ob-cover-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover; background-position: center;
+  filter: blur(30px) brightness(.38); transform: scale(1.12);
+  animation: leit-bg-zoom 20s ease-in-out infinite; pointer-events: none;
+}
+@keyframes leit-bg-zoom { 0%,100% { transform: scale(1.12); } 50% { transform: scale(1.28); } }
+.leit-onboard { position: relative; }
+.leit-onboard > *:not(.leit-ob-cover-bg) { position: relative; z-index: 1; }

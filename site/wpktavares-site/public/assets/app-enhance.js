@@ -81,7 +81,7 @@
   /* ───────── TILT 3D ─────────
      Aplica nos cards de pilar individuais + cards de display.
      NÃO no contêiner .card.ga-pilares (agrupa clicáveis). Glare = pointer-events:none. */
-  var TILT_SEL = '.pilar-item:not(.locked), .audio-card, .hero, .msg-dinamica, .ga-checkin';
+  var TILT_SEL = '.pilar-item:not(.locked), .audio-card, .hero, .msg-dinamica, .ga-checkin, .leit-book-card, .leit-onboard-cover';
   function aplicarTilt(){
     if(reduced || !isDesktop() || !window.VanillaTilt) return;
     var els = document.querySelectorAll(TILT_SEL);
@@ -102,23 +102,50 @@
 
   /* ───────── DELEGATION (som de clique tátil) ───────── */
   document.addEventListener('click', function(e){
-    // som de página ao virar no leitor
-    if(e.target.closest('.leit-tap-zone')){ fxPage(); return; }
+    if(e.target.closest('.leit-tap-zone, .leit-epub-nav')) return; // sem som de página
     var alvo = e.target.closest('.pilar-item:not(.locked), .card[onclick], .audio-card, .nav-btn, button, .btn, [role="button"], .leit-book-card');
     if(!alvo) return;
     fxClick();
   }, true);
 
-  /* ───────── OBSERVER: reaplica tilt após re-render ───────── */
+  /* bg blur da capa nas telas "Você escolheu" / "15 minutos" (desktop) */
+  function aplicarLeituraBg(){
+    if(!isDesktop()) return;
+    document.querySelectorAll('.leit-onboard').forEach(function(ob){
+      var img = ob.querySelector('.leit-onboard-cover');
+      var src = img && img.getAttribute('src');
+      var visivel = img && src && getComputedStyle(img).display !== 'none';
+      var bg = ob.querySelector(':scope > .leit-ob-cover-bg');
+      if(visivel){
+        if(!bg){ bg=document.createElement('div'); bg.className='leit-ob-cover-bg'; ob.insertBefore(bg, ob.firstChild); }
+        if(bg.dataset.src !== src){ bg.style.backgroundImage='url("'+src+'")'; bg.dataset.src=src; }
+      } else if(bg){ bg.remove(); }
+    });
+  }
+
+  /* ───────── OBSERVER: reaplica efeitos após re-render ───────── */
   function initObserver(){
-    var alvo = document.getElementById('mainScroll') || document.body;
     var deb;
     var mo = new MutationObserver(function(){
       clearTimeout(deb);
-      deb = setTimeout(function(){ aplicarTilt(); aplicarPilarMedia(); }, 180);
+      deb = setTimeout(function(){ aplicarTilt(); aplicarPilarMedia(); aplicarLeituraBg(); }, 180);
     });
-    mo.observe(alvo, { childList: true, subtree: true });
-    aplicarTilt();
+    // observa o body p/ pegar também o overlay de leitura (fora do #mainScroll)
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src','class'] });
+    aplicarTilt(); aplicarLeituraBg();
+  }
+
+  /* setas do leitor aparecem só perto das bordas (desktop) */
+  function initReaderNav(){
+    document.addEventListener('mousemove', function(e){
+      if(!isDesktop()) return;
+      var wrap = document.querySelector('.leit-reader-wrap'); if(!wrap) return;
+      var r = wrap.getBoundingClientRect(); if(r.width === 0) return;
+      var prev = document.getElementById('leitNavPrev'), next = document.getElementById('leitNavNext');
+      var x = e.clientX - r.left;
+      if(prev) prev.classList.toggle('near', x < r.width*0.18);
+      if(next) next.classList.toggle('near', x > r.width*0.82);
+    }, { passive: true });
   }
 
   /* ───────── FASE 2: Notification ticker ───────── */
@@ -322,6 +349,7 @@
     buildSidebarBrand();
     initObserver();
     initMiniPlayerDrag();
+    initReaderNav();
     buildTicker();
     buildConfig();
     // reaplica/limpa tilt ao cruzar o breakpoint desktop/mobile
