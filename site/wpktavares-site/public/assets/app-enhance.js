@@ -81,7 +81,25 @@
   /* ───────── TILT 3D ─────────
      Aplica nos cards de pilar individuais + cards de display.
      NÃO no contêiner .card.ga-pilares (agrupa clicáveis). Glare = pointer-events:none. */
-  var TILT_SEL = '.pilar-item:not(.locked), .audio-card, .hero, .msg-dinamica, .ga-checkin, .leit-book-card, .leit-onboard-cover';
+  var TILT_SEL = '.pilar-item:not(.locked), .audio-card, .hero, .msg-dinamica, .ga-checkin';
+
+  /* ── Tilt 3D MANUAL nos livros (JS puro, segue o mouse) ──
+     Não usa vanilla-tilt (não pegava no overlay da galeria). */
+  function aplicarBookTilt(){
+    if(!isDesktop() || reduced) return;
+    document.querySelectorAll('.leit-book-card').forEach(function(card){
+      if(card._btilt) return; card._btilt = true;
+      card.addEventListener('mousemove', function(e){
+        var r = card.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width  - 0.5;   // -0.5 .. 0.5
+        var py = (e.clientY - r.top)  / r.height - 0.5;
+        card.style.transform =
+          'perspective(1000px) rotateY(' + (px * 12).toFixed(2) + 'deg) rotateX(' +
+          (-py * 10).toFixed(2) + 'deg) translateY(-10px) scale(1.06)';
+      });
+      card.addEventListener('mouseleave', function(){ card.style.transform = ''; });
+    });
+  }
   function aplicarTilt(){
     if(reduced || !isDesktop() || !window.VanillaTilt) return;
     var els = document.querySelectorAll(TILT_SEL);
@@ -128,11 +146,11 @@
     var deb;
     var mo = new MutationObserver(function(){
       clearTimeout(deb);
-      deb = setTimeout(function(){ aplicarTilt(); aplicarPilarMedia(); aplicarLeituraBg(); }, 180);
+      deb = setTimeout(function(){ aplicarTilt(); aplicarBookTilt(); aplicarPilarMedia(); aplicarLeituraBg(); }, 180);
     });
     // observa o body p/ pegar também o overlay de leitura (fora do #mainScroll)
     mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['src','class'] });
-    aplicarTilt(); aplicarLeituraBg();
+    aplicarTilt(); aplicarBookTilt(); aplicarLeituraBg();
   }
 
   /* setas do leitor aparecem só perto das bordas (desktop) */

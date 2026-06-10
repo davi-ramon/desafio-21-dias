@@ -248,19 +248,35 @@
   }
   .leit-book-card {
     border-radius: 12px;
-    transition: box-shadow .3s, opacity .3s, filter .3s, border-color .2s;
-    transform-style: preserve-3d;
+    transition: box-shadow .35s, opacity .3s, filter .3s, border-color .2s;
+    will-change: transform;            /* tilt 3D seguindo o mouse via JS (initBookTilt) */
   }
-  /* tilt 3D real seguindo o mouse via vanilla-tilt (JS).
-     Vizinhos recuam SÓ via opacity/filter (sem transform p/ não brigar c/ tilt). */
-  .leit-book-grid:hover .leit-book-card:not(:hover) { opacity: .55; filter: brightness(.75); }
-  .leit-book-card:hover { box-shadow: 0 30px 60px rgba(0,0,0,.6); z-index: 5; border-color: var(--accent, #6dde71); }
-  /* simula páginas saindo na lateral durante o hover */
-  .leit-book-card:hover .leit-book-cover-wrap::after {
-    content: ''; position: absolute; top: 4%; right: -7px; width: 10px; height: 92%;
-    background: linear-gradient(90deg, rgba(255,255,255,.85), rgba(255,255,255,.15));
-    border-radius: 2px; filter: blur(.6px); transform: rotateY(-18deg); transform-origin: left;
+  /* vizinhos recuam só por opacity/filter (sem transform — não briga com o tilt) */
+  .leit-book-grid:hover .leit-book-card:not(:hover) { opacity: .5; filter: brightness(.7); }
+  .leit-book-card:hover { box-shadow: 0 36px 70px rgba(0,0,0,.65); z-index: 6; border-color: var(--accent, #6dde71); }
+
+  /* ── livro ABRINDO: a capa gira como tampa e revela as páginas ── */
+  .leit-book-cover-wrap { perspective: 900px; overflow: visible; }
+  .leit-book-cover-img, .leit-book-cover-fallback {
+    transition: transform .5s cubic-bezier(.22,.61,.36,1), box-shadow .5s;
+    transform-origin: left center; backface-visibility: hidden; z-index: 3;
   }
+  .leit-book-card:hover .leit-book-cover-img,
+  .leit-book-card:hover .leit-book-cover-fallback {
+    transform: rotateY(-32deg);
+    box-shadow: 14px 6px 34px rgba(0,0,0,.5);
+  }
+  /* páginas (miolo) atrás da capa, reveladas ao abrir */
+  .leit-book-cover-wrap::before {
+    content: ''; position: absolute; top: 5%; bottom: 5%; left: 4%; right: 6%;
+    z-index: 1; border-radius: 2px;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 1px, transparent 1px 8px),
+      linear-gradient(90deg, #e9e6db, #f6f4ee 18%);
+    box-shadow: inset 2px 0 6px rgba(0,0,0,.15);
+    opacity: 0; transition: opacity .35s ease .12s;
+  }
+  .leit-book-card:hover .leit-book-cover-wrap::before { opacity: 1; }
   .leit-book-info { padding: 12px 12px 10px; }
   .leit-book-title { font-size: 13px; }
   .leit-book-author { font-size: 11px; }
