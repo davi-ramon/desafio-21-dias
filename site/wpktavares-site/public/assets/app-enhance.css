@@ -327,6 +327,26 @@
   .leit-back-btn:hover { transform: translateX(-2px) scale(1.05); }
 }
 
+/* ── Transição cinematográfica ao abrir o livro (desktop) ── */
+.leit-enter-overlay {
+  position: fixed; inset: 0; z-index: 999999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.62); perspective: 1700px; pointer-events: none;
+}
+.leit-enter-book { position: relative; transform-style: preserve-3d; }
+.leit-enter-cover {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  border-radius: 7px; box-shadow: 0 36px 90px rgba(0,0,0,.75);
+  transform-origin: left center; backface-visibility: hidden; z-index: 2;
+}
+.leit-enter-pages {
+  position: absolute; inset: 0; border-radius: 7px; z-index: 1;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 1px, transparent 1px 9px),
+    linear-gradient(90deg, #e7e3d8, #f8f6f0 16%);
+  box-shadow: inset 3px 0 10px rgba(0,0,0,.16);
+}
+
 /* bg fullscreen da capa (blur + zoom lento) — global; injetado via JS só no desktop */
 .leit-ob-cover-bg {
   position: absolute; inset: 0; z-index: 0;

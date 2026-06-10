@@ -83,6 +83,59 @@
      NÃO no contêiner .card.ga-pilares (agrupa clicáveis). Glare = pointer-events:none. */
   var TILT_SEL = '.pilar-item:not(.locked), .audio-card, .hero, .msg-dinamica, .ga-checkin';
 
+  /* ── Transição cinematográfica ao abrir o livro ──
+     Clica → capa voa pro centro, cresce, abre, e a câmera atravessa as
+     páginas entrando na tela "Você escolheu". (~2.2s, desktop only) */
+  function animarEntradaLivro(card){
+    if(reduced || !isDesktop()) return;
+    if(document.querySelector('.leit-enter-overlay')) return;
+    var img = card.querySelector('.leit-book-cover-img');
+    var src = img && (img.currentSrc || img.src);
+    var r = card.getBoundingClientRect();
+    if(r.width === 0) return;
+
+    var ov   = document.createElement('div'); ov.className   = 'leit-enter-overlay';
+    var book = document.createElement('div'); book.className = 'leit-enter-book';
+    var cover= document.createElement('div'); cover.className= 'leit-enter-cover';
+    var pages= document.createElement('div'); pages.className= 'leit-enter-pages';
+    if(src) cover.style.backgroundImage = 'url("' + src + '")';
+    book.appendChild(pages); book.appendChild(cover);
+    ov.appendChild(book); document.body.appendChild(ov);
+
+    // tamanho alvo (centro) mantendo a proporção do card
+    var targetH = Math.min(window.innerHeight * 0.72, 560);
+    var targetW = targetH * (r.width / r.height);
+    book.style.width = targetW + 'px';
+    book.style.height = targetH + 'px';
+
+    var startScale = r.width / targetW;
+    var startX = r.left + r.width/2  - window.innerWidth/2;
+    var startY = r.top  + r.height/2 - window.innerHeight/2;
+
+    try {
+      ov.animate([{opacity:0},{opacity:1}], {duration:280, fill:'forwards'});
+      book.animate([
+        { transform:'translate('+startX+'px,'+startY+'px) scale('+startScale+')' },
+        { transform:'translate(0,0) scale(1)' }
+      ], { duration:820, easing:'cubic-bezier(.22,.61,.36,1)', fill:'forwards' })
+      .finished.then(function(){
+        return cover.animate([
+          { transform:'rotateY(0deg)' },
+          { transform:'rotateY(-152deg)' }
+        ], { duration:760, easing:'cubic-bezier(.4,0,.2,1)', fill:'forwards' }).finished;
+      }).then(function(){
+        return ov.animate([
+          { transform:'scale(1)',   opacity:1 },
+          { transform:'scale(2.7)', opacity:0 }
+        ], { duration:640, easing:'cubic-bezier(.5,0,.9,.4)', fill:'forwards' }).finished;
+      }).then(function(){ if(ov.parentNode) ov.remove(); })
+        .catch(function(){ if(ov.parentNode) ov.remove(); });
+    } catch(e){ if(ov.parentNode) ov.remove(); }
+
+    // segurança: garante remoção
+    setTimeout(function(){ if(ov.parentNode) ov.remove(); }, 2800);
+  }
+
   /* ── Tilt 3D MANUAL nos livros (JS puro, segue o mouse) ──
      Não usa vanilla-tilt (não pegava no overlay da galeria). */
   function aplicarBookTilt(){
@@ -121,7 +174,9 @@
   /* ───────── DELEGATION (som de clique tátil) ───────── */
   document.addEventListener('click', function(e){
     if(e.target.closest('.leit-tap-zone, .leit-epub-nav')) return; // sem som de página
-    var alvo = e.target.closest('.pilar-item:not(.locked), .card[onclick], .audio-card, .nav-btn, button, .btn, [role="button"], .leit-book-card');
+    var book = e.target.closest('.leit-book-card');
+    if(book){ animarEntradaLivro(book); fxClick(); return; } // transição cinematográfica
+    var alvo = e.target.closest('.pilar-item:not(.locked), .card[onclick], .audio-card, .nav-btn, button, .btn, [role="button"]');
     if(!alvo) return;
     fxClick();
   }, true);
