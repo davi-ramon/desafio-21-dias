@@ -328,6 +328,57 @@ function marcarPilar(token, pilar, valor) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// saveMedProgress — auto-save do timer de meditação (1x/min)
+// Salva elapsed_seconds na própria aba de pilares como metadado leve.
+// Quando aluno volta, basta ler esse valor de volta.
+// ══════════════════════════════════════════════════════════════
+function saveMedProgress(token, elapsedSeconds, totalSeconds) {
+  const _user = getUserByToken(token);
+  if (!_user) return { ok: false, error: 'Não autorizado.' };
+  if (_user.role === 'admin') return { ok: true }; // não persiste em modo preview
+
+  const aluno = getAlunoByToken_(token);
+  if (!aluno) return { ok: false, error: 'Não autorizado.' };
+
+  const secs = Math.max(0, Math.min(parseInt(elapsedSeconds) || 0, parseInt(totalSeconds) || 900));
+  try {
+    CacheService.getScriptCache().put('med_progress_' + aluno.user.email, JSON.stringify({
+      elapsed: secs,
+      total: parseInt(totalSeconds) || 900,
+      savedAt: Date.now()
+    }), 21600); // 6h TTL
+    return { ok: true, saved: secs };
+  } catch (e) {
+    return { ok: false, error: 'Falha ao salvar progresso.' };
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// getMedProgress — recupera último progresso salvo da meditação
+// ══════════════════════════════════════════════════════════════
+function getMedProgress(token) {
+  const _user = getUserByToken(token);
+  if (!_user) return { ok: false, error: 'Não autorizado.' };
+  if (_user.role === 'admin') return { ok: true, progress: null };
+
+  const aluno = getAlunoByToken_(token);
+  if (!aluno) return { ok: false, error: 'Não autorizado.' };
+
+  try {
+    const raw = CacheService.getScriptCache().get('med_progress_' + aluno.user.email);
+    if (!raw) return { ok: true, progress: null };
+    const data = JSON.parse(raw);
+    // Se salvou há mais de 12h, considera expirado
+    if (Date.now() - (data.savedAt || 0) > 12 * 3600 * 1000) {
+      return { ok: true, progress: null };
+    }
+    return { ok: true, progress: data };
+  } catch (e) {
+    return { ok: true, progress: null };
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 // registrarCheckinWeb — check-in do dia via web app
 // Valida janela horária (04:00–07:59 BR) e mínimo 3/4 pilares
 // ══════════════════════════════════════════════════════════════

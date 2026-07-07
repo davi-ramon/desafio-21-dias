@@ -1780,6 +1780,120 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 .leit-library-sub {
   font-size: 13px; color: var(--muted); margin-bottom: 18px;
 }
+
+/* ── Botão Sala de Leitura (acima do grid) ─────────────────── */
+.sala-leitura-btn {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(76, 175, 80, 0.28);
+  transition: transform .15s ease, box-shadow .15s ease;
+  text-align: left;
+}
+.sala-leitura-btn:hover  { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(76, 175, 80, 0.35); }
+.sala-leitura-btn:active { transform: translateY(0); }
+.sala-leitura-btn-icon {
+  font-size: 26px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 10px;
+}
+.sala-leitura-btn-text {
+  display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;
+}
+.sala-leitura-btn-text strong { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.sala-leitura-btn-text small  { font-size: 11.5px; opacity: 0.92; font-weight: 400; }
+.sala-leitura-btn-arrow {
+  font-size: 20px; font-weight: 700; flex-shrink: 0; opacity: 0.85;
+}
+
+/* ── Pop-up Sala de Leitura (slide-up) ─────────────────────── */
+.sala-popup-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: flex-end; justify-content: center;
+  z-index: 9999;
+  opacity: 0; visibility: hidden;
+  transition: opacity .25s ease, visibility .25s ease;
+  padding: 16px;
+}
+.sala-popup-overlay.show {
+  opacity: 1; visibility: visible;
+}
+.sala-popup {
+  background: var(--card, #ffffff);
+  color: var(--text, #111);
+  width: 100%; max-width: 480px;
+  border-radius: 22px 22px 18px 18px;
+  padding: 28px 24px 22px;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.35);
+  transform: translateY(110%);
+  transition: transform .35s cubic-bezier(0.22, 1, 0.36, 1);
+  text-align: center;
+  font-family: inherit;
+}
+.sala-popup-overlay.show .sala-popup { transform: translateY(0); }
+
+.sala-popup-emoji {
+  font-size: 48px; line-height: 1; margin-bottom: 12px;
+}
+.sala-popup-title {
+  font-size: 22px; font-weight: 900; letter-spacing: 0.5px;
+  margin: 0 0 10px; line-height: 1.2;
+  text-transform: uppercase;
+}
+.sala-popup-sub {
+  font-size: 14px; color: var(--muted, #666);
+  margin: 0 0 22px; line-height: 1.45;
+}
+.sala-popup-actions {
+  display: flex; gap: 10px; margin-bottom: 12px;
+}
+.sala-popup-btn {
+  flex: 1;
+  padding: 14px 12px;
+  border: none; border-radius: 12px;
+  font-family: inherit; font-weight: 800;
+  font-size: 14px; letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: transform .1s ease, opacity .2s ease;
+}
+.sala-popup-btn:active { transform: scale(0.97); }
+.sala-popup-btn--no {
+  background: var(--border, #e0e0e0);
+  color: var(--text, #111);
+}
+.sala-popup-btn--no:hover { opacity: 0.85; }
+.sala-popup-btn--yes {
+  background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.32);
+}
+.sala-popup-btn--yes:hover { opacity: 0.92; }
+.sala-popup-skip {
+  background: none; border: none;
+  color: var(--muted, #888);
+  font-family: inherit; font-size: 12.5px;
+  cursor: pointer; padding: 6px 12px;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.sala-popup-skip:hover { color: var(--text, #111); }
+
+@media (min-width: 768px) {
+  .sala-popup-overlay { align-items: center; }
+  .sala-popup { border-radius: 22px; transform: translateY(40px) scale(0.96); }
+  .sala-popup-overlay.show .sala-popup { transform: translateY(0) scale(1); }
+  .sala-popup-title { font-size: 26px; }
+}
 .leit-book-grid {
   display: grid; grid-template-columns: repeat(2, 1fr);
   gap: 14px;
@@ -1787,6 +1901,50 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 @keyframes leit-fade-up {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Banner "Continuar meditação" ─────────────────────────────── */
+.med-resume-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  margin: 16px 0;
+  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
+  color: #fff;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(76, 175, 80, 0.28);
+  animation: leit-fade-up 0.35s ease both;
+}
+.med-resume-banner-icon {
+  font-size: 24px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px;
+  background: rgba(255,255,255,0.18);
+  border-radius: 10px;
+}
+.med-resume-banner-text {
+  display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;
+}
+.med-resume-banner-text strong { font-size: 13.5px; font-weight: 800; line-height: 1.2; }
+.med-resume-banner-text small  { font-size: 11.5px; opacity: 0.92; font-weight: 400; }
+.med-resume-banner-btn {
+  background: #fff; color: #2e7d32;
+  border: none; padding: 8px 12px;
+  border-radius: 8px;
+  font-family: inherit; font-weight: 800; font-size: 11.5px; letter-spacing: 0.5px;
+  cursor: pointer; flex-shrink: 0;
+  transition: transform .1s ease;
+}
+.med-resume-banner-btn:active { transform: scale(0.96); }
+.med-resume-banner-skip {
+  background: none; border: none; color: rgba(255,255,255,0.85);
+  font-family: inherit; font-size: 10.5px;
+  cursor: pointer; padding: 4px 6px;
+  text-decoration: underline; text-underline-offset: 2px;
+  flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  .med-resume-banner { flex-wrap: wrap; }
+  .med-resume-banner-btn { padding: 6px 10px; font-size: 11px; }
 }
 .leit-book-card {
   background: var(--card); border: 1.5px solid var(--border);
@@ -2852,59 +3010,184 @@ function _fmtDateSub(iso) {
   catch(e){ return iso || ''; }
 }
 
+// ── Assinatura (híbrido: dados ao vivo via API Cakto + cancelar nativo) ──
 function renderAssinatura() {
   var sub = APP.subscription;
   var el = document.getElementById('page-assinatura');
   if (!el) return;
   if (!sub || sub.status === 'legacy') { navigate('perfil'); return; }
 
-  var sColors = {trial:'#2196F3',active:'#4caf50',grace:'#FF9800',grace_final:'#f44336',blocked:'#757575',cancelled:'#757575',paused:'#FF9800'};
-  var sLabels = {trial:'Em Trial',active:'Ativa',grace:'Inadimplente',grace_final:'Inadimplente',blocked:'Bloqueada',cancelled:'Cancelada',paused:'Pausada'};
-  var sc = sColors[sub.status]||'#757575', sl = sLabels[sub.status]||sub.status;
-  var planLabel = {monthly:'Mensal — R$ 17/mês',quarterly:'Trimestral — R$ 47/trim',yearly:'Anual — R$ 177/ano'}[sub.plan]||(sub.plan||'');
-
-  var infoLines = [];
-  if (sub.status === 'trial') {
-    infoLines.push('Período de teste: ' + (sub.trialRemaining||0) + ' dia(s) restante(s)');
-    if (sub.nextBilling) infoLines.push('1ª cobrança em: ' + _fmtDateSub(sub.nextBilling));
-  } else if (sub.status === 'active') {
-    if (sub.nextBilling) infoLines.push('Próxima cobrança: ' + _fmtDateSub(sub.nextBilling));
-  } else if (sub.status === 'grace' || sub.status === 'grace_final') {
-    infoLines.push('Falha no pagamento — dia ' + (sub.graceDay||1) + ' do período de tolerância');
-    if (sub.nextRetry) infoLines.push('Próxima tentativa: ' + _fmtDateSub(sub.nextRetry));
-  } else if (sub.status === 'blocked') {
-    if (sub.blockedAt) infoLines.push('Bloqueado em: ' + _fmtDateSub(sub.blockedAt));
-  }
-
-  var alertHTML = '';
-  if (sub.banner) {
-    var ac = {info:'#2196F3',warning:'#FF9800',yellow:'#FF9800',red:'#f44336',blocked:'#757575'}[sub.banner.type]||'#FF9800';
-    alertHTML = '<div style="background:'+ac+'22;border:1px solid '+ac+'44;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:'+ac+';line-height:1.4">'+escH(sub.banner.msg)+'</div>';
-  }
-
-  var portalUrl = 'https://app.cakto.com.br/subscriptions';
   el.innerHTML = '<div style="padding:0 0 24px">' +
     '<div style="display:flex;align-items:center;gap:10px;padding:16px 0 8px">' +
       '<button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:24px;padding:0;line-height:1" onclick="navigate(\'perfil\')">‹</button>' +
-      '<div style="font-size:17px;font-weight:800;color:var(--text)">Minha Assinatura</div>' +
+      '<div style="font-size:17px;font-weight:800;color:var(--text)">Assinatura Premium</div>' +
     '</div>' +
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">' +
+    '<div id="assinaturaBody">' + _assinaturaLoadingHTML() + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);text-align:center;padding:10px 0">Pagamento gerenciado com segurança pela Cakto</div>' +
+  '</div>';
+
+  _setupAssinaturaAutoRefresh();
+  _carregarAssinaturaDetalhe();
+}
+
+function _assinaturaLoadingHTML() {
+  return '<style>@keyframes assSpin{to{transform:rotate(360deg)}}</style>' +
+    '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px 0;gap:12px">' +
+      '<div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:assSpin 1s linear infinite"></div>' +
+      '<div style="font-size:13px;color:var(--muted)">Carregando sua assinatura...</div>' +
+    '</div>';
+}
+
+function _assinaturaErroHTML(msg) {
+  return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;text-align:center">' +
+    '<div style="font-size:32px;margin-bottom:10px">⚠️</div>' +
+    '<div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:16px">' + escH(msg) + '</div>' +
+    '<button style="padding:10px 18px;border-radius:10px;background:var(--green);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer" onclick="_carregarAssinaturaDetalhe()">Tentar novamente</button>' +
+  '</div>';
+}
+
+async function _carregarAssinaturaDetalhe() {
+  var body = document.getElementById('assinaturaBody');
+  if (!body) return;
+  body.innerHTML = _assinaturaLoadingHTML();
+  try {
+    var r = await rpc('getAssinaturaDetalhe', {});
+    if (!r || !r.ok || !r.data) throw new Error((r && r.error) || 'Falha ao carregar.');
+    APP.subDetalhe = r.data;
+    _renderAssinaturaConteudo(r.data);
+  } catch (e) {
+    body.innerHTML = _assinaturaErroHTML('Não foi possível carregar os dados da sua assinatura agora. Verifique sua conexão e tente novamente.');
+  }
+}
+
+function _renderAssinaturaConteudo(data) {
+  var body = document.getElementById('assinaturaBody');
+  if (!body) return;
+
+  var sColors = {trial:'#2196F3',active:'#4caf50',grace:'#FF9800',grace_final:'#f44336',blocked:'#757575',cancelled:'#757575',paused:'#FF9800'};
+  var sLabels = {trial:'Em teste',active:'Ativa',grace:'Pagamento pendente',grace_final:'Pagamento pendente',blocked:'Bloqueada',cancelled:'Cancelada',paused:'Pausada'};
+  var sc = sColors[data.status]||'#757575', sl = sLabels[data.status]||data.status;
+  var planLabel = {monthly:'Mensal — R$ 17/mês',quarterly:'Trimestral — R$ 47/trim',yearly:'Anual — R$ 177/ano'}[data.plan]||(data.plan||'—');
+
+  var linhas = [['Plano', planLabel]];
+  if (data.status === 'trial') linhas.push(['Período de teste', (data.trialRemaining||0) + ' dia(s) restante(s)']);
+  if (data.nextBilling) linhas.push([data.status === 'trial' ? '1ª cobrança' : 'Próxima cobrança', _fmtDateSub(data.nextBilling)]);
+  if (data.paymentMethod) linhas.push(['Pagamento', data.paymentMethod]);
+  if (data.amount) linhas.push(['Valor', 'R$ ' + String(data.amount).replace('.', ',')]);
+
+  var alertHTML = '';
+  if (data.banner) {
+    var ac = {info:'#2196F3',warning:'#FF9800',yellow:'#FF9800',red:'#f44336',blocked:'#757575'}[data.banner.type]||'#FF9800';
+    alertHTML = '<div style="background:'+ac+'22;border:1px solid '+ac+'44;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:'+ac+';line-height:1.4">'+escH(data.banner.msg)+'</div>';
+  }
+
+  var cancelada    = data.status === 'cancelled';
+  var bloqueada    = data.status === 'blocked';
+  var podeCancelar = !cancelada && !bloqueada;
+
+  var html = alertHTML +
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:6px 18px 14px;margin-bottom:12px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 4px">' +
         '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700">Status</div>' +
         '<span style="background:'+sc+'22;color:'+sc+';font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">'+sl+'</span>' +
       '</div>' +
-      (planLabel?'<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:8px">'+escH(planLabel)+'</div>':'') +
-      '<div style="margin-bottom:12px">'+infoLines.map(function(l){return '<div style="font-size:12px;color:var(--muted);margin-bottom:4px">'+escH(l)+'</div>';}).join('')+'</div>' +
-      alertHTML +
-      '<div style="display:flex;flex-direction:column;gap:8px">' +
-        '<button style="width:100%;padding:11px;border-radius:10px;background:var(--green);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer" onclick="window.open(\''+portalUrl+'\',\'_blank\')">Gerenciar Assinatura</button>' +
-        '<button style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer" onclick="window.open(\''+portalUrl+'\',\'_blank\')">Atualizar Método de Pagamento</button>' +
-        (sub.status!=='cancelled'?'<button style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid rgba(244,67,54,0.3);color:#ef5350;font-weight:700;font-size:13px;cursor:pointer" onclick="window.open(\''+portalUrl+'\',\'_blank\')">Cancelar Assinatura</button>':'') +
-        '<button style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:13px;cursor:pointer;opacity:0.5" onclick="toast(\'Em breve: upgrade de plano\',\'info\')">Upgrade de Plano (em breve)</button>' +
-      '</div>' +
-    '</div>' +
-    '<div style="font-size:11px;color:var(--muted);text-align:center;padding:8px 0">Gerenciamento de pagamento fornecido por Cakto</div>' +
-  '</div>';
+      linhas.map(function(l){ return '<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--border)"><span style="font-size:13px;color:var(--muted)">'+escH(l[0])+'</span><span style="font-size:13px;color:var(--text);font-weight:600;text-align:right">'+escH(l[1])+'</span></div>'; }).join('') +
+    '</div>';
+
+  // Ações
+  html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px">';
+  if (cancelada || bloqueada) {
+    html += '<button style="width:100%;padding:12px;border-radius:10px;background:var(--green);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer" onclick="window.open(\'https://wpktavares.com.br/planos/\',\'_blank\')">Assinar novamente</button>';
+  } else {
+    html += '<button style="width:100%;padding:12px;border-radius:10px;background:var(--green);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer" onclick="_abrirPortalCakto()">Atualizar cartão / método de pagamento</button>';
+  }
+  if (data.faturas && data.faturas.length) {
+    html += '<button style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer" onclick="_toggleFaturas()">Histórico de cobrança ('+data.faturas.length+')</button>';
+    html += '<div id="faturasBox" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">' +
+      data.faturas.map(function(f){
+        var st = String(f.status||'').toLowerCase();
+        var ok = st.indexOf('paid')!==-1 || st.indexOf('approved')!==-1 || st.indexOf('pago')!==-1;
+        return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 12px;font-size:12px;border-bottom:1px solid var(--border)"><span style="color:var(--muted)">'+escH(_fmtDateSub(f.data))+'</span><span style="color:var(--text);font-weight:600">'+(f.valor?'R$ '+String(f.valor).replace('.',','):'—')+'</span><span style="color:'+(ok?'#4caf50':'#FF9800')+';font-weight:700">'+escH(f.status||'')+'</span></div>';
+      }).join('') + '</div>';
+  }
+  if (podeCancelar) {
+    html += '<button id="btnCancelarAssin" style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid rgba(244,67,54,0.3);color:#ef5350;font-weight:700;font-size:13px;cursor:pointer" onclick="cancelarAssinaturaApp()">Cancelar assinatura</button>';
+  }
+  html += '</div>';
+
+  if (data.notaApi) {
+    html += '<div style="font-size:11px;color:var(--muted);text-align:center;padding:6px 0">'+escH(data.notaApi)+' Você também pode usar o portal oficial da Cakto.</div>';
+  }
+
+  body.innerHTML = html;
+}
+
+function _toggleFaturas() {
+  var b = document.getElementById('faturasBox');
+  if (b) b.style.display = (b.style.display === 'none' ? 'block' : 'none');
+}
+
+async function _abrirPortalCakto() {
+  APP._portalAberto = true; // sinaliza auto-refresh ao voltar pro app
+  // Assinaturas NOVAS (Stripe): abre o Billing Portal oficial (com retorno automático pro app)
+  try {
+    var r = await rpc('getStripePortal', {});
+    if (r && r.ok && r.url) {
+      toast('Abrindo o portal de assinatura...', 'info', 4000);
+      window.open(r.url, '_blank');
+      return;
+    }
+  } catch (e) {}
+  // Assinantes atuais (Cakto): fallback pro portal da Cakto
+  var url = (APP.subDetalhe && APP.subDetalhe.portalUrl) || 'https://aluno.cakto.com.br/auth/login';
+  toast('Abrindo o portal da Cakto. Entre com o e-mail da sua compra (login sem senha).', 'info', 6000);
+  window.open(url, '_blank');
+}
+
+async function cancelarAssinaturaApp() {
+  var ok = window.confirm('Cancelar sua assinatura?\n\nVocê continua com acesso até o fim do período já pago. Depois disso, o acesso será removido.\n\nDeseja continuar?');
+  if (!ok) return;
+  var btn = document.getElementById('btnCancelarAssin');
+  if (btn) { btn.disabled = true; btn.textContent = 'Cancelando...'; }
+  try {
+    var r = await rpc('cancelarAssinatura', {});
+    if (r && r.ok) {
+      toast(r.message || 'Assinatura cancelada com sucesso.', 'success', 7000);
+      await _refreshSubscriptionState();
+      _carregarAssinaturaDetalhe();
+    } else if (r && r.fallback) {
+      toast('Vamos abrir o portal oficial da Cakto para concluir o cancelamento.', 'info', 6000);
+      APP._portalAberto = true;
+      window.open(r.portalUrl || 'https://aluno.cakto.com.br/auth/login', '_blank');
+      if (btn) { btn.disabled = false; btn.textContent = 'Cancelar assinatura'; }
+    } else {
+      toast((r && r.error) || 'Não foi possível cancelar agora. Tente novamente.', 'error', 6000);
+      if (btn) { btn.disabled = false; btn.textContent = 'Cancelar assinatura'; }
+    }
+  } catch (e) {
+    toast('Erro de conexão ao cancelar. Tente novamente.', 'error', 5000);
+    if (btn) { btn.disabled = false; btn.textContent = 'Cancelar assinatura'; }
+  }
+}
+
+// Atualiza o estado global da assinatura (rápido, do sheet local) sem recarregar a página
+async function _refreshSubscriptionState() {
+  try {
+    var r = await rpc('getAssinaturaInfo', {});
+    if (r && r.ok && r.data) { APP.subscription = r.data; _renderSubBanner(); }
+  } catch (e) {}
+}
+
+// Ao voltar do portal da Cakto (aba volta a ficar visível), sincroniza sozinho
+function _setupAssinaturaAutoRefresh() {
+  if (APP._assinAutoRefresh) return;
+  APP._assinAutoRefresh = true;
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible' && APP.page === 'assinatura' && APP._portalAberto) {
+      APP._portalAberto = false;
+      _refreshSubscriptionState().then(function(){ if (APP.page === 'assinatura') _carregarAssinaturaDetalhe(); });
+    }
+  });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -3450,24 +3733,40 @@ function renderPerfil() {
   </div>`;
   }
 
-  // Card de Assinatura
+  // Card "Assinatura Premium" — padrão premium com tilt 3D + animação
   const sub = APP.subscription;
   if (sub && sub.status && sub.status !== 'legacy') {
     const subC = {trial:'#2196F3',active:'#4caf50',grace:'#FF9800',grace_final:'#f44336',blocked:'#757575',cancelled:'#757575',paused:'#FF9800'};
-    const subL = {trial:'Em Trial',active:'Ativa',grace:'Inadimplente',grace_final:'Inadimplente',blocked:'Bloqueada',cancelled:'Cancelada',paused:'Pausada'};
+    const subL = {trial:'Em teste',active:'Ativa',grace:'Pagamento pendente',grace_final:'Pagamento pendente',blocked:'Bloqueada',cancelled:'Cancelada',paused:'Pausada'};
     const c2 = subC[sub.status]||'#757575', l2 = subL[sub.status]||sub.status;
-    let si = '';
-    if (sub.status === 'trial' && sub.trialRemaining !== undefined) si = sub.trialRemaining + ' dia(s) restante(s) de trial';
-    else if (sub.status === 'active' && sub.nextBilling) si = 'Próxima cobrança: ' + new Date(sub.nextBilling).toLocaleDateString('pt-BR');
-    else if ((sub.status === 'grace' || sub.status === 'grace_final') && sub.graceDay) si = 'Dia ' + sub.graceDay + ' do período de tolerância';
+    let si = 'Gerencie plano, pagamento e cobranças';
+    if (sub.status === 'trial' && sub.trialRemaining !== undefined) si = sub.trialRemaining + ' dia(s) restante(s) de teste';
+    else if (sub.status === 'active' && sub.nextBilling) si = 'Renova em ' + new Date(sub.nextBilling).toLocaleDateString('pt-BR');
+    else if (sub.status === 'cancelled') si = 'Assinatura cancelada — reative quando quiser';
+    else if ((sub.status === 'grace' || sub.status === 'grace_final')) si = 'Atualize seu pagamento para manter o acesso';
     html += `
-  <div class="card" style="padding:16px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700">Assinatura</div>
-      <span style="background:${c2}22;color:${c2};font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px">${l2}</span>
+  <style>
+    .premium-card{position:relative;overflow:hidden;cursor:pointer;transition:box-shadow .25s ease,border-color .25s ease;animation:premIn .5s cubic-bezier(.2,.8,.25,1) both;transform-style:preserve-3d;will-change:transform}
+    .premium-card:hover{border-color:var(--green);box-shadow:0 12px 32px -12px rgba(76,175,80,.4)}
+    .premium-card:active{transform:scale(.985)}
+    .premium-card .prem-glow{position:absolute;inset:0;background:radial-gradient(140px 90px at 88% 0%,rgba(76,175,80,.16),transparent 70%);pointer-events:none}
+    @keyframes premIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  </style>
+  <div class="card premium-card" onclick="navigateSub('assinatura')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){navigateSub('assinatura')}">
+    <div class="prem-glow"></div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#4caf50,#2e6b31);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(76,175,80,.35)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 15.4 7.2 17l.9-5.4L4.2 7.7l5.4-.8L12 2z"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <div style="font-size:15px;font-weight:800;color:var(--text)">Assinatura Premium</div>
+          <span style="background:${c2}22;color:${c2};font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap">${l2}</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">${escH(si)}</div>
+      </div>
+      <span style="color:var(--muted);font-size:20px">›</span>
     </div>
-    ${si ? `<div style="font-size:12px;color:var(--muted);margin-bottom:12px">${escH(si)}</div>` : ''}
-    <button class="btn-reiniciar" style="background:var(--green);color:#000;border:none;width:100%" onclick="navigateSub('assinatura')">Gerenciar Assinatura ›</button>
   </div>`;
   }
 
@@ -4995,6 +5294,11 @@ function openMeditacao() {
   document.getElementById('mainScroll').style.overflow = 'hidden';
   if (!_medAudiosLoaded) _medLoadAudioConfig();
   if (typeof _biaHide === 'function') _biaHide();
+
+  // Mostra banner "Continuar de onde parou" se houver progresso salvo
+  setTimeout(function() {
+    if (typeof _medRenderResumeBanner === 'function') _medRenderResumeBanner();
+  }, 80);
 }
 
 // ── Fechar overlay ───────────────────────────────────────────
@@ -5084,12 +5388,19 @@ function startMedSession() {
     if (MED.paused) return;
     MED.elapsed++;
     _medUpdateTimer();
+
+    // ── AUTO-SAVE: a cada 60s salva no localStorage + backend ──
+    if (MED.elapsed % 60 === 0 && MED.elapsed > 0) {
+      _medSaveProgress();
+    }
+
     if (MED.elapsed >= MED.total) {
       _medStopAll();
       // ── Conclusão AUTOMÁTICA ──────────────────────────────
       // IMPORTANTE: NÃO setar MED.completed aqui — _medMarkPilarAuto é a única
       // autoridade que seta a flag (evita race condition que impedia a marcação)
       _medMarkPilarAuto();               // marca pilar no servidor
+      _medClearSavedProgress();          // limpa progresso salvo (concluído)
       _medAudioFadeOut(function() {      // fade out do áudio
         var aud = document.getElementById('medAudio');
         if (aud) { aud.pause(); aud.src = ''; }
@@ -5100,6 +5411,131 @@ function startMedSession() {
   }, 1000);
 
   // Troca de mensagem a cada 45 s
+  MED.msgInterval = setInterval(function() {
+    if (MED.paused) return;
+    MED.msgIdx = (MED.msgIdx + 1) % MED_MSGS.length;
+    _medShowMsg(MED_MSGS[MED.msgIdx]);
+  }, 45000);
+}
+
+// ── AUTO-SAVE / RESTORE do progresso de meditação ─────────────
+// Salva no localStorage (sempre) e tenta sincronizar no backend (best-effort).
+// Quando o aluno volta e abre a meditação, oferece retomar.
+function _medSaveProgress() {
+  try {
+    var key = 'med_progress_' + (APP.userEmail || 'anon');
+    var payload = { elapsed: MED.elapsed, total: MED.total, savedAt: Date.now() };
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch (e) {}
+  // best-effort sync no servidor (não bloqueia o app)
+  try {
+    rpc('saveMedProgress', { elapsedSeconds: MED.elapsed, totalSeconds: MED.total })
+      .catch(function(){});
+  } catch (e) {}
+}
+
+function _medClearSavedProgress() {
+  try {
+    var key = 'med_progress_' + (APP.userEmail || 'anon');
+    localStorage.removeItem(key);
+  } catch (e) {}
+  try { rpc('getMedProgress', {}); /* pinga pra limpar cache */ } catch (e) {}
+}
+
+function _medGetSavedProgress() {
+  try {
+    var key = 'med_progress_' + (APP.userEmail || 'anon');
+    var raw = localStorage.getItem(key);
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (Date.now() - (data.savedAt || 0) > 12 * 3600 * 1000) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    if (!data.elapsed || data.elapsed < 30) return null; // ignora < 30s
+    return data;
+  } catch (e) { return null; }
+}
+
+// Mostra banner "Continuar de X:XX" na tela 1 (intro da meditação)
+function _medRenderResumeBanner() {
+  var existing = document.getElementById('medResumeBanner');
+  if (existing) existing.remove();
+
+  var prog = _medGetSavedProgress();
+  if (!prog) return;
+
+  var mins = Math.floor(prog.elapsed / 60);
+  var secs = prog.elapsed % 60;
+  var disp = (mins < 10 ? '0' + mins : mins) + ':' + (secs < 10 ? '0' + secs : secs);
+
+  var ov  = document.getElementById('medOverlay');
+  if (!ov) return;
+  var s1  = document.getElementById('medS1');
+  if (!s1) return;
+
+  // Localiza o botão "Começar" da tela 1 e insere o banner antes dele
+  var banner = document.createElement('div');
+  banner.id = 'medResumeBanner';
+  banner.className = 'med-resume-banner';
+  banner.innerHTML =
+    '<div class="med-resume-banner-icon">⏯️</div>' +
+    '<div class="med-resume-banner-text">' +
+      '<strong>Você parou em ' + disp + '</strong>' +
+      '<small>Continuar de onde parou?</small>' +
+    '</div>' +
+    '<button class="med-resume-banner-btn" type="button" id="medResumeBtn">CONTINUAR</button>' +
+    '<button class="med-resume-banner-skip" type="button" id="medResumeSkip">começar do zero</button>';
+  s1.appendChild(banner);
+
+  var btn = document.getElementById('medResumeBtn');
+  if (btn) btn.addEventListener('click', function() {
+    // Pula direto pra sessão (pula o onboarding) com elapsed restaurado
+    _medStartResumed(prog.elapsed);
+  });
+  var skip = document.getElementById('medResumeSkip');
+  if (skip) skip.addEventListener('click', function() {
+    _medClearSavedProgress();
+    var b = document.getElementById('medResumeBanner');
+    if (b) b.remove();
+  });
+}
+
+function _medStartResumed(elapsedSeconds) {
+  // Não reseta MED.elapsed — apenas abre a tela 4 com o timer ajustado
+  _medClearSavedProgress();
+  _breathStop();
+  MED.paused    = false;
+  MED.elapsed   = Math.max(0, elapsedSeconds || 0);
+  var _audUnlock = document.getElementById('medAudio');
+  if (_audUnlock) { _audUnlock.volume = 0; _audUnlock.play().catch(function(){}); }
+  MED.msgIdx       = 0;
+  MED.completed    = false;
+  MED.pilarMarcado = false;
+  MED.audioMuted   = false;
+  _medSyncMuteBtn();
+  showMedScreen(4);
+  _medUpdateTimer();
+  _medShowMsg('Continuando de onde você parou. 🙏');
+  _medAudioPlay(MED.audioIdx, true);
+  // mesmo setInterval do startMedSession
+  MED.timerInterval = setInterval(function() {
+    if (MED.paused) return;
+    MED.elapsed++;
+    _medUpdateTimer();
+    if (MED.elapsed % 60 === 0) _medSaveProgress();
+    if (MED.elapsed >= MED.total) {
+      _medStopAll();
+      _medMarkPilarAuto();
+      _medClearSavedProgress();
+      _medAudioFadeOut(function() {
+        var aud = document.getElementById('medAudio');
+        if (aud) { aud.pause(); aud.src = ''; }
+      });
+      showMedScreen(5);
+      _medStartCountdown(8);
+    }
+  }, 1000);
   MED.msgInterval = setInterval(function() {
     if (MED.paused) return;
     MED.msgIdx = (MED.msgIdx + 1) % MED_MSGS.length;
@@ -5149,6 +5585,8 @@ function toggleMedPause() {
     if (label)   label.textContent = 'Retomar';
     if (session) session.classList.add('med-paused');
     _medShowMsg('Pausado — retome quando quiser.');
+    // Salva progresso ao pausar (tela pode bloquear a qualquer momento)
+    if (typeof _medSaveProgress === 'function') _medSaveProgress();
     // Pausa áudio com fade suave
     _medAudioFadeOut(function() { if (aud) aud.pause(); });
   } else {
@@ -5164,6 +5602,8 @@ function toggleMedPause() {
 
 // ── Sair da sessão sem concluir ──────────────────────────────
 function exitMedSession() {
+  // Salva progresso ANTES de matar tudo (permite retomar de onde parou)
+  if (typeof _medSaveProgress === 'function' && MED.elapsed > 30) _medSaveProgress();
   _medStopAll();
   showMedScreen(1);
 }
@@ -6072,6 +6512,12 @@ function openLeitura() {
   _leitShowScreen(1);
   _leitRenderLibrary();
   if (typeof _biaHide === 'function') _biaHide();
+
+  // Pop-up sala de leitura: mostra 1x por dia (somente se pilar ainda não foi marcado)
+  setTimeout(function() {
+    if (APP.data && APP.data.pilaresHoje && APP.data.pilaresHoje['leitura']) return;
+    if (!_leitSalaPopupJaMostrouHoje()) _leitSalaPopupShow();
+  }, 600);
 }
 function closeLeitura() {
   _leitCleanup();
@@ -6117,6 +6563,95 @@ function _leitRenderLibrary() {
     card.addEventListener('click', function() { _leitSelectBook(livro.id); });
     grid.appendChild(card);
   });
+}
+
+// ══════════════════════════════════════════════════════════════
+// SALA DE LEITURA — botão fixo + pop-up animado
+// ══════════════════════════════════════════════════════════════
+
+// Abre link externo da sala (Zoom/Jitsi configurado no admin via aba `config` → sala_link)
+function _leitOpenSala() {
+  var url = '';
+  try { url = (APP && APP.config && APP.config.sala_link) || ''; } catch (e) { url = ''; }
+  if (!url) {
+    // Fallback: Jitsi Meet (padrão gratuito, sem cadastro)
+    url = 'https://meet.jit.si/Desafio21Dias';
+  }
+  try { window.open(url, '_blank', 'noopener,noreferrer'); }
+  catch (e) { window.location.href = url; }
+
+  // Agenda o pop-up (não mostra se já mostrou hoje)
+  setTimeout(function() {
+    if (!_leitSalaPopupJaMostrouHoje()) _leitSalaPopupShow();
+  }, 1200);
+}
+
+// Pop-up: controle de "já mostrou hoje"
+function _leitSalaPopupJaMostrouHoje() {
+  try {
+    var key = 'sala_popup_' + (APP.userEmail || 'anon');
+    var last = localStorage.getItem(key);
+    var hoje = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    return last === hoje;
+  } catch (e) { return false; }
+}
+
+function _leitSalaPopupMarcarMostrado() {
+  try {
+    var key = 'sala_popup_' + (APP.userEmail || 'anon');
+    var hoje = new Date().toISOString().slice(0, 10);
+    localStorage.setItem(key, hoje);
+  } catch (e) {}
+}
+
+function _leitSalaPopupShow() {
+  var ov = document.getElementById('salaPopupOverlay');
+  if (!ov) return;
+  ov.classList.add('show');
+  ov.setAttribute('aria-hidden', 'false');
+}
+
+function _leitSalaPopupHide() {
+  var ov = document.getElementById('salaPopupOverlay');
+  if (!ov) return;
+  ov.classList.remove('show');
+  ov.setAttribute('aria-hidden', 'true');
+}
+
+// resposta: true (SIM) / false (NÃO) / null (decidir depois)
+function _leitSalaPopupResponder(resposta) {
+  _leitSalaPopupMarcarMostrado(); // qualquer resposta fecha o popup pelo dia
+  _leitSalaPopupHide();
+
+  if (resposta === true) {
+    rpc('marcarPilar', { pilar: 'leitura', valor: true })
+      .then(function(r) {
+        if (r && r.ok) {
+          if (APP.data) {
+            if (!APP.data.pilaresHoje) APP.data.pilaresHoje = {};
+            APP.data.pilaresHoje['leitura'] = true;
+            var dia = APP.data.diaAtual || 1;
+            if (!APP.data.pilaresJson) APP.data.pilaresJson = {};
+            if (!APP.data.pilaresJson[String(dia)]) APP.data.pilaresJson[String(dia)] = {};
+            APP.data.pilaresJson[String(dia)]['leitura'] = true;
+          }
+          document.querySelectorAll('#pilar_leitura').forEach(function(el) {
+            el.classList.add('done');
+            var ch = el.querySelector('.pilar-check');
+            if (ch) ch.textContent = '✓';
+          });
+          if (typeof toast === 'function') toast('📖 Leitura marcada pela Sala! ✓', 'success');
+        } else {
+          if (typeof toast === 'function') toast('Não foi possível marcar. Tente de novo.', 'error');
+        }
+      })
+      .catch(function() {
+        if (typeof toast === 'function') toast('Falha de conexão. Tente novamente.', 'warn');
+      });
+  } else if (resposta === false) {
+    if (typeof toast === 'function') toast('Sem problema. Quando participar, marque no app.', 'info');
+  }
+  // null = decidir depois → só fecha
 }
 
 function _leitSelectBook(id) {
@@ -6430,7 +6965,32 @@ function _leitCleanup() {
     <div class="leit-library-body">
       <div class="leit-library-heading">Sua Biblioteca</div>
       <div class="leit-library-sub">Escolha um livro para começar</div>
+
+      <!-- Botão Sala de Leitura (sempre visível no topo, redireciona p/ Zoom/Jitsi configurado no admin) -->
+      <button class="sala-leitura-btn" id="salaLeituraBtn" type="button" onclick="_leitOpenSala()">
+        <span class="sala-leitura-btn-icon">🎙️</span>
+        <span class="sala-leitura-btn-text">
+          <strong>Entrar na Sala de Leitura</strong>
+          <small>Leitura coletiva guiada ao vivo</small>
+        </span>
+        <span class="sala-leitura-btn-arrow">→</span>
+      </button>
+
       <div class="leit-book-grid" id="leitBookGrid"></div>
+    </div>
+  </div>
+
+  <!-- Pop-up Sala de Leitura — pergunta se já participou hoje -->
+  <div class="sala-popup-overlay" id="salaPopupOverlay" aria-hidden="true">
+    <div class="sala-popup" role="dialog" aria-modal="true" aria-labelledby="salaPopupTitle">
+      <div class="sala-popup-emoji">📖</div>
+      <h2 class="sala-popup-title" id="salaPopupTitle">VOCÊ JÁ PARTICIPOU<br/>DA SALA DE LEITURA HOJE?</h2>
+      <p class="sala-popup-sub">A leitura coletiva guiada ao vivo que rola após as 20h.</p>
+      <div class="sala-popup-actions">
+        <button class="sala-popup-btn sala-popup-btn--no"  type="button" onclick="_leitSalaPopupResponder(false)">NÃO</button>
+        <button class="sala-popup-btn sala-popup-btn--yes" type="button" onclick="_leitSalaPopupResponder(true)">SIM, JÁ PARTICIPEI</button>
+      </div>
+      <button class="sala-popup-skip" type="button" onclick="_leitSalaPopupResponder(null)">decidir depois</button>
     </div>
   </div>
 

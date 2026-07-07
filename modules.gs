@@ -179,6 +179,8 @@ function handleRequest(payload) {
     case 'getAlunoData':             return getAlunoData(token);
     case 'marcarPilar':              return marcarPilar(token, data.pilar, data.valor);
     case 'getConteudoAluno':         return getConteudoAluno(token);
+    case 'saveMedProgress':          return saveMedProgress(token, data.elapsedSeconds, data.totalSeconds);
+    case 'getMedProgress':           return getMedProgress(token);
     case 'registrarCheckinWeb':      return registrarCheckinWeb(token);
     case 'reiniciarDesafio':         return reiniciarDesafio(token);
     case 'getAudioBase64':           return getAudioBase64(token, data.fileId);
@@ -212,6 +214,11 @@ function handleRequest(payload) {
     // Reabertura de acesso (público — sem token)
     case 'reaberturaAccess':         return reaberturaAccess(data.email);
 
+    // Trial gratuito (público — sem token)
+    case 'registrarTrial':           return registrarTrial_(data);
+    case 'salvarLeadIncompleto':     return salvarLeadIncompleto_(data);
+    case 'trackVsl':                 return trackVsl_(data);
+
     // Eventos (CRUD)
     case 'getEventoBySlug':          return getEventoBySlug(data.slug);
     case 'trackPageEvent':           return trackPageEvent(data);
@@ -232,10 +239,22 @@ function handleRequest(payload) {
     case 'enviarMensagemGrupo':  return enviarMensagemGrupo(token, data.content);
 
     // Ingressos — Check-in do Seminário (público — sem token)
-    case 'verificarIngresso':    return verificarIngressoUUID_(data.uuid);
+    case 'verificarIngresso':    return verificarIngressoUUID_(data.uuid, data.staff);
 
     // Assinaturas — Ciclo de vida Cakto ↔ App
     case 'getAssinaturaInfo':         return getAssinaturaInfo(token);
+    case 'getAssinaturaDetalhe':      return getAssinaturaDetalhe(token);
+    case 'cancelarAssinatura':        return cancelarAssinatura(token);
+    case 'getStripePortal':           return getStripePortal(token);
+    case 'criarCheckoutStripe':       return criarCheckoutStripe(data);
+
+    // DIAGNÓSTICO TEMPORÁRIO (remover depois)
+    case 'diagEmailSample': {
+      var _al = []; try { _al = GmailApp.getAliases(); } catch(e) {}
+      var _para = (data && data.to) || 'ads.deyvid@gmail.com';
+      var _diag = _enviarBoasVindasTrial_(_para, 'David Ramon', 'Foco#482', 7);
+      return { ok: true, enviadoPara: _para, aliasesDoScript: _al, diag: _diag };
+    }
     case 'setupAssinaturaTrigger':    return setupAssinaturaTrigger();
     case 'setupReconciliacaoTrigger': return setupReconciliacaoTrigger();
     case 'rodarReconciliacao':        return rodarReconciliacaoAgora();
