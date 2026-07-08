@@ -2909,8 +2909,9 @@ async function loadAlunoData(silent) {
         return;
       }
       if (mode === 'admin') {
-        // Preferência salva: ir direto para CRM
-        window.location.href = _ADMIN_CRM_URL;
+        // Preferência salva: ir direto pro painel admin (Firebase Hosting)
+        var _t = (APP && APP.token) || (sessionStorage.getItem('app_token') || '');
+        window.location.href = '/admin/' + (_t ? '?token=' + encodeURIComponent(_t) : '');
         return;
       }
       // mode === 'aluno': continua normalmente como preview
@@ -4525,7 +4526,9 @@ async function doLogout() {
 // ════════════════════════════════════════════════════════════
 // ADMIN SELECTOR — seletor de painel ao entrar com conta admin
 // ════════════════════════════════════════════════════════════
-var _ADMIN_CRM_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+// Admin vive agora em Firebase Hosting (mesma origem, sem sandbox) — evita o bug de redirect bloqueado pelo GAS.
+// Mantém fallback pro GAS pra clientes antigos (caso o /admin/ ainda não tenha carregado por cache).
+var _ADMIN_CRM_URL_FALLBACK = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
 
 // Mostra o seletor de painel para admin (chamado em loadAlunoData quando role=admin e modo não escolhido)
 function _showAdminSelector() {
@@ -4554,16 +4557,27 @@ function _adminEnterAluno() {
   renderInicio();
 }
 
-// Opção 2: ir para o painel administrativo (CRM GAS)
+// Opção 2: ir para o painel administrativo (Firebase Hosting — mesma origem, sem sandbox)
 function _adminEnterAdmin() {
   try { sessionStorage.setItem('crm_mode', 'admin'); } catch(e) {}
-  window.location.href = _ADMIN_CRM_URL;
+  try {
+    // passa o token do admin via URL pro /admin/ auto-logar (sem precisar re-digitar senha)
+    var t = (APP && APP.token) || (sessionStorage.getItem('app_token') || '');
+    window.location.href = '/admin/' + (t ? '?token=' + encodeURIComponent(t) : '');
+  } catch (e) {
+    window.location.href = _ADMIN_CRM_URL_FALLBACK;
+  }
 }
 
 // Switch rápido para admin (botão no perfil) — volta ao selector
 function _switchToAdminPanel() {
   try { sessionStorage.removeItem('crm_mode'); } catch(e) {}
-  window.location.href = _ADMIN_CRM_URL;
+  try {
+    var t = (APP && APP.token) || (sessionStorage.getItem('app_token') || '');
+    window.location.href = '/admin/' + (t ? '?token=' + encodeURIComponent(t) : '');
+  } catch (e) {
+    window.location.href = _ADMIN_CRM_URL_FALLBACK;
+  }
 }
 
 // ════════════════════════════════════════════════════════════
