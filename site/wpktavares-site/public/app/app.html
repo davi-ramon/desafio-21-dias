@@ -3052,12 +3052,134 @@ async function _carregarAssinaturaDetalhe() {
   if (!body) return;
   body.innerHTML = _assinaturaLoadingHTML();
   try {
-    var r = await rpc('getAssinaturaDetalhe', {});
-    if (!r || !r.ok || !r.data) throw new Error((r && r.error) || 'Falha ao carregar.');
-    APP.subDetalhe = r.data;
-    _renderAssinaturaConteudo(r.data);
+    // v96: hubs unificado (sabemos provider+urls Stripe/Cakto)
+    var [det, hub] = await Promise.all([
+      rpc('getAssinaturaDetalhe', {}),
+      rpc('getAssinaturaHub', {}).catch(function(){ return { ok: false }; })
+    ]);
+    if (!det || !det.ok || !det.data) throw new Error((det && det.error) || 'Falha ao carregar.');
+    APP.subDetalhe = det.data;
+    APP.subHub = (hub && hub.ok) ? hub.data : null;
+    _renderAssinaturaConteudo(det.data);
+    _renderAssinaturaHub();
   } catch (e) {
     body.innerHTML = _assinaturaErroHTML('Não foi possível carregar os dados da sua assinatura agora. Verifique sua conexão e tente novamente.');
+  }
+}
+
+// Renderiza os 2 cards (Cakto + Stripe) com base no provider atual.
+// v96: gateway-agnostic. Provider ativo recebe botão "Gerenciar X".
+// Provider inativo (secundario) recebe "Migrar para X".
+function _renderAssinaturaHub() {
+  var hub = APP.subHub;
+  if (!hub) return;
+  var body = document.getElementById('assinaturaBody');
+  if (!body) return;
+
+  var _isMobile = window.innerWidth < 768;
+  var _gridStyle = _isMobile
+    ? 'display:flex;flex-direction:column;gap:10px;margin-top:14px'
+    : 'display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px';
+
+  // SVG icone pequeno (sem emojis)
+  var _checkIcon = '<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--green);color:#fff;font-size:9px;font-weight:700;line-height:14px;text-align:center">✓</span>';
+
+  var prov = hub.provider || 'cakto';
+  var caktoActive = prov === 'cakto';
+  var stripeActive = prov === 'stripe';
+
+  var cards = [];
+
+  // ── Card CAKTO ──
+  cards.push('<div style="background:var(--surface);border:1px solid ' + (caktoActive ? 'var(--green)' : 'var(--border)') + ';border-radius:18px;padding:16px;position:relative;transition:border-color .2s;box-shadow:0 1px 6px rgba(0,0,0,.3)">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+      '<img src="https://i.imgur.com/wvtkMYu.jpeg" alt="Cakto" style="width:36px;height:36px;border-radius:10px;object-fit:cover;background:var(--surface2)">' +
+      '<div style="flex:1">' +
+        '<div style="font-size:13px;font-weight:800;color:var(--cream)">Cakto</div>' +
+        '<div style="font-size:11px;color:var(--muted)">' +
+          (caktoActive ? _checkIcon + ' Provedor atual' : 'Sua assinatura anterior') +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="font-size:12.5px;color:var(--text2);line-height:1.45;margin-bottom:14px">' +
+      (caktoActive
+        ? 'Continue gerenciando sua assinatura atual pela Cakto. Use o portal oficial para trocar cartão ou ver faturas.'
+        : 'Continue gerenciando sua assinatura anterior pela Cakto (caso ainda esteja ativa).') +
+    '</div>' +
+    (caktoActive
+      ? '<button style="width:100%;padding:11px;border-radius:10px;background:'+(caktoActive?'var(--green)':'transparent')+';color:#000;font-weight:800;font-size:13px;border:1px solid '+(caktoActive?'var(--green)':'var(--border)')+';cursor:pointer" onclick="_abrirPortalCakto()">Gerenciar assinatura na Cakto</button>'
+      : '<button style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer" onclick="_abrirPortalCakto()">Abrir portal Cakto</button>') +
+  '</div>');
+
+  // ── Card STRIPE ──
+  cards.push('<div style="background:var(--surface);border:1px solid ' + (stripeActive ? 'var(--green)' : 'var(--border)') + ';border-radius:18px;padding:16px;position:relative;transition:border-color .2s;box-shadow:0 1px 6px rgba(0,0,0,.3)">' +
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+      '<img src="https://i.imgur.com/qsRmXI5.jpeg" alt="Stripe" style="width:36px;height:36px;border-radius:10px;object-fit:cover;background:var(--surface2)">' +
+      '<div style="flex:1">' +
+        '<div style="font-size:13px;font-weight:800;color:var(--cream)">Stripe</div>' +
+        '<div style="font-size:11px;color:var(--muted)">' +
+          (stripeActive ? _checkIcon + ' Provedor atual' : 'Migre quando quiser') +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="font-size:12.5px;color:var(--text2);line-height:1.45;margin-bottom:14px">' +
+      (stripeActive
+        ? 'Gerencie pagamento, cartão e faturas pelo portal do cliente Stripe.'
+        : 'Migrar sua assinatura para Stripe e gerenciar pagamentos por lá. Checkout rápido, mesmo plano, sem cartão duplicado.') +
+    '</div>' +
+    (stripeActive
+      ? '<button style="width:100%;padding:11px;border-radius:10px;background:var(--green);color:#000;font-weight:800;font-size:13px;border:none;cursor:pointer" onclick="_abrirPortalStripe()">Gerenciar assinatura no Stripe</button>'
+      : '<button style="width:100%;padding:11px;border-radius:10px;background:var(--green);color:#000;font-weight:800;font-size:13px;border:none;cursor:pointer" onclick="_migrarParaStripe()">Migrar para Stripe</button>') +
+  '</div>');
+
+  var tituloSec = '<div style="margin-top:18px;margin-bottom:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Gerenciar assinatura</div>';
+
+  // Rodapé — fonte do pagamento
+  var fonte = stripeActive
+    ? '<i data-lucide="shield-check" style="width:11px;height:11px;vertical-align:middle;color:#635bff;margin-right:3px"></i>Pagamento gerenciado com segurança pelo Stripe'
+    : '<i data-lucide="shield-check" style="width:11px;height:11px;vertical-align:middle;color:#2e7d32;margin-right:3px"></i>Pagamento gerenciado com segurança pela Cakto';
+
+  // Insere no body (depois das acoes existentes)
+  var footerP = body.querySelector('.assinatura-footer');
+  if (!footerP) {
+    footerP = document.createElement('div');
+    footerP.className = 'assinatura-footer';
+    footerP.style.cssText = 'margin-top:18px;border-top:1px solid var(--border);padding-top:14px;font-size:11px;color:var(--muted);text-align:center';
+    body.appendChild(footerP);
+  }
+  footerP.innerHTML = tituloSec +
+    '<div style="' + _gridStyle + '">' + cards.join('') + '</div>' +
+    '<div style="margin-top:14px;font-size:11px;color:var(--muted)">' + fonte + '</div>';
+
+  // Re-aplica Lucide nos icones injetados
+  if (window.lucide && lucide.createIcons) {
+    try { lucide.createIcons(); } catch (e) {}
+  }
+}
+
+function _abrirPortalCakto() {
+  var hub = APP.subHub || {};
+  var url = (hub.cakto && hub.cakto.portalUrl) || 'https://aluno.cakto.com.br';
+  try { window.open(url, '_blank', 'noopener,noreferrer'); } catch (e) { window.location.href = url; }
+}
+
+async function _abrirPortalStripe() {
+  var r = await rpc('getStripePortal', {});
+  if (r && r.ok && r.data && r.data.url) {
+    try { window.open(r.data.url, '_blank', 'noopener,noreferrer'); } catch (e) { window.location.href = r.data.url; }
+  } else {
+    toast('Não foi possível abrir o portal Stripe agora.', 'error');
+  }
+}
+
+async function _migrarParaStripe() {
+  if (!confirm('Migrar para Stripe?\n\nAbrimos o checkout do Stripe para você. Sua assinatura Cakto será cancelada automaticamente após confirmar o pagamento.')) return;
+  showStatus && showStatus('Gerando checkout Stripe...', 'loading');
+  var r = await rpc('iniciarMigracaoStripe', { plan: (APP.subHub && APP.subHub.plano) || 'monthly' });
+  if (r && r.ok && r.url) {
+    try { window.location.href = r.url; } catch (e) { window.open(r.url, '_blank'); }
+  } else {
+    toast((r && r.error) || 'Erro ao iniciar migracao.', 'error');
   }
 }
 

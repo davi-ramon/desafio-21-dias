@@ -271,6 +271,8 @@ function handleRequest(payload) {
     case 'cancelarAssinatura':        return cancelarAssinatura(token);
     case 'getStripePortal':           return getStripePortal(token);
     case 'criarCheckoutStripe':       return criarCheckoutStripe(data);
+    case 'getAssinaturaHub':          return getAssinaturaHub(token);
+    case 'iniciarMigracaoStripe':    return iniciarMigracaoStripe(token, data);
 
     // DIAGNÓSTICO TEMPORÁRIO (remover depois)
     case 'diagEmailSample': {
