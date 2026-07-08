@@ -2866,20 +2866,34 @@ window.addEventListener('load', function() {
     return;
   }
 
-  // v98: detecta retorno do checkout Stripe (?assinatura=sucesso|cancelada)
-  // ANTES de limpar a URL. Dispara toast/refresh na tela de assinatura.
+  // v99: handler centralizado de retorno do Stripe/Checkout.
+  // Suporta 2 formatos de URL (legado + novo):
+  //   Legado v98: ?assinatura=sucesso|cancelada  (SEMPRE tenta abrir tela de assinatura)
+  //   Novo v99:   ?view=assinatura&checkout=sucesso|cancelado&provider=stripe
+  //
+  // O Stripe envia URL baseada em metadata (origin='app' ou 'planos').
+  // Aqui normalizamos para que SEMPRE leve ao app (SPA), nunca a /planos
+  // (porque /planos nao tem sessao e o usuario cairia no login).
   try {
     var qp = new URLSearchParams(location.search);
-    var status = qp.get('assinatura');
+    var status = qp.get('checkout') || qp.get('assinatura'); // novo + legado
+    var view   = qp.get('view');
+    var provider = qp.get('provider') || 'stripe';
+
     if (status === 'sucesso') {
-      // toast é mostrado pela renderAssinatura() depois do load
       APP._stripeReturnStatus = 'sucesso';
-    } else if (status === 'cancelada') {
+      APP._stripeReturnProvider = provider;
+    } else if (status === 'cancelada' || status === 'cancelado') {
       APP._stripeReturnStatus = 'cancelada';
+    }
+
+    // v99: se view=assinatura (vindo de /planos via app), abrir tela
+    if (view === 'assinatura') {
+      APP._stripeReturnView = 'assinatura';
     }
   } catch(e) {}
 
-  // Mantém a URL limpa (sem parâmetros de token do GAS)
+  // Limpa a URL (remove parametros de retorno)
   try { history.replaceState({}, '', '/app'); } catch(e) {}
 
   const av = APP.userName ? APP.userName[0].toUpperCase() : 'A';
@@ -2887,16 +2901,21 @@ window.addEventListener('load', function() {
   loadAlunoData();
   loadNotificacoesBackground();
 
-  // v98: se voltou do Stripe, navega para a tela de assinatura e mostra status
-  if (APP._stripeReturnStatus) {
+  // v98/v99: se voltou do Stripe, navega para a tela de assinatura e mostra status
+  if (APP._stripeReturnStatus || APP._stripeReturnView) {
     setTimeout(function() {
       try { navigate('assinatura'); } catch(e) {}
       if (APP._stripeReturnStatus === 'sucesso') {
-        setTimeout(function() { toast('Pagamento confirmado! Sua assinatura foi atualizada.', 'success'); }, 1200);
+        setTimeout(function() {
+          var prov = APP._stripeReturnProvider || 'stripe';
+          toast('Pagamento confirmado! Sua assinatura ' + (prov === 'stripe' ? 'Stripe' : 'Cakto') + ' foi ativada.', 'success');
+        }, 1200);
       } else if (APP._stripeReturnStatus === 'cancelada') {
         setTimeout(function() { toast('Checkout cancelado. Voce pode tentar de novo quando quiser.', 'info'); }, 800);
       }
       APP._stripeReturnStatus = null;
+      APP._stripeReturnProvider = null;
+      APP._stripeReturnView = null;
     }, 600);
   }
 });
@@ -3090,6 +3109,16 @@ async function _carregarAssinaturaDetalhe() {
     APP.subHub = (hub && hub.ok) ? hub.data : null;
     _renderAssinaturaConteudo(det.data);
     _renderAssinaturaHub();
+    // v99: secao de upgrade (se for Stripe + plano nao-anual)
+    var _footerP = body.querySelector('.assinatura-footer');
+    if (_footerP) {
+      var _up = _renderUpgradeSection();
+      if (_up) {
+        var _wrap = document.createElement('div');
+        _wrap.innerHTML = _up;
+        _footerP.parentNode.insertBefore(_wrap.firstElementChild, _footerP.nextSibling);
+      }
+    }
   } catch (e) {
     body.innerHTML = _assinaturaErroHTML('Não foi possível carregar os dados da sua assinatura agora. Verifique sua conexão e tente novamente.');
   }
@@ -3197,6 +3226,81 @@ async function _abrirPortalStripe() {
     try { window.open(r.data.url, '_blank', 'noopener,noreferrer'); } catch (e) { window.location.href = r.data.url; }
   } else {
     toast('Não foi possível abrir o portal Stripe agora.', 'error');
+  }
+}
+
+// v99: secao "Melhore seu plano" — cards de upgrade com proration
+// So aparece se provider=stripe (Cakto nao suporta proration dinamica).
+function _renderUpgradeSection() {
+  var hub = APP.subHub;
+  if (!hub || hub.provider !== 'stripe') return ''; // so Stripe tem portal
+  if (!hub.stripe || !hub.stripe.portalUrl) return ''; // sem portal ainda
+  var atualKey = _planKeyFromPlano_(hub.plano || 'Mensal');
+  // upgradeMatrix: para cada plano, quais sao as opcoes de upgrade
+  var UPGRADES = {
+    monthly:   { to: 'quarterly', label: 'Trimestral', price: 'R$ 47', save: 'R$ 4 vs mensal' },
+    quarterly: { to: 'yearly',    label: 'Anual',     price: 'R$ 177', save: 'R$ 27 vs trimestral' },
+    yearly:    null  // ja eh o melhor
+  };
+  var upgrade = UPGRADES[atualKey];
+  if (!upgrade) return ''; // anual ja
+
+  // Secao de upgrade
+  var html =
+    '<div style="margin-top:22px;border-top:1px solid var(--border);padding-top:18px">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+        '<i data-lucide="trending-up" style="width:18px;height:18px;color:#4caf50"></i>' +
+        '<div style="font-size:14px;font-weight:800;color:var(--cream)">Melhore seu plano</div>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.4">' +
+        'Faca upgrade com <strong>credito proporcional</strong> do seu plano atual. Voce so paga a diferenca ate o fim do periodo ja pago.' +
+      '</div>' +
+      '<div onclick="_upgradeStripePlan(\'' + upgrade.to + '\')" ' +
+        'style="background:linear-gradient(135deg,rgba(76,175,80,0.10),rgba(46,125,50,0.05));border:1.5px solid #4caf50;border-radius:14px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:transform .15s ease,box-shadow .15s ease" ' +
+        'onmouseenter="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 20px rgba(76,175,80,0.18)\'" ' +
+        'onmouseleave="this.style.transform=\'\';this.style.boxShadow=\'\'">' +
+        '<div style="flex:1">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">' +
+            '<div style="font-size:14px;font-weight:800;color:var(--cream)">Plano ' + upgrade.label + '</div>' +
+            '<span style="background:rgba(76,175,80,0.18);color:#6dde71;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:.5px">RECOMENDADO</span>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--muted)">' +
+            '<strong style="color:var(--cream)">' + upgrade.price + '</strong> · ' + upgrade.save +
+          '</div>' +
+        '</div>' +
+        '<div style="background:#4caf50;color:#000;font-weight:800;font-size:12px;padding:8px 14px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;gap:4px">' +
+          'Mudar <i data-lucide="arrow-right" style="width:13px;height:13px"></i>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  return html;
+}
+
+async function _upgradeStripePlan(newPlan) {
+  if (!APP.subHub || APP.subHub.provider !== 'stripe') {
+    toast('Upgrade so disponivel para assinaturas Stripe. Migre primeiro.', 'info');
+    return;
+  }
+  var go = await appConfirm({
+    title: 'Mudar para ' + (newPlan === 'yearly' ? 'Anual' : 'Trimestral') + '?',
+    body: 'Voce sera redirecionado para o portal do Stripe onde a troca sera aplicada com credito proporcional. Nenhuma cobranca extra hoje — so a diferenca proporcional.',
+    icon: '<i data-lucide="trending-up" style="width:24px;height:24px"></i>',
+    confirmLabel: 'Abrir portal Stripe',
+    cancelLabel: 'Agora não'
+  });
+  if (!go) return;
+  // Tenta Customer Portal (que suporta troca de plano com proration).
+  // Se Stripe nao tiver portal configurado, faz fallback pra novo checkout.
+  var r = await rpc('getStripePortal', {});
+  if (r && r.ok && r.data && r.data.url) {
+    try { window.open(r.data.url, '_blank', 'noopener,noreferrer'); }
+    catch (e) { window.location.href = r.data.url; }
+    toast('No portal Stripe, escolha o novo plano. A troca ocorre com credito proporcional.', 'info');
+  } else {
+    // Fallback: checkout novo (pode gerar nova assinatura se user cancelar a antiga)
+    var msg = r && r.error ? r.error : 'Portal indisponivel.';
+    if (/nao configurado|indispon/i.test(msg)) msg = 'Portal Stripe ainda nao configurado. Fale com o suporte.';
+    toast(msg, 'error');
   }
 }
 
@@ -3359,7 +3463,13 @@ function _renderAssinaturaConteudo(data) {
   if (cancelada || bloqueada) {
     html += '<button style="width:100%;padding:12px;border-radius:10px;background:var(--green);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer" onclick="window.open(\'https://wpktavares.com.br/planos/\',\'_blank\')">Assinar novamente</button>';
   } else {
-    html += '<button style="width:100%;padding:12px;border-radius:10px;background:var(--green);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer" onclick="_abrirPortalCakto()">Atualizar cartão / método de pagamento</button>';
+    // v99: botao provider-aware (Cakto ou Stripe)
+    var _provider = (APP.subHub && APP.subHub.provider) || 'cakto';
+    if (_provider === 'stripe') {
+      html += '<button style="width:100%;padding:12px;border-radius:10px;background:var(--green);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer" onclick="_abrirPortalStripe()">Atualizar cartao / metodo de pagamento</button>';
+    } else {
+      html += '<button style="width:100%;padding:12px;border-radius:10px;background:var(--green);color:#000;font-weight:700;font-size:13px;border:none;cursor:pointer" onclick="_abrirPortalCakto()">Atualizar cartao / metodo de pagamento</button>';
+    }
   }
   if (data.faturas && data.faturas.length) {
     html += '<button style="width:100%;padding:11px;border-radius:10px;background:transparent;border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:13px;cursor:pointer" onclick="_toggleFaturas()">Histórico de cobrança ('+data.faturas.length+')</button>';
@@ -6479,7 +6589,7 @@ function admEvEdit(id) {
   admEvShowForm(ev);
 }
 
-function admEvDelete(id, nome) {
+async function admEvDelete(id, nome) {
   // v98: modal custom
   var ok = await appConfirm({
     title: 'Excluir evento?',

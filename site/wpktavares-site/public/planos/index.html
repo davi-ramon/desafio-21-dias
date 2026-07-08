@@ -439,7 +439,7 @@
     fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      body: JSON.stringify({ action: 'criarCheckoutStripe', token: getToken(), data: { plan: plan } }),
+      body: JSON.stringify({ action: 'criarCheckoutStripe', token: getToken(), data: { plan: plan, origin: 'planos', intent: 'new' } }),
       redirect: 'follow'
     })
     .then(function(r) { return r.json(); })

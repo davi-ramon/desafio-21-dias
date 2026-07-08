@@ -19,9 +19,12 @@ var STRIPE_PRICES = {
   quarterly: 'price_1TpShpFbaBx75eKpYfCFZbaZ',  // R$47/trim
   yearly:    'price_1TpShqFbaBx75eKpiExujEAS',  // R$177/ano
 };
-var STRIPE_RETURN_URL  = 'https://app.wpktavares.com.br/app/perfil/assinatura';
-var STRIPE_SUCCESS_URL = 'https://app.wpktavares.com.br/app/perfil/assinatura?assinatura=sucesso';
-var STRIPE_CANCEL_URL  = 'https://app.wpktavares.com.br/app/perfil/assinatura?assinatura=cancelada';
+var STRIPE_RETURN_URL       = 'https://app.wpktavares.com.br/app?view=assinatura';
+var STRIPE_SUCCESS_URL      = 'https://app.wpktavares.com.br/app?view=assinatura&checkout=sucesso&provider=stripe';
+var STRIPE_CANCEL_URL       = 'https://app.wpktavares.com.br/app?view=assinatura&checkout=cancelado&provider=stripe';
+// v99: URLs para /planos (iniciadas da pagina de planos, nao da SPA)
+var STRIPE_PLANOS_SUCCESS_URL = 'https://wpktavares.com.br/planos?checkout=sucesso&provider=stripe';
+var STRIPE_PLANOS_CANCEL_URL  = 'https://wpktavares.com.br/planos?checkout=cancelado';
 
 // ── Config / setup ───────────────────────────────────────────
 function _stripeKey_() {
@@ -282,7 +285,7 @@ function getStripePortal(token) {
   if (sub._error) return { ok: false, error: 'Não foi possível abrir o portal agora. Tente novamente.' };
 
   var sess = _stripeCall_('post', '/v1/billing_portal/sessions', {
-    customer: sub.customer, return_url: STRIPE_RETURN_URL, locale: 'pt-BR',
+    customer: sub.customer, return_url: STRIPE_SUCCESS_URL, locale: 'pt-BR',
   });
   if (sess._error) {
     var precisaConfig = /configuration/i.test(sess.message || '');
@@ -319,7 +322,8 @@ function setupStripeStatus() {
 
 // ─────────────────────────────────────────────────────────────
 // ROTA (pública): criarCheckoutStripe — cria sessão de checkout
-// data: { plan:'monthly|quarterly|yearly', trialDays:0|7|14|21, email? }
+// data: { plan:'monthly|quarterly|yearly', trialDays:0|7|14|21,
+//         email?, origin?: 'app'|'planos', intent?: 'new'|'migration'|'upgrade' }
 // ─────────────────────────────────────────────────────────────
 function criarCheckoutStripe(data) {
   if (!stripeConfigurado_()) return { ok: false, error: 'Pagamento indisponível no momento.' };
@@ -328,18 +332,41 @@ function criarCheckoutStripe(data) {
   var trial = parseInt((data && data.trialDays) || 0);
   if ([7, 14, 21].indexOf(trial) < 0) trial = 0;
 
+  // v99: URLs dinamicas baseadas na origem do checkout.
+  // origin 'planos' = URL absoluta para /planos (SEM view, sem SPA)
+  // origin 'app'   = URL para /app (SPA interpreta ?view=assinatura)
+  // legado (sem origin) = comportamento v98 (vai pra /app)
+  var origin = String((data && data.origin) || 'app').toLowerCase();
+  var intent = String((data && data.intent) || 'new').toLowerCase();
+  var successUrl, cancelUrl;
+  if (origin === 'planos') {
+    successUrl = STRIPE_PLANOS_SUCCESS_URL;
+    cancelUrl = STRIPE_PLANOS_CANCEL_URL;
+  } else {
+    successUrl = STRIPE_SUCCESS_URL;
+    cancelUrl = STRIPE_CANCEL_URL;
+  }
+
   var params = {
     'mode': 'subscription',
     'line_items[0][price]': price,
     'line_items[0][quantity]': '1',
-    'success_url': STRIPE_SUCCESS_URL,
-    'cancel_url': STRIPE_CANCEL_URL,
+    'success_url': successUrl,
+    'cancel_url': cancelUrl,
     'allow_promotion_codes': 'true',
     'locale': 'pt-BR',
     'billing_address_collection': 'auto',
   };
   if (data && data.email) params['customer_email'] = String(data.email);
   if (trial > 0) params['subscription_data[trial_period_days]'] = String(trial);
+
+  // v99: metadata para o webhook saber o que fazer (origem + intent)
+  if (data && data.email) {
+    params['metadata[email]'] = String(data.email);
+  }
+  params['metadata[origin]'] = origin;
+  params['metadata[intent]'] = intent;
+  params['metadata[plan]']   = plan;
 
   var resp = _stripeCall_('post', '/v1/checkout/sessions', params);
   if (resp._error) return { ok: false, error: resp.message || 'Erro ao abrir checkout.' };
