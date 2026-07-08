@@ -640,6 +640,24 @@
 
 <!-- ══ SCRIPTS ══ -->
 <script>
+
+// v101: handler de retorno do Stripe (cada landing volta para ELA MESMA)
+try {
+  var qp = new URLSearchParams(location.search);
+  var st = qp.get("checkout");
+  if (st === "sucesso" || st === "cancelado") {
+    history.replaceState({}, "", location.pathname);
+    setTimeout(function() {
+      var txt = st === "sucesso" ? "Pagamento confirmado. Bem-vindo ao Desafio 21 Dias." : "Checkout cancelado. Pode tentar de novo quando quiser.";
+      var el = document.createElement("div");
+      el.style.cssText = "position:fixed;top:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;padding:14px 22px;border-radius:14px;font-size:14px;font-weight:700;box-shadow:0 10px 30px rgba(76,175,80,0.35);z-index:99999;animation:landToast 0.3s ease";
+      el.textContent = txt;
+      document.body.appendChild(el);
+      setTimeout(function() { el.remove(); }, 5000);
+    }, 600);
+  }
+} catch (e) {}
+
 (function() {
   'use strict';
 
@@ -728,7 +746,7 @@
     fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      body: JSON.stringify({ action: 'criarCheckoutStripe', token: getToken(), data: { plan: plan, origin: 'planos', intent: 'new' } }),
+      body: JSON.stringify({ action: 'criarCheckoutStripe', token: getToken(), data: { plan: plan, origin: 'custom', intent: 'new', returnUrl: location.href.split('#')[0] } }),
       redirect: 'follow'
     })
     .then(function(r) { return r.json(); })

@@ -332,16 +332,29 @@ function criarCheckoutStripe(data) {
   var trial = parseInt((data && data.trialDays) || 0);
   if ([7, 14, 21].indexOf(trial) < 0) trial = 0;
 
-  // v99: URLs dinamicas baseadas na origem do checkout.
-  // origin 'planos' = URL absoluta para /planos (SEM view, sem SPA)
-  // origin 'app'   = URL para /app (SPA interpreta ?view=assinatura)
-  // legado (sem origin) = comportamento v98 (vai pra /app)
+  // v101: URLs dinamicas baseadas na origem.
+  //   origin 'app'     = SPA (usa STRIPE_SUCCESS_URL com view=assinatura)
+  //   origin 'planos'  = URL absoluta para /planos
+  //   origin 'custom'  = URL passada via data.returnUrl (landing envia sua propria URL exata)
+  // Cada landing agora pode voltar PRA ELA MESMA ao cancelar/sucesso.
   var origin = String((data && data.origin) || 'app').toLowerCase();
   var intent = String((data && data.intent) || 'new').toLowerCase();
   var successUrl, cancelUrl;
   if (origin === 'planos') {
     successUrl = STRIPE_PLANOS_SUCCESS_URL;
     cancelUrl = STRIPE_PLANOS_CANCEL_URL;
+  } else if (origin === 'custom' && data && data.returnUrl) {
+    // v101: valida dominio confiavel (whitelist).
+    var _u = String(data.returnUrl);
+    if (function(_u){ try { var _h = new URL(_u); return _h.protocol === 'https:' && new RegExp('//(app|www)?.?wpktavares.com.br/?').test(_h.host); } catch (e) { return false; } }(_u)) {
+      var _sep = _u.indexOf(String.fromCharCode(63)) >= 0 ? '&' : String.fromCharCode(63);
+      successUrl = _u + _sep + 'checkout=sucesso&provider=stripe';
+      cancelUrl  = _u + _sep + 'checkout=cancelado&provider=stripe';
+    } else {
+      // dominio nao confiavel -> cai no default app
+      successUrl = STRIPE_SUCCESS_URL;
+      cancelUrl  = STRIPE_CANCEL_URL;
+    }
   } else {
     successUrl = STRIPE_SUCCESS_URL;
     cancelUrl = STRIPE_CANCEL_URL;
