@@ -1105,27 +1105,48 @@ button,
 <!-- Lucide Icons (biblioteca SVG monocromática open-source, ~3000 icones) -->
 <script src="https://unpkg.com/lucide@latest"></script>
 <script>
-  // Helper: substitui <i data-lucide="name"></i> por <svg> injetado pela Lucide.
-  // Re-renderiza a cada atualizacao dinamica do DOM.
-  function renderIcons() {
-    if (window.lucide && typeof lucide.createIcons === 'function') {
-      try { lucide.createIcons(); } catch (e) { console.warn('lucide createIcons:', e); }
-    }
+  // Renderiza icones Lucide (idempotente: marca cada <i data-lucide> ja processado).
+  // FIX v92: NAO usa MutationObserver generico (causava loop infinito quando Lucide
+  // substituia <i> por <svg>, gerando mais mutacoes, re-disparando o observer).
+  // Solucao: processa uma vez no load e expoe helper explicito renderIcons(root)
+  // para chamar apos renders conhecidos (renderAutomacoes, renderPipeline etc).
+  function _processIcons(root) {
+    root = root || document;
+    if (!window.lucide || typeof lucide.createIcons !== 'function') return;
+    var nodes = root.querySelectorAll ? root.querySelectorAll('i[data-lucide]:not([data-lucide-done])') : [];
+    if (nodes.length === 0) return;
+    nodes.forEach(function(n) { n.setAttribute('data-lucide-done', '1'); });
+    try { lucide.createIcons({ attrs: {}, nameAttr: 'data-lucide' }); }
+    catch (e) { console.warn('lucide createIcons:', e); }
   }
-  // Re-aplica apos cada render de secao.
-  if (window.MutationObserver) {
-    const mo = new MutationObserver(function() { renderIcons(); });
-    document.addEventListener('DOMContentLoaded', function() {
+  // Renderiza apos DOM pronto + apos cada grande render de secao.
+  document.addEventListener('DOMContentLoaded', function() {
+    _processIcons(document);
+    // Observador com DEBOUNCE + FILTRO: so dispara quando aparece um novo
+    // <i data-lucide> que ainda nao foi processado. Sem debounce, 100+ substituicoes
+    // em loop travavam a thread principal (Chrome matava a pagina).
+    if (window.MutationObserver) {
+      var pending = false;
+      var mo = new MutationObserver(function() {
+        if (pending) return;
+        pending = true;
+        // Debounce via microtask: agrupa varias mutacoes em 1 render
+        Promise.resolve().then(function() {
+          pending = false;
+          // Filtra: so processa se houver <i data-lucide> novo
+          var novos = document.querySelectorAll('i[data-lucide]:not([data-lucide-done])');
+          if (novos.length > 0) _processIcons(document);
+        });
+      });
       mo.observe(document.body, { childList: true, subtree: true });
-      renderIcons();
-    });
-  } else {
-    document.addEventListener('DOMContentLoaded', renderIcons);
-  }
-  // Expõe helper global para usar inline em strings HTML: lucideSvg('check', 16)
+    }
+  });
+  // Helper global: use apos innerHTML dinamico, ex: _lucideRefresh(document.body)
+  function _lucideRefresh(root) { _processIcons(root); }
+  // Helper para strings HTML inline: lucideSvg('check', 16)
   function lucideSvg(name, size) {
     size = size || 16;
-    return '<i data-lucide="' + name + '" style="width:' + size + 'px;height:' + size + 'px;display:inline-block;vertical-align:middle"></i>';
+    return '<i data-lucide="' + name + '" data-lucide-done="1" style="width:' + size + 'px;height:' + size + 'px;display:inline-block;vertical-align:middle"></i>';
   }
 </script>
 
