@@ -1161,7 +1161,7 @@ button,
   </div>
 
   <div class="sidebar-footer">
-    <div class="user-pill">
+    <div class="user-pill" id="userPillEl" onclick="openMyProfile()" role="button" tabindex="0" title="Meu Perfil">
       <div class="avatar-sm" id="avatarEl">A</div>
       <div class="user-info">
         <div class="user-name-text" id="userNameEl">—</div>
@@ -1280,6 +1280,25 @@ const STAGE_BG     = ['rgba(76,175,80,0.14)','rgba(59,130,246,0.14)','rgba(245,1
 // ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
+// v95: Padrao de fila para Google Charts. setOnLoadCallback so pode ser
+// chamado UMA vez apos load() resolver. Solucao: load() chamado logo no
+// boot, callbacks subsequentes ficam em fila (_chartsPendingCbs) e sao
+// todos despachados quando a lib fica pronta. renderDashboard() usa
+// _whenChartsReady() que ja retorna sincronamente se lib estiver pronta.
+var _chartsReady = false;
+var _chartsPendingCbs = [];
+function _whenChartsReady(cb) {
+  if (_chartsReady && window.google && google.visualization) { cb(); return; }
+  _chartsPendingCbs.push(cb);
+}
+google.charts.load('current', { packages: ['corechart','bar','line'] });
+google.charts.setOnLoadCallback(function() {
+  _chartsReady = true;
+  console.info('[App] Google Charts carregado');
+  var cbs = _chartsPendingCbs; _chartsPendingCbs = [];
+  cbs.forEach(function(cb){ try { cb(); } catch(e) { console.warn('chart cb:', e); } });
+});
+
 window.addEventListener('load', function() {
   console.info('[App] window.load — token presente:', !!CRM.token);
   // v94: REMOVIDO redirect automatico por token ausente. O auth bootstrap
@@ -1292,8 +1311,6 @@ window.addEventListener('load', function() {
     return;
   }
 
-  google.charts.load('current', { packages: ['corechart','bar','line'] });
-  google.charts.setOnLoadCallback(function() { console.info('[App] Google Charts carregado'); });
 
   // Carrega UI imediatamente — não depende de initSheets
   loadUserInfo();
@@ -1822,8 +1839,11 @@ async function renderDashboard(dias) {
       '</div>' +
       '</div>';
 
-    google.charts.setOnLoadCallback(function() { drawStageChart(m.byStage, m.stages); drawTimelineChart(m.byDay); });
-    if (google.visualization) { drawStageChart(m.byStage, m.stages); drawTimelineChart(m.byDay); }
+    // v95: usa fila de charts (load foi chamado 1x no boot, nao mais por aqui)
+    _whenChartsReady(function() {
+      drawStageChart(m.byStage, m.stages);
+      drawTimelineChart(m.byDay);
+    });
 
   } catch(e) {
     console.error('[renderDashboard]', e);
@@ -1989,30 +2009,418 @@ function openViewContact(id) {
 }
 
 // ══════════════════════════════════════════════════════════
-// USERS
+// USERS (v95: avatar + perfil expandido)
 // ══════════════════════════════════════════════════════════
+
+// Helper: avatar HTML (img ou inicial do nome)
+function _avatarHtml(u, size) {
+  size = size || 36;
+  var src = u.avatar_url;
+  if (src) {
+    return '<img src="' + escHtml(src) + '" alt="" style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--surface2)">';
+  }
+  var initials = ((u.name || u.email || '?')[0] || '?').toUpperCase();
+  return '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:' + Math.round(size*0.42) + 'px;flex-shrink:0">' + initials + '</div>';
+}
+
 async function renderUsers() {
   try {
     const res = await rpc('getUsers', {});
     const users = res.ok ? res.data : [];
     const content = document.getElementById('content');
     content.style = '';
+
+    // Counters rapidos
+    var _admins = users.filter(function(u){ return u.role === 'admin'; }).length;
+    var _alunos = users.filter(function(u){ return u.role !== 'admin'; }).length;
+    var _ativos = users.filter(function(u){ return u.active; }).length;
+
     var _uRows = users.map(function(u) {
+      var _av = _avatarHtml(u, 40);
+      var _lastLogin = u.ultimo_login ? '<span style="font-size:11px;color:var(--muted)">' + fmtDate(u.ultimo_login) + '</span>' : '<span style="font-size:11px;color:var(--muted)">nunca</span>';
+      var _cargo = u.cargo ? '<span style="font-size:11px;color:var(--muted2)">' + escHtml(u.cargo) + '</span>' : '';
       return '<tr>' +
-        '<td style="font-weight:600">'  + escHtml(u.name  || '') + '</td>' +
-        '<td style="color:var(--muted)">' + escHtml(u.email || '') + '</td>' +
-        '<td><span class="tag ' + (u.role === 'admin' ? 'tag-0' : 'tag-1') + '">' + escHtml(u.role) + '</span></td>' +
+        '<td><div style="display:flex;align-items:center;gap:12px">' +
+          _av +
+          '<div>' +
+            '<div style="font-weight:600">' + escHtml(u.name||'') + '</div>' +
+            _cargo +
+          '</div>' +
+        '</div></td>' +
+        '<td style="color:var(--muted)">' + escHtml(u.email||'') + '</td>' +
+        '<td><span class="tag ' + (u.role === 'admin' ? 'tag-0' : 'tag-1') + '">' + escHtml(u.role||'') + '</span></td>' +
         '<td><span class="tag ' + (u.active ? 'tag-4' : 'tag-2') + '">' + (u.active ? 'Ativo' : 'Inativo') + '</span></td>' +
-        '<td style="color:var(--muted);font-size:12px">' + fmtDate(u.created_at) + '</td>' +
-        '<td><button class="btn btn-ghost btn-xs" onclick="openEditUser(\'' + escHtml(u.id) + '\',\'' + escHtml(u.name) + '\',\'' + escHtml(u.role) + '\',' + (u.active ? 'true' : 'false') + ')">Editar</button></td>' +
+        '<td>' + _lastLogin + '</td>' +
+        '<td><button class="btn btn-ghost btn-xs" onclick="openEditUserFull(\'' + escAttr(u.id) + '\')">Perfil completo</button></td>' +
         '</tr>';
     }).join('');
+
     content.innerHTML =
-      '<div class="card"><div class="table-wrap"><table>' +
-      '<thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th><th>Criado</th><th></th></tr></thead>' +
-      '<tbody>' + _uRows + '</tbody>' +
-      '</table></div></div>';
-  } catch(e) { toast('Erro ao carregar usuários.', 'error'); }
+      '<div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap">' +
+        _kpiCard('Total', users.length, 'users') +
+        _kpiCard('Admins', _admins, 'shield') +
+        _kpiCard('Alunos', _alunos, 'graduation-cap') +
+        _kpiCard('Ativos', _ativos, 'check-circle-2') +
+      '</div>' +
+      '<div class="card">' +
+        '<div class="table-wrap">' +
+          '<table>' +
+            '<thead><tr>' +
+              '<th>Usuário</th><th>E-mail</th><th>Papel</th><th>Status</th><th>Último login</th><th></th>' +
+            '</tr></thead>' +
+            '<tbody>' + _uRows + '</tbody>' +
+          '</table>' +
+        '</div>' +
+      '</div>';
+    _processIcons && _processIcons(document.getElementById('content'));
+  } catch(e) { toast('Erro ao carregar usuários.', 'error'); console.error(e); }
+}
+
+function _kpiCard(label, value, icon) {
+  return '<div style="flex:1;min-width:140px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px">' +
+    '<div style="width:36px;height:36px;border-radius:10px;background:var(--accent-l);display:inline-flex;align-items:center;justify-content:center">' +
+    '<i data-lucide="' + icon + '" style="width:18px;height:18px;color:var(--green)"></i>' +
+    '</div>' +
+    '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">' + label + '</div>' +
+    '<div style="font-size:22px;font-weight:800">' + value + '</div></div>' +
+  '</div>';
+}
+
+// Abre painel COMPLETO de edicao do usuario (abas: Dados, Contato, Seguranca)
+async function openEditUserFull(userId) {
+  var res = await rpc('getUserFull', { userId: userId });
+  if (!res.ok) { toast(res.error || 'Erro', 'error'); return; }
+  var u = res.profile || {};
+
+  var html =
+    '<div style="display:flex;align-items:center;gap:16px;padding:14px 0 16px;border-bottom:1px solid var(--border);margin-bottom:14px">' +
+      _avatarHtml(u, 72) +
+      '<div style="flex:1">' +
+        '<div style="font-size:18px;font-weight:800">' + escHtml(u.name || '(sem nome)') + '</div>' +
+        '<div style="color:var(--muted);font-size:13px">' + escHtml(u.email || '') + '</div>' +
+        '<div style="margin-top:6px;display:flex;gap:6px">' +
+          '<span class="tag ' + (u.role === 'admin' ? 'tag-0' : 'tag-1') + '">' + escHtml(u.role) + '</span>' +
+          '<span class="tag ' + (u.active ? 'tag-4' : 'tag-2') + '">' + (u.active ? 'Ativo' : 'Inativo') + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    // Aba 1: Dados pessoais
+    '<div id="tab_dados">' +
+      '<div class="form-row">' +
+        _pf('Nome completo',           'f_name',          u.name) +
+        _pf('Primeiro nome',          'f_primeiro_nome', u.primeiro_nome) +
+      '</div>' +
+      '<div class="form-row">' +
+        _pf('Sobrenome',              'f_sobrenome',     u.sobrenome) +
+        _pf('Apelido / Nome social',  'f_apelido',       u.apelido) +
+      '</div>' +
+      '<div class="form-row">' +
+        _pf('Cargo',                  'f_cargo',         u.cargo) +
+        _pf('Departamento',           'f_departamento',  u.departamento) +
+      '</div>' +
+      '<div class="form-row">' +
+        _pfArea('Biografia', 'f_bio', u.bio) +
+      '</div>' +
+    '</div>' +
+
+    // Aba 2: Contato (email EDITAVEL agora)
+    '<div id="tab_contato">' +
+      '<div class="form-row">' +
+        _pf('E-mail principal *', 'f_email', u.email) +
+        _pf('Telefone',           'f_telefone', u.telefone) +
+      '</div>' +
+      '<div class="form-row">' +
+        _pf('WhatsApp',           'f_whatsapp', u.whatsapp) +
+      '</div>' +
+      '<div class="form-row">' +
+        _pf('URL da capa (opcional)', 'f_capa_url', u.capa_url) +
+      '</div>' +
+    '</div>' +
+
+    // Aba 3: Seguranca
+    '<div id="tab_seguranca">' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label class="form-label">Último login</label><div style="padding:8px 0;color:var(--muted)">' + (u.ultimo_login ? fmtDate(u.ultimo_login) : '—') + '</div></div>' +
+        '<div class="form-group"><label class="form-label">Último IP</label><div style="padding:8px 0;color:var(--muted);font-family:monospace">' + escHtml(u.ultimo_ip || '—') + '</div></div>' +
+      '</div>' +
+      '<button class="btn btn-primary btn-sm" onclick="_userResetPassword(\'' + escAttr(u.id) + '\',\'' + escAttr(u.email) + '\')">Resetar senha (gerar nova)</button>' +
+      '<div style="margin-top:14px;font-size:11px;color:var(--muted)">Resetar senha gera uma senha temporária exibida uma vez; o usuário pode trocar via "Meu Perfil".</div>' +
+    '</div>' +
+
+    // Avatar upload (ponta direita)
+    '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">' +
+      '<label class="btn btn-ghost btn-sm" style="cursor:pointer">' +
+        '<i data-lucide="image" class="luc"></i> Trocar foto' +
+        '<input type="file" accept="image/*" style="display:none" onchange="_userUploadAsset(this,\'' + escAttr(u.id) + '\',\'avatar\')">' +
+      '</label>' +
+      '<button class="btn btn-ghost btn-sm" onclick="_userRemoveAvatar(\'' + escAttr(u.id) + '\')">Remover foto</button>' +
+    '</div>';
+
+  var tabs = [
+    { id: 'dados', label: 'Dados' },
+    { id: 'contato', label: 'Contato' },
+    { id: 'seguranca', label: 'Segurança' }
+  ];
+  openModalWithTabs('Perfil de ' + escHtml(u.name || u.email), html, tabs,
+    function() { _userSaveProfile(u.id); }, 'Salvar');
+  // Default tab
+  setTimeout(function() { _switchUserTab(tabs[0].id); }, 30);
+}
+
+function _pf(label, id, val) {
+  return '<div class="form-group"><label class="form-label">' + label + '</label>' +
+    '<input class="form-control" id="' + id + '" value="' + escAttr(val) + '"></div>';
+}
+function _pfArea(label, id, val) {
+  return '<div class="form-group" style="flex:1"><label class="form-label">' + label + '</label>' +
+    '<textarea class="form-control" id="' + id + '" rows="2" style="resize:vertical">' + escHtml(val || '') + '</textarea></div>';
+}
+
+function _switchUserTab(id) {
+  ['dados','contato','seguranca'].forEach(function(t) {
+    var el = document.getElementById('tab_' + t);
+    if (el) el.style.display = (t === id ? '' : 'none');
+  });
+  document.querySelectorAll('.modal-tab-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.tabId === id);
+  });
+}
+
+// Wrapper de modal com abas (substitui openModal quando precisa de tabs)
+function openModalWithTabs(title, bodyHtml, tabs, onSave, saveLabel) {
+  var tabsHtml = '<div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border)">' +
+    tabs.map(function(t) {
+      return '<button class="btn btn-ghost btn-sm modal-tab-btn" data-tab-id="' + t.id + '" onclick="_switchUserTab(\'' + t.id + '\')">' + escHtml(t.label) + '</button>';
+    }).join('') + '</div>';
+  var fullHtml = tabsHtml + bodyHtml;
+  openModal(title, fullHtml, [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: saveLabel || 'Salvar', action: onSave, cls: 'btn-primary' }
+  ]);
+  setTimeout(function() {
+    document.querySelectorAll('.modal-tab-btn').forEach(function(b) {
+      if (b.dataset.tabId === tabs[0].id) b.classList.add('active');
+    });
+    _processIcons && _processIcons(document.getElementById('modalBody'));
+  }, 30);
+}
+
+async function _userSaveProfile(userId) {
+  var get = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  var updates = {
+    name:          get('f_name'),
+    primeiro_nome: get('f_primeiro_nome'),
+    sobrenome:     get('f_sobrenome'),
+    apelido:       get('f_apelido'),
+    cargo:         get('f_cargo'),
+    departamento:    get('f_departamento'),
+    bio:           get('f_bio'),
+    email:         get('f_email'),
+    telefone:      get('f_telefone'),
+    whatsapp:      get('f_whatsapp'),
+    capa_url:      get('f_capa_url')
+  };
+  var res = await rpc('updateUserFull', { userId: userId, updates: updates });
+  if (res.ok) { closeModal(); toast('Perfil atualizado!', 'success'); renderUsers(); }
+  else toast(res.error || 'Erro', 'error');
+}
+
+async function _userUploadAsset(input, userId, kind) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Arquivo muito grande (max 2 MB).', 'error'); return; }
+  // converte pra base64
+  var reader = new FileReader();
+  reader.onload = async function() {
+    var base64 = (reader.result || '').split(',')[1] || '';
+    var resUp = await rpc('uploadUserAsset', { fileBase64: base64, fileName: file.name, kind: kind });
+    if (!resUp.ok) { toast(resUp.error, 'error'); return; }
+    var updates = {};
+    if (kind === 'avatar') updates.avatar_url = resUp.url;
+    if (kind === 'capa')   updates.capa_url = resUp.url;
+    await rpc('updateUserFull', { userId: userId, updates: updates });
+    closeModal();
+    toast(kind === 'avatar' ? 'Foto atualizada!' : 'Capa atualizada!', 'success');
+    renderUsers();
+  };
+  reader.readAsDataURL(file);
+}
+
+async function _userRemoveAvatar(userId) {
+  if (!confirm('Remover foto de perfil?')) return;
+  var res = await rpc('updateUserFull', { userId: userId, updates: { avatar_url: '' } });
+  if (res.ok) { closeModal(); toast('Foto removida.', 'success'); renderUsers(); }
+  else toast(res.error, 'error');
+}
+
+async function _userResetPassword(userId, email) {
+  var newPwd = 'wpk' + Math.floor(Math.random() * 9000 + 1000) + '!';
+  var res = await rpc('resetUserPassword', { userId: userId, newPwd: newPwd });
+  if (res.ok) {
+    alert('Senha temporária para ' + email + ':\n\n' + newPwd + '\n\nCopie e envie ao usuário.');
+    toast('Senha resetada.', 'success');
+  } else toast(res.error, 'error');
+}
+
+// ══════════════════════════════════════════════════════════
+// MEU PERFIL (sidebar pill → modal completo)
+// ══════════════════════════════════════════════════════════
+async function openMyProfile() {
+  // Carrega perfil completo do usuario logado
+  var res = await rpc('getMyProfile', {});
+  if (!res.ok) { toast(res.error || 'Erro', 'error'); return; }
+  var u = res.profile || {};
+
+  // Capa (se houver) + avatar grande
+  var _capa = u.capa_url
+    ? '<div style="height:120px;background:var(--surface2) url(' + escAttr(u.capa_url) + ') center/cover no-repeat;border-radius:14px 14px 0 0;margin:-16px -16px 14px"></div>'
+    : '<div style="height:16px"></div>';
+
+  // Avatar grande
+  var _bigAvatar = u.avatar_url
+    ? '<img src="' + escAttr(u.avatar_url) + '" alt="" id="myAvatarPreview" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--card);margin-top:-48px;background:var(--surface2)">'
+    : '<div id="myAvatarPreview" style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:40px;margin-top:-48px;border:3px solid var(--card)">' + ((u.name || u.email || '?')[0] || '?').toUpperCase() + '</div>';
+
+  var html =
+    _capa +
+    '<div style="text-align:center;margin-bottom:18px">' +
+      _bigAvatar +
+      '<div style="margin-top:10px;font-size:18px;font-weight:800">' + escHtml(u.name || '(sem nome)') + '</div>' +
+      '<div style="color:var(--muted);font-size:13px">' + escHtml(u.role === 'admin' ? 'Administrador' : (u.role || 'Usuário')) + '</div>' +
+    '</div>' +
+    // Tabs simples: Perfil / Senha (sem tabs complexas — modal mais limpo)
+    '<div id="myTabProfile">' +
+      '<div class="form-row">' +
+        _pf('Nome completo',           'my_name',          u.name) +
+        _pf('Apelido / Nome social',  'my_apelido',       u.apelido) +
+      '</div>' +
+      '<div class="form-row">' +
+        _pf('Cargo',                  'my_cargo',         u.cargo) +
+        _pf('Departamento',           'my_departamento',  u.departamento) +
+      '</div>' +
+      '<div class="form-row">' +
+        _pf('E-mail',                 'my_email',         u.email) +
+        _pf('Telefone',              'my_telefone',      u.telefone) +
+      '</div>' +
+      '<div class="form-row">' +
+        _pf('WhatsApp',               'my_whatsapp',      u.whatsapp) +
+      '</div>' +
+      '<div class="form-row">' +
+        _pfArea('Biografia', 'my_bio', u.bio) +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">' +
+        '<label class="btn btn-ghost btn-sm" style="cursor:pointer">' +
+          '<i data-lucide="image" class="luc"></i> Trocar foto' +
+          '<input type="file" accept="image/*" style="display:none" onchange="_myUploadAsset(this,\'avatar\')">' +
+        '</label>' +
+        '<button type="button" class="btn btn-ghost btn-sm" onclick="_myRemoveAvatar()">Remover foto</button>' +
+      '</div>' +
+    '</div>' +
+    '<div id="myTabPassword" style="display:none">' +
+      '<div class="form-group"><label class="form-label">Senha atual</label><input type="password" class="form-control" id="my_curr_pwd"></div>' +
+      '<div class="form-group"><label class="form-label">Nova senha (min 6)</label><input type="password" class="form-control" id="my_new_pwd"></div>' +
+      '<button type="button" class="btn btn-primary btn-sm" onclick="_myChangePassword()">Trocar senha</button>' +
+    '</div>';
+
+  // Tabs header
+  var tabsHtml = '<div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border)">' +
+    '<button class="btn btn-ghost btn-sm my-tab active" data-tab-id="profile" onclick="_switchMyTab(\'profile\')">Perfil</button>' +
+    '<button class="btn btn-ghost btn-sm my-tab" data-tab-id="password" onclick="_switchMyTab(\'password\')">Alterar Senha</button>' +
+    '</div>';
+
+  openModal('Meu Perfil', tabsHtml + html,
+    [
+      { label: 'Fechar',        action: closeModal, cls: 'btn-ghost' },
+      { label: 'Salvar Perfil', action: _mySaveProfile, cls: 'btn-primary' }
+    ]);
+
+  // Atualiza avatar do sidebar em paralelo (caso tenha sido editado)
+  setTimeout(function() { _processIcons && _processIcons(document.getElementById('modalBody')); }, 50);
+}
+
+function _switchMyTab(id) {
+  document.getElementById('myTabProfile').style.display  = (id === 'profile' ? '' : 'none');
+  document.getElementById('myTabPassword').style.display = (id === 'password' ? '' : 'none');
+  document.querySelectorAll('.my-tab').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.tabId === id);
+  });
+}
+
+async function _mySaveProfile() {
+  var get = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  var updates = {
+    name:          get('my_name'),
+    apelido:       get('my_apelido'),
+    cargo:         get('my_cargo'),
+    departamento:    get('my_departamento'),
+    email:         get('my_email'),
+    telefone:      get('my_telefone'),
+    whatsapp:      get('my_whatsapp'),
+    bio:           get('my_bio')
+  };
+  if (updates.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(updates.email)) {
+    toast('E-mail invalido.', 'error'); return;
+  }
+  var res = await rpc('updateMyProfile', { updates: updates });
+  if (res.ok) { closeModal(); toast('Perfil atualizado!', 'success'); _refreshMyPillFromStorage(); }
+  else toast(res.error || 'Erro', 'error');
+}
+
+async function _myUploadAsset(input, kind) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Arquivo muito grande (max 2 MB).', 'error'); return; }
+  var reader = new FileReader();
+  reader.onload = async function() {
+    var base64 = (reader.result || '').split(',')[1] || '';
+    var resUp = await rpc('uploadUserAsset', { fileBase64: base64, fileName: file.name, kind: kind });
+    if (!resUp.ok) { toast(resUp.error, 'error'); return; }
+    var updateRes = await rpc('updateMyProfile', { updates: { avatar_url: resUp.url } });
+    if (!updateRes.ok) { toast(updateRes.error, 'error'); return; }
+    // Atualiza preview no proprio modal
+    var previewEl = document.getElementById('myAvatarPreview');
+    if (previewEl) previewEl.src = resUp.url + '?t=' + Date.now();
+    closeModal();
+    toast('Foto atualizada!', 'success');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function _myRemoveAvatar() {
+  var res = await rpc('updateMyProfile', { updates: { avatar_url: '' } });
+  if (res.ok) { closeModal(); toast('Foto removida.', 'success'); }
+  else toast(res.error, 'error');
+}
+
+async function _myChangePassword() {
+  var curr = document.getElementById('my_curr_pwd').value;
+  var novo = document.getElementById('my_new_pwd').value;
+  if (!curr || !novo) { toast('Preencha os dois campos.', 'error'); return; }
+  if (novo.length < 6) { toast('Nova senha min 6 caracteres.', 'error'); return; }
+  var res = await rpc('changeMyPassword', { currentPwd: curr, newPwd: novo });
+  if (res.ok) {
+    document.getElementById('my_curr_pwd').value = '';
+    document.getElementById('my_new_pwd').value = '';
+    toast('Senha trocada! Faca login novamente.', 'success');
+    setTimeout(_adminLogout, 800);
+  } else toast(res.error || 'Erro', 'error');
+}
+
+function _refreshMyPillFromStorage() {
+  // Recarrega nome + avatar no pill da sidebar apos salvar
+  var raw = sessionStorage.getItem('crm_admin_user');
+  if (!raw) return;
+  try {
+    var u = JSON.parse(raw);
+    if (u.name && document.getElementById('userNameEl')) document.getElementById('userNameEl').textContent = u.name;
+    if (u.role && document.getElementById('userRoleEl')) document.getElementById('userRoleEl').textContent = u.role === 'admin' ? 'Administrador' : 'Usuário';
+    if (u.avatar_url && document.getElementById('avatarEl')) {
+      var a = document.getElementById('avatarEl');
+      a.outerHTML = '<img class="avatar-sm" id="avatarEl" src="' + escAttr(u.avatar_url) + '" alt="" style="background:var(--surface2)">';
+    }
+    CRM.user = u;
+  } catch (e) {}
 }
 function openCreateUser() {
   openModal('Novo Usu&aacute;rio',

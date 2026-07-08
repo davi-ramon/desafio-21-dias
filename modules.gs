@@ -134,6 +134,15 @@ function handleRequest(payload) {
 
     // Usuários
     case 'getUsers':            return getUsers(token);
+    case 'getMyProfile':        return getMyProfile(token);
+    case 'getUserFull':         return getUserFull(token, data.userId);
+    case 'updateMyProfile':     return updateMyProfile(token, data.updates);
+    case 'updateUserFull':      return updateUserFull(token, data.userId, data.updates);
+    case 'changeMyPassword':    return changeMyPassword(token, data.currentPwd, data.newPwd);
+    case 'resetUserPassword':   return resetUserPassword(token, data.userId, data.newPwd);
+    case 'uploadUserAsset':     return uploadUserAssetBase64(token, data.fileBase64, data.fileName, data.kind);
+    case 'logUserAccess':       return logUserAccess(token, data.ip);
+    case 'createUserExtended':  return createUserExtended(token, data);
     case 'createUser':          return createUser(token, data);
     case 'updateUser':          return updateUser(token, data.id, data.updates);
 
