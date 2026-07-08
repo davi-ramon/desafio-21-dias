@@ -19,9 +19,9 @@ var STRIPE_PRICES = {
   quarterly: 'price_1TpShpFbaBx75eKpYfCFZbaZ',  // R$47/trim
   yearly:    'price_1TpShqFbaBx75eKpiExujEAS',  // R$177/ano
 };
-var STRIPE_RETURN_URL  = 'https://app.wpktavares.com.br';
-var STRIPE_SUCCESS_URL = 'https://app.wpktavares.com.br/?assinatura=sucesso';
-var STRIPE_CANCEL_URL  = 'https://wpktavares.com.br/planos/';
+var STRIPE_RETURN_URL  = 'https://app.wpktavares.com.br/app/perfil/assinatura';
+var STRIPE_SUCCESS_URL = 'https://app.wpktavares.com.br/app/perfil/assinatura?assinatura=sucesso';
+var STRIPE_CANCEL_URL  = 'https://app.wpktavares.com.br/app/perfil/assinatura?assinatura=cancelada';
 
 // ── Config / setup ───────────────────────────────────────────
 function _stripeKey_() {

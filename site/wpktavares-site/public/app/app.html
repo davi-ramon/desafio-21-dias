@@ -2865,6 +2865,20 @@ window.addEventListener('load', function() {
     window.location.replace('./');
     return;
   }
+
+  // v98: detecta retorno do checkout Stripe (?assinatura=sucesso|cancelada)
+  // ANTES de limpar a URL. Dispara toast/refresh na tela de assinatura.
+  try {
+    var qp = new URLSearchParams(location.search);
+    var status = qp.get('assinatura');
+    if (status === 'sucesso') {
+      // toast é mostrado pela renderAssinatura() depois do load
+      APP._stripeReturnStatus = 'sucesso';
+    } else if (status === 'cancelada') {
+      APP._stripeReturnStatus = 'cancelada';
+    }
+  } catch(e) {}
+
   // Mantém a URL limpa (sem parâmetros de token do GAS)
   try { history.replaceState({}, '', '/app'); } catch(e) {}
 
@@ -2872,6 +2886,19 @@ window.addEventListener('load', function() {
   document.getElementById('avatarEl').textContent = av;
   loadAlunoData();
   loadNotificacoesBackground();
+
+  // v98: se voltou do Stripe, navega para a tela de assinatura e mostra status
+  if (APP._stripeReturnStatus) {
+    setTimeout(function() {
+      try { navigate('assinatura'); } catch(e) {}
+      if (APP._stripeReturnStatus === 'sucesso') {
+        setTimeout(function() { toast('Pagamento confirmado! Sua assinatura foi atualizada.', 'success'); }, 1200);
+      } else if (APP._stripeReturnStatus === 'cancelada') {
+        setTimeout(function() { toast('Checkout cancelado. Voce pode tentar de novo quando quiser.', 'info'); }, 800);
+      }
+      APP._stripeReturnStatus = null;
+    }, 600);
+  }
 });
 
 // ════════════════════════════════════════════════════════════
@@ -3174,7 +3201,16 @@ async function _abrirPortalStripe() {
 }
 
 async function _migrarParaStripe() {
-  if (!confirm('Migrar para Stripe?\n\nAbrimos o checkout do Stripe para você. Sua assinatura Cakto será cancelada automaticamente após confirmar o pagamento.')) return;
+  // v98: modal custom (substitui confirm() nativo)
+  var _iconStripe = '<i data-lucide="credit-card" style="width:24px;height:24px"></i>';
+  var _go = await appConfirm({
+    title: 'Migrar para Stripe?',
+    body: 'Você será redirecionado para o checkout seguro da Stripe. Após a confirmação do pagamento, sua assinatura será sincronizada automaticamente no app.',
+    icon: _iconStripe,
+    confirmLabel: 'Continuar para Stripe',
+    cancelLabel: 'Cancelar'
+  });
+  if (!_go) return;
   // Bloqueia a tela enquanto carrega (senao parece "nada acontece")
   var overlay = _showMigracaoOverlay();
   try {
@@ -3263,9 +3299,15 @@ async function _abrirPortalStripe() {
     try {
       var w = window.open(r.data.url, '_blank', 'noopener,noreferrer');
       if (!w || w.closed) {
-        if (confirm('O navegador bloqueou a nova aba. Abrir o portal do Stripe neste mesma janela?\n\n' + r.data.url)) {
-          window.location.href = r.data.url;
-        }
+        // v98: modal custom (substitui confirm() nativo)
+        var go = await appConfirm({
+          title: 'Abrir portal do Stripe',
+          body: 'O navegador bloqueou a nova aba. Deseja abrir o portal do Stripe nesta mesma janela?',
+          icon: '<i data-lucide="external-link" style="width:24px;height:24px"></i>',
+          confirmLabel: 'Abrir aqui',
+          cancelLabel: 'Agora não'
+        });
+        if (go) window.location.href = r.data.url;
       }
     } catch (e) { window.location.href = r.data.url; }
   } else {
@@ -3363,7 +3405,14 @@ async function _abrirPortalCakto() {
 }
 
 async function cancelarAssinaturaApp() {
-  var ok = window.confirm('Cancelar sua assinatura?\n\nVocê continua com acesso até o fim do período já pago. Depois disso, o acesso será removido.\n\nDeseja continuar?');
+  // v98: modal custom (substitui confirm() nativo)
+  var ok = await appConfirm({
+    title: 'Cancelar assinatura?',
+    body: 'Você continua com acesso até o fim do período já pago. Depois disso, o acesso será removido.',
+    icon: '<i data-lucide="alert-triangle" style="width:24px;height:24px"></i>',
+    confirmLabel: 'Sim, cancelar',
+    cancelLabel: 'Voltar'
+  });
   if (!ok) return;
   var btn = document.getElementById('btnCancelarAssin');
   if (btn) { btn.disabled = true; btn.textContent = 'Cancelando...'; }
@@ -3416,11 +3465,14 @@ function _dentroJanela() { return true; }
 function _horaAtual()    { return new Date().getHours(); }
 
 async function reiniciarDesafio() {
-  const confirmado = window.confirm(
-    '⚠️ Reiniciar Desafio?\n\n' +
-    'Isso zerará todo o seu progresso atual: check-ins, pilares e histórico dos 21 dias.\n\n' +
-    'Hoje passará a ser o Dia 1 do novo ciclo. Tem certeza?'
-  );
+  // v98: modal custom (substitui confirm() nativo)
+  const confirmado = await appConfirm({
+    title: 'Reiniciar Desafio?',
+    body: 'Isso zerará todo o seu progresso atual: check-ins, pilares e histórico dos 21 dias. Hoje passará a ser o Dia 1 do novo ciclo.',
+    icon: '<i data-lucide="alert-triangle" style="width:24px;height:24px"></i>',
+    confirmLabel: 'Sim, reiniciar',
+    cancelLabel: 'Voltar'
+  });
   if (!confirmado) return;
   const btn = document.getElementById('btnReiniciarDesafio');
   if (btn) { btn.disabled = true; btn.textContent = 'Reiniciando...'; }
@@ -4937,6 +4989,102 @@ function toast(msg, type) {
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 350); }, 3000);
 }
 
+// v98: modal custom (substitui confirm()/alert()/prompt() nativos).
+// API: _showModal({ title, body, icon, primary, secondary, dismissable, onClose })
+// primary/secondary: { label, action, cls }
+function _showModal(opts) {
+  opts = opts || {};
+  var title    = opts.title || '';
+  var body     = opts.body || '';
+  var icon     = opts.icon || '';
+  var primary  = opts.primary;   // {label, action, cls}
+  var secondary= opts.secondary;
+  var dismissable = opts.dismissable !== false;
+  var onClose  = opts.onClose;
+
+  var ov = document.createElement('div');
+  ov.className = 'app-modal-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.62);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;animation:appModalFadeIn 0.18s ease';
+
+  var box = document.createElement('div');
+  box.style.cssText = 'background:linear-gradient(180deg,#0e1a14 0%,#0a1310 100%);border:1px solid rgba(76,175,80,0.32);border-radius:22px;padding:26px 26px 22px;max-width:440px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(76,175,80,0.08);animation:appModalPop 0.22s cubic-bezier(0.22,1,0.36,1);position:relative;color:var(--text, #dde8dd);font-family:inherit';
+
+  var head = '';
+  if (icon) head += '<div style="display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:14px;background:rgba(76,175,80,0.12);color:#4caf50;margin:0 auto 14px">' + icon + '</div>';
+  if (title) head += '<div style="font-size:18px;font-weight:800;text-align:center;margin-bottom:8px;line-height:1.25">' + title + '</div>';
+  box.innerHTML = head + '<div style="font-size:13.5px;line-height:1.5;color:var(--muted,#aac4ab);margin-bottom:20px">' + body + '</div>';
+
+  var actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;gap:10px;flex-direction:column';
+  if (secondary) {
+    var bSec = document.createElement('button');
+    bSec.className = 'app-modal-btn app-modal-btn--ghost';
+    bSec.textContent = secondary.label || 'Cancelar';
+    bSec.onclick = function() { close(); if (secondary.action) secondary.action(); };
+    actions.appendChild(bSec);
+  }
+  if (primary) {
+    var bPri = document.createElement('button');
+    bPri.className = 'app-modal-btn ' + (primary.cls || 'app-modal-btn--primary');
+    bPri.textContent = primary.label || 'OK';
+    bPri.onclick = function() { close(); if (primary.action) primary.action(); };
+    actions.appendChild(bPri);
+  }
+  box.appendChild(actions);
+  ov.appendChild(box);
+
+  // Injeta keyframes (1x)
+  if (!document.getElementById('appModalKeyframes')) {
+    var s = document.createElement('style');
+    s.id = 'appModalKeyframes';
+    s.textContent = '@keyframes appModalFadeIn{from{opacity:0}to{opacity:1}}@keyframes appModalPop{from{opacity:0;transform:scale(0.92) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}@keyframes appModalFadeOut{from{opacity:1}to{opacity:0}}' +
+      '.app-modal-btn{padding:12px 18px;border:none;border-radius:12px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;letter-spacing:.2px;transition:transform .1s ease,opacity .2s ease}' +
+      '.app-modal-btn:active{transform:scale(0.98)}' +
+      '.app-modal-btn--primary{background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;box-shadow:0 4px 12px rgba(76,175,80,0.32)}' +
+      '.app-modal-btn--primary:hover{opacity:0.92}' +
+      '.app-modal-btn--ghost{background:transparent;border:1px solid var(--border,rgba(76,175,80,0.16));color:var(--text2,#aac4ab)}' +
+      '.app-modal-btn--ghost:hover{background:var(--surface2,#141c18)}' +
+      '.app-modal-btn--danger{background:rgba(232,64,64,0.14);color:#ef5350;border:1px solid rgba(232,64,64,0.3)}' +
+      '.app-modal-overlay *{box-sizing:border-box}';
+    document.head.appendChild(s);
+  }
+
+  function close() {
+    ov.style.animation = 'appModalFadeOut 0.16s ease';
+    setTimeout(function() { try { ov.remove(); } catch (e) {} if (onClose) onClose(); }, 160);
+  }
+  if (dismissable) {
+    ov.addEventListener('click', function(e) { if (e.target === ov) close(); });
+  }
+  document.body.appendChild(ov);
+  return { close: close, node: ov };
+}
+
+// v98: Promise-based confirm/alert (replacements)
+function appConfirm(opts) {
+  // opts: { title, body, confirmLabel, cancelLabel, icon }
+  return new Promise(function(resolve) {
+    _showModal({
+      title: opts.title || 'Confirmar',
+      body: opts.body || '',
+      icon: opts.icon || '',
+      primary: { label: opts.confirmLabel || 'OK', action: function() { resolve(true); } },
+      secondary: { label: opts.cancelLabel || 'Cancelar', action: function() { resolve(false); } }
+    });
+  });
+}
+function appAlert(opts) {
+  // opts: { title, body, buttonLabel, icon }
+  return new Promise(function(resolve) {
+    _showModal({
+      title: opts.title || 'Aviso',
+      body: opts.body || '',
+      icon: opts.icon || '',
+      primary: { label: opts.buttonLabel || 'OK', action: function() { resolve(); } }
+    });
+  });
+}
+
 </script>
 
 <!-- ═══════════════════════════════════════════════════════════
@@ -6332,7 +6480,15 @@ function admEvEdit(id) {
 }
 
 function admEvDelete(id, nome) {
-  if (!confirm('Excluir o evento "' + nome + '"? Esta ação não pode ser desfeita.')) return;
+  // v98: modal custom
+  var ok = await appConfirm({
+    title: 'Excluir evento?',
+    body: 'Excluir o evento "' + nome + '"? Esta ação não pode ser desfeita.',
+    icon: '<i data-lucide=\"trash-2\" style=\"width:24px;height:24px\"></i>',
+    confirmLabel: 'Sim, excluir',
+    cancelLabel: 'Cancelar'
+  });
+  if (!ok) return;
   rpc('deleteEvento', { id: id })
     .then(function(r) {
       if (r.ok) {

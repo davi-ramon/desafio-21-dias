@@ -301,8 +301,8 @@
         <li><span class="chk">✓</span> Comunidade exclusiva</li>
         <li><span class="chk">✓</span> Cancele quando quiser</li>
       </ul>
-      <a href="https://pay.cakto.com.br/rsi55kc" class="plan-btn green" target="_blank" rel="noopener"
-         onclick="fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias – Mensal',value:17,currency:'BRL'})">
+      <a href="#" class="plan-btn green" data-plan="monthly" data-plan-name="Desafio 21 Dias – Mensal" data-value="17" data-currency="BRL"
+         onclick="assinarStripe(event, 'monthly', 'Desafio 21 Dias – Mensal', 17)">
         ASSINAR MENSAL
       </a>
       <p class="plan-btn-note">Garantia de 7 dias</p>
@@ -331,8 +331,8 @@
         <li><span class="chk">✓</span> Comunidade exclusiva</li>
         <li><span class="chk">✓</span> Cancele quando quiser</li>
       </ul>
-      <a href="https://pay.cakto.com.br/3cxxfra" class="plan-btn gold" target="_blank" rel="noopener"
-         onclick="fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias – Anual 14off',value:177,currency:'BRL'})">
+      <a href="#" class="plan-btn gold" data-plan="yearly" data-plan-name="Desafio 21 Dias – Anual" data-value="177" data-currency="BRL"
+         onclick="assinarStripe(event, 'yearly', 'Desafio 21 Dias – Anual', 177)">
         ASSINAR ANUAL — 14% OFF
       </a>
       <p class="plan-btn-note">Garantia de 7 dias</p>
@@ -360,8 +360,8 @@
         <li><span class="chk">✓</span> Comunidade exclusiva</li>
         <li><span class="chk">✓</span> Cancele quando quiser</li>
       </ul>
-      <a href="https://pay.cakto.com.br/3877gd6" class="plan-btn green" target="_blank" rel="noopener"
-         onclick="fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias – Trimestral 7off',value:47,currency:'BRL'})">
+      <a href="#" class="plan-btn green" data-plan="quarterly" data-plan-name="Desafio 21 Dias – Trimestral" data-value="47" data-currency="BRL"
+         onclick="assinarStripe(event, 'quarterly', 'Desafio 21 Dias – Trimestral', 47)">
         ASSINAR TRIMESTRAL
       </a>
       <p class="plan-btn-note">Garantia de 7 dias</p>
@@ -405,6 +405,74 @@
   if (params.get('from') === 'trial') {
     document.getElementById('trialBanner').classList.add('show');
   }
+})();
+
+// v98: Stripe checkout inline (substitui os links da Cakto)
+(function() {
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+  function getToken() {
+    try { return JSON.parse(sessionStorage.getItem('crm_token_admin') || 'null')
+      || JSON.parse(sessionStorage.getItem('app_token') || 'null')
+      || JSON.parse(sessionStorage.getItem('crm_token') || 'null')
+      || ''; } catch (e) { return ''; }
+  }
+  // Exposto global: clicar em qualquer botao [data-plan] dispara Stripe.
+  window.assinarStripe = function(ev, plan, planName, value) {
+    try { if (ev && ev.preventDefault) ev.preventDefault(); } catch (e) {}
+    // Meta Pixel (continua disparando mesmo checkout via Stripe)
+    try { if (window.fbq) fbq('track', 'InitiateCheckout', { content_name: planName, value: value, currency: 'BRL' }); } catch (e) {}
+
+    // Overlay simples
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.62);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML =
+      '<div style="background:#0e1a14;border:1px solid rgba(76,175,80,0.32);border-radius:22px;padding:26px 30px;max-width:380px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);text-align:center;color:#dde8dd;font-family:inherit">' +
+        '<div style="width:32px;height:32px;border:3px solid rgba(76,175,80,0.16);border-top-color:#4caf50;border-radius:50%;animation:assSpin 1s linear infinite;margin:0 auto 14px"></div>' +
+        '<div style="font-weight:800;margin-bottom:4px">Abrindo checkout...</div>' +
+        '<div style="font-size:12px;color:#7a8f80">Voce sera redirecionado para o Stripe em alguns segundos.</div>' +
+        '<div id="assErrMsg" style="margin-top:12px;font-size:12px;color:#ef5350;display:none"></div>' +
+      '</div>' +
+      '<style>@keyframes assSpin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(ov);
+    var errEl = ov.querySelector('#assErrMsg');
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      body: JSON.stringify({ action: 'criarCheckoutStripe', token: getToken(), data: { plan: plan } }),
+      redirect: 'follow'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (!res || !res.ok || !res.url) {
+        var msg = (res && res.error) || 'Erro ao abrir checkout.';
+        if (/nao configurado|indispon/i.test(msg)) msg = 'Stripe ainda nao configurado. Fale com o suporte.';
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+        setTimeout(function() { try { ov.remove(); } catch (e) {} }, 4500);
+        return;
+      }
+      try {
+        // Tenta mesma janela (evita bloqueio de popup)
+        window.location.href = res.url;
+      } catch (e) {
+        // Fallback: nova aba
+        var w = window.open(res.url, '_blank');
+        if (!w || w.closed) {
+          // Manual: mostra link
+          ov.innerHTML =
+            '<div style="background:#0e1a14;border:1px solid rgba(76,175,80,0.32);border-radius:22px;padding:26px 30px;max-width:380px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);text-align:center;color:#dde8dd">' +
+              '<div style="font-weight:800;margin-bottom:8px">Abrir checkout Stripe</div>' +
+              '<a href="' + res.url + '" target="_blank" rel="noopener" style="display:inline-block;padding:11px 20px;border-radius:10px;background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;font-weight:800;text-decoration:none;font-size:13px">Abrir agora</a>' +
+              '<button onclick="this.parentNode.parentNode.remove()" style="display:block;margin:14px auto 0;background:none;border:none;color:#7a8f80;cursor:pointer;font-size:12px">Fechar</button>' +
+            '</div>';
+        }
+      }
+    })
+    .catch(function(err) {
+      if (errEl) { errEl.textContent = 'Falha de conexao: ' + (err && err.message ? err.message : err); errEl.style.display = 'block'; }
+      setTimeout(function() { try { ov.remove(); } catch (e) {} }, 5000);
+    });
+  };
 })();
 </script>
 
