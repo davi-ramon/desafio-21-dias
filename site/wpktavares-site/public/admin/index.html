@@ -42,7 +42,12 @@
 
   --sidebar-w:  248px;
   --sidebar-c:  64px;
-  --radius:     12px;
+  --radius:     14px;
+  --radius-card:  22px;   /* cards, paineis */
+  --radius-input: 12px;   /* inputs, selects */
+  --radius-btn:   12px;   /* botoes */
+  --radius-tag:   999px;  /* badges, pills */
+  --radius-icon:  14px;   /* containeres de icone */
   --shadow:     0 1px 6px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.25);
   --shadow-md:  0 4px 20px rgba(0,0,0,0.5), 0 16px 40px rgba(0,0,0,0.4);
 }
@@ -726,8 +731,177 @@ tr:hover td { background: var(--accent-l2); }
   .metrics-grid-5 { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   REFINO v91 — Cantos arredondados 20-24px + Lucide SVG + Mobile
+   Sobrescreve regras anteriores com !important (refino cirurgico).
+   ═══════════════════════════════════════════════════════════ */
+
+/* Cards, paineis, sidebar-item wrappers */
+.card,
+.detail-panel,
+.section-card,
+.kpi-card,
+.dashboard-card,
+[class*="card"] {
+  border-radius: var(--radius-card) !important;
+}
+
+/* Inputs e selects */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="url"],
+input[type="date"],
+select,
+textarea,
+.form-control,
+.form-input,
+input:not([type]),
+.search-input {
+  border-radius: var(--radius-input) !important;
+}
+
+/* Botoes */
+button,
+.btn,
+.btn-primary,
+.btn-ghost,
+.btn-sm,
+.btn-danger,
+[class*="btn"] {
+  border-radius: var(--radius-btn) !important;
+}
+
+/* Tags / pills / badges */
+.tag,
+.badge,
+.pill,
+.status-tag,
+[class*="tag-"] {
+  border-radius: var(--radius-tag) !important;
+}
+
+/* Icon containers (avatares, icones em cards) */
+.avatar,
+.icon-wrap,
+.icon-circle,
+.kpi-icon,
+.stat-icon,
+.card-icon,
+.avatar-circle,
+.user-avatar {
+  border-radius: var(--radius-icon) !important;
+}
+
+/* SVG icons (Lucide) dentro de containers — herdam cor, tamanho */
+.nav-icon svg, .nav-icon i[data-lucide],
+.kpi-icon svg, .kpi-icon i[data-lucide],
+.icon-wrap svg, .icon-wrap i[data-lucide] {
+  width: 18px !important;
+  height: 18px !important;
+  stroke-width: 2;
+}
+.nav-icon svg { color: currentColor; }
+
+/* Onde Lucide e o icone da nav sem ser wrap — icone solto */
+.nav-item > i[data-lucide],
+.card-icon > i[data-lucide] {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+/* Toasts (cantos suaves) */
+.toast,
+.toast-container .toast {
+  border-radius: var(--radius-card) !important;
+}
+
+/* Modal/dialog (se houver) */
+.modal,
+.dialog,
+.modal-content,
+.modal-card {
+  border-radius: var(--radius-card) !important;
+}
+
+/* ── Mobile responsive — ate 768px ────────────────────────────── */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-w: 0px;
+    --sidebar-c: 0px;
+  }
+  body { font-size: 14px; }
+  .sidebar, #sidebar {
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 9999;
+  }
+  .sidebar.open, #sidebar.open {
+    transform: translateX(0);
+    box-shadow: 0 0 60px rgba(0,0,0,.7);
+  }
+  /* Conteudo principal ocupa 100% */
+  .main, .content, #content,
+  .main-content, [class*="main-content"] {
+    margin-left: 0 !important;
+    padding: 14px !important;
+  }
+  /* Cards empilhados */
+  .card, .dashboard-card, .kpi-card {
+    padding: 14px !important;
+    margin-bottom: 12px;
+  }
+  /* Inputs maiores pra toque */
+  input, select, textarea, .form-control, button, .btn {
+    min-height: 42px;
+    font-size: 15px;
+  }
+  /* Tabelas: scroll horizontal + fonte menor */
+  table { font-size: 12.5px; }
+  .table-wrap, table-wrapper { overflow-x: auto; }
+  /* Pipeline kanban: scroll horizontal */
+  .pipeline, .kanban, .pipeline-board {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Sidebar toggle button visivel */
+  .sidebar-toggle, .menu-toggle, #menuToggle, [class*="toggle"] {
+    display: inline-flex !important;
+  }
+  /* Topo fixo com botao hamburger */
+  .topbar, .navbar, header {
+    position: sticky;
+    top: 0;
+    z-index: 9998;
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+}
+
+/* ── Mobile pequeno — ate 480px ───────────────────────────────── */
+@media (max-width: 480px) {
+  .card, .dashboard-card, .kpi-card { padding: 12px !important; }
+  h1, h2 { font-size: 18px !important; }
+  h3 { font-size: 15px !important; }
+  .kpi-value, .stat-value { font-size: 22px !important; }
+  table th, table td { padding: 6px 8px !important; }
+}
+
+/* ── Mobile medium — 769px ate 1024px (tablet) ─────────────────── */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar, #sidebar {
+    transform: translateX(-70%);
+    width: var(--sidebar-w);
+  }
+  .sidebar.open, #sidebar.open { transform: translateX(0); }
+  .main, .content, #content { margin-left: 64px !important; }
+}
 </style>
-</head>
+<style>.luc{display:inline-block;width:1em;height:1em;vertical-align:-0.125em;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;flex-shrink:0}</style></head>
 <body>
 <!-- Login overlay (admin Firebase-hosted) -->
 <div id="loginOverlay" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%, #0a1410 0%, #050a08 100%);font-family:inherit">
@@ -765,7 +939,7 @@ tr:hover td { background: var(--accent-l2); }
       if (res && res.ok && res.token) {
         try { localStorage.setItem('crm_token_admin', res.token); } catch(e){}
         try { localStorage.setItem('crm_user_admin', JSON.stringify(res.user || { email: email, role: 'admin' })); } catch(e){}
-        if (msg) { msg.textContent = '✓ Login realizado. Carregando painel...'; msg.style.color = '#4caf50'; }
+        if (msg) { msg.textContent = '<i data-lucide="check" class="luc"></i> Login realizado. Carregando painel...'; msg.style.color = '#4caf50'; }
         setTimeout(function(){ hideLoginAndInit(); }, 400);
       } else {
         if (msg) { msg.textContent = (res && res.error) || 'Falha no login.'; msg.style.color = '#e53935'; }
@@ -823,7 +997,7 @@ tr:hover td { background: var(--accent-l2); }
 
   <div class="sidebar-header">
     <div class="logo-mark" id="sidebarLogoMark" style="overflow:hidden;padding:0">
-      <img src="<?= wsLogoUrl ?>" alt="Logo" style="width:34px;height:34px;object-fit:cover;border-radius:10px" onerror="this.style.display='none';this.parentNode.textContent='⚡'">
+      <img src="<?= wsLogoUrl ?>" alt="Logo" style="width:34px;height:34px;object-fit:cover;border-radius:10px" onerror="this.style.display='none';this.parentNode.textContent='<i data-lucide="zap" class="luc"></i>'">
     </div>
     <div class="logo-text">
       <div class="logo-name" id="wsNomeEl"><?= wsNome ?></div>
@@ -835,32 +1009,32 @@ tr:hover td { background: var(--accent-l2); }
     <div class="nav-section-label">Principal</div>
 
     <div class="nav-item active" data-page="pipeline" onclick="navigate('pipeline')" title="Pipeline">
-      <div class="nav-icon">⚡</div>
+      <div class="nav-icon"><i data-lucide="zap" class="luc"></i></div>
       <span class="nav-label">Pipeline</span>
     </div>
     <div class="nav-item" data-page="dashboard" onclick="navigate('dashboard')" title="Dashboard">
-      <div class="nav-icon">📊</div>
+      <div class="nav-icon"><i data-lucide="bar-chart-3" class="luc"></i></div>
       <span class="nav-label">Dashboard</span>
     </div>
     <div class="nav-item" data-page="contacts" onclick="navigate('contacts')" title="Contatos">
-      <div class="nav-icon">👥</div>
+      <div class="nav-icon"><i data-lucide="users" class="luc"></i></div>
       <span class="nav-label">Contatos</span>
     </div>
 
     <div class="nav-item" data-page="automacoes" id="navAutomacoes" onclick="navigate('automacoes')" title="Automações" style="display:none">
-      <div class="nav-icon">🤖</div>
+      <div class="nav-icon"><i data-lucide="bot" class="luc"></i></div>
       <span class="nav-label">Automações</span>
     </div>
     <div class="nav-item" data-page="compradores" id="navCompradores" onclick="navigate('compradores')" title="Alunos" style="display:none">
-      <div class="nav-icon">🎓</div>
+      <div class="nav-icon"><i data-lucide="graduation-cap" class="luc"></i></div>
       <span class="nav-label">Alunos</span>
     </div>
     <div class="nav-item" data-page="audios21" id="navAudios21" onclick="navigate('audios21')" title="Áudios 21 Dias" style="display:none">
-      <div class="nav-icon">🎧</div>
+      <div class="nav-icon"><i data-lucide="headphones" class="luc"></i></div>
       <span class="nav-label">Áudios 21 Dias</span>
     </div>
     <div class="nav-item" data-page="notificacoes" id="navNotificacoes" onclick="navigate('notificacoes')" title="Notificações" style="display:none">
-      <div class="nav-icon">🔔</div>
+      <div class="nav-icon"><i data-lucide="bell" class="luc"></i></div>
       <span class="nav-label">Notificações</span>
     </div>
 
@@ -870,15 +1044,15 @@ tr:hover td { background: var(--accent-l2); }
       <span class="nav-label">Sincronização</span>
     </div>
     <div class="nav-item" data-page="users" id="navUsers" onclick="navigate('users')" title="Usuários" style="display:none">
-      <div class="nav-icon">🔐</div>
+      <div class="nav-icon"><i data-lucide="lock" class="luc"></i></div>
       <span class="nav-label">Usuários</span>
     </div>
     <div class="nav-item" data-page="log" id="navLog" onclick="navigate('log')" title="Log" style="display:none">
-      <div class="nav-icon">📋</div>
+      <div class="nav-icon"><i data-lucide="clipboard-list" class="luc"></i></div>
       <span class="nav-label">Log</span>
     </div>
     <div class="nav-item" data-page="configuracoes" id="navConfiguracoes" onclick="navigate('configuracoes')" title="Configurações" style="display:none">
-      <div class="nav-icon">⚙️</div>
+      <div class="nav-icon"><i data-lucide="settings" class="luc"></i></div>
       <span class="nav-label">Configurações</span>
     </div>
   </div>
@@ -892,7 +1066,7 @@ tr:hover td { background: var(--accent-l2); }
       </div>
     </div>
     <div class="logout-btn" onclick="doLogout()">
-      <div class="nav-icon" style="width:32px;height:32px">🚪</div>
+      <div class="nav-icon" style="width:32px;height:32px"><i data-lucide="log-out" class="luc"></i></div>
       <span class="logout-label">Sair</span>
     </div>
   </div>
@@ -918,7 +1092,7 @@ tr:hover td { background: var(--accent-l2); }
   <div class="modal" id="modal">
     <div class="modal-header">
       <div class="modal-title" id="modalTitle"></div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" onclick="closeModal()"><i data-lucide="x" class="luc"></i></button>
     </div>
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer" id="modalFooter"></div>
@@ -927,6 +1101,33 @@ tr:hover td { background: var(--accent-l2); }
 
 <!-- ═══ TOASTS ═══════════════════════════════════════════════ -->
 <div class="toast-container" id="toastContainer"></div>
+
+<!-- Lucide Icons (biblioteca SVG monocromática open-source, ~3000 icones) -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  // Helper: substitui <i data-lucide="name"></i> por <svg> injetado pela Lucide.
+  // Re-renderiza a cada atualizacao dinamica do DOM.
+  function renderIcons() {
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      try { lucide.createIcons(); } catch (e) { console.warn('lucide createIcons:', e); }
+    }
+  }
+  // Re-aplica apos cada render de secao.
+  if (window.MutationObserver) {
+    const mo = new MutationObserver(function() { renderIcons(); });
+    document.addEventListener('DOMContentLoaded', function() {
+      mo.observe(document.body, { childList: true, subtree: true });
+      renderIcons();
+    });
+  } else {
+    document.addEventListener('DOMContentLoaded', renderIcons);
+  }
+  // Expõe helper global para usar inline em strings HTML: lucideSvg('check', 16)
+  function lucideSvg(name, size) {
+    size = size || 16;
+    return '<i data-lucide="' + name + '" style="width:' + size + 'px;height:' + size + 'px;display:inline-block;vertical-align:middle"></i>';
+  }
+</script>
 
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
@@ -1085,7 +1286,7 @@ function navigate(page) {
       console.warn('[navigate] Timeout ao carregar página:', page);
       content.innerHTML =
         '<div class="empty-state">' +
-          '<div class="empty-icon">⏱️</div>' +
+          '<div class="empty-icon"><i data-lucide="timer" class="luc"></i></div>' +
           '<div class="empty-title">Tempo esgotado</div>' +
           '<div class="empty-sub">A p&aacute;gina demorou demais para carregar. Verifique a conex&atilde;o com o servidor.</div>' +
           '<button class="btn btn-ghost" style="margin-top:16px" onclick="navigate(\'' + page + '\')">Tentar novamente</button>' +
@@ -1099,7 +1300,7 @@ function navigate(page) {
     pages[page]();
   } else {
     console.warn('[navigate] Página desconhecida:', page);
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">P&aacute;gina n&atilde;o encontrada: ' + escHtml(page) + '</div></div>';
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="search" class="luc"></i></div><div class="empty-title">P&aacute;gina n&atilde;o encontrada: ' + escHtml(page) + '</div></div>';
   }
 }
 
@@ -1412,18 +1613,18 @@ async function renderDashboard(dias) {
     // Seção Tráfego
     var trfHtml;
     if (trf.configurado) {
-      trfHtml = '<div class="dash-section-label">📡 Tráfego</div>' +
+      trfHtml = '<div class="dash-section-label"><i data-lucide="radio" class="luc"></i> Tráfego</div>' +
         '<div class="metrics-grid metrics-grid-5">' +
-        _dCard('💰','Investido','R$ ' + Number(trf.invest||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),'var(--accent-l)','var(--accent)') +
-        _dCard('👥','Alcance',Number(trf.alcance||0).toLocaleString('pt-BR'),'var(--blue-l)','var(--blue)') +
-        _dCard('📋','Leads via Formulário',trf.leads||0,'var(--green-l)','var(--green)') +
-        _dCard('💲','CPL','R$ ' + Number(trf.cpl||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),'var(--yellow-l)','var(--yellow)') +
-        _dCard('🖱️','Cliques no Link',Number(trf.cliquesLink||0).toLocaleString('pt-BR'),'var(--accent-l)','var(--accent)') +
+        _dCard('<i data-lucide="circle-dollar-sign" class="luc"></i>','Investido','R$ ' + Number(trf.invest||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),'var(--accent-l)','var(--accent)') +
+        _dCard('<i data-lucide="users" class="luc"></i>','Alcance',Number(trf.alcance||0).toLocaleString('pt-BR'),'var(--blue-l)','var(--blue)') +
+        _dCard('<i data-lucide="clipboard-list" class="luc"></i>','Leads via Formulário',trf.leads||0,'var(--green-l)','var(--green)') +
+        _dCard('<i data-lucide="dollar-sign" class="luc"></i>','CPL','R$ ' + Number(trf.cpl||0).toLocaleString('pt-BR',{minimumFractionDigits:2}),'var(--yellow-l)','var(--yellow)') +
+        _dCard('<i data-lucide="mouse-pointer" class="luc"></i>','Cliques no Link',Number(trf.cliquesLink||0).toLocaleString('pt-BR'),'var(--accent-l)','var(--accent)') +
         '</div>';
     } else {
-      trfHtml = '<div class="dash-section-label">📡 Tráfego</div>' +
+      trfHtml = '<div class="dash-section-label"><i data-lucide="radio" class="luc"></i> Tráfego</div>' +
         '<div class="card" style="padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:4px">' +
-        '<span style="font-size:18px">🔗</span>' +
+        '<span style="font-size:18px"><i data-lucide="link" class="luc"></i></span>' +
         '<div>' +
           '<div style="font-size:13px;font-weight:600;color:var(--text)">Meta Ads não configurado</div>' +
           '<div style="font-size:12px;color:var(--muted)">Configure o Access Token e Ad Account ID em Automações.</div>' +
@@ -1436,23 +1637,23 @@ async function renderDashboard(dias) {
     const labelPer = _dashPeriod > 0 ? ' — últimos ' + _dashPeriod + ' dias' : ' — total';
     const fechadosKey = m.stages && m.stages.length ? m.stages[m.stages.length-1] : 'Fechado';
     const crmHtml =
-      '<div class="dash-section-label">⚡ Funil CRM' + labelPer + '</div>' +
+      '<div class="dash-section-label"><i data-lucide="zap" class="luc"></i> Funil CRM' + labelPer + '</div>' +
       '<div class="metrics-grid">' +
-      _dCard('⚡','Total de Leads',m.total,'var(--accent-l)','var(--accent)') +
-      _dCard('✓','Taxa de Conversão',m.conversionRate+'%','var(--green-l)','var(--green)') +
-      _dCard('🎯','Fechados',(m.byStage && m.byStage[fechadosKey])||0,'var(--green-l)','var(--green)') +
-      _dCard('⏳','Atendimento',(m.byStage && (m.byStage['Em Atendimento']||m.byStage['Em_Atendimento']))||0,'var(--yellow-l)','var(--yellow)') +
+      _dCard('<i data-lucide="zap" class="luc"></i>','Total de Leads',m.total,'var(--accent-l)','var(--accent)') +
+      _dCard('<i data-lucide="check" class="luc"></i>','Taxa de Conversão',m.conversionRate+'%','var(--green-l)','var(--green)') +
+      _dCard('<i data-lucide="crosshair" class="luc"></i>','Fechados',(m.byStage && m.byStage[fechadosKey])||0,'var(--green-l)','var(--green)') +
+      _dCard('<i data-lucide="loader" class="luc"></i>','Atendimento',(m.byStage && (m.byStage['Em Atendimento']||m.byStage['Em_Atendimento']))||0,'var(--yellow-l)','var(--yellow)') +
       '</div>';
 
     // Seção Alunos — "Jornada dos Alunos"
     const alunosHtml =
-      '<div class="dash-section-label">🎓 Jornada dos Alunos — 21 Dias</div>' +
+      '<div class="dash-section-label"><i data-lucide="graduation-cap" class="luc"></i> Jornada dos Alunos — 21 Dias</div>' +
       '<div class="metrics-grid metrics-grid-5">' +
-      _dCard('🛒','Total de Alunos',m.compradores||0,'var(--accent-l)','var(--accent)') +
-      _dCard('🔥','Em Andamento',m.ativos||0,'var(--green-l)','var(--green)') +
-      _dCard('🏆','Concluídos',m.concluidos||0,'var(--green-l)','var(--green)') +
-      _dCard('📊','Progresso Médio',(m.progMedioTotal||0)+'%','var(--blue-l)','var(--blue)') +
-      _dCard('⭐','Próximos de Concluir',m.proxConcluir||0,'var(--yellow-l)','var(--yellow)') +
+      _dCard('<i data-lucide="shopping-cart" class="luc"></i>','Total de Alunos',m.compradores||0,'var(--accent-l)','var(--accent)') +
+      _dCard('<i data-lucide="flame" class="luc"></i>','Em Andamento',m.ativos||0,'var(--green-l)','var(--green)') +
+      _dCard('<i data-lucide="trophy" class="luc"></i>','Concluídos',m.concluidos||0,'var(--green-l)','var(--green)') +
+      _dCard('<i data-lucide="bar-chart-3" class="luc"></i>','Progresso Médio',(m.progMedioTotal||0)+'%','var(--blue-l)','var(--blue)') +
+      _dCard('<i data-lucide="star" class="luc"></i>','Próximos de Concluir',m.proxConcluir||0,'var(--yellow-l)','var(--yellow)') +
       '</div>';
 
     content.innerHTML =
@@ -1482,7 +1683,7 @@ async function renderDashboard(dias) {
 
   } catch(e) {
     console.error('[renderDashboard]', e);
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erro ao carregar dashboard</div><div class="empty-sub">' + escHtml(e.message) + '</div></div>';
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="alert-triangle" class="luc"></i></div><div class="empty-title">Erro ao carregar dashboard</div><div class="empty-sub">' + escHtml(e.message) + '</div></div>';
   }
 }
  
@@ -1774,7 +1975,7 @@ function handleOverlayClick(e) { if (e.target === document.getElementById('modal
 // ══════════════════════════════════════════════════════════
 function toast(msg, type) {
   type = type || 'success';
-  var icons = { success:'✓', error:'✕', info:'ℹ' };
+  var icons = { success:'<i data-lucide="check" class="luc"></i>', error:'<i data-lucide="x" class="luc"></i>', info:'ℹ' };
   var el = document.createElement('div');
   el.className = 'toast toast-' + type;
   el.innerHTML = '<span class="toast-icon">' + (icons[type]||'ℹ') + '</span> ' + escHtml(msg);
@@ -1996,7 +2197,7 @@ async function renderAutomacoes() {
   ]);
  
   if (!cfgRes.ok) {
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>' + (cfgRes.error||'Erro') + '</p></div>';
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="alert-triangle" class="luc"></i></div><p>' + (cfgRes.error||'Erro') + '</p></div>';
     return;
   }
  
@@ -2011,15 +2212,15 @@ async function renderAutomacoes() {
   content.innerHTML =
     '<div style="max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:20px;padding-bottom:48px">' +
     '<div class="card" style="padding:24px">' +
-      '<div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:6px">🧪 Teste do Acompanhamento 21 Dias</div>' +
+      '<div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:6px"><i data-lucide="flask-conical" class="luc"></i> Teste do Acompanhamento 21 Dias</div>' +
       '<div style="font-size:12px;color:var(--muted);margin-bottom:18px">Inicie o fluxo completo em si mesmo para validar o sistema antes de ativar para todos os compradores. Isso reinicia o registro do Dia 1 e envia a mensagem real de manh&atilde; agora.</div>' +
       '<div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">' +
         '<div style="flex:1;min-width:200px">' +
           '<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">Buscar por e-mail ou telefone</label>' +
           '<input type="text" id="testeCompBusca" placeholder="seu@email.com ou +55..." style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">' +
         '</div>' +
-        '<button class="btn btn-primary" onclick="abrirModalTesteAcomp()">🚀 Iniciar teste</button>' +
-        '<button class="btn btn-ghost" onclick="abrirSeletorComprador()">📋 Escolher da lista</button>' +
+        '<button class="btn btn-primary" onclick="abrirModalTesteAcomp()"><i data-lucide="rocket" class="luc"></i> Iniciar teste</button>' +
+        '<button class="btn btn-ghost" onclick="abrirSeletorComprador()"><i data-lucide="clipboard-list" class="luc"></i> Escolher da lista</button>' +
       '</div>' +
     '</div>' +
     '<div class="card" style="padding:24px">' +
@@ -2053,7 +2254,7 @@ async function renderAutomacoes() {
       '</div>' +
     '</div>' +
     '<div class="card" style="padding:24px">' +
-      '<div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:16px">🤖 GPT Maker / Bia Tavares</div>' +
+      '<div style="font-weight:700;font-size:15px;color:var(--text);margin-bottom:16px"><i data-lucide="bot" class="luc"></i> GPT Maker / Bia Tavares</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
         _cfgField('Bot / Agent ID','gptmaker_bot_id',cfg.gptmaker_bot_id,'text') +
         _cfgField('Token API','gptmaker_token',cfg.gptmaker_token,'password') +
@@ -2062,7 +2263,7 @@ async function renderAutomacoes() {
     '<div class="card" style="padding:24px">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
         '<div>' +
-          '<div style="font-weight:700;font-size:15px;color:var(--text)">📡 Meta Marketing API</div>' +
+          '<div style="font-weight:700;font-size:15px;color:var(--text)"><i data-lucide="radio" class="luc"></i> Meta Marketing API</div>' +
           '<div style="font-size:12px;color:var(--muted);margin-top:2px">Importa dados de campanhas diariamente para a aba <strong>trafego</strong> da planilha</div>' +
         '</div>' +
         '<div style="display:flex;align-items:center;gap:8px">' +
@@ -2077,9 +2278,9 @@ async function renderAutomacoes() {
         _cfgField('Hora do sync di&aacute;rio (Bras&iacute;lia)','meta_sync_hora',cfg.meta_sync_hora||'8','number') +
       '</div>' +
       '<div style="display:flex;flex-wrap:wrap;gap:10px">' +
-        '<button class="btn btn-ghost btn-sm" onclick="testarMetaConexao()">🔌 Testar conex&atilde;o</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="testarMetaConexao()"><i data-lucide="plug" class="luc"></i> Testar conex&atilde;o</button>' +
         '<button class="btn btn-ghost btn-sm" onclick="syncMetaAgora()">&#8635; Sincronizar agora</button>' +
-        '<button class="btn btn-ghost btn-sm" onclick="configurarMetaTrigger()">⏰ Ativar sync di&aacute;rio</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="configurarMetaTrigger()"><i data-lucide="alarm-clock" class="luc"></i> Ativar sync di&aacute;rio</button>' +
       '</div>' +
       '<div id="metaStatusMsg" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>' +
     '</div>' +
@@ -2088,17 +2289,17 @@ async function renderAutomacoes() {
     '<div class="card" style="padding:24px">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
         '<div>' +
-          '<div style="font-weight:700;font-size:15px;color:var(--text)">🎨 Criativos Meta — Top Hist&oacute;ricos &amp; Teste A/B</div>' +
+          '<div style="font-weight:700;font-size:15px;color:var(--text)"><i data-lucide="palette" class="luc"></i> Criativos Meta — Top Hist&oacute;ricos &amp; Teste A/B</div>' +
           '<div style="font-size:12px;color:var(--muted);margin-top:2px">Recicla os melhores ads antigos + lan&ccedil;a at&eacute; 5 criativos novos em 1 campanha via Marketing API.</div>' +
         '</div>' +
       '</div>' +
 
       // Tab buttons
       '<div id="criativosTabs" style="display:flex;gap:6px;margin:14px 0 18px;border-bottom:1px solid var(--border)">' +
-        '<button class="btn btn-ghost btn-sm criativos-tab active" data-tab="top"      onclick="switchCriativosTab(\'top\')">🏆 Top Hist&oacute;ricos</button>' +
-        '<button class="btn btn-ghost btn-sm criativos-tab"        data-tab="ativos"   onclick="switchCriativosTab(\'ativos\')">📂 Criativos Ativos</button>' +
-        '<button class="btn btn-ghost btn-sm criativos-tab"        data-tab="novo"     onclick="switchCriativosTab(\'novo\')">➕ Novo Criativo</button>' +
-        '<button class="btn btn-ghost btn-sm criativos-tab"        data-tab="teste"    onclick="switchCriativosTab(\'teste\')">🚀 Teste A/B</button>' +
+        '<button class="btn btn-ghost btn-sm criativos-tab active" data-tab="top"      onclick="switchCriativosTab(\'top\')"><i data-lucide="trophy" class="luc"></i> Top Hist&oacute;ricos</button>' +
+        '<button class="btn btn-ghost btn-sm criativos-tab"        data-tab="ativos"   onclick="switchCriativosTab(\'ativos\')"><i data-lucide="folder-open" class="luc"></i> Criativos Ativos</button>' +
+        '<button class="btn btn-ghost btn-sm criativos-tab"        data-tab="novo"     onclick="switchCriativosTab(\'novo\')"><i data-lucide="plus" class="luc"></i> Novo Criativo</button>' +
+        '<button class="btn btn-ghost btn-sm criativos-tab"        data-tab="teste"    onclick="switchCriativosTab(\'teste\')"><i data-lucide="rocket" class="luc"></i> Teste A/B</button>' +
       '</div>' +
 
       // Tab panels (containers; preenchidos por switchCriativosTab)
@@ -2110,7 +2311,7 @@ async function renderAutomacoes() {
     '<div class="card" style="padding:20px 24px">' +
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">' +
         '<button class="btn btn-primary" onclick="salvarConfigAutomacao()">�� Salvar configura&ccedil;&otilde;es</button>' +
-        '<button class="btn btn-ghost" onclick="configTriggers()">⏰ Configurar todos os triggers</button>' +
+        '<button class="btn btn-ghost" onclick="configTriggers()"><i data-lucide="alarm-clock" class="luc"></i> Configurar todos os triggers</button>' +
         '<button class="btn btn-ghost" onclick="renderAutomacoes()">&#8635; Atualizar</button>' +
         '<span style="font-size:11px;color:var(--muted);margin-left:4px">M&eacute;tricas de resumo est&atilde;o no Dashboard.</span>' +
       '</div>' +
@@ -2149,7 +2350,7 @@ async function toggleConfig(key) {
   const cfg   = {};
   cfg[key]    = novo;
   const save  = await rpc('saveConfig', { config: cfg });
-  if (save.ok) { toast((novo ? '✅ Ativado' : '⏸ Pausado') + ': ' + key.replace(/_/g,' '), 'success'); renderAutomacoes(); }
+  if (save.ok) { toast((novo ? '<i data-lucide="check-circle-2" class="luc"></i> Ativado' : '<i data-lucide="pause" class="luc"></i> Pausado') + ': ' + key.replace(/_/g,' '), 'success'); renderAutomacoes(); }
   else toast(save.error || 'Erro ao salvar.', 'error');
 }
  
@@ -2186,8 +2387,8 @@ async function configurarMetaTrigger() {
   if (el) await rpc('saveConfig', { config: { meta_sync_hora: el.value } });
   const res = await rpc('setupMetaTrigger', {});
   const msg = document.getElementById('metaStatusMsg');
-  if (res.ok) { if (msg) msg.textContent = '✅ ' + res.message; toast(res.message, 'success'); }
-  else { if (msg) msg.textContent = '❌ ' + (res.error||'Erro'); toast(res.error||'Erro.', 'error'); }
+  if (res.ok) { if (msg) msg.textContent = '<i data-lucide="check-circle-2" class="luc"></i> ' + res.message; toast(res.message, 'success'); }
+  else { if (msg) msg.textContent = '<i data-lucide="x-circle" class="luc"></i> ' + (res.error||'Erro'); toast(res.error||'Erro.', 'error'); }
 }
  
 // ── Meta API ──────────────────────────────────────────────────
@@ -2199,11 +2400,11 @@ async function testarMetaConexao() {
   const res = await rpc('testarConexaoMeta', {});
   if (res.ok) {
     const d = res.data;
-    const txt = '✅ Conectado: ' + d.nome + ' (' + d.moeda + ' / ' + d.fuso + ')';
+    const txt = '<i data-lucide="check-circle-2" class="luc"></i> Conectado: ' + d.nome + ' (' + d.moeda + ' / ' + d.fuso + ')';
     if (msg) msg.textContent = txt;
     toast('Conexão OK: ' + d.nome, 'success');
   } else {
-    if (msg) msg.textContent = '❌ ' + (res.error||'Falha na conexão');
+    if (msg) msg.textContent = '<i data-lucide="x-circle" class="luc"></i> ' + (res.error||'Falha na conexão');
     toast(res.error || 'Falha na conexão.', 'error');
   }
 }
@@ -2218,7 +2419,7 @@ async function abrirSeletorComprador() {
   if (!lista.length) { toast('Nenhum comprador encontrado na planilha.', 'error'); return; }
  
   const opts = lista.map(c =>
-    '<option value="' + c.email + '">' + c.nome + ' (' + c.email + ') — Dia ' + c.diaAtual + (c.ativo ? ' ✅' : ' ⏸') + '</option>'
+    '<option value="' + c.email + '">' + c.nome + ' (' + c.email + ') — Dia ' + c.diaAtual + (c.ativo ? ' <i data-lucide="check-circle-2" class="luc"></i>' : ' <i data-lucide="pause" class="luc"></i>') + '</option>'
   ).join('');
  
   openModal('Selecionar Comprador para Teste',
@@ -2254,14 +2455,14 @@ async function renderCriativosTop() {
   panel.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   const res = await rpc('getTopCriativosHistoricos', {});
   if (!res.ok) {
-    panel.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>' + (res.error || 'Erro') + '</p></div>';
+    panel.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="alert-triangle" class="luc"></i></div><p>' + (res.error || 'Erro') + '</p></div>';
     return;
   }
   if (!res.items || res.items.length === 0) {
-    panel.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Nenhum dado histórico. Rode o sync Meta antes.</p></div>';
+    panel.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="bar-chart-3" class="luc"></i></div><p>Nenhum dado histórico. Rode o sync Meta antes.</p></div>';
     return;
   }
-  var html = '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Top ' + res.items.length + ' criativos ranqueados por score (CTR + CPA). Clique em <strong>♻️ Reciclar</strong> para mover para a aba <code>criativos</code>.</div>';
+  var html = '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Top ' + res.items.length + ' criativos ranqueados por score (CTR + CPA). Clique em <strong><i data-lucide="refresh-ccw" class="luc"></i> Reciclar</strong> para mover para a aba <code>criativos</code>.</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
     '<thead><tr style="background:var(--surface2);text-align:left">' +
       '<th style="padding:8px 10px">#</th>' +
@@ -2284,7 +2485,7 @@ async function renderCriativosTop() {
       '<td style="padding:9px 10px;text-align:right">' + ctr + '</td>' +
       '<td style="padding:9px 10px;text-align:right">' + cpa + '</td>' +
       '<td style="padding:9px 10px;text-align:center">' +
-        '<button class="btn btn-ghost btn-sm" onclick="reciclarCriativo(\'' + escAttr(item.nome) + '\')">♻️ Reciclar</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="reciclarCriativo(\'' + escAttr(item.nome) + '\')"><i data-lucide="refresh-ccw" class="luc"></i> Reciclar</button>' +
       '</td>' +
     '</tr>';
   });
@@ -2297,9 +2498,9 @@ async function reciclarCriativo(nome) {
   showStatus('Reciclando...', 'loading');
   const res = await rpc('criarCriativoReciclado', { topAdNome: nome });
   if (res.ok) {
-    showStatus('♻️ Criativo "' + nome + '" reciclado (id: ' + res.id + ')', 'success');
+    showStatus('<i data-lucide="refresh-ccw" class="luc"></i> Criativo "' + nome + '" reciclado (id: ' + res.id + ')', 'success');
   } else {
-    showStatus('❌ ' + (res.error || 'Erro'), 'error');
+    showStatus('<i data-lucide="x-circle" class="luc"></i> ' + (res.error || 'Erro'), 'error');
   }
 }
 
@@ -2309,11 +2510,11 @@ async function renderCriativosAtivos() {
   panel.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
   const res = await rpc('listarCriativos', {});
   if (!res.ok) {
-    panel.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>' + (res.error || 'Erro') + '</p></div>';
+    panel.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="alert-triangle" class="luc"></i></div><p>' + (res.error || 'Erro') + '</p></div>';
     return;
   }
   if (!res.items || res.items.length === 0) {
-    panel.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><p>Nenhum criativo na aba <code>criativos</code>. Recicle um top ou crie um novo.</p></div>';
+    panel.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="folder-open" class="luc"></i></div><p>Nenhum criativo na aba <code>criativos</code>. Recicle um top ou crie um novo.</p></div>';
     return;
   }
   var html = '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + res.items.length + ' criativos cadastrados. Selecione at&eacute; 5 na aba <strong>Teste A/B</strong> para subir ao Meta.</div>';
@@ -2392,7 +2593,7 @@ function renderCriativoNovo() {
       _criField('URL do asset (p&uacute;blica)', 'cn_asset_url', '', 'text', 'https://i.imgur.com/.../criativo.png') +
     '</div>' +
     '<div style="margin-top:14px;display:flex;gap:10px;align-items:center">' +
-      '<button class="btn btn-primary" onclick="salvarNovoCriativo()">💾 Salvar na aba criativos</button>' +
+      '<button class="btn btn-primary" onclick="salvarNovoCriativo()"><i data-lucide="save" class="luc"></i> Salvar na aba criativos</button>' +
       '<span id="cnStatusMsg" style="font-size:12px;color:var(--muted)"></span>' +
     '</div>';
 }
@@ -2412,10 +2613,10 @@ async function salvarNovoCriativo() {
   showStatusMsg('cnStatusMsg', 'Salvando...', 'loading');
   const res = await rpc('salvarCriativo', payload);
   if (res.ok) {
-    showStatusMsg('cnStatusMsg', '✅ Criativo salvo (id ' + res.id + ')', 'success');
+    showStatusMsg('cnStatusMsg', '<i data-lucide="check-circle-2" class="luc"></i> Criativo salvo (id ' + res.id + ')', 'success');
     setTimeout(renderCriativosAtivos, 800);
   } else {
-    showStatusMsg('cnStatusMsg', '❌ ' + (res.error || 'Erro'), 'error');
+    showStatusMsg('cnStatusMsg', '<i data-lucide="x-circle" class="luc"></i> ' + (res.error || 'Erro'), 'error');
   }
 }
 
@@ -2459,7 +2660,7 @@ function renderCriativosTeste() {
       _criField('Link de destino', 'ab_link', 'https://wpktavares.com.br/21-dias/', 'text') +
     '</div>' +
     '<div style="display:flex;gap:10px;align-items:center">' +
-      '<button class="btn btn-primary" onclick="subirCriativosMeta()" id="abSubmitBtn">🚀 Subir pro Meta (criar campanha + ad set + ads)</button>' +
+      '<button class="btn btn-primary" onclick="subirCriativosMeta()" id="abSubmitBtn"><i data-lucide="rocket" class="luc"></i> Subir pro Meta (criar campanha + ad set + ads)</button>' +
       '<span id="abStatus" style="font-size:12px;color:var(--muted)"></span>' +
     '</div>' +
     '<div id="abResultado" style="margin-top:18px"></div>';
@@ -2490,19 +2691,19 @@ async function subirCriativosMeta() {
   };
   const btn = document.getElementById('abSubmitBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Subindo...';
+  btn.textContent = '<i data-lucide="loader" class="luc"></i> Subindo...';
   document.getElementById('abStatus').textContent = 'Chamando Meta Marketing API...';
   const res = await rpc('criarCampanhaCompletaMeta', body);
   btn.disabled = false;
-  btn.textContent = '🚀 Subir pro Meta (criar campanha + ad set + ads)';
+  btn.textContent = '<i data-lucide="rocket" class="luc"></i> Subir pro Meta (criar campanha + ad set + ads)';
   if (!res.ok) {
-    document.getElementById('abStatus').textContent = '❌ ' + (res.error || 'Erro');
+    document.getElementById('abStatus').textContent = '<i data-lucide="x-circle" class="luc"></i> ' + (res.error || 'Erro');
     document.getElementById('abResultado').innerHTML = '<pre style="background:var(--surface2);padding:10px;border-radius:8px;font-size:11px;color:#e53935;overflow:auto">' + JSON.stringify(res, null, 2) + '</pre>';
     return;
   }
-  document.getElementById('abStatus').textContent = '✅ Campanha criada em PAUSED no Meta Ads Manager.';
+  document.getElementById('abStatus').textContent = '<i data-lucide="check-circle-2" class="luc"></i> Campanha criada em PAUSED no Meta Ads Manager.';
   var html = '<div style="background:var(--surface2);padding:14px;border-radius:8px;border-left:3px solid var(--green)">' +
-    '<div style="font-weight:700;color:var(--text);margin-bottom:8px">🎉 Campanha criada com sucesso</div>' +
+    '<div style="font-weight:700;color:var(--text);margin-bottom:8px"><i data-lucide="party-popper" class="luc"></i> Campanha criada com sucesso</div>' +
     '<div style="font-size:12.5px;color:var(--muted);line-height:1.7">' +
       'Campaign ID: <code style="background:var(--bg);padding:2px 6px;border-radius:4px">' + res.campaign_id + '</code><br>' +
       'Ad Set ID: <code style="background:var(--bg);padding:2px 6px;border-radius:4px">' + res.adset_id + '</code><br>' +
@@ -2511,11 +2712,11 @@ async function subirCriativosMeta() {
     '<div style="margin-top:10px;font-size:12px">' +
       '<strong>Anúncios criados:</strong>' +
       '<ul style="margin:6px 0 0 0;padding-left:20px;line-height:1.6">' +
-        res.ads.map(a => '<li>' + (a.ok ? '✅ <code>' + a.ad_id + '</code> (' + (a.criativo_id || '-') + ')' : '❌ ' + (a.criativo_id || '-') + ': ' + (a.error || '?')) + '</li>').join('') +
+        res.ads.map(a => '<li>' + (a.ok ? '<i data-lucide="check-circle-2" class="luc"></i> <code>' + a.ad_id + '</code> (' + (a.criativo_id || '-') + ')' : '<i data-lucide="x-circle" class="luc"></i> ' + (a.criativo_id || '-') + ': ' + (a.error || '?')) + '</li>').join('') +
       '</ul>' +
     '</div>' +
     '<div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:6px;font-size:12px;color:var(--muted)">' +
-      '⚠️ Status inicial: <strong>PAUSED</strong>. Ative manualmente no <a href="https://business.facebook.com/latest/ad_campaign" target="_blank">Meta Ads Manager</a> ap&oacute;s revisar.' +
+      '<i data-lucide="alert-triangle" class="luc"></i> Status inicial: <strong>PAUSED</strong>. Ative manualmente no <a href="https://business.facebook.com/latest/ad_campaign" target="_blank">Meta Ads Manager</a> ap&oacute;s revisar.' +
     '</div>' +
   '</div>';
   document.getElementById('abResultado').innerHTML = html;
@@ -2626,7 +2827,7 @@ async function renderCompradores() {
     const content = document.getElementById('content');
 
     if (!lista.length) {
-      content.innerHTML = '<div class="empty-state"><div class="empty-icon">🎓</div><div class="empty-title">Nenhum aluno ainda</div><div class="empty-sub">Os alunos aparecerão aqui após a primeira compra via Cakto.</div></div>';
+      content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="graduation-cap" class="luc"></i></div><div class="empty-title">Nenhum aluno ainda</div><div class="empty-sub">Os alunos aparecerão aqui após a primeira compra via Cakto.</div></div>';
       return;
     }
 
@@ -2637,10 +2838,10 @@ async function renderCompradores() {
 
     var html =
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">' +
-        _metricCard('🎓', lista.length, 'Total de Alunos', '') +
-        _metricCard('✅', ativos, 'Em Andamento', 'ativos no desafio') +
-        _metricCard('🏆', concluidos, 'Conclu&iacute;dos', 'completaram 21 dias') +
-        _metricCard('📊', progMedio + '%', 'Progresso M&eacute;dio', 'entre todos os alunos') +
+        _metricCard('<i data-lucide="graduation-cap" class="luc"></i>', lista.length, 'Total de Alunos', '') +
+        _metricCard('<i data-lucide="check-circle-2" class="luc"></i>', ativos, 'Em Andamento', 'ativos no desafio') +
+        _metricCard('<i data-lucide="trophy" class="luc"></i>', concluidos, 'Conclu&iacute;dos', 'completaram 21 dias') +
+        _metricCard('<i data-lucide="bar-chart-3" class="luc"></i>', progMedio + '%', 'Progresso M&eacute;dio', 'entre todos os alunos') +
       '</div>';
 
     // Tabela
@@ -2652,7 +2853,7 @@ async function renderCompradores() {
 
     lista.forEach(c => {
       const statusCls  = c.concluido ? 'var(--green)'  : c.ativo ? '#3b82f6' : 'var(--muted)';
-      const statusTxt  = c.concluido ? '🏆 Concluído'  : c.ativo ? '✅ Ativo'  : '⏸ Pausado';
+      const statusTxt  = c.concluido ? '<i data-lucide="trophy" class="luc"></i> Concluído'  : c.ativo ? '<i data-lucide="check-circle-2" class="luc"></i> Ativo'  : '<i data-lucide="pause" class="luc"></i> Pausado';
       var progBar =
         '<div style="display:flex;align-items:center;gap:8px">' +
           '<div style="flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden">' +
@@ -2695,7 +2896,7 @@ async function renderAudios21() {
     _audios21Cache = res.data;
     _renderAudios21Grid(res.data);
   } catch(e) {
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erro</div><div class="empty-sub">' + escHtml(e.message) + '</div></div>';
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="alert-triangle" class="luc"></i></div><div class="empty-title">Erro</div><div class="empty-sub">' + escHtml(e.message) + '</div></div>';
   }
 }
 
@@ -2716,13 +2917,13 @@ function _renderAudios21Grid(audios) {
     var hasCapa = Boolean(a.capa_url);
     var coverHtml = hasCapa
       ? '<img src="' + escHtml(a.capa_url) + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0" onerror="this.style.display=\'none\'">'
-      : '<div style="width:48px;height:48px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🎧</div>';
+      : '<div style="width:48px;height:48px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0"><i data-lucide="headphones" class="luc"></i></div>';
     var descHtml = a.descricao
       ? '<div style="font-size:12px;color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' + escHtml(a.descricao) + '</div>'
       : '';
     var dotBg    = hasUrl ? 'var(--green)' : 'var(--muted2)';
     var dotTitle = hasUrl ? 'URL configurada' : 'Sem URL';
-    var statusTxt = (hasUrl ? '✓ Áudio configurado' : '• Sem áudio') + (a.duracao ? ' · ' + escHtml(a.duracao) : '');
+    var statusTxt = (hasUrl ? '<i data-lucide="check" class="luc"></i> Áudio configurado' : '• Sem áudio') + (a.duracao ? ' · ' + escHtml(a.duracao) : '');
     var statusColor = hasUrl ? 'var(--green)' : 'var(--muted2)';
     html +=
       '<div class="card" style="padding:14px;cursor:pointer;transition:border-color .2s,transform .15s"' +
@@ -2764,7 +2965,7 @@ function openEditAudio21(dia) {
     '<div class="form-group"><label class="form-label">Dura&ccedil;&atilde;o (ex: 8:30)</label>' +
       '<input class="form-control" id="a21_duracao" value="' + escHtml(a.duracao||'') + '" placeholder="00:00"></div>';
 
-  openModal('🎧 &Aacute;udio &mdash; Dia ' + dia, html, [
+  openModal('<i data-lucide="headphones" class="luc"></i> &Aacute;udio &mdash; Dia ' + dia, html, [
     { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
     { label: 'Salvar', action: function() { submitSaveAudio21(dia); }, cls: 'btn-primary' }
   ]);
@@ -2806,7 +3007,7 @@ async function renderConfiguracoes() {
       '<div style="max-width:640px">' +
         '<div class="card" style="margin-bottom:16px">' +
           '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px">' +
-            '<span>🏷️</span> Identidade do Workspace' +
+            '<span><i data-lucide="tag" class="luc"></i>️</span> Identidade do Workspace' +
           '</div>' +
           '<div class="form-row">' +
             '<div class="form-group"><label class="form-label">Nome do Workspace</label>' +
@@ -2833,7 +3034,7 @@ async function renderConfiguracoes() {
             '</div>' +
           '</div>' +
           '<div style="margin-top:4px;font-size:11px;color:var(--muted)">Preview da sidebar &mdash; aplica na pr&oacute;xima vez que a p&aacute;gina for carregada</div>' +
-          '<button class="btn btn-primary btn-sm" style="margin-top:14px" onclick="salvarWorkspace()">💾 Salvar identidade</button>' +
+          '<button class="btn btn-primary btn-sm" style="margin-top:14px" onclick="salvarWorkspace()"><i data-lucide="save" class="luc"></i> Salvar identidade</button>' +
         '</div>' +
       '</div>';
 
@@ -2849,7 +3050,7 @@ async function renderConfiguracoes() {
     });
 
   } catch(e) {
-    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erro</div><div class="empty-sub">' + escHtml(e.message) + '</div></div>';
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="alert-triangle" class="luc"></i></div><div class="empty-title">Erro</div><div class="empty-sub">' + escHtml(e.message) + '</div></div>';
   }
 }
 
@@ -2911,7 +3112,7 @@ async function verDetalheAluno(email, nome) {
       '</div>' +
       '<div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Hist&oacute;rico dos 21 Dias</div>' +
       diasHtml +
-      '<div style="font-size:11px;color:var(--muted);margin-top:10px">🟢 Conclu&iacute;do &nbsp; 🟡 Parcial &nbsp; ⬜ Pendente</div>';
+      '<div style="font-size:11px;color:var(--muted);margin-top:10px"><i data-lucide="circle-check" class="luc"></i> Conclu&iacute;do &nbsp; <i data-lucide="circle" class="luc"></i> Parcial &nbsp; <i data-lucide="square" class="luc"></i> Pendente</div>';
 
     openModal('Aluno: ' + escHtml(d.nome || nome), modalBody,
       [{ label: 'Fechar', action: closeModal, cls: 'btn-ghost' }]
@@ -2968,7 +3169,7 @@ async function renderNotificacoes() {
 
     // ── Formulário de envio ────────────────────────────────
     '<div class="card" style="margin-bottom:24px">' +
-      '<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px">📤 Enviar Nova Notificação</div>' +
+      '<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px"><i data-lucide="send" class="luc"></i> Enviar Nova Notificação</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">' +
         '<div class="form-group" style="margin:0">' +
           '<label class="form-label">Título *</label>' +
@@ -2978,8 +3179,8 @@ async function renderNotificacoes() {
           '<label class="form-label">Tipo</label>' +
           '<select class="form-control" id="notif_tipo">' +
             '<option value="info">ℹ️ Info</option>' +
-            '<option value="success">✅ Novidade</option>' +
-            '<option value="alerta">⚠️ Alerta</option>' +
+            '<option value="success"><i data-lucide="check-circle-2" class="luc"></i> Novidade</option>' +
+            '<option value="alerta"><i data-lucide="alert-triangle" class="luc"></i> Alerta</option>' +
           '</select>' +
         '</div>' +
       '</div>' +
@@ -2988,7 +3189,7 @@ async function renderNotificacoes() {
         '<textarea class="form-control" id="notif_mensagem" rows="3" placeholder="Escreva a mensagem que os alunos verão no app..." style="resize:vertical"></textarea>' +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:10px">' +
-        '<button class="btn btn-primary" onclick="enviarNotificacao()">🔔 Enviar para todos os alunos</button>' +
+        '<button class="btn btn-primary" onclick="enviarNotificacao()"><i data-lucide="bell" class="luc"></i> Enviar para todos os alunos</button>' +
         '<div id="notifSendStatus" style="font-size:13px;color:var(--muted)"></div>' +
       '</div>' +
     '</div>' +
