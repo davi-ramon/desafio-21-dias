@@ -165,6 +165,21 @@ function handleRequest(payload) {
     case 'syncMetaManual':       return syncMetaManual(token);
     case 'getMetaStatus':        return getMetaStatus(token);
     case 'setupMetaTrigger':     return setupMetaTrigger();
+    // Meta Marketing API — criacao (meta_ads_create.gs, v89+)
+    case 'validarMetaToken':         return validarMetaToken(data.token, data.accountId);
+    case 'salvarMetaToken':          return setupMetaToken_(data.token, data.accountId);
+    case 'uploadAdImage':            return uploadAdImage(token, data.fileBase64, data.nome);
+    case 'criarCampanhaMeta':        return criarCampanhaMeta(token, data);
+    case 'criarAdSetMeta':           return criarAdSetMeta(token, data);
+    case 'criarAdCreativeMeta':      return criarAdCreativeMeta(token, data);
+    case 'criarAdMeta':              return criarAdMeta(token, data);
+    case 'criarCampanhaCompletaMeta':return criarCampanhaCompletaMeta(token, data);
+    case 'setAdStatusMeta':          return setAdStatusMeta(token, data.adId, data.status);
+    case 'listarCriativos':          return listarCriativos(token);
+    case 'salvarCriativo':           return salvarCriativo(token, data);
+    case 'setCriativoStatus':        return setCriativoStatus(token, data.criativoId, data.status);
+    case 'getTopCriativosHistoricos':return getTopCriativosHistoricos(token);
+    case 'criarCriativoReciclado':   return criarCriativoReciclado(token, data.topAdNome);
     case 'setupAllTriggersV2': {
       setupTriggers();
       setupAutomacaoTriggers();
