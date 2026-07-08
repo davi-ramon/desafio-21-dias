@@ -3024,7 +3024,8 @@ function renderAssinatura() {
       '<div style="font-size:17px;font-weight:800;color:var(--text)">Assinatura Premium</div>' +
     '</div>' +
     '<div id="assinaturaBody">' + _assinaturaLoadingHTML() + '</div>' +
-    '<div style="font-size:11px;color:var(--muted);text-align:center;padding:10px 0">Pagamento gerenciado com segurança pela Cakto</div>' +
+    // v97: footer hardcoded removido — duplicava o de _renderAssinaturaHub que
+    // mostra "Pagamento gerenciado com seguranca pela Cakto/Stripe" conforme provider
   '</div>';
 
   _setupAssinaturaAutoRefresh();
@@ -3174,12 +3175,106 @@ async function _abrirPortalStripe() {
 
 async function _migrarParaStripe() {
   if (!confirm('Migrar para Stripe?\n\nAbrimos o checkout do Stripe para você. Sua assinatura Cakto será cancelada automaticamente após confirmar o pagamento.')) return;
-  showStatus && showStatus('Gerando checkout Stripe...', 'loading');
-  var r = await rpc('iniciarMigracaoStripe', { plan: (APP.subHub && APP.subHub.plano) || 'monthly' });
-  if (r && r.ok && r.url) {
-    try { window.location.href = r.url; } catch (e) { window.open(r.url, '_blank'); }
+  // Bloqueia a tela enquanto carrega (senao parece "nada acontece")
+  var overlay = _showMigracaoOverlay();
+  try {
+    var r = await rpc('iniciarMigracaoStripe', {
+      plan: (APP.subHub && _planKeyFromPlano_(APP.subHub.plano)) || 'monthly'
+    });
+    if (r && r.ok && r.url) {
+      // Tenta redirecionar via top-level. Se popup blocker reclamar, mostra botao manual.
+      try {
+        var win = window.open(r.url, '_self', 'noopener');
+        if (!win || win.closed) throw new Error('popup blocked');
+      } catch (e1) {
+        // 2a tentativa: nova aba (popup tab)
+        try {
+          var w2 = window.open(r.url, '_blank', 'noopener,noreferrer');
+          if (!w2 || w2.closed) throw new Error('popup blocked 2');
+        } catch (e2) {
+          // Fallback final: mostra botao manual "Abrir checkout"
+          _migracaoShowManualLink(overlay, r.url);
+          return;
+        }
+      }
+      _migracaoShowManualLink(overlay, r.url); // garante fallback mesmo se popup funcionou parcialmente
+    } else {
+      var msg = (r && r.error) || 'Erro desconhecido ao iniciar a migracao.';
+      if (/nao configurado|indispon/i.test(msg)) {
+        msg = 'Stripe ainda nao configurado. Fale com o suporte.';
+      }
+      _migracaoShowError(overlay, msg);
+    }
+  } catch (e) {
+    _migracaoShowError(overlay, 'Falha de conexao: ' + (e && e.message ? e.message : e));
+  }
+}
+
+// Helpers visuais para o overlay de migracao
+function _showMigracaoOverlay() {
+  var ov = document.createElement('div');
+  ov.id = 'migracaoOverlay';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML =
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px 32px;max-width:380px;width:100%;text-align:center">' +
+      '<div class="spinner-circle" style="width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div>' +
+      '<div style="font-weight:800;margin-bottom:6px">Gerando checkout Stripe...</div>' +
+      '<div style="font-size:12px;color:var(--muted)">Pode levar 2-5 segundos.</div>' +
+      '<div id="migracaoMsg" style="margin-top:14px"></div>' +
+    '</div>' +
+    '<style>@keyframes spin{to{transform:rotate(360deg)}}.spinner-circle{display:block}</style>';
+  document.body.appendChild(ov);
+  return ov;
+}
+function _migracaoShowManualLink(overlay, url) {
+  if (!overlay || !overlay.parentNode) return;
+  var msg = document.getElementById('migracaoMsg');
+  if (!msg) return;
+  msg.innerHTML =
+    '<a href="' + url + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:11px 18px;border-radius:10px;background:var(--green);color:#000;font-weight:700;text-decoration:none;font-size:13px">Abrir checkout Stripe</a>' +
+    '<div style="margin-top:8px;font-size:11px;color:var(--muted)">Se nao abriu, clique no botao.</div>' +
+    '<button onclick="document.getElementById(\'migracaoOverlay\').remove()" style="margin-top:14px;background:none;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px">Fechar</button>';
+}
+function _migracaoShowError(overlay, msg) {
+  if (!overlay || !overlay.parentNode) return;
+  var box = overlay.querySelector('div > div');
+  if (!box) return;
+  box.innerHTML =
+    '<div style="width:42px;height:42px;border-radius:50%;background:rgba(244,67,54,0.18);color:#ef5350;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;margin:0 auto 14px">!</div>' +
+    '<div style="font-weight:800;margin-bottom:6px">Nao foi possivel iniciar a migracao</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);line-height:1.45;margin-bottom:14px">' + msg + '</div>' +
+    '<button onclick="document.getElementById(\'migracaoOverlay\').remove()" style="padding:8px 18px;border-radius:10px;background:var(--green);color:#000;font-weight:700;border:none;cursor:pointer;font-size:13px">Fechar</button>';
+  setTimeout(function() { var o = document.getElementById('migracaoOverlay'); if (o) o.remove(); }, 8000);
+}
+
+// Helper: converte "Mensal — R$ 17/mês" -> "monthly"
+function _planKeyFromPlano_(planoLabel) {
+  if (!planoLabel) return 'monthly';
+  var s = String(planoLabel).toLowerCase();
+  if (s.indexOf('trimestral') >= 0) return 'quarterly';
+  if (s.indexOf('anual') >= 0)    return 'yearly';
+  return 'monthly';
+}
+
+// v97: mesma melhoria no gerenciar Stripe (popup pode ser bloqueado)
+async function _abrirPortalStripe() {
+  var r = await rpc('getStripePortal', {});
+  if (r && r.ok && r.data && r.data.url) {
+    try {
+      var w = window.open(r.data.url, '_blank', 'noopener,noreferrer');
+      if (!w || w.closed) {
+        if (confirm('O navegador bloqueou a nova aba. Abrir o portal do Stripe neste mesma janela?\n\n' + r.data.url)) {
+          window.location.href = r.data.url;
+        }
+      }
+    } catch (e) { window.location.href = r.data.url; }
   } else {
-    toast((r && r.error) || 'Erro ao iniciar migracao.', 'error');
+    var msg = (r && r.error) || 'Portal do Stripe indisponivel.';
+    if (/nao configurado|indispon/i.test(msg)) {
+      toast('Stripe ainda nao configurado. Fale com o suporte.', 'info');
+    } else {
+      toast(msg, 'error');
+    }
   }
 }
 

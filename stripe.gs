@@ -294,6 +294,30 @@ function getStripePortal(token) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ROTA: setupStripeStatus — retorna diagnostico (sem expor secrets)
+// Use para confirmar se STRIPE_SECRET_KEY esta persistida.
+// Ex.: { ok: true, hasKey: true, keyPrefix: 'sk_live_xxxxx', pricesConfigured: 3, webhookConfigured: false }
+// ─────────────────────────────────────────────────────────────
+function setupStripeStatus() {
+  var key = _stripeKey_();
+  var prefix = key ? key.slice(0, 10) + '...' + key.slice(-4) : '';
+  return {
+    ok: true,
+    hasKey: !!key,
+    isLive: key ? key.indexOf('sk_live_') === 0 || key.indexOf('rk_live_') === 0 : false,
+    isTest: key ? key.indexOf('sk_test_') === 0 || key.indexOf('rk_test_') === 0 : false,
+    keyPrefix: prefix,
+    pricesConfigured: Object.keys(STRIPE_PRICES).length,
+    priceValues: STRIPE_PRICES,
+    urls: {
+      success: STRIPE_SUCCESS_URL,
+      cancel:  STRIPE_CANCEL_URL,
+      return:  STRIPE_RETURN_URL
+    }
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
 // ROTA (pública): criarCheckoutStripe — cria sessão de checkout
 // data: { plan:'monthly|quarterly|yearly', trialDays:0|7|14|21, email? }
 // ─────────────────────────────────────────────────────────────
@@ -314,15 +338,11 @@ function criarCheckoutStripe(data) {
     'locale': 'pt-BR',
     'billing_address_collection': 'auto',
   };
-  var email = String((data && data.email) || '').trim();
-  if (email) params['customer_email'] = email;
-  if (trial > 0) {
-    params['subscription_data[trial_period_days]'] = String(trial);
-    // trial sem cartão: só coleta cartão se necessário
-    params['payment_method_collection'] = 'if_required';
-  }
+  if (data && data.email) params['customer_email'] = String(data.email);
+  if (trial > 0) params['subscription_data[trial_period_days]'] = String(trial);
 
-  var sess = _stripeCall_('post', '/v1/checkout/sessions', params);
-  if (sess._error) return { ok: false, error: sess.message || 'Não foi possível iniciar o checkout.' };
-  return { ok: true, url: sess.url, id: sess.id };
+  var resp = _stripeCall_('post', '/v1/checkout/sessions', params);
+  if (resp._error) return { ok: false, error: resp.message || 'Erro ao abrir checkout.' };
+  if (!resp.id || !resp.url) return { ok: false, error: 'Resposta invalida do Stripe.' };
+  return { ok: true, sessionId: resp.id, url: resp.url };
 }
