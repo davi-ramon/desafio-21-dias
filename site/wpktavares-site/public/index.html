@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script>
+/* Roteamento por host — app.wpktavares.com.br abre o APP (login), nunca a VSL.
+   Roda antes de qualquer render pra não piscar. wpktavares.com.br fica na VSL. */
+(function(){try{if(location.hostname==='app.wpktavares.com.br'&&!/^\/app(\/|$)/.test(location.pathname)){location.replace('/app/'+location.search+location.hash);}}catch(e){}})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Desafio 21 Dias – Construa uma Disciplina Inabalável</title>
@@ -1004,12 +1009,10 @@
       <p class="price-install">ou <strong>R$47/trimestre</strong> · ou <strong>R$177/ano</strong></p>
 
       <a
-        href="https://pay.cakto.com.br/rsi55kc"
+        href="#"
         class="cta-btn cta-pulse"
         id="cta-main"
-        target="_blank"
-        rel="noopener"
-        onclick="fbq('track', 'InitiateCheckout', {content_name: 'Desafio 21 Dias', value: 17.00, currency: 'BRL'})"
+        onclick="assinarStripe(event, 'monthly', 'Desafio 21 Dias – Mensal', 17); fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias',value:17.00,currency:'BRL'}); return false;"
       >
         QUERO COMEÇAR AGORA
         <span class="cta-sub">Acesso imediato · Cancele quando quiser</span>
@@ -1040,12 +1043,10 @@
 <section class="cta2">
   <div class="cta2-inner">
     <a
-      href="https://pay.cakto.com.br/rsi55kc"
+      href="#"
       class="cta-btn"
       id="cta-bottom"
-      target="_blank"
-      rel="noopener"
-      onclick="fbq('track', 'InitiateCheckout', {content_name: 'Desafio 21 Dias', value: 17.00, currency: 'BRL'})"
+      onclick="assinarStripe(event, 'monthly', 'Desafio 21 Dias – Mensal', 17); fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias',value:17.00,currency:'BRL'}); return false;"
     >
       SIM, QUERO TRANSFORMAR MEUS HÁBITOS
       <span class="cta-sub">R$17/mês · Cancele quando quiser · Garantia de 7 dias · Acesso imediato</span>
@@ -1211,6 +1212,57 @@
   });
   biaMO.observe(document.body, { childList: true, subtree: true });
 
+})();
+
+// v100: Stripe checkout inline (substitui Cakto nos CTAs da landing)
+(function() {
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+  function getToken() {
+    try {
+      return JSON.parse(sessionStorage.getItem('crm_token_admin') || 'null')
+        || JSON.parse(sessionStorage.getItem('app_token') || 'null')
+        || '';
+    } catch (e) { return ''; }
+  }
+  window.assinarStripe = function(ev, plan, planName, value) {
+    try { if (ev && ev.preventDefault) ev.preventDefault(); } catch (e) {}
+
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML =
+      '<div style="background:#0e1a14;border:1px solid rgba(76,175,80,0.32);border-radius:22px;padding:28px 32px;max-width:380px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);text-align:center;color:#dde8dd">' +
+        '<div style="width:34px;height:34px;border:3px solid rgba(76,175,80,0.16);border-top-color:#4caf50;border-radius:50%;animation:assSpin 1s linear infinite;margin:0 auto 14px"></div>' +
+        '<div style="font-weight:800;margin-bottom:6px">Abrindo checkout Stripe...</div>' +
+        '<div style="font-size:12px;color:#7a8f80">Voce sera redirecionado em instantes.</div>' +
+        '<div id="assErrMsg" style="margin-top:14px;font-size:12px;color:#ef5350;display:none"></div>' +
+      '</div>' +
+      '<style>@keyframes assSpin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(ov);
+    var errEl = ov.querySelector('#assErrMsg');
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      body: JSON.stringify({ action: 'criarCheckoutStripe', token: getToken(), data: { plan: plan, origin: 'planos', intent: 'new' } }),
+      redirect: 'follow'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (!res || !res.ok || !res.url) {
+        var msg = (res && res.error) || 'Erro ao abrir checkout.';
+        if (/nao configurado|indispon/i.test(msg)) msg = 'Stripe ainda nao configurado. Fale com o suporte.';
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+        setTimeout(function() { try { ov.remove(); } catch (e) {} }, 4500);
+        return;
+      }
+      try { window.location.href = res.url; }
+      catch (e) { var w = window.open(res.url, '_blank'); }
+    })
+    .catch(function(err) {
+      if (errEl) { errEl.textContent = 'Falha de conexao: ' + (err && err.message ? err.message : err); errEl.style.display = 'block'; }
+      setTimeout(function() { try { ov.remove(); } catch (e) {} }, 5000);
+    });
+  };
 })();
 </script>
 
