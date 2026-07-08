@@ -956,7 +956,9 @@ button,
 
   function _initApp() {
     if (typeof loadUserInfo === 'function') loadUserInfo();
-    if (typeof renderAutomacoes === 'function') renderAutomacoes();
+    // v94: rota padrao = 'pipeline' (Dashboard exige Google Charts async,
+    // causa race condition com auto-load. Pipeline e sync, mais robusto).
+    if (typeof navigate === 'function') navigate('pipeline');
     _lucideRefresh && _lucideRefresh(document.body);
   }
 
@@ -1122,37 +1124,37 @@ button,
       <span class="nav-label">Contatos</span>
     </div>
 
-    <div class="nav-item" data-page="automacoes" id="navAutomacoes" onclick="navigate('automacoes')" title="Automações" style="display:none">
+    <div class="nav-item" data-page="automacoes" id="navAutomacoes" onclick="navigate('automacoes')" title="Automações">
       <div class="nav-icon"><i data-lucide="bot" class="luc"></i></div>
       <span class="nav-label">Automações</span>
     </div>
-    <div class="nav-item" data-page="compradores" id="navCompradores" onclick="navigate('compradores')" title="Alunos" style="display:none">
+    <div class="nav-item" data-page="compradores" id="navCompradores" onclick="navigate('compradores')" title="Alunos">
       <div class="nav-icon"><i data-lucide="graduation-cap" class="luc"></i></div>
       <span class="nav-label">Alunos</span>
     </div>
-    <div class="nav-item" data-page="audios21" id="navAudios21" onclick="navigate('audios21')" title="Áudios 21 Dias" style="display:none">
+    <div class="nav-item" data-page="audios21" id="navAudios21" onclick="navigate('audios21')" title="Áudios 21 Dias">
       <div class="nav-icon"><i data-lucide="headphones" class="luc"></i></div>
       <span class="nav-label">Áudios 21 Dias</span>
     </div>
-    <div class="nav-item" data-page="notificacoes" id="navNotificacoes" onclick="navigate('notificacoes')" title="Notificações" style="display:none">
+    <div class="nav-item" data-page="notificacoes" id="navNotificacoes" onclick="navigate('notificacoes')" title="Notificações">
       <div class="nav-icon"><i data-lucide="bell" class="luc"></i></div>
       <span class="nav-label">Notificações</span>
     </div>
 
-    <div class="nav-section-label" id="adminLabel" style="display:none">Administração</div>
-    <div class="nav-item" data-page="sync" id="navSync" onclick="navigate('sync')" title="Sincronização" style="display:none">
+    <div class="nav-section-label" id="adminLabel">Administração</div>
+    <div class="nav-item" data-page="sync" id="navSync" onclick="navigate('sync')" title="Sincronização">
       <div class="nav-icon">↻</div>
       <span class="nav-label">Sincronização</span>
     </div>
-    <div class="nav-item" data-page="users" id="navUsers" onclick="navigate('users')" title="Usuários" style="display:none">
+    <div class="nav-item" data-page="users" id="navUsers" onclick="navigate('users')" title="Usuários">
       <div class="nav-icon"><i data-lucide="lock" class="luc"></i></div>
       <span class="nav-label">Usuários</span>
     </div>
-    <div class="nav-item" data-page="log" id="navLog" onclick="navigate('log')" title="Log" style="display:none">
+    <div class="nav-item" data-page="log" id="navLog" onclick="navigate('log')" title="Log">
       <div class="nav-icon"><i data-lucide="clipboard-list" class="luc"></i></div>
       <span class="nav-label">Log</span>
     </div>
-    <div class="nav-item" data-page="configuracoes" id="navConfiguracoes" onclick="navigate('configuracoes')" title="Configurações" style="display:none">
+    <div class="nav-item" data-page="configuracoes" id="navConfiguracoes" onclick="navigate('configuracoes')" title="Configurações">
       <div class="nav-icon"><i data-lucide="settings" class="luc"></i></div>
       <span class="nav-label">Configurações</span>
     </div>
@@ -1280,14 +1282,21 @@ const STAGE_BG     = ['rgba(76,175,80,0.14)','rgba(59,130,246,0.14)','rgba(245,1
 // ══════════════════════════════════════════════════════════
 window.addEventListener('load', function() {
   console.info('[App] window.load — token presente:', !!CRM.token);
-  if (!CRM.token) { console.warn('[App] Token ausente — redirecionando para login'); redirectLogin(); return; }
+  // v94: REMOVIDO redirect automatico por token ausente. O auth bootstrap
+  // (IIFE _attach) ja cuida disso via _showLogin. window.load rodando
+  // antes do login completar causava 'Token ausente' falso positivo e
+  // redirecionava pro login in-page indevidamente. Apenas carrega Charts
+  // e a UI padrao; a sessao e gerenciada exclusivamente pelo IIFE auth.
+  if (!CRM.token) {
+    console.info('[App] window.load sem token — IIFE auth assumira o controle.');
+    return;
+  }
 
   google.charts.load('current', { packages: ['corechart','bar','line'] });
   google.charts.setOnLoadCallback(function() { console.info('[App] Google Charts carregado'); });
 
   // Carrega UI imediatamente — não depende de initSheets
   loadUserInfo();
-  navigate('pipeline');
   showSyncBadge();
 
   // initSheets roda em background — erro não bloqueia a UI
@@ -1319,26 +1328,24 @@ function redirectLogin() {
 
 function loadUserInfo() {
   let u = null;
-  try { u = JSON.parse(sessionStorage.getItem('crm_user') || 'null'); } catch(e){}
-  // Fallback: usa dados injetados pelo servidor se sessionStorage estiver vazio
+  // v94: le da chave correta (auth novo grava em 'crm_admin_user')
+  try { u = JSON.parse(sessionStorage.getItem('crm_admin_user') || 'null'); } catch(e){}
+  // Fallback: tenta crm_user antigo (legado do GAS) se a nova estiver vazia
+  if (!u || !u.role) {
+    try { u = JSON.parse(sessionStorage.getItem('crm_user') || 'null'); } catch(e) {}
+  }
   if (!u || !u.role) u = { name: 'Usuário', email: '', role: 'user' };
-  // Persiste para uso em outras abas/recargas
-  try { sessionStorage.setItem('crm_user', JSON.stringify(u)); } catch(e2) {}
+  // Persiste para uso em outras abas/recargas (mantem chave nova + compat)
+  try { sessionStorage.setItem('crm_admin_user', JSON.stringify(u)); } catch(e2) {}
   CRM.user = u;
   document.getElementById('userNameEl').textContent = u.name || 'Usuário';
   document.getElementById('userRoleEl').textContent = u.role === 'admin' ? 'Administrador' : 'Usuário';
   document.getElementById('avatarEl').textContent = (u.name || 'U')[0].toUpperCase();
-  if (u.role === 'admin') {
-    document.getElementById('adminLabel').style.display = '';
-    document.getElementById('navSync').style.display = '';
-    document.getElementById('navUsers').style.display = '';
-    document.getElementById('navLog').style.display = '';
-    document.getElementById('navAutomacoes').style.display = '';
-    document.getElementById('navCompradores').style.display = '';
-    document.getElementById('navAudios21').style.display = '';
-    document.getElementById('navNotificacoes').style.display = '';
-    document.getElementById('navConfiguracoes').style.display = '';
-  }
+  // v94: nav-items ja estao sempre visiveis (display:none removido do HTML).
+  // Sessao so entra aqui se role === 'admin' (validado no _doLogin).
+  // Fallback defensivo: garante adminLabel visivel:
+  var al = document.getElementById('adminLabel');
+  if (al && u.role === 'admin') al.style.display = '';
 }
 
 function showSyncBadge() {
@@ -1359,7 +1366,23 @@ function rpc(action, data) {
     redirect: 'follow'
   })
   .then(function(resp) { return resp.json(); })
-  .then(function(r) { if (r && !r.ok) console.warn('[rpc]', action, '→ nok:', r.error); return r; })
+  .then(function(r) {
+    if (r && !r.ok) {
+      console.warn('[rpc]', action, '→ nok:', r.error);
+      // v94: detectar 401/sem permissao/forbidden e voltar pro login in-page.
+      var err = String(r.error || '').toLowerCase();
+      if (err.indexOf('nao autorizado') >= 0 || err.indexOf('não autorizado') >= 0 ||
+          err.indexOf('token ausente') >= 0 || err.indexOf('sem permissão') >= 0 ||
+          err.indexOf('sem permissao') >= 0 || err.indexOf('requer admin') >= 0 ||
+          err.indexOf('unauthorized') >= 0 || err.indexOf('forbidden') >= 0) {
+        if (typeof window._adminLogout === 'function') {
+          window._adminLogout();
+          if (typeof toast === 'function') toast('Sessão expirada. Faça login novamente.', 'warn');
+        }
+      }
+    }
+    return r;
+  })
   .catch(function(e) { console.error('[rpc]', action, '→ falha:', e && e.message); throw e; });
 }
 
