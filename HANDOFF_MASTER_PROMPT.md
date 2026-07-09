@@ -178,3 +178,186 @@ Substitua o trecho final pelos templates que você preferir
 ---
 
 *Prompt mestre criado em 2026-07-08. Versão 1.0.*
+
+
+---
+
+## 🔁 Comando Pré-Handoff: Salvar Estado da Sessão
+
+Use este comando **NO FINAL DE CADA SESSÃO**, antes de você trocar de conta, projeto ou fechar. Ele faz o Claude criar (ou atualizar) os 3 arquivos de handoff com o estado real atual.
+
+### Por que usar
+
+Você disse: *"eu quero o comando pra mandar ele CRIAR esses arquivos e salvar as sessões ANTES DE EU FAZER O HANDOFF"*. Este é ele.
+
+### Comando (copie e cole inteiro no chat)
+
+```
+Vou trocar de sessão / conta / projeto em breve. Antes disso, execute
+o handoff completo:
+
+1. **Analise o estado real atual do projeto** (código, banco, deploys
+   recentes, configurações, etc). NUNCA confie cegamente na memória —
+   sempre leia o código real e o estado do banco (aba `users`, `assinaturas`,
+   `config`, etc).
+
+2. **Gere OU atualize 3 arquivos na RAIZ do projeto** (não em
+   subdiretórios, pra ficar fácil de achar):
+   - **memory.md** — resumo executivo + identidade
+   - **context.md** — operacional profundo
+   - **overview.md** — changelog
+
+3. **Para memory.md**, use EXATAMENTE este template:
+
+```markdown
+---
+name: [slug-do-projeto]
+description: [frase curta do que é o projeto]
+metadata:
+  type: project
+---
+
+[Nome do projeto] — [1 linha do que faz].
+Dono: [nome]. Dev: [nome]. Cliente: [nome].
+
+## Identidade do projeto
+- [domínio, tipo, plataforma]
+
+## IDs/credenciais críticos (APENAS REFERÊNCIAS, NUNCA VALORES REAIS)
+- [id | descrição | onde está persistido]
+- [secrets em PropertiesService / Properties / env — só nome da chave]
+
+## Arquitetura (1-2 linhas)
+- Front → Back → DB
+
+## Regras de deploy (1-2 linhas cada)
+- Backend: clasp push --force && clasp deploy -i <id> -d "..."
+- Frontend: firebase deploy --only hosting (de site/wpktavares-site/)
+- Notificação: telegram + email via deploy-notify.py
+
+## Estado atual
+- ✅ Feito: [bullet 1-2]
+- ⏳ Pendente: [bullet 1-2]
+
+## Preferências do dev
+- Tom: direto, PT-BR, sem enrolação
+- Modelo preferido: Sonnet (custo-benefício)
+- Idioma conversa: PT-BR
+- Anti-patterns: modal nativa do navegador, hardcode secrets
+```
+
+4. **Para context.md**, use este template (operacional profundo):
+
+```markdown
+# CONTEXTO — [Nome do Projeto]
+
+> Handoff completo. Leia inteiro antes de editar.
+
+## 1. Visão geral (3-5 linhas)
+
+## 2. Arquitetura (com diagrama ASCII)
+
+## 3. Diretórios e caminhos críticos
+| O quê | Caminho |
+
+## 4. Identificadores / IDs / tokens (REFERÊNCIAS, não valores)
+| Item | Referência | Onde está |
+
+## 5. Comandos de deploy (copiar/colar)
+```
+# Backend
+clasp push --force
+clasp deploy -i <DEPLOYMENT_ID> -d "App Nome v<N> - tipo: descrição"
+
+# Frontend
+firebase deploy --only hosting
+```
+
+## 6. Banco de dados (tabelas/abas/collections)
+| Tabela | Função | Campos principais |
+
+## 7. Arquivos backend — o que cada um faz
+| Arquivo | Responsabilidade |
+
+## 8. Rotas / endpoints
+- [Método] [rota] → [handler]
+
+## 9. Frontend — estrutura
+- Páginas: [lista]
+- State: [APP global object / localStorage / etc]
+- API: rpc(action, data) → fetch para GAS
+
+## 10. Regras de negócio críticas
+- [Regra 1 — absoluta, sem exceção]
+- [Regra 2]
+
+## 11. Estado atual / onde paramos
+✅ Concluído:
+- [bullet]
+
+⏳ Pendente:
+- [bullet]
+
+## 12. Preferências do dev
+- [Tom, modelo, idioma, padrões]
+```
+
+5. **Para overview.md**, use este template (changelog):
+
+```markdown
+# OVERVIEW — Histórico de Evolução
+
+## v[N] — YYYY-MM-DD — [título]
+- [mudança 1]
+- [mudança 2]
+**Por quê:** [razão]
+**Deploy:** commit [hash], GAS @N
+
+## v[N-1] — YYYY-MM-DD — [título]
+- [mudança]
+**Por quê:** [razão]
+**Deploy:** commit [hash], GAS @N
+
+## Estado inicial
+- [snapshot do que era o projeto no dia 1]
+```
+
+6. **Para gerar conteúdo real**, leia o código:
+   - Abra todos os .gs e conte linhas (pegar a versão atual)
+   - Verifique aba `users` da planilha pra novos campos
+   - Verifique a função `setupStripeStatus` (se existir) pra saber se
+     Stripe está operacional
+   - Verifique a última linha do `overview.md` (se existir) pra saber
+     qual foi a última versão documentada e somar +1
+
+7. **Atualize SEMPRE no overview.md a versão mais recente** (procure o
+   commit mais recente via `git log --oneline -5`).
+
+8. **Ao final**, me mostre um resumo curto (3-4 linhas) do que foi
+   salvo em cada arquivo. Se quiser, faça commit com mensagem
+   `docs: atualizar arquivos de handoff (estado v<N>)`.
+
+### Critérios de qualidade
+
+- **memory.md**: ≤ 100 linhas, ultra-denso
+- **context.md**: pode ser maior, mas só informação ÚTIL (sem
+  boilerplate)
+- **overview.md**: ≥ 10 entradas se o projeto tem > 10 versões
+
+### Quando NÃO rodar este comando
+
+- Se você acabou de clonar o projeto (estado vazio) → rode só uma vez
+  no início pra popular.
+- Se você só fez deploy sem mudanças de funcionalidade → o overview
+  pode ganhar só 1 linha nova, mas memory/context não precisam mudar.
+
+### Quando rodar SEMPRE
+
+- No fim de cada sprint funcional.
+- Antes de mudar de conta / máquina.
+- Antes de qualquer pausa longa (> 3 dias sem trabalhar).
+- Antes de qualquer handoff de responsabilidade.
+
+---
+
+*Apêndice adicionado em 2026-07-08.*
