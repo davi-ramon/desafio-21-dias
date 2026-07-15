@@ -212,7 +212,9 @@ function doPost(e) {
       payload.action === 'salvarLeadIncompleto'   ||
       payload.action === 'trackVsl'                ||
       payload.action === 'criarCheckoutStripe'     ||
-      payload.action === 'diagEmailSample'
+      payload.action === 'diagEmailSample'         ||
+      payload.action === 'userExistsPublic'        ||
+      payload.action === 'reenviarCredenciais'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

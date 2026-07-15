@@ -101,6 +101,10 @@ function handleRequest(payload) {
   var token  = payload.token;
   var data   = payload.data || {};
 
+  // v102: rotas publicas (sem auth) — usadas pra debug e fluxo de trial
+  if (action === 'userExistsPublic') return userExistsPublic(data.email);
+  if (action === 'registrarTrial')    return registrarTrial_(data);
+
   switch(action) {
     // Auth
     case 'login':               return login(data.email, data.password);
@@ -140,6 +144,9 @@ function handleRequest(payload) {
     case 'updateUserFull':      return updateUserFull(token, data.userId, data.updates);
     case 'changeMyPassword':    return changeMyPassword(token, data.currentPwd, data.newPwd);
     case 'resetUserPassword':   return resetUserPassword(token, data.userId, data.newPwd);
+    case 'debugLogin':          return debugLogin(token, data.email, data.password);
+    case 'userExistsPublic':     return userExistsPublic(data.email);
+    case 'reenviarCredenciais':  return reenviarCredenciaisPublic(data.email);
     case 'uploadUserAsset':     return uploadUserAssetBase64(token, data.fileBase64, data.fileName, data.kind);
     case 'logUserAccess':       return logUserAccess(token, data.ip);
     case 'createUserExtended':  return createUserExtended(token, data);

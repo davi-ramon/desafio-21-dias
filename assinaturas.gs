@@ -85,6 +85,9 @@ function processWebhookAssinatura_(caktoEvt) {
       return _okAssinatura_('ignored', 'Sem e-mail');
     }
 
+    // Notificação Telegram do evento (não quebra o fluxo se falhar)
+    try { if (typeof tgNotificarAssinatura_ === 'function') tgNotificarAssinatura_(eventType, email, d, sub); } catch(_t) {}
+
     switch (eventType) {
       // Eventos REAIS da Cakto (confirmados na doc) + aliases legados
       case 'purchase_approved':       // pagamento aprovado (1ª compra ou trial)
@@ -122,6 +125,7 @@ function processWebhookAssinatura_(caktoEvt) {
     }
   } catch(err) {
     logAction('system', 'ASSIN_ERRO_WEBHOOK', 'webhook', '', err.message);
+    try { if (typeof tgEnviarErro_ === 'function') tgEnviarErro_('Webhook assinatura', err.message); } catch(_t) {}
     return _okAssinatura_('error', err.message);
   }
 }
@@ -202,7 +206,8 @@ function _garantirLoginAluno_(email) {
 
   // Já existe login? não faz nada
   for (var i = 1; i < rows.length; i++) {
-    if (String(rows[i][emailIdx]).toLowerCase().trim() === emailNorm) return false;
+    // v102: compara normalizado (legacy data pode estar com caps/espaco)
+    if (String(rows[i][emailIdx] || '').toLowerCase().trim() === emailNorm) return false;
   }
 
   // Busca nome em compradores
@@ -626,4 +631,53 @@ function _okAssinatura_(status, msg) {
   return ContentService
     .createTextOutput(JSON.stringify({ status: status, msg: msg }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// v102: endpoint PUBLICO pra resolver "paguei mas nao consigo acessar".
+// Encontra usuario na aba users, gera nova senha provisoria, reenvia email.
+// Rate-limit compartilhado com _gatePublico_ (chamado pelo doPost).
+function reenviarCredenciaisPublic(email) {
+  try {
+    var emailNorm = String(email || '').toLowerCase().trim();
+    if (!emailNorm) return { ok: false, error: 'Email invalido.' };
+    var sh = getSpreadsheet_();
+    var users = sh.getSheetByName(SHEET_USERS);
+    if (!users) return { ok: false, error: 'Aba users nao existe.' };
+
+    var rows = users.getDataRange().getValues();
+    var headers = rows[0].map(function(h){ return String(h); });
+    var emailIdx = headers.indexOf('email');
+    var nomeIdx  = headers.indexOf('name');
+    var hashIdx  = headers.indexOf('password_hash');
+
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][emailIdx] || '').toLowerCase().trim() === emailNorm) {
+        var nome = String(rows[i][nomeIdx] || '');
+        var newPwd = (typeof _gerarSenhaTemp_ === 'function')
+          ? _gerarSenhaTemp_()
+          : Math.random().toString(36).slice(-8);
+        // Reseta hash com nova senha
+        if (hashIdx >= 0) {
+          users.getRange(i + 1, hashIdx + 1).setValue(hashPassword(newPwd));
+        }
+        // Reenvia o email
+        try {
+          var wsNome = 'WPK Tavares';
+          try { wsNome = (typeof getWorkspaceConfig === 'function' ? (getWorkspaceConfig().nome || wsNome) : wsNome); } catch(e) {}
+          if (typeof _enviarCredenciaisReinabertura_ === 'function') {
+            _enviarCredenciaisReinabertura_(emailNorm, nome || emailNorm, newPwd, wsNome, 'https://app.wpktavares.com.br');
+          } else {
+            MailApp.sendEmail(emailNorm, 'WPK Tavares - Seu acesso', 'Sua nova senha: ' + newPwd);
+          }
+          try { logAction(emailNorm, 'CREDENCIAIS_REENVIADAS', 'auth', '', 'senha resetada e email reenviado'); } catch(_e) {}
+          return { ok: true, message: 'Senha nova gerada e email reenviado para ' + emailNorm + '.' };
+        } catch (e) {
+          try { logAction(emailNorm, 'CREDENCIAIS_REENVIO_ERRO', 'auth', '', e.message); } catch(_e) {}
+          return { ok: false, error: 'Usuario existe mas email nao pode ser enviado: ' + e.message };
+        }
+      }
+    }
+    try { logAction(emailNorm, 'CREDENCIAIS_REENVIADAS_NAO_EXISTE', 'auth', '', ''); } catch(_e) {}
+    return { ok: false, error: 'Email nao cadastrado. Voce comprou ou criou a conta com este email? Se sim, entre em contato com o suporte.' };
+  } catch (e) { return { ok: false, error: e.message }; }
 }

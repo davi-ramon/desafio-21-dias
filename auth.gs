@@ -2,23 +2,96 @@
 // Auth.gs — Authentication & Session Management
 // ============================================================
 
-function hashPassword(password) {
+// ── Hashing de senha COM SALT (v2) + verificação retrocompatível ──
+// Formato novo:  "s2$" + salt(32 hex) + "$" + sha256hex(salt + senha)
+// Legado:        64 chars hex = SHA-256(senha) sem salt (migra no 1º login).
+
+function _sha256Hex_(str) {
   const bytes = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    password
-  );
+    Utilities.DigestAlgorithm.SHA_256, String(str), Utilities.Charset.UTF_8);
   return bytes.map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+}
+
+function _hashLegado_(password) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(password));
+  return bytes.map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+}
+
+function _gerarSalt_() {
+  return (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '').substring(0, 32);
+}
+
+function _timingEq_(a, b) {
+  a = String(a); b = String(b);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= (a.charCodeAt(i) ^ b.charCodeAt(i));
+  return diff === 0;
+}
+
+// Produz hash SALGADO. Usado em TODOS os pontos que gravam senha.
+function hashPassword(password) {
+  const salt = _gerarSalt_();
+  return 's2$' + salt + '$' + _sha256Hex_(salt + String(password));
+}
+
+// Verifica senha contra o hash armazenado (novo OU legado).
+// Retorna { ok, legado } — legado=true => recomenda re-hash com salt.
+function verificarSenha_(password, stored) {
+  stored = String(stored || '');
+  if (stored.indexOf('s2$') === 0) {
+    const parts = stored.split('$');            // ['s2', salt, hash]
+    if (parts.length !== 3) return { ok: false, legado: false };
+    return { ok: _timingEq_(_sha256Hex_(parts[1] + String(password)), parts[2]), legado: false };
+  }
+  return { ok: _timingEq_(_hashLegado_(password), stored), legado: true };
 }
 
 function login(email, password) {
   try {
+    // v102: normaliza email antes da busca (corrigia casos como
+    // "maria@x.com " com espaco ou "MARIA@X.COM" com caps lock).
+    // Tambem remove espacos da senha (clientes colam senha com espaco).
+    var emailNorm = String(email || '').toLowerCase().trim();
+    var pwdNorm   = String(password || '').trim();
+    if (!emailNorm || !pwdNorm) return { ok: false, error: 'E-mail ou senha inválidos.' };
+
     const sheet = getSheet(SHEET_USERS);
     const users = sheetToObjects(sheet);
-    const user  = users.find(u => u.email === email && u.active);
-    if (!user) return { ok: false, error: 'Usuário não encontrado ou inativo.' };
+    // Compara email normalizado (dados antigos podem estar com caps/espaco)
+    const user = users.find(function(u) {
+      return String(u.email || '').toLowerCase().trim() === emailNorm && u.active;
+    });
 
-    const hash = hashPassword(password);
-    if (user.password_hash !== hash) return { ok: false, error: 'Senha incorreta.' };
+    // Mensagem genérica: não revela se o e-mail existe (anti-enumeração)
+    const GENERICO = { ok: false, error: 'E-mail ou senha inválidos.' };
+    if (!user) {
+      // v102: log temporário pra debugar casos de "nao encontrou"
+      try { logAction(emailNorm, 'LOGIN_FAIL_USER', 'auth', '', 'email nao encontrado'); } catch (e) {}
+      return GENERICO;
+    }
+
+    const chk = verificarSenha_(pwdNorm, user.password_hash);
+    if (!chk.ok) {
+      try { logAction(emailNorm, 'LOGIN_FAIL_PWD', 'auth', user.id || '', 'hash mismatch'); } catch (e) {}
+      return GENERICO;
+    }
+
+    // Upgrade transparente: hash legado (sem salt) → re-grava salgado
+    if (chk.legado) {
+      try {
+        const data     = sheet.getDataRange().getValues();
+        const headers  = data[0];
+        const emailCol = headers.indexOf('email');
+        const hashCol  = headers.indexOf('password_hash') + 1;
+        for (let i = 1; i < data.length; i++) {
+          if (String(data[i][emailCol]) === email) {
+            sheet.getRange(i + 1, hashCol).setValue(hashPassword(password));
+            break;
+          }
+        }
+      } catch (_up) {}
+    }
 
     // Generate session token
     const token = generateId();
@@ -33,6 +106,69 @@ function login(email, password) {
   } catch (err) {
     return { ok: false, error: err.message };
   }
+}
+
+// v102: endpoint de debug pra investigar problemas de login.
+// Retorna se o email existe, se ativo, e se a senha bate (sem expor a senha).
+// Davi pode usar pra investigar o caso "Maria pagou mas nao loga".
+// Chamar via:  { action: 'debugLogin', data: { email, password } }
+function debugLogin(token, email, password) {
+  if (!_isAdmin(token)) return { ok: false, error: 'Sem permissao.' };
+  try {
+    var emailNorm = String(email || '').toLowerCase().trim();
+    var sheet = getSheet(SHEET_USERS);
+    var users = sheetToObjects(sheet);
+    // 1) busca exata
+    var userExact = users.find(function(u) { return String(u.email) === email; });
+    // 2) busca normalizada
+    var userNorm = users.find(function(u) {
+      return String(u.email || '').toLowerCase().trim() === emailNorm;
+    });
+    var chkExact = userExact ? verificarSenha_(password, userExact.password_hash) : null;
+    var chkNorm  = userNorm  ? verificarSenha_(password, userNorm.password_hash)  : null;
+    return {
+      ok: true,
+      email: email,
+      normalized: emailNorm,
+      user_exact:  userExact ? { id: userExact.id, email: userExact.email, active: userExact.active, role: userExact.role, hash_prefix: String(userExact.password_hash).slice(0, 15) } : null,
+      user_norm:   userNorm  ? { id: userNorm.id,  email: userNorm.email,  active: userNorm.active,  role: userNorm.role,  hash_prefix: String(userNorm.password_hash).slice(0, 15) } : null,
+      pwd_check_exact: chkExact ? chkExact.ok : 'no_user',
+      pwd_check_norm:  chkNorm  ? chkNorm.ok  : 'no_user',
+      recommendation: !userNorm ? 'USER_NOT_FOUND' :
+                       !userNorm.active ? 'USER_INACTIVE' :
+                       chkNorm && !chkNorm.ok ? 'PWD_MISMATCH' :
+                       chkNorm && chkNorm.ok ? 'LOGIN_SHOULD_WORK' : 'CHECK_MANUALLY'
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+// v102: endpoint PUBLICO (sem auth) que so diz se o usuario existe.
+// Usado pra debugar "pagou mas nao consegue acessar" sem expor dados sensiveis.
+// Retorna apenas: existe? ativo? (NUNCA retorna hash, nome ou qualquer dado pessoal)
+function userExistsPublic(email) {
+  try {
+    var emailNorm = String(email || '').toLowerCase().trim();
+    if (!emailNorm) return { ok: false, error: 'Email invalido.' };
+    var sheet = getSheet(SHEET_USERS);
+    var users = sheetToObjects(sheet);
+    var user = users.find(function(u) {
+      return String(u.email || '').toLowerCase().trim() === emailNorm;
+    });
+    if (!user) {
+      // v102: log pra auditoria
+      try { logAction(emailNorm, 'USER_EXISTS_CHECK', 'auth', '', 'not_found'); } catch(e){}
+      return { ok: true, exists: false, normalized: emailNorm };
+    }
+    try { logAction(emailNorm, 'USER_EXISTS_CHECK', 'auth', user.id || '', 'found'); } catch(e){}
+    return {
+      ok: true,
+      exists: true,
+      active: !!user.active,
+      role: user.role,
+      created_at: user.created_at || '',
+      normalized: emailNorm
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
 }
 
 function logout(token) {
@@ -124,7 +260,8 @@ function sendPasswordReset(email) {
   const sheet = getSheet(SHEET_USERS);
   const users = sheetToObjects(sheet);
   const user  = users.find(u => u.email === email && u.active);
-  if (!user) return { ok: false, error: 'E-mail não encontrado.' };
+  // Não revela se o e-mail existe (anti-enumeração): finge sucesso e não envia nada.
+  if (!user) return { ok: true };
 
   // Código de 6 dígitos + expiração de 5 minutos
   const code    = String(Math.floor(100000 + Math.random() * 900000));
