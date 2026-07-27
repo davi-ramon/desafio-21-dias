@@ -96,6 +96,20 @@ function _dreamUser_(token) {
   return String(user.email || '').toLowerCase().trim();
 }
 
+// v108: mesmo portão premium dos demais módulos. Admin é isento e
+// quem não tem registro de assinatura cai no acesso legado — a regra
+// de quem entra fica centralizada em checkAcessoPremium_.
+function _dreamBloqueado_(token) {
+  try {
+    var user = getUserByToken(token);
+    if (!user) return { ok: false, error: 'Não autorizado.' };
+    if (user.role === 'admin') return null;
+    var acesso = checkAcessoPremium_(String(user.email || '').toLowerCase().trim());
+    if (acesso && acesso.allowed) return null;
+    return { ok: false, error: 'Seu acesso está suspenso. Regularize sua assinatura para usar o Mural.', bloqueado: true };
+  } catch (e) { return null; }   // falha no gate não derruba o módulo
+}
+
 function _dreamLinha2Obj_(row) {
   return {
     id:                String(row[_DR_.ID] || ''),
@@ -127,6 +141,8 @@ function getDreamBoard(token) {
   var email = _dreamUser_(token);
   if (!email) return { ok: false, error: 'Não autorizado.' };
 
+  var bloq = _dreamBloqueado_(token); if (bloq) return bloq;
+
   var sh = initDreamBoardSheet_();
   if (sh.getLastRow() < 2) return { ok: true, data: [] };
 
@@ -147,6 +163,7 @@ function getDreamBoard(token) {
 function criarDreamItem(token, data) {
   var email = _dreamUser_(token);
   if (!email) return { ok: false, error: 'Não autorizado.' };
+  var bloq = _dreamBloqueado_(token); if (bloq) return bloq;
   data = data || {};
 
   var tipo  = String(data.type || 'texto').toLowerCase();
@@ -215,6 +232,7 @@ function criarDreamItem(token, data) {
 function atualizarDreamItem(token, id, updates) {
   var email = _dreamUser_(token);
   if (!email) return { ok: false, error: 'Não autorizado.' };
+  var bloq = _dreamBloqueado_(token); if (bloq) return bloq;
   updates = updates || {};
   id = String(id || '');
 
@@ -251,6 +269,7 @@ function atualizarDreamItem(token, id, updates) {
 function salvarPosicoesDream(token, posicoes) {
   var email = _dreamUser_(token);
   if (!email) return { ok: false, error: 'Não autorizado.' };
+  var bloq = _dreamBloqueado_(token); if (bloq) return bloq;
   if (!posicoes || !posicoes.length) return { ok: true, salvos: 0 };
 
   var sh    = initDreamBoardSheet_();

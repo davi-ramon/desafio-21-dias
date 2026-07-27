@@ -100,23 +100,27 @@
 #subBanner { display: none !important; }   /* lógica mantida, faixa oculta; ticker assume */
 .sb-brand { display: none; }                /* mobile: oculto (só aparece na sidebar desktop) */
 
+/* v108: o texto da marca saiu do topbar — o ticker assume o espaço e
+   ganha destaque, já que é ali que chega progresso, alerta e sistema. */
 .notif-ticker {
-  flex: 1; min-width: 0; margin: 0 14px;
-  height: 38px; display: flex; align-items: center;
-  background: rgba(255,255,255,0.03);
+  flex: 1; min-width: 0; margin: 0 16px;
+  height: 44px; display: flex; align-items: center;
+  background: linear-gradient(180deg, rgba(76,175,80,.07), rgba(255,255,255,.02));
   border: 1px solid var(--border);
   border-left: 3px solid var(--green);
-  border-radius: 10px; padding: 0 14px;
+  border-radius: 12px; padding: 0 16px;
   overflow: hidden; cursor: default;
-  transition: border-color .3s, background .3s;
+  box-shadow: 0 2px 18px rgba(76,175,80,.07), inset 0 1px 0 rgba(255,255,255,.03);
+  transition: border-color .3s, background .3s, box-shadow .3s;
 }
+.notif-ticker:hover { box-shadow: 0 4px 24px rgba(76,175,80,.13); }
 .notif-ticker.t-info    { border-left-color: #4fa8ff; }
 .notif-ticker.t-success { border-left-color: #4caf50; }
 .notif-ticker.t-warning { border-left-color: #f5c842; }
 .notif-ticker.t-urgent  { border-left-color: #e84040; }
 .notif-ticker-item {
-  display: flex; align-items: center; gap: 9px;
-  font-size: 13px; color: var(--text); white-space: nowrap;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13.5px; font-weight: 500; color: var(--text); white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis; width: 100%;
   opacity: 0; transform: translateY(8px);
   transition: opacity .4s ease, transform .4s ease;
@@ -126,7 +130,7 @@
 .notif-ticker-txt { overflow: hidden; text-overflow: ellipsis; }
 .notif-ticker-txt b { color: var(--green-bright, #6dde71); font-weight: 700; }
 @media (max-width: 1023px) {
-  .notif-ticker { height: 34px; margin: 0 8px; font-size: 12px; }
+  .notif-ticker { height: 40px; margin: 0 10px; font-size: 12.5px; }
 }
 
 /* ── Sidebar expansível (desktop) ── */

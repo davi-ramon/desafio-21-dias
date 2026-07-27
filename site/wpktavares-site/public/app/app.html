@@ -66,16 +66,15 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 .topbar-logo {
   display: flex; align-items: center; gap: 10px;
 }
+/* v108: só o ícone oficial — o texto saiu para dar espaço ao ticker */
 .logo-icon {
-  width: 34px; height: 34px;
-  background: linear-gradient(135deg, var(--green), var(--green-d));
+  width: 36px; height: 36px;
   border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
-  box-shadow: 0 4px 12px var(--green-glow);
+  object-fit: cover;
+  display: block; flex-shrink: 0;
+  border: 1px solid var(--border2);
+  box-shadow: 0 4px 14px var(--green-glow);
 }
-.logo-name { font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
-.logo-sub  { font-size: 10px; color: var(--green); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
 .topbar-right { display: flex; align-items: center; gap: 12px; }
 .bell-btn {
   position: relative;
@@ -2258,14 +2257,13 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     gap: 4px;
   }
   /* Cabeçalho da sidebar (logo injetado via ::before) */
+  /* v108: ícone oficial no lugar do emoji + texto */
   .bottom-nav::before {
-    content: '⚡  Desafio 21 Dias';
-    display: flex; align-items: center;
-    height: 72px; padding: 0 12px;
-    font-size: 15px; font-weight: 800; color: var(--text);
-    letter-spacing: -0.3px;
+    content: '';
+    display: block;
+    height: 72px; margin: 0 12px 12px;
+    background: url('/icons/icon-192.png') 2px center / 34px 34px no-repeat;
     border-bottom: 1px solid var(--border);
-    margin-bottom: 12px;
   }
   .nav-btn {
     flex-direction: row; justify-content: flex-start;
@@ -2284,8 +2282,9 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     height: 72px; padding: 0 36px;
     background: var(--bg); border-bottom: 1px solid var(--border);
   }
-  /* Esconde o logo da topbar (já está na sidebar) */
-  .topbar .topbar-logo { opacity: 0; pointer-events: none; }
+  /* Logo já está na sidebar — display:none (e não opacity) para o
+     ticker de fato ocupar a largura liberada */
+  .topbar .topbar-logo { display: none; }
 
   /* ── ÁREA DE CONTEÚDO ── */
   .main-scroll {
@@ -2682,11 +2681,7 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 <!-- ═══ TOP BAR ═══════════════════════════════════════════════ -->
 <div class="topbar">
   <div class="topbar-logo">
-    <div class="logo-icon">⚡</div>
-    <div>
-      <div class="logo-name">WPK TAVARES</div>
-      <div class="logo-sub">Desafio 21 Dias</div>
-    </div>
+    <img class="logo-icon" src="/icons/icon-192.png" alt="Desafio 21 Dias" width="36" height="36">
   </div>
   <div class="topbar-right">
     <div class="bell-btn" id="bellBtn" onclick="toggleNotifDrawer()">
@@ -5672,11 +5667,10 @@ function appAlert(opts) {
   ">⚡ Conta Administrativa</div>
 
   <!-- Logo -->
-  <div style="
-    width:64px;height:64px;background:linear-gradient(135deg,var(--green),var(--green-d));
-    border-radius:18px;display:flex;align-items:center;justify-content:center;
-    font-size:28px;box-shadow:0 0 0 10px rgba(76,175,80,.06);margin-bottom:20px;
-  ">⚡</div>
+  <img src="/icons/icon-192.png" alt="Desafio 21 Dias" width="64" height="64" style="
+    width:64px;height:64px;border-radius:18px;object-fit:cover;
+    box-shadow:0 0 0 10px rgba(76,175,80,.06);margin-bottom:20px;
+  ">
 
   <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.04em;color:var(--cream);margin-bottom:6px">WPK TAVARES</div>
   <div style="font-size:13px;color:var(--muted);margin-bottom:36px">Selecione o painel de acesso</div>
@@ -8467,10 +8461,18 @@ function _commTimeHora(iso) {
      ═══════════════════════════════════════════════════════════════ -->
 <style>
 /* ── Shell ─────────────────────────────────────────────────── */
-.mu-wrap { display:flex; flex-direction:column; height:100%; }
-.mu-top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
-.mu-top h2 { font-size:20px; font-weight:800; color:var(--text2); letter-spacing:-.02em; }
+/* v108: o Mural controla o próprio espaçamento — o canvas sangra até
+   as bordas em vez de ficar preso numa caixa com borda. */
+#page-mural { padding:0 !important; }
+.mu-wrap { display:flex; flex-direction:column; }
+.mu-head { padding:18px 18px 0; }
+.mu-top { display:flex; align-items:center; gap:10px; margin-bottom:13px; }
+.mu-top h2 { font-size:20px; font-weight:800; color:var(--text2); letter-spacing:-.025em; }
 .mu-count { font-size:12px; color:var(--muted); }
+@media (min-width:1024px){
+  #page-mural { margin:-32px -36px -48px; }
+  .mu-head { padding:26px 32px 0; }
+}
 
 .mu-toggle { display:inline-flex; background:var(--surface2); border:1px solid var(--border);
   border-radius:999px; padding:3px; gap:2px; }
@@ -8479,18 +8481,53 @@ function _commTimeHora(iso) {
   transition:background .25s, color .25s; white-space:nowrap; }
 .mu-toggle button.on { background:var(--green-glow); color:var(--green-l); }
 
-.mu-add { margin-left:auto; background:var(--green); color:#04140a; border:none; font-family:inherit;
-  font-size:13px; font-weight:800; padding:10px 16px; border-radius:11px; cursor:pointer;
-  display:inline-flex; align-items:center; gap:7px; transition:transform .15s, background .2s;
-  box-shadow:0 4px 18px rgba(76,175,80,.26); }
-.mu-add:hover { background:var(--green-l); transform:translateY(-1px); }
+/* botão quadrado, só o "+", com animação em tudo */
+.mu-add { margin-left:auto; width:44px; height:44px; flex-shrink:0;
+  background:var(--green); color:#04140a; border:none; border-radius:13px; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; position:relative;
+  box-shadow:0 4px 18px rgba(76,175,80,.28);
+  animation:muAddIn .45s cubic-bezier(.34,1.56,.64,1) both;
+  transition:transform .22s cubic-bezier(.34,1.56,.64,1), background .2s, box-shadow .25s, border-radius .25s; }
+.mu-add svg { transition:transform .35s cubic-bezier(.34,1.56,.64,1); }
+.mu-add:hover { background:var(--green-l); transform:translateY(-2px) scale(1.06);
+  border-radius:16px; box-shadow:0 8px 28px rgba(76,175,80,.44); }
+.mu-add:hover svg { transform:rotate(90deg); }
+.mu-add:active { transform:translateY(0) scale(.94); box-shadow:0 2px 10px rgba(76,175,80,.3); }
+.mu-add::after { content:''; position:absolute; inset:0; border-radius:inherit;
+  box-shadow:0 0 0 0 rgba(76,175,80,.5); transition:box-shadow .5s; }
+.mu-add:active::after { box-shadow:0 0 0 14px rgba(76,175,80,0); transition:none; }
+@keyframes muAddIn { from{opacity:0; transform:scale(.5) rotate(-90deg)} to{opacity:1; transform:none} }
 
-.mu-stage { position:relative; flex:1; min-height:60vh; border-radius:18px; overflow:hidden;
-  border:1px solid var(--border); background:
-    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(76,175,80,.07), transparent 70%),
-    linear-gradient(180deg, #080d0a 0%, #060809 100%); }
+/* canvas: sem borda, sem cantos — ocupa tudo daqui pra baixo */
+.mu-stage { position:relative; margin-top:14px; overflow:hidden;
+  height:calc(100dvh - 246px); min-height:340px;
+  border:none; border-radius:0;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 0%, rgba(76,175,80,.06), transparent 72%),
+    linear-gradient(180deg, #080d0a 0%, #050708 100%);
+  touch-action:none; cursor:grab; }
+.mu-stage.panning { cursor:grabbing; }
 .mu-stage.fade { animation:muFade .45s ease both; }
-@keyframes muFade { from{opacity:0; transform:scale(.985)} to{opacity:1; transform:scale(1)} }
+@keyframes muFade { from{opacity:0; transform:scale(.99)} to{opacity:1; transform:scale(1)} }
+@media (min-width:1024px){ .mu-stage { height:calc(100dvh - 208px); } }
+
+/* viewport: recebe o zoom/pan; o conteúdo vive num "mundo" maior */
+.mu-viewport { position:absolute; top:0; left:0; width:100%; height:100%;
+  transform-origin:0 0; will-change:transform; }
+
+/* controles de zoom */
+.mu-zoom { position:absolute; right:14px; bottom:14px; z-index:70; display:flex;
+  flex-direction:column; gap:6px; }
+.mu-zoom button { width:36px; height:36px; border-radius:11px; cursor:pointer;
+  background:rgba(15,20,18,.78); border:1px solid var(--border2); color:var(--text);
+  font-family:inherit; font-size:16px; font-weight:700; line-height:1;
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  display:flex; align-items:center; justify-content:center;
+  transition:background .2s, border-color .2s, transform .15s; }
+.mu-zoom button:hover { background:rgba(76,175,80,.16); border-color:var(--green); transform:scale(1.07); }
+.mu-zoom button:active { transform:scale(.9); }
+.mu-zoom .lvl { font-size:10px; font-weight:700; color:var(--muted); text-align:center;
+  letter-spacing:.04em; padding:2px 0; }
 
 /* partículas discretas de fundo */
 .mu-dust { position:absolute; inset:0; pointer-events:none; opacity:.5;
@@ -8522,7 +8559,7 @@ function _commTimeHora(iso) {
   box-shadow:0 0 0 1px var(--green-l), 0 18px 54px rgba(0,0,0,.66), 0 0 40px rgba(76,175,80,.3); }
 
 /* ── Quadro dos Sonhos ─────────────────────────────────────── */
-.mu-board { position:absolute; inset:0; overflow:auto; padding:16px;
+.mu-board { position:absolute; inset:0; overflow:visible; padding:16px;
   background-image:radial-gradient(circle, rgba(76,175,80,.06) 1px, transparent 1px);
   background-size:22px 22px; }
 .mu-board-inner { position:relative; width:100%; min-height:100%; }
@@ -8679,20 +8716,22 @@ function muShell() {
   var n  = MURAL.itens.length;
   el.innerHTML =
     '<div class="mu-wrap">' +
-      '<div class="mu-top">' +
-        '<div>' +
-          '<h2>Mural de Declarações</h2>' +
-          '<div class="mu-count" id="muCount">' +
-            (n ? n + (n === 1 ? ' declaração' : ' declarações') : 'Seu espaço de visualização') +
+      '<div class="mu-head">' +
+        '<div class="mu-top">' +
+          '<div>' +
+            '<h2>Mural de Declarações</h2>' +
+            '<div class="mu-count" id="muCount">' +
+              (n ? n + (n === 1 ? ' declaração' : ' declarações') : 'Seu espaço de visualização') +
+            '</div>' +
           '</div>' +
+          '<button class="mu-add" onclick="muAbrirCriar()" aria-label="Adicionar declaração" title="Adicionar">' +
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>' +
+          '</button>' +
         '</div>' +
-        '<button class="mu-add" onclick="muAbrirCriar()">' +
-          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>' +
-          'Adicionar</button>' +
-      '</div>' +
-      '<div class="mu-toggle" style="margin-bottom:14px">' +
-        '<button id="muTabEsp" class="' + (MURAL.modo === 'espaco' ? 'on' : '') + '" onclick="muSetModo(\'espaco\')">✦ Espaço Mental</button>' +
-        '<button id="muTabQua" class="' + (MURAL.modo === 'quadro' ? 'on' : '') + '" onclick="muSetModo(\'quadro\')">▦ Quadro dos Sonhos</button>' +
+        '<div class="mu-toggle">' +
+          '<button id="muTabEsp" class="' + (MURAL.modo === 'espaco' ? 'on' : '') + '" onclick="muSetModo(\'espaco\')">✦ Espaço Mental</button>' +
+          '<button id="muTabQua" class="' + (MURAL.modo === 'quadro' ? 'on' : '') + '" onclick="muSetModo(\'quadro\')">▦ Quadro dos Sonhos</button>' +
+        '</div>' +
       '</div>' +
       '<div class="mu-stage fade" id="muStage"><div class="mu-dust"></div></div>' +
     '</div>';
@@ -8715,10 +8754,139 @@ function muRenderModo() {
   var st = document.getElementById('muStage');
   if (!st) return;
   st.innerHTML = '<div class="mu-dust"></div>';
+  MURAL.view = { s: 1, tx: 0, ty: 0 };
 
   if (!MURAL.itens.length) { muVazio(st); return; }
-  if (MURAL.modo === 'espaco') muMontarEspaco(st);
-  else                        muMontarQuadro(st);
+
+  // O conteúdo vive num "mundo" maior que a tela — é isso que dá
+  // o que explorar com zoom e arraste, em vez de uma caixa fechada.
+  MURAL.world = {
+    w: Math.max(st.clientWidth,  1500),
+    h: Math.max(st.clientHeight, 1100)
+  };
+
+  var vp = document.createElement('div');
+  vp.className = 'mu-viewport';
+  vp.id = 'muViewport';
+  vp.style.width  = MURAL.world.w + 'px';
+  vp.style.height = MURAL.world.h + 'px';
+  st.appendChild(vp);
+
+  if (MURAL.modo === 'espaco') muMontarEspaco(vp);
+  else                        muMontarQuadro(vp);
+
+  muZoomUI(st);
+  muPanZoom(st);
+  // começa centralizado no mundo
+  MURAL.view.tx = (st.clientWidth  - MURAL.world.w) / 2;
+  MURAL.view.ty = (st.clientHeight - MURAL.world.h) / 2;
+  muAplicarView();
+}
+
+// ── Zoom / Pan (canvas infinito) ────────────────────────────
+var MU_ZMIN = 0.25, MU_ZMAX = 5;   // até 500%
+
+function muAplicarView() {
+  var vp = document.getElementById('muViewport');
+  if (!vp) return;
+  var v = MURAL.view;
+  vp.style.transform = 'translate3d(' + v.tx.toFixed(1) + 'px,' + v.ty.toFixed(1) + 'px,0) scale(' + v.s.toFixed(3) + ')';
+  var lvl = document.getElementById('muLvl');
+  if (lvl) lvl.textContent = Math.round(v.s * 100) + '%';
+}
+
+// Zoom ancorado num ponto: o que está sob o dedo/cursor não escorrega
+function muZoomPara(novo, cx, cy) {
+  var st = document.getElementById('muStage');
+  if (!st) return;
+  var v = MURAL.view;
+  novo = Math.max(MU_ZMIN, Math.min(MU_ZMAX, novo));
+  if (cx == null) { cx = st.clientWidth / 2; cy = st.clientHeight / 2; }
+  v.tx = cx - (cx - v.tx) * (novo / v.s);
+  v.ty = cy - (cy - v.ty) * (novo / v.s);
+  v.s  = novo;
+  muAplicarView();
+}
+
+function muZoomReset() {
+  var st = document.getElementById('muStage');
+  if (!st || !MURAL.world) return;
+  MURAL.view.s  = 1;
+  MURAL.view.tx = (st.clientWidth  - MURAL.world.w) / 2;
+  MURAL.view.ty = (st.clientHeight - MURAL.world.h) / 2;
+  muAplicarView();
+}
+
+function muZoomUI(st) {
+  var box = document.createElement('div');
+  box.className = 'mu-zoom';
+  box.innerHTML =
+    '<button onclick="muZoomPara(MURAL.view.s*1.3)" aria-label="Aproximar">+</button>' +
+    '<div class="lvl" id="muLvl">100%</div>' +
+    '<button onclick="muZoomPara(MURAL.view.s/1.3)" aria-label="Afastar">&minus;</button>' +
+    '<button onclick="muZoomReset()" aria-label="Enquadrar" style="font-size:12px">⤢</button>';
+  st.appendChild(box);
+}
+
+function muPanZoom(st) {
+  var pts = {}, pan = false, sx = 0, sy = 0, otx = 0, oty = 0, pinch = 0, pinchS = 1;
+
+  st.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var r = st.getBoundingClientRect();
+    muZoomPara(MURAL.view.s * (e.deltaY < 0 ? 1.12 : 1 / 1.12),
+               e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+
+  st.addEventListener('pointerdown', function (e) {
+    // clique em item é do item (abrir/arrastar), não do canvas
+    if (e.target.closest && e.target.closest('.mu-node, .mu-card, .mu-zoom')) return;
+    pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(pts);
+    if (ids.length === 1) {
+      pan = true; sx = e.clientX; sy = e.clientY;
+      otx = MURAL.view.tx; oty = MURAL.view.ty;
+      st.classList.add('panning');
+      st.setPointerCapture(e.pointerId);
+    } else if (ids.length === 2) {
+      pan = false;
+      pinch = muDist(pts[ids[0]], pts[ids[1]]);
+      pinchS = MURAL.view.s;
+    }
+  });
+
+  st.addEventListener('pointermove', function (e) {
+    if (!pts[e.pointerId]) return;
+    pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var ids = Object.keys(pts);
+
+    if (ids.length >= 2 && pinch) {
+      var d = muDist(pts[ids[0]], pts[ids[1]]);
+      var r = st.getBoundingClientRect();
+      muZoomPara(pinchS * (d / pinch),
+        (pts[ids[0]].x + pts[ids[1]].x) / 2 - r.left,
+        (pts[ids[0]].y + pts[ids[1]].y) / 2 - r.top);
+      return;
+    }
+    if (pan) {
+      MURAL.view.tx = otx + (e.clientX - sx);
+      MURAL.view.ty = oty + (e.clientY - sy);
+      muAplicarView();
+    }
+  });
+
+  function soltar(e) {
+    delete pts[e.pointerId];
+    if (Object.keys(pts).length < 2) pinch = 0;
+    if (!Object.keys(pts).length) { pan = false; st.classList.remove('panning'); }
+  }
+  st.addEventListener('pointerup', soltar);
+  st.addEventListener('pointercancel', soltar);
+}
+
+function muDist(a, b) {
+  var dx = a.x - b.x, dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy) || 1;
 }
 
 function muVazio(st) {
@@ -8735,13 +8903,13 @@ function muVazio(st) {
 // ════════════════════════════════════════════════════════════
 // ESPAÇO MENTAL — física leve em rAF + translate3d (GPU)
 // ════════════════════════════════════════════════════════════
-function muMontarEspaco(st) {
+function muMontarEspaco(vp) {
   var space = document.createElement('div');
   space.className = 'mu-space';
   space.id = 'muSpace';
-  st.appendChild(space);
+  vp.appendChild(space);
 
-  var W = st.clientWidth, H = st.clientHeight;
+  var W = MURAL.world.w, H = MURAL.world.h;
   var lista = MURAL.itens.slice(0, MU_MAX_FLUTUANTES);
   var total = MURAL.itens.length;
   MURAL.nodes = [];
@@ -8771,11 +8939,14 @@ function muMontarEspaco(st) {
     });
   });
 
-  if (total > MU_MAX_FLUTUANTES) {
+  // dica vai no palco (não no viewport) para não escalar com o zoom
+  var st = document.getElementById('muStage');
+  if (st) {
     var hint = document.createElement('div');
     hint.className = 'mu-hint';
-    hint.textContent = 'Flutuando ' + MU_MAX_FLUTUANTES + ' de ' + total +
-                       ' · veja todos no Quadro dos Sonhos';
+    hint.textContent = (total > MU_MAX_FLUTUANTES)
+      ? 'Flutuando ' + MU_MAX_FLUTUANTES + ' de ' + total + ' · veja todos no Quadro dos Sonhos'
+      : 'Arraste para navegar · role para dar zoom';
     st.appendChild(hint);
   }
 
@@ -8814,9 +8985,8 @@ function muTick(ts) {
   var dt = Math.min(0.05, (ts - MURAL.last) / 1000);   // clamp: aba em 2º plano
   MURAL.last = ts;
 
-  var st = document.getElementById('muStage');
-  if (!st) { muPause(); return; }
-  var W = st.clientWidth, H = st.clientHeight;
+  if (!MURAL.world || !document.getElementById('muStage')) { muPause(); return; }
+  var W = MURAL.world.w, H = MURAL.world.h;
   var ns = MURAL.nodes;
 
   for (var i = 0; i < ns.length; i++) {
@@ -8889,13 +9059,13 @@ function muAplicar() {
 // ════════════════════════════════════════════════════════════
 // QUADRO DOS SONHOS — mural organizado e arrastável
 // ════════════════════════════════════════════════════════════
-function muMontarQuadro(st) {
+function muMontarQuadro(vp) {
   var board = document.createElement('div');
   board.className = 'mu-board';
   var inner = document.createElement('div');
   inner.className = 'mu-board-inner';
   board.appendChild(inner);
-  st.appendChild(board);
+  vp.appendChild(board);
 
   // auto-layout para quem ainda não foi arrastado
   var col = 0, linha = 0, PORCOL = 2;
@@ -8926,10 +9096,13 @@ function muMontarQuadro(st) {
 
   inner.style.minHeight = (Math.ceil(MURAL.itens.length / PORCOL) * 78 + 60) + 'px';
 
-  var hint = document.createElement('div');
-  hint.className = 'mu-hint';
-  hint.textContent = 'Arraste para reorganizar · toque para abrir';
-  st.appendChild(hint);
+  var st = document.getElementById('muStage');
+  if (st) {
+    var hint = document.createElement('div');
+    hint.className = 'mu-hint';
+    hint.textContent = 'Arraste os cards · role para dar zoom';
+    st.appendChild(hint);
+  }
 }
 
 function muArrastavel(card, item) {
@@ -8945,7 +9118,9 @@ function muArrastavel(card, item) {
 
   card.addEventListener('pointermove', function (e) {
     if (!arrastando) return;
-    var dx = e.clientX - sx, dy = e.clientY - sy;
+    // divide pela escala: 1px de tela != 1px de mundo quando há zoom
+    var z  = (MURAL.view && MURAL.view.s) || 1;
+    var dx = (e.clientX - sx) / z, dy = (e.clientY - sy) / z;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moveu = true;
     var par = card.parentElement;
     var nx = Math.max(0, Math.min(par.clientWidth  - card.offsetWidth,  ox + dx));
