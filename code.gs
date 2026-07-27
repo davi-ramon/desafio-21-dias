@@ -214,7 +214,11 @@ function doPost(e) {
       payload.action === 'criarCheckoutStripe'     ||
       payload.action === 'diagEmailSample'         ||
       payload.action === 'userExistsPublic'        ||
-      payload.action === 'reenviarCredenciais'
+      payload.action === 'reenviarCredenciais'     ||
+      payload.action === 'confirmarCheckoutStripe' ||
+      payload.action === 'validarTokenAcesso'      ||
+      payload.action === 'definirSenhaComToken'    ||
+      payload.action === 'reenviarLinkAcesso'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

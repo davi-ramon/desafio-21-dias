@@ -3,75 +3,264 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bem-vindo ao Desafio 21 Dias — Acesso Confirmado</title>
+<title>Assinatura confirmada — Desafio 21 Dias</title>
+<meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#07090a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#080c08;--surface:#101810;--surface2:#141c18;--green:#4caf50;--green-bright:#6dde71;--green-dim:#2e6b31;--cream:#f0ead6;--muted:#7a9a7a;--border:rgba(76,175,80,0.18)}
+:root{--bg:#080c08;--surface:#101810;--surface2:#141c18;--green:#4caf50;--green-bright:#6dde71;--cream:#f0ead6;--muted:#7a9a7a;--border:rgba(76,175,80,0.18)}
 body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;padding:40px 20px;text-align:center}
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
 .wrap{position:relative;z-index:1;max-width:560px;margin:0 auto}
-/* Confetti-like pulse */
 .confetti{font-size:48px;animation:pop .5s cubic-bezier(.36,.07,.19,.97) both;margin-bottom:20px}
 @keyframes pop{0%{transform:scale(0);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}
 .logo{width:52px;height:52px;border-radius:13px;border:1px solid var(--border);margin:0 auto 20px;display:block}
 .badge{display:inline-block;background:rgba(76,175,80,0.12);border:1px solid var(--border);border-radius:100px;font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--green);padding:6px 18px;margin-bottom:22px}
-h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(48px,10vw,78px);line-height:.92;color:var(--cream);margin-bottom:12px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,9vw,70px);line-height:.94;color:var(--cream);margin-bottom:12px}
 h1 span{color:var(--green-bright);display:block}
-.sub{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:36px}
-/* Divider */
-.div{height:1px;background:var(--border);margin:28px 0}
-/* Section title */
-.sec{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:16px}
+.sub{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:30px}
+.sec{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:16px;text-align:left}
 
-/* Primary CTA */
-.btn-primary{display:block;width:100%;background:var(--green);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;text-decoration:none;padding:17px 24px;border-radius:12px;border:none;cursor:pointer;transition:background .2s;margin-bottom:12px}
-.btn-primary:hover{background:var(--green-bright)}
-/* WA button */
-.btn-wa{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:var(--surface);border:1px solid var(--border);color:var(--cream);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;text-decoration:none;padding:15px 24px;border-radius:12px;transition:border-color .2s,background .2s;margin-bottom:28px}
-.btn-wa:hover{border-color:var(--green);background:rgba(76,175,80,.06)}
-.btn-wa svg{flex-shrink:0}
-/* Notice */
-.notice{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--muted);line-height:1.7;text-align:left;margin-bottom:32px}
+/* caixa de e-mail */
+.mailbox{background:rgba(76,175,80,.07);border:1px solid rgba(76,175,80,.22);border-radius:12px;padding:18px 20px;margin-bottom:28px;display:flex;gap:13px;align-items:flex-start;text-align:left}
+.mailbox svg{flex-shrink:0;color:var(--green-bright);margin-top:2px}
+.mailbox p{font-size:14px;line-height:1.6;color:var(--cream)}
+.mailbox strong{color:var(--green-bright);word-break:break-all}
+
+/* passos */
+.steps{margin-bottom:28px;text-align:left}
+.step{display:flex;gap:15px;align-items:flex-start;margin-bottom:17px}
+.step-num{width:30px;height:30px;flex-shrink:0;background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.22);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--green)}
+.step-content strong{display:block;font-size:14px;color:var(--cream);font-weight:600;margin-bottom:3px}
+.step-content span{font-size:13px;color:var(--muted);line-height:1.55}
+
+.btn-primary{display:block;width:100%;background:var(--green);color:#fff;font-family:inherit;font-size:15px;font-weight:700;text-decoration:none;padding:17px 24px;border-radius:12px;border:none;cursor:pointer;transition:background .2s,transform .15s;margin-bottom:12px;box-shadow:0 4px 24px rgba(76,175,80,.28)}
+.btn-primary:hover{background:var(--green-bright);transform:translateY(-2px)}
+.btn-ghost{display:block;width:100%;background:var(--surface);border:1px solid var(--border);color:var(--cream);font-family:inherit;font-size:14px;font-weight:600;text-decoration:none;padding:14px 24px;border-radius:12px;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:26px}
+.btn-ghost:hover:not(:disabled){border-color:var(--green);background:rgba(76,175,80,.06)}
+.btn-ghost:disabled{opacity:.5;cursor:default}
+
+.notice{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--muted);line-height:1.7;text-align:left;margin-bottom:30px}
 .notice strong{color:var(--cream)}
-/* Footer */
+
+.spinner{width:36px;height:36px;margin:0 auto 18px;border:3px solid rgba(76,175,80,.18);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
 footer{font-size:11px;color:#3a5a3a;padding-top:16px;border-top:1px solid rgba(76,175,80,.06)}
+footer a{color:var(--green);text-decoration:none}
+[hidden]{display:none !important}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="confetti">🏆</div>
-  <img src="https://i.imgur.com/bOf9i1R.png" alt="Logo" class="logo">
-  <div class="badge">Compra confirmada</div>
 
-  <h1>Parabéns!<br><span>Você começou<br>algo grande.</span></h1>
-  <p class="sub">Sua inscrição no <strong>Desafio 21 Dias</strong> foi confirmada com sucesso.<br>Escolha como quer acessar seu conteúdo agora.</p>
+  <!-- ── Confirmando ── -->
+  <section id="loading">
+    <div class="spinner"></div>
+    <p class="sub" id="loadingMsg">Confirmando seu pagamento…</p>
+  </section>
 
-  <div class="sec">Acessar seu conteúdo</div>
+  <!-- ── Confirmado ── -->
+  <section id="ok" hidden>
+    <div class="confetti">🏆</div>
+    <img src="https://i.imgur.com/bOf9i1R.png" alt="WPK Tavares" class="logo">
+    <div class="badge">Assinatura confirmada</div>
 
-  <a href="/area-de-membros/" class="btn-primary">
-    🎓 Entrar na Área de Membros
-  </a>
+    <h1 id="titulo">Parabéns!<br><span>Você começou<br>algo grande.</span></h1>
+    <p class="sub" id="subtitulo">Sua assinatura do <strong>Desafio 21 Dias</strong> está ativa.</p>
 
-  <a href="https://wa.me/559484427988?text=Liberar+meu+acesso+Desafio+21+Dias" target="_blank" class="btn-wa">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-    Liberar acesso via WhatsApp
-  </a>
+    <!-- Comprador novo: precisa criar senha -->
+    <div id="blocoNovo" hidden>
+      <div class="mailbox">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+        </svg>
+        <p>Enviamos seu link de acesso para<br><strong id="emailDest">seu e-mail</strong></p>
+      </div>
 
-  <div class="notice">
-    <strong>Como acessar pela Área de Membros:</strong><br>
-    Clique em "Entrar na Área de Membros", informe o <strong>e-mail usado na compra</strong> e clique em <strong>"Enviar link mágico"</strong>. Você receberá um e-mail — clique no botão dentro dele e acesse o Desafio 21 Dias diretamente.
-  </div>
+      <div class="sec">Seus próximos passos</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Abra o e-mail que acabou de chegar</strong>
+            <span>Assunto: “Bem-vindo! Crie sua senha de acesso”. Confira também o spam e a aba Promoções.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>Clique em “Criar minha senha”</strong>
+            <span>Você escolhe a sua própria senha — nós nunca enviamos senha por e-mail. O link vale por 48 horas.</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>Comece o Dia 1 hoje</strong>
+            <span>Meditação, leitura, exercício e áudio. Comece enquanto a motivação está alta.</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-ghost" id="btnReenviar">Não recebeu? Reenviar e-mail</button>
+    </div>
+
+    <!-- Já tinha conta -->
+    <div id="blocoExistente" hidden>
+      <div class="mailbox">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+        </svg>
+        <p>Você já tem conta no app. Entre com <strong>o e-mail e a senha que você já usa</strong>.</p>
+      </div>
+      <a href="https://app.wpktavares.com.br" class="btn-primary">Entrar no app →</a>
+      <div class="notice">
+        Esqueceu a senha? Use <strong>“Esqueci minha senha”</strong> na tela de login para receber um código.
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Processando (webhook ainda não chegou) ── -->
+  <section id="pendente" hidden>
+    <div class="confetti">✅</div>
+    <div class="badge">Pagamento aprovado</div>
+    <h1>Tudo certo!<br><span>Preparando<br>seu acesso.</span></h1>
+    <p class="sub">Seu pagamento foi confirmado. Estamos criando seu acesso — isso leva alguns segundos.<br>
+       Em instantes você recebe um e-mail com o link para criar sua senha.</p>
+    <div class="notice">
+      <strong>Pode fechar esta página com tranquilidade.</strong><br>
+      O e-mail chega no endereço usado na compra. Se em 10 minutos nada chegar, chame a gente no WhatsApp que a gente resolve na hora.
+    </div>
+    <a href="https://wa.me/559484427988?text=Assinei+o+Desafio+21+Dias+e+nao+recebi+o+email+de+acesso" target="_blank" rel="noopener" class="btn-ghost">Falar no WhatsApp</a>
+  </section>
+
+  <!-- ── Fallback / erro ── -->
+  <section id="erro" hidden>
+    <div class="confetti">🤝</div>
+    <img src="https://i.imgur.com/bOf9i1R.png" alt="WPK Tavares" class="logo">
+    <h1>Quase lá!</h1>
+    <p class="sub" id="erroMsg">Não conseguimos confirmar esta compra automaticamente.</p>
+    <a href="https://app.wpktavares.com.br" class="btn-primary">Ir para o app</a>
+    <a href="https://wa.me/559484427988?text=Preciso+de+ajuda+com+meu+acesso+ao+Desafio+21+Dias" target="_blank" rel="noopener" class="btn-ghost">Falar no WhatsApp</a>
+  </section>
 
   <footer>
-    © 2026 WPK Tavares — Equipe Lapidados · <a href="/politica-de-privacidade/" style="color:var(--green);text-decoration:none">Política de Privacidade</a>
+    © 2026 WPK Tavares — Equipe Lapidados ·
+    <a href="/politica-de-privacidade/">Política de Privacidade</a>
   </footer>
 </div>
+
+<script>
+(function () {
+  var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+
+  var sessionId = new URLSearchParams(location.search).get('session_id') || '';
+  var $ = function (id) { return document.getElementById(id); };
+  var secoes = ['loading', 'ok', 'pendente', 'erro'];
+
+  function show(id) {
+    secoes.forEach(function (s) { $(s).hidden = (s !== id); });
+  }
+
+  function rpc(action, data) {
+    return fetch(GAS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, data: data || {} })
+    }).then(function (r) { return r.json(); });
+  }
+
+  // Sem session_id (link direto/favorito): não dá pra confirmar nada.
+  if (!sessionId) {
+    $('erroMsg').textContent = 'Se você acabou de assinar, verifique seu e-mail — enviamos o link de acesso. Qualquer coisa, chama a gente.';
+    show('erro');
+    return;
+  }
+
+  var emailComprador = '';
+  var tentativas = 0;
+  var MAX = 8;   // ~24s de espera pelo webhook
+
+  function consultar() {
+    tentativas++;
+    rpc('confirmarCheckoutStripe', { sessionId: sessionId }).then(function (res) {
+      if (!res || !res.ok) {
+        $('erroMsg').textContent = (res && res.error) ||
+          'Não conseguimos confirmar esta compra automaticamente.';
+        show('erro');
+        return;
+      }
+
+      if (!res.pago) {
+        $('erroMsg').textContent = 'Ainda não recebemos a confirmação do pagamento. Se você concluiu o checkout, aguarde alguns minutos.';
+        show('erro');
+        return;
+      }
+
+      emailComprador = res.email || '';
+
+      // Comprador novo com link de senha pendente
+      if (res.precisaCriarSenha) {
+        if (res.nome) {
+          $('titulo').innerHTML = 'Parabéns,<br><span>' + res.nome.split(' ')[0] + '!</span>';
+        }
+        $('emailDest').textContent = emailComprador || 'seu e-mail';
+        $('blocoNovo').hidden = false;
+        $('blocoExistente').hidden = true;
+        show('ok');
+        return;
+      }
+
+      // Já tinha conta
+      if (res.prontoNoApp) {
+        if (res.nome) {
+          $('titulo').innerHTML = 'Bem-vindo<br><span>de volta, ' + res.nome.split(' ')[0] + '!</span>';
+        }
+        $('subtitulo').innerHTML = 'Sua assinatura do <strong>Desafio 21 Dias</strong> está ativa.';
+        $('blocoNovo').hidden = true;
+        $('blocoExistente').hidden = false;
+        show('ok');
+        return;
+      }
+
+      // Pago, mas o webhook ainda não criou o acesso → tenta de novo
+      if (tentativas < MAX) {
+        show('loading');
+        $('loadingMsg').textContent = 'Pagamento aprovado! Preparando seu acesso…';
+        setTimeout(consultar, 3000);
+      } else {
+        show('pendente');
+      }
+    }).catch(function () {
+      if (tentativas < MAX) { setTimeout(consultar, 3000); return; }
+      $('erroMsg').textContent = 'Tivemos um problema de conexão ao confirmar sua compra. Seu pagamento está seguro — chama a gente no WhatsApp.';
+      show('erro');
+    });
+  }
+
+  consultar();
+
+  // Reenviar e-mail de acesso
+  $('btnReenviar').addEventListener('click', function () {
+    var b = this;
+    b.disabled = true;
+    b.textContent = 'Enviando…';
+    rpc('reenviarLinkAcesso', { email: emailComprador }).then(function () {
+      b.textContent = '✓ E-mail reenviado — confira sua caixa';
+    }).catch(function () {
+      b.textContent = 'Não deu certo. Tente pelo WhatsApp';
+      b.disabled = false;
+    });
+  });
+})();
+</script>
 </body>
 </html>

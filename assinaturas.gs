@@ -222,25 +222,31 @@ function _garantirLoginAluno_(email) {
     }
   }
 
-  // Cria login com senha provisória (reusa gerador legível do reabertura.gs)
-  var senha = (typeof _gerarSenhaTemp_ === 'function')
-    ? _gerarSenhaTemp_()
-    : Math.random().toString(36).slice(-8);
-  var hash  = hashPassword(senha);
+  // v106: cria o login com senha ALEATORIA e inutilizavel — quem define a
+  // senha de verdade e o proprio comprador, pelo link magico de uso unico.
+  // Nenhuma senha trafega por e-mail.
+  var hash = hashPassword(Utilities.getUuid() + Utilities.getUuid());
   users.appendRow([generateId(), nome, emailNorm, hash, 'aluno', '', true, nowISO()]);
 
-  // E-mail de boas-vindas (reusa template HTML bonito do reabertura.gs)
+  // E-mail "crie sua senha" (link de uso unico, 48h)
   try {
     var wsNome = 'WPK Tavares';
     try { wsNome = getWorkspaceConfig().nome || wsNome; } catch(e) {}
-    var appUrl  = 'https://app.wpktavares.com.br';
-    _enviarCredenciaisReinabertura_(emailNorm, nome || emailNorm, senha, wsNome, appUrl);
+    _enviarBoasVindasComLink_(emailNorm, nome || emailNorm, wsNome);
   } catch(e) {
-    // Fallback texto simples
+    logAction('system', 'ASSIN_EMAIL_ACESSO_ERRO', 'user', emailNorm, e.message);
+    // Fallback: senha provisoria pelo caminho legado, pra nao deixar o
+    // comprador sem NENHUM meio de entrar.
     try {
-      MailApp.sendEmail(emailNorm, 'Bem-vindo ao Desafio 21 Dias — seu acesso',
-        'E-mail: ' + emailNorm + '\nSenha provisoria: ' + senha +
-        '\n\nAcesse: https://app.wpktavares.com.br');
+      var senhaFb = (typeof _gerarSenhaTemp_ === 'function')
+        ? _gerarSenhaTemp_()
+        : Math.random().toString(36).slice(-8);
+      var rowFb = users.getLastRow();
+      var hdrFb = users.getDataRange().getValues()[0].map(function(h){ return String(h); });
+      var iHashFb = hdrFb.indexOf('password_hash');
+      if (iHashFb >= 0) users.getRange(rowFb, iHashFb + 1).setValue(hashPassword(senhaFb));
+      _enviarCredenciaisReinabertura_(emailNorm, nome || emailNorm, senhaFb,
+        'WPK Tavares', 'https://app.wpktavares.com.br');
     } catch(e2) {}
   }
 

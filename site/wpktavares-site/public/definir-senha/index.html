@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criar minha senha — Desafio 21 Dias</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="theme-color" content="#07090a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:    #07090a; --surf: #0f1412; --surf2: #141c18;
+    --green: #4caf50; --gbright: #6dde71; --cream: #eeeadc;
+    --muted: #6e9070; --border: rgba(76,175,80,0.18);
+    --danger:#e2626b;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: #dde8dd;
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100dvh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 20px;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+
+  .card {
+    position: relative; z-index: 1;
+    background: var(--surf); border: 1px solid var(--border);
+    border-radius: 20px; width: 100%; max-width: 460px; overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.55);
+    animation: fadeUp 0.55s ease both;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+
+  .card-header {
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(76,175,80,0.18) 0%, transparent 70%),
+                linear-gradient(180deg, #0d1e0d 0%, #0a130a 100%);
+    padding: 34px 36px 28px; text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo { width: 40px; height: 40px; border-radius: 10px; margin-bottom: 14px; border: 1px solid var(--border); }
+  .badge {
+    display: inline-block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--gbright); background: rgba(76,175,80,.1);
+    border: 1px solid rgba(76,175,80,.25); border-radius: 999px;
+    padding: 6px 14px; margin-bottom: 14px;
+  }
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(30px, 6.5vw, 40px);
+    color: var(--cream); line-height: 1; margin-bottom: 8px;
+  }
+  .card-title .accent { color: var(--gbright); }
+  .card-sub { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  .card-body { padding: 30px 34px 34px; }
+
+  label { display:block; font-size: 11px; font-weight: 700; letter-spacing: .12em;
+          text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .field { margin-bottom: 18px; position: relative; }
+  input[type=password], input[type=text] {
+    width: 100%; background: var(--surf2); color: #dde8dd;
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 15px 46px 15px 16px; font-size: 15px; font-family: inherit;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  input:focus { outline: none; border-color: rgba(76,175,80,.5); box-shadow: 0 0 0 3px rgba(76,175,80,.12); }
+  .toggle-eye {
+    position: absolute; right: 12px; top: 38px;
+    background: none; border: none; cursor: pointer; color: var(--muted);
+    padding: 4px; display: flex;
+  }
+  .toggle-eye:hover { color: var(--gbright); }
+
+  .rules { font-size: 12px; color: var(--muted); line-height: 1.7; margin: -6px 0 18px; }
+  .rules li { list-style: none; padding-left: 20px; position: relative; }
+  .rules li::before { content: '○'; position: absolute; left: 4px; color: var(--muted); }
+  .rules li.ok { color: var(--gbright); }
+  .rules li.ok::before { content: '●'; color: var(--gbright); }
+
+  .btn {
+    display: block; width: 100%; background: var(--green); color: #fff;
+    border: none; font-family: inherit; font-size: 16px; font-weight: 700;
+    padding: 17px; border-radius: 12px; text-align: center; cursor: pointer;
+    box-shadow: 0 4px 24px rgba(76,175,80,0.3);
+    transition: background .2s, transform .15s, box-shadow .2s;
+  }
+  .btn:hover:not(:disabled) { background: var(--gbright); transform: translateY(-2px); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .msg { font-size: 13px; border-radius: 10px; padding: 13px 16px; margin-bottom: 18px; line-height: 1.55; display: none; }
+  .msg.err { display:block; background: rgba(226,98,107,.09); border: 1px solid rgba(226,98,107,.3); color: #f0a5aa; }
+  .msg.ok  { display:block; background: rgba(76,175,80,.09); border: 1px solid rgba(76,175,80,.3); color: var(--gbright); }
+
+  .state { text-align: center; padding: 12px 0 4px; }
+  .spinner {
+    width: 34px; height: 34px; margin: 0 auto 16px;
+    border: 3px solid rgba(76,175,80,.18); border-top-color: var(--green);
+    border-radius: 50%; animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .state p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .state a { color: var(--gbright); text-decoration: none; font-weight: 600; }
+
+  .page-footer {
+    position: relative; z-index: 1; margin-top: 26px;
+    font-size: 11px; color: #2a3d2a; text-align: center; line-height: 1.8;
+  }
+  .page-footer a { color: rgba(76,175,80,.5); text-decoration: none; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <img src="https://i.imgur.com/bOf9i1R.png" alt="WPK Tavares" class="logo">
+    <div class="badge">🔓 Primeiro acesso</div>
+    <h1 class="card-title">Crie sua <span class="accent">senha</span></h1>
+    <p class="card-sub" id="sub">Validando seu link…</p>
+  </div>
+
+  <div class="card-body">
+
+    <!-- Carregando -->
+    <div class="state" id="loading">
+      <div class="spinner"></div>
+      <p>Conferindo seu link de acesso…</p>
+    </div>
+
+    <!-- Link inválido -->
+    <div class="state" id="invalid" hidden>
+      <p id="invalidMsg">Este link expirou ou já foi usado.</p>
+      <p style="margin-top:14px">
+        <a href="https://app.wpktavares.com.br">Ir para o login</a> e usar
+        “Esqueci minha senha”.
+      </p>
+    </div>
+
+    <!-- Formulário -->
+    <form id="form" hidden autocomplete="off">
+      <div class="msg" id="msg"></div>
+
+      <div class="field">
+        <label for="senha">Nova senha</label>
+        <input type="password" id="senha" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+        <button type="button" class="toggle-eye" data-target="senha" aria-label="Mostrar senha">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+
+      <ul class="rules">
+        <li id="r1">Pelo menos 6 caracteres</li>
+        <li id="r2">As duas senhas coincidem</li>
+      </ul>
+
+      <div class="field">
+        <label for="senha2">Confirmar senha</label>
+        <input type="password" id="senha2" autocomplete="new-password" placeholder="Repita a senha">
+        <button type="button" class="toggle-eye" data-target="senha2" aria-label="Mostrar senha">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      </div>
+
+      <button type="submit" class="btn" id="btn" disabled>Criar senha e entrar →</button>
+    </form>
+
+    <!-- Sucesso -->
+    <div class="state" id="done" hidden>
+      <div class="spinner"></div>
+      <p>Senha criada! Entrando no app…</p>
+    </div>
+
+  </div>
+</div>
+
+<div class="page-footer">
+  Dúvidas? <a href="https://wa.me/559484427988" target="_blank" rel="noopener">WhatsApp</a> ·
+  <a href="https://wpktavares.com.br">wpktavares.com.br</a>
+</div>
+
+<script>
+(function () {
+  var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+
+  var token = new URLSearchParams(location.search).get('t') || '';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var elLoading = $('loading'), elInvalid = $('invalid'), elForm = $('form'), elDone = $('done');
+  var elSenha = $('senha'), elSenha2 = $('senha2'), elBtn = $('btn'), elMsg = $('msg');
+
+  function rpc(action, data) {
+    return fetch(GAS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, data: data || {} })
+    }).then(function (r) { return r.json(); });
+  }
+
+  function show(el) {
+    [elLoading, elInvalid, elForm, elDone].forEach(function (e) { e.hidden = (e !== el); });
+  }
+
+  function erro(txt) {
+    elMsg.className = 'msg err';
+    elMsg.textContent = txt;
+  }
+
+  // ── Mostrar/ocultar senha ──
+  document.querySelectorAll('.toggle-eye').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var alvo = $(b.dataset.target);
+      alvo.type = alvo.type === 'password' ? 'text' : 'password';
+    });
+  });
+
+  // ── Validação ao vivo ──
+  function validar() {
+    var s1 = elSenha.value, s2 = elSenha2.value;
+    var ok1 = s1.length >= 6;
+    var ok2 = ok1 && s1 === s2;
+    $('r1').className = ok1 ? 'ok' : '';
+    $('r2').className = ok2 ? 'ok' : '';
+    elBtn.disabled = !(ok1 && ok2);
+    return ok1 && ok2;
+  }
+  elSenha.addEventListener('input', validar);
+  elSenha2.addEventListener('input', validar);
+
+  // ── 1. Valida o link ao abrir ──
+  if (!token) {
+    show(elInvalid);
+    $('sub').textContent = 'Link inválido.';
+  } else {
+    rpc('validarTokenAcesso', { t: token }).then(function (res) {
+      if (!res || !res.ok) {
+        $('invalidMsg').textContent = (res && res.error) || 'Este link expirou ou já foi usado.';
+        $('sub').textContent = 'Link expirado.';
+        show(elInvalid);
+        return;
+      }
+      $('sub').textContent = res.nome
+        ? 'Olá, ' + res.nome + '! Escolha a senha que você vai usar para entrar.'
+        : 'Escolha a senha que você vai usar para entrar.';
+      show(elForm);
+      elSenha.focus();
+    }).catch(function () {
+      $('invalidMsg').textContent = 'Não conseguimos validar seu link agora. Tente recarregar a página.';
+      show(elInvalid);
+    });
+  }
+
+  // ── 2. Cria a senha e entra ──
+  elForm.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (!validar()) return;
+
+    elBtn.disabled = true;
+    elBtn.textContent = 'Criando…';
+    elMsg.className = 'msg';
+
+    var senha = elSenha.value;
+
+    rpc('definirSenhaComToken', { t: token, senha: senha }).then(function (res) {
+      if (!res || !res.ok) {
+        erro((res && res.error) || 'Não foi possível criar a senha.');
+        elBtn.disabled = false;
+        elBtn.textContent = 'Criar senha e entrar →';
+        return;
+      }
+      // Login automático — mesma origem do app, então sessionStorage vale lá.
+      show(elDone);
+      return rpc('login', { email: res.email, password: senha }).then(function (log) {
+        if (log && log.ok && log.token) {
+          try {
+            sessionStorage.setItem('crm_token', log.token);
+            if (log.user) sessionStorage.setItem('crm_user', JSON.stringify(log.user));
+          } catch (e) {}
+          location.replace('/app/');
+        } else {
+          // Senha criada, mas o login automático falhou: manda pro login normal.
+          location.replace('/app/?senha=criada');
+        }
+      });
+    }).catch(function () {
+      erro('Erro de conexão. Tente novamente.');
+      elBtn.disabled = false;
+      elBtn.textContent = 'Criar senha e entrar →';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

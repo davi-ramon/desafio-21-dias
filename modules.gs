@@ -278,6 +278,11 @@ function handleRequest(payload) {
     case 'cancelarAssinatura':        return cancelarAssinatura(token);
     case 'getStripePortal':           return getStripePortal(token);
     case 'criarCheckoutStripe':       return criarCheckoutStripe(data);
+    // v106 — onboarding pós-compra (todas públicas)
+    case 'confirmarCheckoutStripe':   return confirmarCheckoutStripe(data && data.sessionId);
+    case 'validarTokenAcesso':        return validarTokenAcesso(data && data.t);
+    case 'definirSenhaComToken':      return definirSenhaComToken(data && data.t, data && data.senha);
+    case 'reenviarLinkAcesso':        return reenviarLinkAcesso(data && data.email);
     case 'getAssinaturaHub':          return getAssinaturaHub(token);
     case 'iniciarMigracaoStripe':    return iniciarMigracaoStripe(token, data);
     case 'setupStripeStatus':        return setupStripeStatus();
