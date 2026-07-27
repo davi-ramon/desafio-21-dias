@@ -2732,6 +2732,11 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 
+  <!-- ── MURAL DE DECLARAÇÕES / QUADRO DOS SONHOS (v107) ──── -->
+  <div class="page" id="page-mural">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+
 </div>
 
 <!-- ═══ SUBSCRIPTION BANNER ═══════════════════════════════════ -->
@@ -2762,6 +2767,13 @@ input[type=range].adm-slider::-webkit-slider-thumb {
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
     <span>Comunidade</span>
+  </button>
+  <button class="nav-btn" id="nav-mural" onclick="navigate('mural')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2.6l2.1 5.3 5.3 2.1-5.3 2.1L12 17.4l-2.1-5.3-5.3-2.1 5.3-2.1z"/>
+      <path d="M18.6 16.1l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>
+    </svg>
+    <span>Mural</span>
   </button>
   <button class="nav-btn" id="nav-perfil" onclick="navigate('perfil')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -2995,6 +3007,8 @@ function navigate(page) {
 }
 
 function renderPage(page) {
+  // v107: o Mural roda um loop de animação — pausa ao sair da aba
+  if (page !== 'mural' && typeof muPause === 'function') muPause();
   switch(page) {
     case 'inicio':     renderInicio();     break;
     case 'rotina':     renderRotina();     break;
@@ -3002,6 +3016,7 @@ function renderPage(page) {
     case 'comunidade': renderComunidade(); break;
     case 'perfil':     renderPerfil();     break;
     case 'assinatura': renderAssinatura(); break;
+    case 'mural':      renderMural();      break;
   }
 }
 
@@ -8443,6 +8458,808 @@ function _commTimeHora(iso) {
     return d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
   } catch(e) { return ''; }
 }
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MURAL DE DECLARAÇÕES / QUADRO DOS SONHOS (v107)
+     Bloco isolado: CSS + JS próprios, namespace .mu- / MURAL.
+     Animação em CSS 3D transform + rAF (GPU), sem libs externas.
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Shell ─────────────────────────────────────────────────── */
+.mu-wrap { display:flex; flex-direction:column; height:100%; }
+.mu-top { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.mu-top h2 { font-size:20px; font-weight:800; color:var(--text2); letter-spacing:-.02em; }
+.mu-count { font-size:12px; color:var(--muted); }
+
+.mu-toggle { display:inline-flex; background:var(--surface2); border:1px solid var(--border);
+  border-radius:999px; padding:3px; gap:2px; }
+.mu-toggle button { background:none; border:none; color:var(--muted); font-family:inherit;
+  font-size:12px; font-weight:700; padding:8px 14px; border-radius:999px; cursor:pointer;
+  transition:background .25s, color .25s; white-space:nowrap; }
+.mu-toggle button.on { background:var(--green-glow); color:var(--green-l); }
+
+.mu-add { margin-left:auto; background:var(--green); color:#04140a; border:none; font-family:inherit;
+  font-size:13px; font-weight:800; padding:10px 16px; border-radius:11px; cursor:pointer;
+  display:inline-flex; align-items:center; gap:7px; transition:transform .15s, background .2s;
+  box-shadow:0 4px 18px rgba(76,175,80,.26); }
+.mu-add:hover { background:var(--green-l); transform:translateY(-1px); }
+
+.mu-stage { position:relative; flex:1; min-height:60vh; border-radius:18px; overflow:hidden;
+  border:1px solid var(--border); background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(76,175,80,.07), transparent 70%),
+    linear-gradient(180deg, #080d0a 0%, #060809 100%); }
+.mu-stage.fade { animation:muFade .45s ease both; }
+@keyframes muFade { from{opacity:0; transform:scale(.985)} to{opacity:1; transform:scale(1)} }
+
+/* partículas discretas de fundo */
+.mu-dust { position:absolute; inset:0; pointer-events:none; opacity:.5;
+  background-image:radial-gradient(circle, rgba(109,222,113,.5) 1px, transparent 1px);
+  background-size:80px 80px; animation:muDust 60s linear infinite; }
+@keyframes muDust { to { background-position:80px 160px; } }
+
+/* ── Espaço Mental ─────────────────────────────────────────── */
+.mu-space { position:absolute; inset:0; perspective:1100px; transform-style:preserve-3d; }
+.mu-node { position:absolute; top:0; left:0; width:150px; cursor:pointer;
+  will-change:transform; backface-visibility:hidden;
+  transition:filter .45s ease, opacity .45s ease; }
+.mu-node-in { background:rgba(20,28,24,.82); border:1px solid var(--border2); border-radius:15px;
+  padding:14px 15px; backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
+  box-shadow:0 10px 34px rgba(0,0,0,.5), 0 0 0 1px rgba(76,175,80,.05);
+  transition:border-color .25s, box-shadow .25s; }
+.mu-node:hover .mu-node-in { border-color:rgba(109,222,113,.55);
+  box-shadow:0 14px 44px rgba(0,0,0,.6), 0 0 26px rgba(76,175,80,.22); }
+.mu-node p { font-size:12.5px; line-height:1.5; color:var(--text); word-break:break-word; }
+.mu-node img { width:100%; border-radius:10px; display:block; }
+.mu-node .mu-cap { font-size:11px; color:var(--muted); margin-top:7px; }
+.mu-node .mu-day { font-size:9.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted2); margin-top:8px; }
+
+/* foco: congela e desfoca o resto */
+.mu-space.focused .mu-node:not(.sel) { filter:blur(4px) saturate(.6); opacity:.32; }
+.mu-space.focused .mu-node.sel { z-index:50; }
+.mu-node.sel .mu-node-in { border-color:var(--green-l);
+  box-shadow:0 0 0 1px var(--green-l), 0 18px 54px rgba(0,0,0,.66), 0 0 40px rgba(76,175,80,.3); }
+
+/* ── Quadro dos Sonhos ─────────────────────────────────────── */
+.mu-board { position:absolute; inset:0; overflow:auto; padding:16px;
+  background-image:radial-gradient(circle, rgba(76,175,80,.06) 1px, transparent 1px);
+  background-size:22px 22px; }
+.mu-board-inner { position:relative; width:100%; min-height:100%; }
+.mu-card { position:absolute; width:min(46%,190px); background:var(--surface2);
+  border:1px solid var(--border2); border-radius:14px; padding:12px 13px; cursor:grab;
+  box-shadow:0 8px 26px rgba(0,0,0,.45); touch-action:none; will-change:transform;
+  transition:box-shadow .2s, border-color .2s; }
+.mu-card:hover { border-color:rgba(109,222,113,.5); box-shadow:0 12px 34px rgba(0,0,0,.55); }
+.mu-card.drag { cursor:grabbing; z-index:60; box-shadow:0 20px 50px rgba(0,0,0,.7);
+  border-color:var(--green-l); }
+.mu-card p { font-size:12.5px; line-height:1.5; color:var(--text); word-break:break-word; }
+.mu-card img { width:100%; border-radius:9px; display:block; margin-bottom:8px; }
+.mu-card .mu-day { font-size:9.5px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--muted2); margin-top:7px; }
+.mu-hint { position:absolute; left:14px; bottom:12px; font-size:11px; color:var(--muted2);
+  background:rgba(8,13,10,.75); padding:6px 11px; border-radius:8px; pointer-events:none; }
+
+/* ── Painel lateral (glassmorphism) ────────────────────────── */
+.mu-panel { position:fixed; top:0; right:0; height:100dvh; width:min(400px,100vw); z-index:1200;
+  background:rgba(15,20,18,.62); backdrop-filter:blur(26px) saturate(1.3);
+  -webkit-backdrop-filter:blur(26px) saturate(1.3);
+  border-left:1px solid rgba(109,222,113,.22); border-radius:22px 0 0 22px;
+  box-shadow:-24px 0 70px rgba(0,0,0,.6);
+  transform:translateX(102%); transition:transform .42s cubic-bezier(.22,1,.36,1);
+  display:flex; flex-direction:column; }
+.mu-panel.open { transform:translateX(0); }
+.mu-panel-head { padding:20px 22px 14px; border-bottom:1px solid rgba(76,175,80,.14);
+  display:flex; align-items:flex-start; gap:12px; }
+.mu-panel-head h3 { font-size:12px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--muted); font-weight:700; }
+.mu-x { margin-left:auto; background:none; border:none; color:var(--muted); cursor:pointer;
+  font-size:22px; line-height:1; padding:2px 4px; }
+.mu-x:hover { color:var(--green-l); }
+.mu-panel-body { padding:20px 22px 26px; overflow-y:auto; flex:1; }
+.mu-panel-body img { width:100%; border-radius:13px; margin-bottom:16px; }
+.mu-decl { font-size:17px; line-height:1.5; color:var(--text2); font-weight:600; margin-bottom:14px; }
+.mu-notes { font-size:13.5px; line-height:1.65; color:var(--muted); white-space:pre-wrap;
+  padding:13px 15px; background:rgba(20,28,24,.6); border-radius:11px;
+  border:1px solid var(--border); margin-bottom:18px; }
+
+.mu-meta { border-top:1px solid rgba(76,175,80,.12); padding-top:15px; margin-bottom:20px; }
+.mu-meta-row { display:flex; justify-content:space-between; gap:12px; font-size:12.5px;
+  padding:7px 0; }
+.mu-meta-row span:first-child { color:var(--muted2); }
+.mu-meta-row span:last-child { color:var(--text); font-weight:600; text-align:right; }
+.mu-pills { display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end; }
+.mu-pill { font-size:10.5px; padding:3px 9px; border-radius:999px; background:var(--green-glow);
+  color:var(--green-l); border:1px solid rgba(76,175,80,.28); }
+.mu-pill.off { background:transparent; color:var(--muted2); border-color:rgba(110,144,112,.2); }
+
+.mu-acts { display:flex; gap:9px; }
+.mu-btn { flex:1; padding:12px; border-radius:11px; font-family:inherit; font-size:13px;
+  font-weight:700; cursor:pointer; border:1px solid var(--border2); background:var(--surface2);
+  color:var(--text); transition:background .2s, border-color .2s, color .2s; }
+.mu-btn:hover { background:var(--surface3); border-color:var(--green); }
+.mu-btn.danger:hover { border-color:#e2626b; color:#f0a5aa; background:rgba(226,98,107,.08); }
+.mu-btn.primary { background:var(--green); color:#04140a; border-color:var(--green); }
+.mu-btn.primary:hover { background:var(--green-l); }
+.mu-btn:disabled { opacity:.5; cursor:not-allowed; }
+
+/* ── Modal criar/editar + confirmar ────────────────────────── */
+.mu-ov { position:fixed; inset:0; z-index:1300; background:rgba(0,0,0,.76);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+  animation:muIn .25s ease both; }
+@keyframes muIn { from{opacity:0} to{opacity:1} }
+.mu-dlg { background:var(--surface); border:1px solid var(--border2); border-radius:20px;
+  width:100%; max-width:430px; max-height:88dvh; overflow-y:auto; padding:24px;
+  box-shadow:0 30px 80px rgba(0,0,0,.7); animation:muUp .3s cubic-bezier(.22,1,.36,1) both; }
+@keyframes muUp { from{opacity:0; transform:translateY(22px) scale(.97)} to{opacity:1; transform:none} }
+.mu-dlg h3 { font-size:18px; font-weight:800; color:var(--text2); margin-bottom:6px; }
+.mu-dlg .sub { font-size:13px; color:var(--muted); line-height:1.55; margin-bottom:18px; }
+.mu-dlg label { display:block; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--muted); font-weight:700; margin-bottom:7px; }
+.mu-dlg textarea, .mu-dlg input[type=text] { width:100%; background:var(--surface2);
+  border:1px solid var(--border); border-radius:11px; padding:13px 14px; color:var(--text);
+  font-family:inherit; font-size:14px; resize:vertical; line-height:1.5; }
+.mu-dlg textarea:focus, .mu-dlg input:focus { outline:none; border-color:rgba(76,175,80,.55);
+  box-shadow:0 0 0 3px rgba(76,175,80,.1); }
+.mu-field { margin-bottom:16px; }
+.mu-counter { text-align:right; font-size:11px; color:var(--muted2); margin-top:5px; }
+.mu-counter.warn { color:#e0b341; }
+.mu-counter.over { color:#e2626b; }
+.mu-drop { border:1.5px dashed rgba(76,175,80,.3); border-radius:13px; padding:22px 16px;
+  text-align:center; cursor:pointer; color:var(--muted); font-size:13px; transition:border-color .2s, background .2s; }
+.mu-drop:hover { border-color:var(--green); background:var(--green-glow2); }
+.mu-drop img { max-width:100%; border-radius:10px; margin-bottom:8px; }
+.mu-err { font-size:12.5px; color:#f0a5aa; background:rgba(226,98,107,.09);
+  border:1px solid rgba(226,98,107,.28); border-radius:9px; padding:10px 13px; margin-bottom:14px; }
+
+/* ── Vazio / carregando ────────────────────────────────────── */
+.mu-empty { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; text-align:center; padding:30px; }
+.mu-empty .ico { font-size:44px; margin-bottom:14px; opacity:.85; }
+.mu-empty h3 { font-size:18px; font-weight:800; color:var(--text2); margin-bottom:8px; }
+.mu-empty p { font-size:13.5px; color:var(--muted); line-height:1.6; max-width:290px; margin-bottom:20px; }
+
+@media (max-width:640px) {
+  .mu-panel { width:100vw; height:82dvh; top:auto; bottom:0; border-radius:22px 22px 0 0;
+    border-left:none; border-top:1px solid rgba(109,222,113,.22);
+    transform:translateY(102%); }
+  .mu-panel.open { transform:translateY(0); }
+  .mu-node { width:132px; }
+  .mu-add { padding:9px 13px; font-size:12px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .mu-dust { animation:none; }
+  .mu-node { transition:none; }
+}
+</style>
+
+<div class="mu-panel" id="muPanel"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// MURAL DE DECLARAÇÕES / QUADRO DOS SONHOS (v107)
+// ════════════════════════════════════════════════════════════
+var MURAL = {
+  itens: [], modo: 'espaco', nodes: [], raf: null, sel: null,
+  carregado: false, frozen: false, last: 0, pend: {}, timer: null
+};
+
+// Espaço Mental renderiza no máximo N nós. Acima disso a física
+// vira O(n²) visual e emocionalmente ruidosa — o excedente continua
+// acessível no Quadro dos Sonhos, que é estático e barato.
+var MU_MAX_FLUTUANTES = 80;
+
+function muEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Shell ───────────────────────────────────────────────────
+async function renderMural() {
+  var el = document.getElementById('page-mural');
+  if (!MURAL.carregado) {
+    el.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+    try {
+      var res = await rpc('getDreamBoard', {});
+      MURAL.itens = (res && res.ok && res.data) ? res.data : [];
+      MURAL.carregado = true;
+    } catch (e) {
+      el.innerHTML = '<div class="page-header"><h2>Mural</h2></div>' +
+        '<div class="mu-err">Não conseguimos carregar seu mural agora. Tente novamente.</div>';
+      return;
+    }
+  }
+  muShell();
+}
+
+function muShell() {
+  var el = document.getElementById('page-mural');
+  var n  = MURAL.itens.length;
+  el.innerHTML =
+    '<div class="mu-wrap">' +
+      '<div class="mu-top">' +
+        '<div>' +
+          '<h2>Mural de Declarações</h2>' +
+          '<div class="mu-count" id="muCount">' +
+            (n ? n + (n === 1 ? ' declaração' : ' declarações') : 'Seu espaço de visualização') +
+          '</div>' +
+        '</div>' +
+        '<button class="mu-add" onclick="muAbrirCriar()">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>' +
+          'Adicionar</button>' +
+      '</div>' +
+      '<div class="mu-toggle" style="margin-bottom:14px">' +
+        '<button id="muTabEsp" class="' + (MURAL.modo === 'espaco' ? 'on' : '') + '" onclick="muSetModo(\'espaco\')">✦ Espaço Mental</button>' +
+        '<button id="muTabQua" class="' + (MURAL.modo === 'quadro' ? 'on' : '') + '" onclick="muSetModo(\'quadro\')">▦ Quadro dos Sonhos</button>' +
+      '</div>' +
+      '<div class="mu-stage fade" id="muStage"><div class="mu-dust"></div></div>' +
+    '</div>';
+  muRenderModo();
+}
+
+function muSetModo(m) {
+  if (MURAL.modo === m) return;
+  MURAL.modo = m;
+  muFecharPainel();
+  document.getElementById('muTabEsp').className = (m === 'espaco' ? 'on' : '');
+  document.getElementById('muTabQua').className = (m === 'quadro' ? 'on' : '');
+  var st = document.getElementById('muStage');
+  st.classList.remove('fade'); void st.offsetWidth; st.classList.add('fade');
+  muRenderModo();
+}
+
+function muRenderModo() {
+  muPause();
+  var st = document.getElementById('muStage');
+  if (!st) return;
+  st.innerHTML = '<div class="mu-dust"></div>';
+
+  if (!MURAL.itens.length) { muVazio(st); return; }
+  if (MURAL.modo === 'espaco') muMontarEspaco(st);
+  else                        muMontarQuadro(st);
+}
+
+function muVazio(st) {
+  var d = document.createElement('div');
+  d.className = 'mu-empty';
+  d.innerHTML =
+    '<div class="ico">✦</div>' +
+    '<h3>Seu mural está em branco</h3>' +
+    '<p>Escreva a primeira declaração — algo que você quer ver acontecer. Ela vai flutuar aqui, junto com o dia do desafio em que você a escreveu.</p>' +
+    '<button class="mu-btn primary" style="max-width:220px" onclick="muAbrirCriar()">Criar primeira declaração</button>';
+  st.appendChild(d);
+}
+
+// ════════════════════════════════════════════════════════════
+// ESPAÇO MENTAL — física leve em rAF + translate3d (GPU)
+// ════════════════════════════════════════════════════════════
+function muMontarEspaco(st) {
+  var space = document.createElement('div');
+  space.className = 'mu-space';
+  space.id = 'muSpace';
+  st.appendChild(space);
+
+  var W = st.clientWidth, H = st.clientHeight;
+  var lista = MURAL.itens.slice(0, MU_MAX_FLUTUANTES);
+  var total = MURAL.itens.length;
+  MURAL.nodes = [];
+
+  lista.forEach(function (item, i) {
+    var el = document.createElement('div');
+    el.className = 'mu-node';
+    el.innerHTML = '<div class="mu-node-in">' + muNodeHtml(item) + '</div>';
+    el.onclick = function (ev) { ev.stopPropagation(); muSelecionar(item.id); };
+    space.appendChild(el);
+
+    var w = el.offsetWidth || 150, h = el.offsetHeight || 90;
+    // Entropia: quanto mais antigo o item (índice maior = mais antigo,
+    // a lista vem do mais novo pro mais velho), maior a variação.
+    var idade = total > 1 ? (i / Math.max(1, lista.length - 1)) : 0;
+    var vel   = 5 + idade * 9;           // px/s — sempre lento
+    var ang   = Math.random() * Math.PI * 2;
+
+    MURAL.nodes.push({
+      el: el, item: item, w: w, h: h,
+      x: Math.random() * Math.max(1, W - w),
+      y: Math.random() * Math.max(1, H - h),
+      z: -180 + Math.random() * 360,
+      vx: Math.cos(ang) * vel,
+      vy: Math.sin(ang) * vel,
+      vz: (Math.random() - .5) * 5
+    });
+  });
+
+  if (total > MU_MAX_FLUTUANTES) {
+    var hint = document.createElement('div');
+    hint.className = 'mu-hint';
+    hint.textContent = 'Flutuando ' + MU_MAX_FLUTUANTES + ' de ' + total +
+                       ' · veja todos no Quadro dos Sonhos';
+    st.appendChild(hint);
+  }
+
+  space.onclick = function () { muFecharPainel(); };
+  muAplicar();
+  muStart();
+}
+
+function muNodeHtml(item) {
+  var h = '';
+  if (item.imageUrl) {
+    h += '<img src="' + muEsc(item.imageUrl) + '" alt="" loading="lazy" decoding="async">';
+    if (item.text) h += '<div class="mu-cap">' + muEsc(item.text) + '</div>';
+  } else {
+    h += '<p>' + muEsc(item.text) + '</p>';
+  }
+  if (item.challengeDay) h += '<div class="mu-day">Dia ' + item.challengeDay + '</div>';
+  return h;
+}
+
+function muStart() {
+  if (MURAL.raf) return;
+  MURAL.last = 0;
+  MURAL.raf = requestAnimationFrame(muTick);
+}
+
+function muPause() {
+  if (MURAL.raf) { cancelAnimationFrame(MURAL.raf); MURAL.raf = null; }
+}
+
+function muTick(ts) {
+  MURAL.raf = requestAnimationFrame(muTick);
+  if (document.hidden || MURAL.frozen) { MURAL.last = ts; return; }
+
+  if (!MURAL.last) MURAL.last = ts;
+  var dt = Math.min(0.05, (ts - MURAL.last) / 1000);   // clamp: aba em 2º plano
+  MURAL.last = ts;
+
+  var st = document.getElementById('muStage');
+  if (!st) { muPause(); return; }
+  var W = st.clientWidth, H = st.clientHeight;
+  var ns = MURAL.nodes;
+
+  for (var i = 0; i < ns.length; i++) {
+    var n = ns[i];
+    n.x += n.vx * dt; n.y += n.vy * dt; n.z += n.vz * dt;
+
+    // rebote suave nas bordas
+    if (n.x <= 0)          { n.x = 0;          n.vx = Math.abs(n.vx); }
+    if (n.x >= W - n.w)    { n.x = W - n.w;    n.vx = -Math.abs(n.vx); }
+    if (n.y <= 0)          { n.y = 0;          n.vy = Math.abs(n.vy); }
+    if (n.y >= H - n.h)    { n.y = H - n.h;    n.vy = -Math.abs(n.vy); }
+    if (n.z < -200 || n.z > 200) n.vz = -n.vz;
+  }
+
+  muColisoes(ns);
+  muAplicar();
+}
+
+// Colisão via grade espacial — evita o O(n²) do par-a-par.
+function muColisoes(ns) {
+  var CELL = 170, grid = {};
+  for (var i = 0; i < ns.length; i++) {
+    var n = ns[i];
+    var cx = Math.floor((n.x + n.w / 2) / CELL), cy = Math.floor((n.y + n.h / 2) / CELL);
+    for (var gx = cx - 1; gx <= cx + 1; gx++) {
+      for (var gy = cy - 1; gy <= cy + 1; gy++) {
+        var k = gx + ':' + gy;
+        if (!grid[k]) continue;
+        for (var j = 0; j < grid[k].length; j++) muResolver(n, grid[k][j]);
+      }
+    }
+    var key = cx + ':' + cy;
+    (grid[key] = grid[key] || []).push(n);
+  }
+}
+
+function muResolver(a, b) {
+  if (a === b) return;
+  var ax = a.x + a.w / 2, ay = a.y + a.h / 2;
+  var bx = b.x + b.w / 2, by = b.y + b.h / 2;
+  var dx = bx - ax, dy = by - ay;
+  var dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+  var min = (Math.max(a.w, a.h) + Math.max(b.w, b.h)) * 0.42;
+  if (dist >= min) return;
+
+  // empurrão gentil — nunca um "choque"
+  var nx = dx / dist, ny = dy / dist;
+  var push = (min - dist) * 0.012;
+  a.vx -= nx * push; a.vy -= ny * push;
+  b.vx += nx * push; b.vy += ny * push;
+
+  // teto de velocidade: mantém a sensação de calma
+  [a, b].forEach(function (n) {
+    var v = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
+    if (v > 22) { n.vx = n.vx / v * 22; n.vy = n.vy / v * 22; }
+  });
+}
+
+function muAplicar() {
+  var ns = MURAL.nodes;
+  for (var i = 0; i < ns.length; i++) {
+    var n = ns[i];
+    var esc = 1 + n.z / 1400;
+    n.el.style.transform = 'translate3d(' + n.x.toFixed(2) + 'px,' + n.y.toFixed(2) + 'px,' +
+                           n.z.toFixed(1) + 'px) scale(' + esc.toFixed(3) + ')';
+    n.el.style.zIndex = String(Math.round(200 + n.z));
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// QUADRO DOS SONHOS — mural organizado e arrastável
+// ════════════════════════════════════════════════════════════
+function muMontarQuadro(st) {
+  var board = document.createElement('div');
+  board.className = 'mu-board';
+  var inner = document.createElement('div');
+  inner.className = 'mu-board-inner';
+  board.appendChild(inner);
+  st.appendChild(board);
+
+  // auto-layout para quem ainda não foi arrastado
+  var col = 0, linha = 0, PORCOL = 2;
+  MURAL.itens.forEach(function (item, i) {
+    var card = document.createElement('div');
+    card.className = 'mu-card';
+    card.dataset.id = item.id;
+
+    var h = '';
+    if (item.imageUrl) h += '<img src="' + muEsc(item.imageUrl) + '" alt="" loading="lazy" decoding="async">';
+    if (item.text)     h += '<p>' + muEsc(item.text) + '</p>';
+    if (item.challengeDay) h += '<div class="mu-day">Dia ' + item.challengeDay + ' · ' + item.completionPercent + '%</div>';
+    card.innerHTML = h;
+
+    var x, y;
+    if (item.boardX != null && item.boardY != null) { x = item.boardX; y = item.boardY; }
+    else {
+      col = i % PORCOL; linha = Math.floor(i / PORCOL);
+      x = 4 + col * 48; y = linha * 34;
+    }
+    card.style.left = x + '%';
+    card.style.top  = (y * 2.2) + 'px';
+    card.dataset.x = x; card.dataset.y = y;
+
+    muArrastavel(card, item);
+    inner.appendChild(card);
+  });
+
+  inner.style.minHeight = (Math.ceil(MURAL.itens.length / PORCOL) * 78 + 60) + 'px';
+
+  var hint = document.createElement('div');
+  hint.className = 'mu-hint';
+  hint.textContent = 'Arraste para reorganizar · toque para abrir';
+  st.appendChild(hint);
+}
+
+function muArrastavel(card, item) {
+  var arrastando = false, moveu = false, sx = 0, sy = 0, ox = 0, oy = 0;
+
+  card.addEventListener('pointerdown', function (e) {
+    arrastando = true; moveu = false;
+    sx = e.clientX; sy = e.clientY;
+    ox = card.offsetLeft; oy = card.offsetTop;
+    card.classList.add('drag');
+    card.setPointerCapture(e.pointerId);
+  });
+
+  card.addEventListener('pointermove', function (e) {
+    if (!arrastando) return;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moveu = true;
+    var par = card.parentElement;
+    var nx = Math.max(0, Math.min(par.clientWidth  - card.offsetWidth,  ox + dx));
+    var ny = Math.max(0, Math.min(Math.max(par.clientHeight, 400) - card.offsetHeight, oy + dy));
+    card.style.left = (nx / par.clientWidth * 100) + '%';
+    card.style.top  = ny + 'px';
+  });
+
+  card.addEventListener('pointerup', function (e) {
+    if (!arrastando) return;
+    arrastando = false;
+    card.classList.remove('drag');
+    try { card.releasePointerCapture(e.pointerId); } catch (err) {}
+
+    if (!moveu) { muSelecionar(item.id); return; }
+
+    var par = card.parentElement;
+    var px = card.offsetLeft / par.clientWidth * 100;
+    var py = card.offsetTop  / Math.max(1, par.clientHeight) * 100;
+    MURAL.pend[item.id] = { id: item.id, x: px, y: py };
+    item.boardX = px; item.boardY = py;
+    muAgendarSalvar();
+  });
+}
+
+// Arrastar salva em lote — não dispara 1 request por pixel
+function muAgendarSalvar() {
+  clearTimeout(MURAL.timer);
+  MURAL.timer = setTimeout(function () {
+    var lista = Object.keys(MURAL.pend).map(function (k) { return MURAL.pend[k]; });
+    if (!lista.length) return;
+    MURAL.pend = {};
+    rpc('salvarPosicoesDream', { posicoes: lista }).catch(function () {});
+  }, 900);
+}
+
+// ════════════════════════════════════════════════════════════
+// PAINEL LATERAL
+// ════════════════════════════════════════════════════════════
+function muSelecionar(id) {
+  var item = MURAL.itens.find(function (i) { return i.id === id; });
+  if (!item) return;
+  MURAL.sel = id;
+  MURAL.frozen = true;                       // congela a animação
+
+  var space = document.getElementById('muSpace');
+  if (space) {
+    space.classList.add('focused');
+    MURAL.nodes.forEach(function (n) {
+      n.el.classList.toggle('sel', n.item.id === id);
+    });
+  }
+  muPainel(item);
+}
+
+function muPainel(item) {
+  var p = document.getElementById('muPanel');
+  var dt = item.createdAt ? new Date(item.createdAt) : null;
+  var data = dt ? dt.toLocaleDateString('pt-BR') : '—';
+  var hora = dt ? dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) : '—';
+
+  var TODOS = ['meditacao','leitura','exercicio','audio','checkin'];
+  var ROTULO = { meditacao:'Meditação', leitura:'Leitura', exercicio:'Exercício', audio:'Áudio', checkin:'Check-in' };
+  var feitos = item.completedPillars || [];
+  var pills = TODOS.map(function (k) {
+    var on = feitos.indexOf(k) !== -1;
+    return '<span class="mu-pill' + (on ? '' : ' off') + '">' + ROTULO[k] + '</span>';
+  }).join('');
+
+  var html =
+    '<div class="mu-panel-head">' +
+      '<h3>Declaração</h3>' +
+      '<button class="mu-x" onclick="muFecharPainel()" aria-label="Fechar">&times;</button>' +
+    '</div>' +
+    '<div class="mu-panel-body">' +
+      (item.imageUrl ? '<img src="' + muEsc(item.imageUrl) + '" alt="" loading="lazy">' : '') +
+      (item.text ? '<div class="mu-decl" id="muDecl">' + muEsc(item.text) + '</div>' : '') +
+      (item.notes ? '<div class="mu-notes">' + muEsc(item.notes) + '</div>' : '') +
+      '<div class="mu-meta">' +
+        '<div class="mu-meta-row"><span>Criada em</span><span>' + data + ' às ' + hora + '</span></div>' +
+        '<div class="mu-meta-row"><span>Dia do desafio</span><span>' +
+          (item.challengeDay ? 'Dia ' + item.challengeDay : '—') + '</span></div>' +
+        '<div class="mu-meta-row"><span>Progresso na época</span><span>' + (item.completionPercent || 0) + '%</span></div>' +
+        '<div class="mu-meta-row" style="align-items:flex-start"><span>Pilares do dia</span>' +
+          '<span class="mu-pills">' + pills + '</span></div>' +
+      '</div>' +
+      '<div class="mu-acts">' +
+        '<button class="mu-btn" onclick="muAbrirEditar(\'' + item.id + '\')">Editar</button>' +
+        '<button class="mu-btn danger" onclick="muExcluir(\'' + item.id + '\')">Excluir</button>' +
+      '</div>' +
+    '</div>';
+
+  p.innerHTML = html;
+  p.classList.add('open');
+}
+
+function muFecharPainel() {
+  var p = document.getElementById('muPanel');
+  if (p) p.classList.remove('open');
+  MURAL.sel = null;
+  MURAL.frozen = false;
+  var space = document.getElementById('muSpace');
+  if (space) {
+    space.classList.remove('focused');
+    MURAL.nodes.forEach(function (n) { n.el.classList.remove('sel'); });
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// CRIAR / EDITAR
+// ════════════════════════════════════════════════════════════
+var MU_LIMITE = 125;
+var _muImg = null;
+
+function muAbrirCriar()      { muDialogo(null); }
+function muAbrirEditar(id)   {
+  var item = MURAL.itens.find(function (i) { return i.id === id; });
+  if (item) muDialogo(item);
+}
+
+function muDialogo(item) {
+  var editando = !!item;
+  _muImg = null;
+  var ov = document.createElement('div');
+  ov.className = 'mu-ov';
+  ov.id = 'muOv';
+  ov.innerHTML =
+    '<div class="mu-dlg" onclick="event.stopPropagation()">' +
+      '<h3>' + (editando ? 'Editar declaração' : 'Nova declaração') + '</h3>' +
+      '<p class="sub">' + (editando
+        ? 'Ajuste o texto ou as observações. O contexto da criação é preservado.'
+        : 'Escreva algo curto e afirmativo. Como se já fosse verdade.') + '</p>' +
+      '<div id="muDlgErr"></div>' +
+      '<div class="mu-field">' +
+        '<label for="muTxt">Declaração</label>' +
+        '<textarea id="muTxt" rows="3" maxlength="' + MU_LIMITE + '" placeholder="Ex.: Minha família será próspera.">' +
+          (editando ? muEsc(item.text) : '') + '</textarea>' +
+        '<div class="mu-counter" id="muCnt">0/' + MU_LIMITE + '</div>' +
+      '</div>' +
+      '<div class="mu-field">' +
+        '<label for="muObs">Observações <span style="text-transform:none;letter-spacing:0">(opcional)</span></label>' +
+        '<textarea id="muObs" rows="3" placeholder="Por que isso importa para você?">' +
+          (editando ? muEsc(item.notes) : '') + '</textarea>' +
+      '</div>' +
+      (editando ? '' :
+        '<div class="mu-field">' +
+          '<label>Imagem <span style="text-transform:none;letter-spacing:0">(opcional)</span></label>' +
+          '<div class="mu-drop" id="muDrop" onclick="document.getElementById(\'muFile\').click()">' +
+            '<div>Toque para escolher uma imagem</div>' +
+          '</div>' +
+          '<input type="file" id="muFile" accept="image/*" style="display:none">' +
+        '</div>') +
+      '<div class="mu-acts">' +
+        '<button class="mu-btn" onclick="muFecharDlg()">Cancelar</button>' +
+        '<button class="mu-btn primary" id="muSalvar">' + (editando ? 'Salvar' : 'Adicionar ao mural') + '</button>' +
+      '</div>' +
+    '</div>';
+  ov.onclick = muFecharDlg;
+  document.body.appendChild(ov);
+
+  var txt = document.getElementById('muTxt');
+  var cnt = document.getElementById('muCnt');
+  function atualizarCnt() {
+    var n = txt.value.length;
+    cnt.textContent = n + '/' + MU_LIMITE;
+    cnt.className = 'mu-counter' + (n >= MU_LIMITE ? ' over' : (n > MU_LIMITE * 0.8 ? ' warn' : ''));
+  }
+  txt.addEventListener('input', atualizarCnt);
+  atualizarCnt();
+  txt.focus();
+
+  if (!editando) {
+    document.getElementById('muFile').addEventListener('change', function (e) {
+      var f = e.target.files && e.target.files[0];
+      if (f) muPrepararImagem(f);
+    });
+  }
+
+  document.getElementById('muSalvar').onclick = function () {
+    editando ? muSalvarEdicao(item.id, this) : muSalvarNovo(this);
+  };
+}
+
+function muFecharDlg() {
+  var ov = document.getElementById('muOv');
+  if (ov) ov.remove();
+  _muImg = null;
+}
+
+function muDlgErro(msg) {
+  var b = document.getElementById('muDlgErr');
+  if (b) b.innerHTML = '<div class="mu-err">' + muEsc(msg) + '</div>';
+}
+
+// Reduz a imagem antes de enviar — Drive + GAS agradecem, e o
+// mural carrega muito mais rápido depois.
+function muPrepararImagem(file) {
+  var MAXLADO = 1200;
+  var reader = new FileReader();
+  reader.onload = function (ev) {
+    var img = new Image();
+    img.onload = function () {
+      var w = img.width, h = img.height;
+      if (w > MAXLADO || h > MAXLADO) {
+        if (w > h) { h = Math.round(h * MAXLADO / w); w = MAXLADO; }
+        else       { w = Math.round(w * MAXLADO / h); h = MAXLADO; }
+      }
+      var cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      var dataUrl = cv.toDataURL('image/jpeg', 0.82);
+      _muImg = { base64: dataUrl.split(',')[1], type: 'image/jpeg' };
+      var drop = document.getElementById('muDrop');
+      if (drop) drop.innerHTML = '<img src="' + dataUrl + '" alt=""><div>Toque para trocar</div>';
+    };
+    img.onerror = function () { muDlgErro('Não conseguimos ler essa imagem.'); };
+    img.src = ev.target.result;
+  };
+  reader.onerror = function () { muDlgErro('Não conseguimos ler esse arquivo.'); };
+  reader.readAsDataURL(file);
+}
+
+async function muSalvarNovo(btn) {
+  var texto = document.getElementById('muTxt').value.trim();
+  var obs   = document.getElementById('muObs').value.trim();
+
+  if (!texto && !_muImg) { muDlgErro('Escreva uma declaração ou escolha uma imagem.'); return; }
+  if (texto.length > MU_LIMITE) { muDlgErro('Máximo de ' + MU_LIMITE + ' caracteres.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Salvando…';
+  try {
+    var payload = { type: _muImg ? 'imagem' : 'texto', text: texto, notes: obs };
+    if (_muImg) { payload.imageBase64 = _muImg.base64; payload.imageType = _muImg.type; }
+    var res = await rpc('criarDreamItem', payload);
+    if (!res || !res.ok) {
+      muDlgErro((res && res.error) || 'Não foi possível salvar.');
+      btn.disabled = false; btn.textContent = 'Adicionar ao mural';
+      return;
+    }
+    MURAL.itens.unshift(res.data);
+    muFecharDlg();
+    muShell();
+  } catch (e) {
+    muDlgErro('Erro de conexão. Tente novamente.');
+    btn.disabled = false; btn.textContent = 'Adicionar ao mural';
+  }
+}
+
+async function muSalvarEdicao(id, btn) {
+  var texto = document.getElementById('muTxt').value.trim();
+  var obs   = document.getElementById('muObs').value.trim();
+  if (texto.length > MU_LIMITE) { muDlgErro('Máximo de ' + MU_LIMITE + ' caracteres.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Salvando…';
+  try {
+    var res = await rpc('atualizarDreamItem', { id: id, updates: { text: texto, notes: obs } });
+    if (!res || !res.ok) {
+      muDlgErro((res && res.error) || 'Não foi possível salvar.');
+      btn.disabled = false; btn.textContent = 'Salvar';
+      return;
+    }
+    var item = MURAL.itens.find(function (i) { return i.id === id; });
+    if (item) { item.text = texto; item.notes = obs; }
+    muFecharDlg();
+    muFecharPainel();
+    muShell();
+  } catch (e) {
+    muDlgErro('Erro de conexão. Tente novamente.');
+    btn.disabled = false; btn.textContent = 'Salvar';
+  }
+}
+
+// Confirmação custom — o app não usa modal nativa do navegador
+function muConfirmar(titulo, msg, textoOk) {
+  return new Promise(function (resolve) {
+    var ov = document.createElement('div');
+    ov.className = 'mu-ov';
+    ov.innerHTML =
+      '<div class="mu-dlg" style="max-width:360px" onclick="event.stopPropagation()">' +
+        '<h3>' + muEsc(titulo) + '</h3>' +
+        '<p class="sub">' + muEsc(msg) + '</p>' +
+        '<div class="mu-acts">' +
+          '<button class="mu-btn" id="muNao">Cancelar</button>' +
+          '<button class="mu-btn danger" id="muSim">' + muEsc(textoOk) + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    function fim(v) { ov.remove(); resolve(v); }
+    ov.onclick = function () { fim(false); };
+    ov.querySelector('#muNao').onclick = function () { fim(false); };
+    ov.querySelector('#muSim').onclick = function () { fim(true); };
+  });
+}
+
+async function muExcluir(id) {
+  var ok = await muConfirmar('Excluir declaração?',
+    'Ela sai do mural para sempre, junto com o registro do dia em que foi criada.', 'Excluir');
+  if (!ok) return;
+
+  try {
+    var res = await rpc('excluirDreamItem', { id: id });
+    if (!res || !res.ok) return;
+    MURAL.itens = MURAL.itens.filter(function (i) { return i.id !== id; });
+    muFecharPainel();
+    muShell();
+  } catch (e) {}
+}
+
+// Recalcula o palco ao girar/redimensionar
+window.addEventListener('resize', function () {
+  if (APP && APP.page === 'mural' && MURAL.modo === 'espaco' && MURAL.itens.length) {
+    muRenderModo();
+  }
+});
 </script>
 
 <!-- Fase 1 — UX premium (tilt 3D + som + toast) -->

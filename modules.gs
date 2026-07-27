@@ -278,6 +278,12 @@ function handleRequest(payload) {
     case 'cancelarAssinatura':        return cancelarAssinatura(token);
     case 'getStripePortal':           return getStripePortal(token);
     case 'criarCheckoutStripe':       return criarCheckoutStripe(data);
+    // v107 — Mural de Declarações / Quadro dos Sonhos (autenticadas)
+    case 'getDreamBoard':             return getDreamBoard(token);
+    case 'criarDreamItem':            return criarDreamItem(token, data);
+    case 'atualizarDreamItem':        return atualizarDreamItem(token, data && data.id, data && data.updates);
+    case 'salvarPosicoesDream':       return salvarPosicoesDream(token, data && data.posicoes);
+    case 'excluirDreamItem':          return excluirDreamItem(token, data && data.id);
     // v106 — onboarding pós-compra (todas públicas)
     case 'confirmarCheckoutStripe':   return confirmarCheckoutStripe(data && data.sessionId);
     case 'validarTokenAcesso':        return validarTokenAcesso(data && data.t);
