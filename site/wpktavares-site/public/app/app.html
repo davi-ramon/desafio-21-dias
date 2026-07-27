@@ -2732,6 +2732,11 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 
+  <!-- ── HUB DE FERRAMENTAS DE FOCO (v109) ─────────────────── -->
+  <div class="page" id="page-hub">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+
 </div>
 
 <!-- ═══ SUBSCRIPTION BANNER ═══════════════════════════════════ -->
@@ -2744,12 +2749,6 @@ input[type=range].adm-slider::-webkit-slider-thumb {
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
     </svg>
     <span>Início</span>
-  </button>
-  <button class="nav-btn" id="nav-rotina" onclick="navigate('rotina')">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-    </svg>
-    <span>Rotina</span>
   </button>
   <button class="nav-btn" id="nav-audios" onclick="navigate('audios')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -2769,6 +2768,12 @@ input[type=range].adm-slider::-webkit-slider-thumb {
       <path d="M18.6 16.1l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>
     </svg>
     <span>Mural</span>
+  </button>
+  <button class="nav-btn" id="nav-hub" onclick="navigate('hub')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 1.9"/>
+    </svg>
+    <span>Ferramentas</span>
   </button>
   <button class="nav-btn" id="nav-perfil" onclick="navigate('perfil')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -2995,7 +3000,10 @@ function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  document.getElementById('nav-' + page).classList.add('active');
+  // v109: Rotina saiu da nav mas segue acessível (card de exercício do
+  // Início leva pra lá) — sem esta checagem, navigate('rotina') quebrava
+  var _nb = document.getElementById('nav-' + page);
+  if (_nb) _nb.classList.add('active');
   document.getElementById('mainScroll').scrollTop = 0;
   APP.page = page;
   renderPage(page);
@@ -3012,6 +3020,7 @@ function renderPage(page) {
     case 'perfil':     renderPerfil();     break;
     case 'assinatura': renderAssinatura(); break;
     case 'mural':      renderMural();      break;
+    case 'hub':        renderHub();        break;
   }
 }
 
@@ -8498,36 +8507,16 @@ function _commTimeHora(iso) {
 .mu-add:active::after { box-shadow:0 0 0 14px rgba(76,175,80,0); transition:none; }
 @keyframes muAddIn { from{opacity:0; transform:scale(.5) rotate(-90deg)} to{opacity:1; transform:none} }
 
-/* canvas: sem borda, sem cantos — ocupa tudo daqui pra baixo */
+/* canvas: sem borda, sem cantos — a altura é medida em JS
+   (muAjustarAltura) para preencher de verdade em qualquer breakpoint */
 .mu-stage { position:relative; margin-top:14px; overflow:hidden;
-  height:calc(100dvh - 246px); min-height:340px;
+  min-height:320px;
   border:none; border-radius:0;
   background:
     radial-gradient(ellipse 60% 45% at 50% 0%, rgba(76,175,80,.06), transparent 72%),
-    linear-gradient(180deg, #080d0a 0%, #050708 100%);
-  touch-action:none; cursor:grab; }
-.mu-stage.panning { cursor:grabbing; }
+    linear-gradient(180deg, #080d0a 0%, #050708 100%); }
 .mu-stage.fade { animation:muFade .45s ease both; }
 @keyframes muFade { from{opacity:0; transform:scale(.99)} to{opacity:1; transform:scale(1)} }
-@media (min-width:1024px){ .mu-stage { height:calc(100dvh - 208px); } }
-
-/* viewport: recebe o zoom/pan; o conteúdo vive num "mundo" maior */
-.mu-viewport { position:absolute; top:0; left:0; width:100%; height:100%;
-  transform-origin:0 0; will-change:transform; }
-
-/* controles de zoom */
-.mu-zoom { position:absolute; right:14px; bottom:14px; z-index:70; display:flex;
-  flex-direction:column; gap:6px; }
-.mu-zoom button { width:36px; height:36px; border-radius:11px; cursor:pointer;
-  background:rgba(15,20,18,.78); border:1px solid var(--border2); color:var(--text);
-  font-family:inherit; font-size:16px; font-weight:700; line-height:1;
-  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
-  display:flex; align-items:center; justify-content:center;
-  transition:background .2s, border-color .2s, transform .15s; }
-.mu-zoom button:hover { background:rgba(76,175,80,.16); border-color:var(--green); transform:scale(1.07); }
-.mu-zoom button:active { transform:scale(.9); }
-.mu-zoom .lvl { font-size:10px; font-weight:700; color:var(--muted); text-align:center;
-  letter-spacing:.04em; padding:2px 0; }
 
 /* partículas discretas de fundo */
 .mu-dust { position:absolute; inset:0; pointer-events:none; opacity:.5;
@@ -8559,7 +8548,7 @@ function _commTimeHora(iso) {
   box-shadow:0 0 0 1px var(--green-l), 0 18px 54px rgba(0,0,0,.66), 0 0 40px rgba(76,175,80,.3); }
 
 /* ── Quadro dos Sonhos ─────────────────────────────────────── */
-.mu-board { position:absolute; inset:0; overflow:visible; padding:16px;
+.mu-board { position:absolute; inset:0; overflow:auto; padding:16px;
   background-image:radial-gradient(circle, rgba(76,175,80,.06) 1px, transparent 1px);
   background-size:22px 22px; }
 .mu-board-inner { position:relative; width:100%; min-height:100%; }
@@ -8735,7 +8724,9 @@ function muShell() {
       '</div>' +
       '<div class="mu-stage fade" id="muStage"><div class="mu-dust"></div></div>' +
     '</div>';
-  muRenderModo();
+  // espera o layout assentar antes de medir o palco — sem isso o
+  // primeiro render lia largura/altura zerada e os itens sumiam
+  requestAnimationFrame(muRenderModo);
 }
 
 function muSetModo(m) {
@@ -8746,7 +8737,24 @@ function muSetModo(m) {
   document.getElementById('muTabQua').className = (m === 'quadro' ? 'on' : '');
   var st = document.getElementById('muStage');
   st.classList.remove('fade'); void st.offsetWidth; st.classList.add('fade');
-  muRenderModo();
+  // espera o layout assentar antes de medir o palco — sem isso o
+  // primeiro render lia largura/altura zerada e os itens sumiam
+  requestAnimationFrame(muRenderModo);
+}
+
+// Mede o espaço real que sobra e crava a altura do palco. Substitui o
+// calc() em CSS, que errava no desktop e deixava faixa preta embaixo.
+function muAjustarAltura() {
+  var st = document.getElementById('muStage');
+  if (!st) return 0;
+  var topo = st.getBoundingClientRect().top;
+  var nav  = document.querySelector('.bottom-nav');
+  var rodape = 0;
+  // no mobile a nav é barra inferior e come altura; no desktop é sidebar
+  if (nav && window.innerWidth < 1024) rodape = nav.offsetHeight || 0;
+  var h = Math.max(320, window.innerHeight - topo - rodape);
+  st.style.height = h + 'px';
+  return h;
 }
 
 function muRenderModo() {
@@ -8754,139 +8762,12 @@ function muRenderModo() {
   var st = document.getElementById('muStage');
   if (!st) return;
   st.innerHTML = '<div class="mu-dust"></div>';
-  MURAL.view = { s: 1, tx: 0, ty: 0 };
+  muAjustarAltura();
 
   if (!MURAL.itens.length) { muVazio(st); return; }
 
-  // O conteúdo vive num "mundo" maior que a tela — é isso que dá
-  // o que explorar com zoom e arraste, em vez de uma caixa fechada.
-  MURAL.world = {
-    w: Math.max(st.clientWidth,  1500),
-    h: Math.max(st.clientHeight, 1100)
-  };
-
-  var vp = document.createElement('div');
-  vp.className = 'mu-viewport';
-  vp.id = 'muViewport';
-  vp.style.width  = MURAL.world.w + 'px';
-  vp.style.height = MURAL.world.h + 'px';
-  st.appendChild(vp);
-
-  if (MURAL.modo === 'espaco') muMontarEspaco(vp);
-  else                        muMontarQuadro(vp);
-
-  muZoomUI(st);
-  muPanZoom(st);
-  // começa centralizado no mundo
-  MURAL.view.tx = (st.clientWidth  - MURAL.world.w) / 2;
-  MURAL.view.ty = (st.clientHeight - MURAL.world.h) / 2;
-  muAplicarView();
-}
-
-// ── Zoom / Pan (canvas infinito) ────────────────────────────
-var MU_ZMIN = 0.25, MU_ZMAX = 5;   // até 500%
-
-function muAplicarView() {
-  var vp = document.getElementById('muViewport');
-  if (!vp) return;
-  var v = MURAL.view;
-  vp.style.transform = 'translate3d(' + v.tx.toFixed(1) + 'px,' + v.ty.toFixed(1) + 'px,0) scale(' + v.s.toFixed(3) + ')';
-  var lvl = document.getElementById('muLvl');
-  if (lvl) lvl.textContent = Math.round(v.s * 100) + '%';
-}
-
-// Zoom ancorado num ponto: o que está sob o dedo/cursor não escorrega
-function muZoomPara(novo, cx, cy) {
-  var st = document.getElementById('muStage');
-  if (!st) return;
-  var v = MURAL.view;
-  novo = Math.max(MU_ZMIN, Math.min(MU_ZMAX, novo));
-  if (cx == null) { cx = st.clientWidth / 2; cy = st.clientHeight / 2; }
-  v.tx = cx - (cx - v.tx) * (novo / v.s);
-  v.ty = cy - (cy - v.ty) * (novo / v.s);
-  v.s  = novo;
-  muAplicarView();
-}
-
-function muZoomReset() {
-  var st = document.getElementById('muStage');
-  if (!st || !MURAL.world) return;
-  MURAL.view.s  = 1;
-  MURAL.view.tx = (st.clientWidth  - MURAL.world.w) / 2;
-  MURAL.view.ty = (st.clientHeight - MURAL.world.h) / 2;
-  muAplicarView();
-}
-
-function muZoomUI(st) {
-  var box = document.createElement('div');
-  box.className = 'mu-zoom';
-  box.innerHTML =
-    '<button onclick="muZoomPara(MURAL.view.s*1.3)" aria-label="Aproximar">+</button>' +
-    '<div class="lvl" id="muLvl">100%</div>' +
-    '<button onclick="muZoomPara(MURAL.view.s/1.3)" aria-label="Afastar">&minus;</button>' +
-    '<button onclick="muZoomReset()" aria-label="Enquadrar" style="font-size:12px">⤢</button>';
-  st.appendChild(box);
-}
-
-function muPanZoom(st) {
-  var pts = {}, pan = false, sx = 0, sy = 0, otx = 0, oty = 0, pinch = 0, pinchS = 1;
-
-  st.addEventListener('wheel', function (e) {
-    e.preventDefault();
-    var r = st.getBoundingClientRect();
-    muZoomPara(MURAL.view.s * (e.deltaY < 0 ? 1.12 : 1 / 1.12),
-               e.clientX - r.left, e.clientY - r.top);
-  }, { passive: false });
-
-  st.addEventListener('pointerdown', function (e) {
-    // clique em item é do item (abrir/arrastar), não do canvas
-    if (e.target.closest && e.target.closest('.mu-node, .mu-card, .mu-zoom')) return;
-    pts[e.pointerId] = { x: e.clientX, y: e.clientY };
-    var ids = Object.keys(pts);
-    if (ids.length === 1) {
-      pan = true; sx = e.clientX; sy = e.clientY;
-      otx = MURAL.view.tx; oty = MURAL.view.ty;
-      st.classList.add('panning');
-      st.setPointerCapture(e.pointerId);
-    } else if (ids.length === 2) {
-      pan = false;
-      pinch = muDist(pts[ids[0]], pts[ids[1]]);
-      pinchS = MURAL.view.s;
-    }
-  });
-
-  st.addEventListener('pointermove', function (e) {
-    if (!pts[e.pointerId]) return;
-    pts[e.pointerId] = { x: e.clientX, y: e.clientY };
-    var ids = Object.keys(pts);
-
-    if (ids.length >= 2 && pinch) {
-      var d = muDist(pts[ids[0]], pts[ids[1]]);
-      var r = st.getBoundingClientRect();
-      muZoomPara(pinchS * (d / pinch),
-        (pts[ids[0]].x + pts[ids[1]].x) / 2 - r.left,
-        (pts[ids[0]].y + pts[ids[1]].y) / 2 - r.top);
-      return;
-    }
-    if (pan) {
-      MURAL.view.tx = otx + (e.clientX - sx);
-      MURAL.view.ty = oty + (e.clientY - sy);
-      muAplicarView();
-    }
-  });
-
-  function soltar(e) {
-    delete pts[e.pointerId];
-    if (Object.keys(pts).length < 2) pinch = 0;
-    if (!Object.keys(pts).length) { pan = false; st.classList.remove('panning'); }
-  }
-  st.addEventListener('pointerup', soltar);
-  st.addEventListener('pointercancel', soltar);
-}
-
-function muDist(a, b) {
-  var dx = a.x - b.x, dy = a.y - b.y;
-  return Math.sqrt(dx * dx + dy * dy) || 1;
+  if (MURAL.modo === 'espaco') muMontarEspaco(st);
+  else                        muMontarQuadro(st);
 }
 
 function muVazio(st) {
@@ -8903,13 +8784,14 @@ function muVazio(st) {
 // ════════════════════════════════════════════════════════════
 // ESPAÇO MENTAL — física leve em rAF + translate3d (GPU)
 // ════════════════════════════════════════════════════════════
-function muMontarEspaco(vp) {
+function muMontarEspaco(st) {
   var space = document.createElement('div');
   space.className = 'mu-space';
   space.id = 'muSpace';
-  vp.appendChild(space);
+  st.appendChild(space);
 
-  var W = MURAL.world.w, H = MURAL.world.h;
+  // itens vivem DENTRO da área visível — nada fora da tela
+  var W = st.clientWidth, H = st.clientHeight;
   var lista = MURAL.itens.slice(0, MU_MAX_FLUTUANTES);
   var total = MURAL.itens.length;
   MURAL.nodes = [];
@@ -8939,14 +8821,11 @@ function muMontarEspaco(vp) {
     });
   });
 
-  // dica vai no palco (não no viewport) para não escalar com o zoom
-  var st = document.getElementById('muStage');
-  if (st) {
+  if (total > MU_MAX_FLUTUANTES) {
     var hint = document.createElement('div');
     hint.className = 'mu-hint';
-    hint.textContent = (total > MU_MAX_FLUTUANTES)
-      ? 'Flutuando ' + MU_MAX_FLUTUANTES + ' de ' + total + ' · veja todos no Quadro dos Sonhos'
-      : 'Arraste para navegar · role para dar zoom';
+    hint.textContent = 'Flutuando ' + MU_MAX_FLUTUANTES + ' de ' + total +
+                       ' · veja todos no Quadro dos Sonhos';
     st.appendChild(hint);
   }
 
@@ -8985,8 +8864,9 @@ function muTick(ts) {
   var dt = Math.min(0.05, (ts - MURAL.last) / 1000);   // clamp: aba em 2º plano
   MURAL.last = ts;
 
-  if (!MURAL.world || !document.getElementById('muStage')) { muPause(); return; }
-  var W = MURAL.world.w, H = MURAL.world.h;
+  var st = document.getElementById('muStage');
+  if (!st) { muPause(); return; }
+  var W = st.clientWidth, H = st.clientHeight;
   var ns = MURAL.nodes;
 
   for (var i = 0; i < ns.length; i++) {
@@ -9059,13 +8939,13 @@ function muAplicar() {
 // ════════════════════════════════════════════════════════════
 // QUADRO DOS SONHOS — mural organizado e arrastável
 // ════════════════════════════════════════════════════════════
-function muMontarQuadro(vp) {
+function muMontarQuadro(st) {
   var board = document.createElement('div');
   board.className = 'mu-board';
   var inner = document.createElement('div');
   inner.className = 'mu-board-inner';
   board.appendChild(inner);
-  vp.appendChild(board);
+  st.appendChild(board);
 
   // auto-layout para quem ainda não foi arrastado
   var col = 0, linha = 0, PORCOL = 2;
@@ -9096,13 +8976,10 @@ function muMontarQuadro(vp) {
 
   inner.style.minHeight = (Math.ceil(MURAL.itens.length / PORCOL) * 78 + 60) + 'px';
 
-  var st = document.getElementById('muStage');
-  if (st) {
-    var hint = document.createElement('div');
-    hint.className = 'mu-hint';
-    hint.textContent = 'Arraste os cards · role para dar zoom';
-    st.appendChild(hint);
-  }
+  var hint = document.createElement('div');
+  hint.className = 'mu-hint';
+  hint.textContent = 'Arraste para reorganizar · toque para abrir';
+  st.appendChild(hint);
 }
 
 function muArrastavel(card, item) {
@@ -9118,9 +8995,7 @@ function muArrastavel(card, item) {
 
   card.addEventListener('pointermove', function (e) {
     if (!arrastando) return;
-    // divide pela escala: 1px de tela != 1px de mundo quando há zoom
-    var z  = (MURAL.view && MURAL.view.s) || 1;
-    var dx = (e.clientX - sx) / z, dy = (e.clientY - sy) / z;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moveu = true;
     var par = card.parentElement;
     var nx = Math.max(0, Math.min(par.clientWidth  - card.offsetWidth,  ox + dx));
@@ -9431,10 +9306,383 @@ async function muExcluir(id) {
 
 // Recalcula o palco ao girar/redimensionar
 window.addEventListener('resize', function () {
-  if (APP && APP.page === 'mural' && MURAL.modo === 'espaco' && MURAL.itens.length) {
-    muRenderModo();
+  if (APP && APP.page === 'mural' && MURAL.itens.length) {
+    clearTimeout(MURAL.rsz);
+    MURAL.rsz = setTimeout(muRenderModo, 180);
   }
 });
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HUB DE FERRAMENTAS DE FOCO (v109) — protótipo
+     Sistema de janelas flutuantes (drag + minimizar + PiP) e a
+     primeira ferramenta completa: Pomodoro.
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+.hb-head { margin-bottom:20px; }
+.hb-head h2 { font-size:20px; font-weight:800; color:var(--text2); letter-spacing:-.025em; }
+.hb-head p { font-size:13px; color:var(--muted); margin-top:4px; line-height:1.55; }
+
+.hb-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); gap:12px; }
+.hb-card { background:var(--surface2); border:1px solid var(--border); border-radius:16px;
+  padding:18px 16px; cursor:pointer; position:relative; overflow:hidden;
+  transition:transform .2s cubic-bezier(.34,1.56,.64,1), border-color .2s, box-shadow .25s; }
+.hb-card:hover { transform:translateY(-3px); border-color:var(--green);
+  box-shadow:0 12px 30px rgba(0,0,0,.45), 0 0 22px rgba(76,175,80,.14); }
+.hb-card:active { transform:translateY(-1px) scale(.985); }
+.hb-ico { width:42px; height:42px; border-radius:12px; display:flex; align-items:center;
+  justify-content:center; background:var(--green-glow); color:var(--green-l);
+  margin-bottom:12px; transition:transform .3s cubic-bezier(.34,1.56,.64,1); }
+.hb-card:hover .hb-ico { transform:scale(1.1) rotate(-6deg); }
+.hb-card h3 { font-size:14.5px; font-weight:700; color:var(--text2); margin-bottom:4px; }
+.hb-card p { font-size:11.5px; color:var(--muted); line-height:1.5; }
+.hb-card.soon { cursor:default; opacity:.62; }
+.hb-card.soon:hover { transform:none; border-color:var(--border); box-shadow:none; }
+.hb-card.soon .hb-ico { background:rgba(110,144,112,.1); color:var(--muted); }
+.hb-tag { position:absolute; top:12px; right:12px; font-size:9px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; padding:3px 8px; border-radius:999px;
+  background:rgba(110,144,112,.14); color:var(--muted); }
+.hb-tag.on { background:var(--green-glow); color:var(--green-l); }
+
+/* ── Janelas flutuantes (dock global, sobrevive à navegação) ── */
+#hubDock { position:fixed; inset:0; pointer-events:none; z-index:1150; }
+.hw { position:absolute; pointer-events:auto; width:270px;
+  background:rgba(15,20,18,.92); border:1px solid var(--border2); border-radius:18px;
+  backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+  box-shadow:0 24px 60px rgba(0,0,0,.62), 0 0 0 1px rgba(76,175,80,.06);
+  animation:hwIn .34s cubic-bezier(.22,1,.36,1) both; overflow:hidden; }
+@keyframes hwIn { from{opacity:0; transform:translateY(16px) scale(.94)} to{opacity:1; transform:none} }
+.hw.closing { animation:hwOut .22s ease both; }
+@keyframes hwOut { to{opacity:0; transform:translateY(10px) scale(.94)} }
+.hw-bar { display:flex; align-items:center; gap:8px; padding:11px 13px;
+  border-bottom:1px solid rgba(76,175,80,.12); cursor:grab; touch-action:none;
+  background:linear-gradient(180deg, rgba(76,175,80,.07), transparent); }
+.hw-bar.grabbing { cursor:grabbing; }
+.hw-bar strong { font-size:12px; font-weight:700; color:var(--text2); flex:1;
+  letter-spacing:.02em; user-select:none; }
+.hw-btn { width:22px; height:22px; border:none; background:rgba(110,144,112,.14);
+  color:var(--muted); border-radius:7px; cursor:pointer; font-size:13px; line-height:1;
+  display:flex; align-items:center; justify-content:center; transition:background .2s, color .2s, transform .15s; }
+.hw-btn:hover { background:var(--green-glow); color:var(--green-l); transform:scale(1.12); }
+.hw-btn.x:hover { background:rgba(226,98,107,.16); color:#f0a5aa; }
+.hw-body { padding:18px 16px 20px; }
+
+/* bolinha minimizada */
+.hw.min { width:58px; height:58px; border-radius:50%; }
+.hw.min .hw-bar { border:none; padding:0; height:100%; justify-content:center;
+  background:none; }
+.hw.min .hw-bar strong, .hw.min .hw-btn, .hw.min .hw-body { display:none; }
+.hw.min .hw-mini { display:flex; }
+.hw-mini { display:none; flex-direction:column; align-items:center; justify-content:center;
+  width:100%; height:100%; user-select:none; }
+.hw-mini b { font-size:12.5px; font-weight:800; color:var(--green-l); line-height:1; }
+.hw-mini span { font-size:7.5px; color:var(--muted); letter-spacing:.06em; margin-top:2px; }
+.hw.min { box-shadow:0 10px 30px rgba(0,0,0,.6), 0 0 22px rgba(76,175,80,.22); }
+
+/* ── Pomodoro ── */
+.pm-time { font-family:'Bebas Neue',sans-serif; font-size:52px; line-height:1;
+  color:var(--text2); text-align:center; letter-spacing:.02em; font-variant-numeric:tabular-nums; }
+.pm-fase { text-align:center; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--green-l); font-weight:700; margin-top:6px; }
+.pm-fase.pausa { color:#f5c842; }
+.pm-ring { position:relative; width:150px; height:150px; margin:0 auto 6px; }
+.pm-ring svg { transform:rotate(-90deg); display:block; }
+.pm-ring .inner { position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; }
+.pm-acts { display:flex; gap:8px; margin-top:16px; }
+.pm-acts button { flex:1; padding:11px; border-radius:11px; font-family:inherit;
+  font-size:12.5px; font-weight:700; cursor:pointer; border:1px solid var(--border2);
+  background:var(--surface2); color:var(--text); transition:background .2s, border-color .2s, transform .15s; }
+.pm-acts button:hover { border-color:var(--green); background:var(--surface3); }
+.pm-acts button:active { transform:scale(.95); }
+.pm-acts button.go { background:var(--green); color:#04140a; border-color:var(--green); }
+.pm-acts button.go:hover { background:var(--green-l); }
+.pm-presets { display:flex; gap:5px; margin-top:12px; }
+.pm-presets button { flex:1; padding:7px 0; border-radius:8px; font-family:inherit;
+  font-size:10.5px; font-weight:700; cursor:pointer; border:1px solid var(--border);
+  background:transparent; color:var(--muted); transition:all .2s; }
+.pm-presets button.on { border-color:var(--green); color:var(--green-l); background:var(--green-glow); }
+.pm-ciclos { text-align:center; font-size:10.5px; color:var(--muted2); margin-top:11px; }
+</style>
+
+<div id="hubDock"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// HUB DE FERRAMENTAS DE FOCO (v109)
+// ════════════════════════════════════════════════════════════
+var HUB = { janelas: {}, z: 1200 };
+
+var HUB_TOOLS = [
+  { id:'pomodoro', nome:'Pomodoro', desc:'Blocos de foco e descanso', pronto:true,
+    ico:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 1.9"/>' },
+  { id:'flashcards', nome:'Flashcards', desc:'Repetição espaçada', pronto:false,
+    ico:'<rect x="3" y="6" width="14" height="12" rx="2"/><path d="M7 3h14v12"/>' },
+  { id:'anotacoes', nome:'Anotações', desc:'Bloco de notas adesivas', pronto:false,
+    ico:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>' },
+  { id:'sons', nome:'Sons de Foco', desc:'Trilhas para concentração', pronto:false,
+    ico:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>' },
+  { id:'feynman', nome:'Técnica Feynman', desc:'Aprender explicando', pronto:false,
+    ico:'<path d="M12 2a7 7 0 0 0-4 12.7V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.3A7 7 0 0 0 12 2z"/><path d="M9 22h6"/>' }
+];
+
+function renderHub() {
+  var el = document.getElementById('page-hub');
+  var cards = HUB_TOOLS.map(function (t) {
+    return '<div class="hb-card' + (t.pronto ? '' : ' soon') + '"' +
+      (t.pronto ? ' onclick="hubAbrir(\'' + t.id + '\')"' : '') + '>' +
+      '<div class="hb-tag' + (t.pronto ? ' on' : '') + '">' + (t.pronto ? 'Disponível' : 'Em breve') + '</div>' +
+      '<div class="hb-ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + t.ico + '</svg></div>' +
+      '<h3>' + t.nome + '</h3><p>' + t.desc + '</p></div>';
+  }).join('');
+
+  el.innerHTML =
+    '<div class="hb-head">' +
+      '<h2>Ferramentas de Foco</h2>' +
+      '<p>Abra uma ferramenta e ela flutua sobre o app. Você pode arrastar, ' +
+      'encolher numa bolinha e continuar navegando — ela segue funcionando.</p>' +
+    '</div>' +
+    '<div class="hb-grid">' + cards + '</div>';
+}
+
+// ── Janela flutuante ────────────────────────────────────────
+function hubAbrir(id) {
+  var j = HUB.janelas[id];
+  if (j) {                                  // já aberta → traz pra frente
+    if (j.el.classList.contains('min')) hubExpandir(id);
+    j.el.style.zIndex = ++HUB.z;
+    return;
+  }
+  var tool = HUB_TOOLS.find(function (t) { return t.id === id; });
+  if (!tool || !tool.pronto) return;
+
+  var el = document.createElement('div');
+  el.className = 'hw';
+  el.id = 'hw-' + id;
+  el.style.zIndex = ++HUB.z;
+  // canto inferior direito, escalonando quando há mais de uma
+  var n = Object.keys(HUB.janelas).length;
+  el.style.left = Math.max(12, window.innerWidth  - 300 - n * 26) + 'px';
+  el.style.top  = Math.max(12, window.innerHeight - 400 - n * 26) + 'px';
+
+  el.innerHTML =
+    '<div class="hw-bar" id="hwbar-' + id + '">' +
+      '<strong>' + tool.nome + '</strong>' +
+      '<button class="hw-btn" onclick="hubMinimizar(\'' + id + '\')" aria-label="Encolher">&minus;</button>' +
+      '<button class="hw-btn x" onclick="hubFechar(\'' + id + '\')" aria-label="Fechar">&times;</button>' +
+      '<div class="hw-mini" id="hwmini-' + id + '" onclick="hubExpandir(\'' + id + '\')">' +
+        '<b id="hwminitxt-' + id + '">--</b><span>FOCO</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="hw-body" id="hwbody-' + id + '"></div>';
+
+  document.getElementById('hubDock').appendChild(el);
+  HUB.janelas[id] = { el: el, min: false };
+  hubArrastavel(el, document.getElementById('hwbar-' + id));
+
+  if (id === 'pomodoro') pmMontar(document.getElementById('hwbody-' + id));
+}
+
+function hubFechar(id) {
+  var j = HUB.janelas[id];
+  if (!j) return;
+  if (id === 'pomodoro') pmParar();
+  j.el.classList.add('closing');
+  setTimeout(function () { j.el.remove(); delete HUB.janelas[id]; }, 210);
+}
+
+function hubMinimizar(id) {
+  var j = HUB.janelas[id];
+  if (!j) return;
+  j.el.classList.add('min');
+  j.min = true;
+  pmAtualizarMini();
+}
+
+function hubExpandir(id) {
+  var j = HUB.janelas[id];
+  if (!j) return;
+  j.el.classList.remove('min');
+  j.min = false;
+  j.el.style.zIndex = ++HUB.z;
+}
+
+// Arrastar pela barra — mantém a janela dentro da tela
+function hubArrastavel(el, bar) {
+  var on = false, sx = 0, sy = 0, ox = 0, oy = 0, moveu = false;
+
+  bar.addEventListener('pointerdown', function (e) {
+    if (e.target.closest('.hw-btn')) return;   // botão é botão, não alça
+    on = true; moveu = false;
+    sx = e.clientX; sy = e.clientY;
+    ox = el.offsetLeft; oy = el.offsetTop;
+    el.style.zIndex = ++HUB.z;
+    bar.classList.add('grabbing');
+    bar.setPointerCapture(e.pointerId);
+  });
+
+  bar.addEventListener('pointermove', function (e) {
+    if (!on) return;
+    var dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moveu = true;
+    el.style.left = Math.max(4, Math.min(window.innerWidth  - el.offsetWidth  - 4, ox + dx)) + 'px';
+    el.style.top  = Math.max(4, Math.min(window.innerHeight - el.offsetHeight - 4, oy + dy)) + 'px';
+  });
+
+  function solta(e) {
+    if (!on) return;
+    on = false;
+    bar.classList.remove('grabbing');
+    try { bar.releasePointerCapture(e.pointerId); } catch (err) {}
+    // clique curto na bolinha expande (o handler do .hw-mini cobre o resto)
+    if (!moveu && el.classList.contains('min')) hubExpandir(el.id.replace('hw-', ''));
+  }
+  bar.addEventListener('pointerup', solta);
+  bar.addEventListener('pointercancel', solta);
+}
+
+// ════════════════════════════════════════════════════════════
+// POMODORO
+// ════════════════════════════════════════════════════════════
+var PM = {
+  presets: [
+    { l:'25/5',  foco:25, pausa:5  },
+    { l:'30/10', foco:30, pausa:10 },
+    { l:'45/15', foco:45, pausa:15 },
+    { l:'50/10', foco:50, pausa:10 }
+  ],
+  idx: 0, rest: 25 * 60, total: 25 * 60,
+  fase: 'foco', rodando: false, timer: null, ciclos: 0
+};
+
+function pmMontar(box) {
+  box.innerHTML =
+    '<div class="pm-ring">' +
+      '<svg width="150" height="150">' +
+        '<circle cx="75" cy="75" r="66" fill="none" stroke="rgba(76,175,80,.12)" stroke-width="8"/>' +
+        '<circle id="pmArc" cx="75" cy="75" r="66" fill="none" stroke="#4caf50" stroke-width="8" ' +
+          'stroke-linecap="round" stroke-dasharray="414.7" stroke-dashoffset="0" ' +
+          'style="transition:stroke-dashoffset .5s linear, stroke .3s"/>' +
+      '</svg>' +
+      '<div class="inner"><div class="pm-time" id="pmTime">25:00</div>' +
+      '<div class="pm-fase" id="pmFase">Foco</div></div>' +
+    '</div>' +
+    '<div class="pm-presets" id="pmPresets">' +
+      PM.presets.map(function (p, i) {
+        return '<button class="' + (i === PM.idx ? 'on' : '') + '" onclick="pmPreset(' + i + ')">' + p.l + '</button>';
+      }).join('') +
+    '</div>' +
+    '<div class="pm-acts">' +
+      '<button class="go" id="pmGo" onclick="pmToggle()">Iniciar</button>' +
+      '<button onclick="pmReset()">Zerar</button>' +
+    '</div>' +
+    '<div class="pm-ciclos" id="pmCiclos">Nenhum ciclo concluído hoje</div>';
+  pmPintar();
+}
+
+function pmPreset(i) {
+  PM.idx = i;
+  pmParar();
+  PM.fase = 'foco';
+  PM.total = PM.presets[i].foco * 60;
+  PM.rest  = PM.total;
+  var bs = document.querySelectorAll('#pmPresets button');
+  for (var k = 0; k < bs.length; k++) bs[k].className = (k === i ? 'on' : '');
+  pmPintar();
+}
+
+function pmToggle() {
+  PM.rodando ? pmParar() : pmIniciar();
+}
+
+function pmIniciar() {
+  if (PM.rodando) return;
+  PM.rodando = true;
+  var go = document.getElementById('pmGo');
+  if (go) { go.textContent = 'Pausar'; go.className = ''; }
+  PM.timer = setInterval(function () {
+    PM.rest--;
+    if (PM.rest <= 0) pmVirar();
+    pmPintar();
+  }, 1000);
+}
+
+function pmParar() {
+  PM.rodando = false;
+  clearInterval(PM.timer);
+  var go = document.getElementById('pmGo');
+  if (go) { go.textContent = 'Iniciar'; go.className = 'go'; }
+}
+
+function pmReset() {
+  pmParar();
+  PM.rest = PM.total;
+  pmPintar();
+}
+
+// Troca foco <-> pausa e avisa com um bip curto
+function pmVirar() {
+  var p = PM.presets[PM.idx];
+  if (PM.fase === 'foco') {
+    PM.ciclos++;
+    PM.fase  = 'pausa';
+    PM.total = p.pausa * 60;
+  } else {
+    PM.fase  = 'foco';
+    PM.total = p.foco * 60;
+  }
+  PM.rest = PM.total;
+  pmBip();
+}
+
+function pmBip() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = PM.fase === 'foco' ? 880 : 560;
+    o.type = 'sine';
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
+    o.start(); o.stop(ctx.currentTime + 0.72);
+    setTimeout(function () { try { ctx.close(); } catch (e) {} }, 900);
+  } catch (e) {}
+}
+
+function pmMMSS(s) {
+  var m = Math.floor(s / 60), r = s % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+}
+
+function pmPintar() {
+  var t = document.getElementById('pmTime');
+  if (t) t.textContent = pmMMSS(Math.max(0, PM.rest));
+
+  var f = document.getElementById('pmFase');
+  if (f) {
+    f.textContent = PM.fase === 'foco' ? 'Foco' : 'Descanso';
+    f.className = 'pm-fase' + (PM.fase === 'pausa' ? ' pausa' : '');
+  }
+  var arc = document.getElementById('pmArc');
+  if (arc) {
+    var frac = PM.total ? (PM.rest / PM.total) : 0;
+    arc.style.strokeDashoffset = (414.7 * (1 - frac)).toFixed(1);
+    arc.setAttribute('stroke', PM.fase === 'foco' ? '#4caf50' : '#f5c842');
+  }
+  var c = document.getElementById('pmCiclos');
+  if (c) {
+    c.textContent = PM.ciclos === 0 ? 'Nenhum ciclo concluído hoje'
+      : PM.ciclos + (PM.ciclos === 1 ? ' ciclo concluído hoje' : ' ciclos concluídos hoje');
+  }
+  pmAtualizarMini();
+}
+
+function pmAtualizarMini() {
+  var m = document.getElementById('hwminitxt-pomodoro');
+  if (m) m.textContent = pmMMSS(Math.max(0, PM.rest));
+}
 </script>
 
 <!-- Fase 1 — UX premium (tilt 3D + som + toast) -->
