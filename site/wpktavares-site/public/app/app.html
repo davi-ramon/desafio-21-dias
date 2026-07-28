@@ -9369,16 +9369,32 @@ window.addEventListener('resize', function () {
 .hw-body { padding:18px 16px 20px; }
 
 /* bolinha minimizada */
-.hw.min { width:58px; height:58px; border-radius:50%; }
-.hw.min .hw-bar { border:none; padding:0; height:100%; justify-content:center;
-  background:none; }
-.hw.min .hw-bar strong, .hw.min .hw-btn, .hw.min .hw-body { display:none; }
+.hw.min { width:60px; height:60px; border-radius:50%;
+  box-shadow:0 10px 30px rgba(0,0,0,.6), 0 0 22px rgba(76,175,80,.22); }
+.hw.min .hw-bar { border:none; padding:0; height:100%; justify-content:center; background:none; }
+.hw.min .hw-bar strong, .hw.min .hw-btn, .hw.min .hw-body, .hw.min .hw-resize { display:none; }
 .hw.min .hw-mini { display:flex; }
 .hw-mini { display:none; flex-direction:column; align-items:center; justify-content:center;
   width:100%; height:100%; user-select:none; }
 .hw-mini b { font-size:12.5px; font-weight:800; color:var(--green-l); line-height:1; }
 .hw-mini span { font-size:7.5px; color:var(--muted); letter-spacing:.06em; margin-top:2px; }
-.hw.min { box-shadow:0 10px 30px rgba(0,0,0,.6), 0 0 22px rgba(76,175,80,.22); }
+
+/* tela cheia — ocupa a área útil do app */
+.hw.full { border-radius:0; box-shadow:none;
+  background:rgba(8,13,10,.97); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); }
+.hw.full .hw-resize { display:none; }
+.hw.full .hw-body { max-height:none; display:flex; align-items:center; justify-content:center; }
+.hw.full .hw-body > * { width:100%; max-width:380px; }
+
+/* alça de redimensionar (só no PiP) */
+.hw-resize { position:absolute; right:0; bottom:0; width:20px; height:20px;
+  cursor:nwse-resize; touch-action:none; }
+.hw-resize::after { content:''; position:absolute; right:5px; bottom:5px;
+  width:8px; height:8px; border-right:2px solid rgba(109,222,113,.5);
+  border-bottom:2px solid rgba(109,222,113,.5); border-radius:0 0 3px 0; }
+
+/* durante a transição de modo o conteúdo não deve "esticar" */
+.hw.morph .hw-body, .hw.morph .hw-bar { opacity:.001; transition:opacity .16s; }
 
 /* ── Pomodoro ── */
 .pm-time { font-family:'Bebas Neue',sans-serif; font-size:52px; line-height:1;
@@ -9404,6 +9420,41 @@ window.addEventListener('resize', function () {
   background:transparent; color:var(--muted); transition:all .2s; }
 .pm-presets button.on { border-color:var(--green); color:var(--green-l); background:var(--green-glow); }
 .pm-ciclos { text-align:center; font-size:10.5px; color:var(--muted2); margin-top:11px; }
+
+/* seletor de ciclos */
+.pm-ciclo-sel { display:flex; align-items:center; gap:6px; margin-top:12px; justify-content:center; }
+.pm-ciclo-sel span { font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--muted); font-weight:700; margin-right:2px; }
+.pm-ciclo-sel button { width:28px; height:28px; border-radius:9px; font-family:inherit;
+  font-size:11.5px; font-weight:700; cursor:pointer; border:1px solid var(--border);
+  background:transparent; color:var(--muted); transition:all .2s; }
+.pm-ciclo-sel button.on { border-color:var(--green); color:var(--green-l); background:var(--green-glow); }
+
+/* painel de sons */
+.pm-cfg-link { display:block; width:100%; margin-top:13px; padding:9px; border-radius:10px;
+  background:transparent; border:1px solid var(--border); color:var(--muted);
+  font-family:inherit; font-size:11.5px; font-weight:700; cursor:pointer; transition:all .2s; }
+.pm-cfg-link:hover { border-color:var(--green); color:var(--green-l); }
+.pm-cfg-head { display:flex; align-items:center; gap:9px; margin-bottom:14px; }
+.pm-cfg-head strong { font-size:13px; color:var(--text2); font-weight:700; }
+.pm-volta { width:26px; height:26px; border-radius:8px; border:1px solid var(--border);
+  background:var(--surface2); color:var(--text); cursor:pointer; font-size:15px; line-height:1;
+  display:flex; align-items:center; justify-content:center; }
+.pm-volta:hover { border-color:var(--green); color:var(--green-l); }
+.pm-cfg-item { padding:11px 0; border-bottom:1px solid rgba(76,175,80,.09); }
+.pm-cfg-item:last-of-type { border-bottom:none; }
+.pm-cfg-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px; }
+.pm-cfg-top label { display:flex; align-items:center; gap:7px; font-size:12px;
+  color:var(--text); cursor:pointer; }
+.pm-cfg-top input[type=checkbox] { accent-color:var(--green); width:14px; height:14px; cursor:pointer; }
+.pm-prev { width:24px; height:24px; border-radius:7px; border:1px solid var(--border2);
+  background:var(--surface2); color:var(--green-l); cursor:pointer; font-size:10px;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all .2s; }
+.pm-prev:hover { background:var(--green-glow); transform:scale(1.1); }
+.pm-cfg-item select { width:100%; background:var(--surface2); color:var(--text);
+  border:1px solid var(--border); border-radius:8px; padding:7px 9px; font-family:inherit;
+  font-size:11.5px; cursor:pointer; margin-bottom:7px; }
+.pm-cfg-item input[type=range] { width:100%; accent-color:var(--green); cursor:pointer; height:3px; }
 </style>
 
 <div id="hubDock"></div>
@@ -9447,11 +9498,16 @@ function renderHub() {
     '<div class="hb-grid">' + cards + '</div>';
 }
 
-// ── Janela flutuante ────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// ARQUITETURA DE JANELAS — 3 modos compartilhados por todas as
+// ferramentas: 'pip' (padrão) · 'full' (tela cheia) · 'min' (bolinha)
+// ════════════════════════════════════════════════════════════
+var HW_PAD = 8;   // respiro mínimo até a borda da viewport
+
 function hubAbrir(id) {
   var j = HUB.janelas[id];
   if (j) {                                  // já aberta → traz pra frente
-    if (j.el.classList.contains('min')) hubExpandir(id);
+    if (j.modo === 'min') hubModo(id, 'pip');
     j.el.style.zIndex = ++HUB.z;
     return;
   }
@@ -9459,62 +9515,144 @@ function hubAbrir(id) {
   if (!tool || !tool.pronto) return;
 
   var el = document.createElement('div');
-  el.className = 'hw';
+  el.className = 'hw pip';
   el.id = 'hw-' + id;
   el.style.zIndex = ++HUB.z;
-  // canto inferior direito, escalonando quando há mais de uma
+
   var n = Object.keys(HUB.janelas).length;
-  el.style.left = Math.max(12, window.innerWidth  - 300 - n * 26) + 'px';
-  el.style.top  = Math.max(12, window.innerHeight - 400 - n * 26) + 'px';
+  el.style.width = '270px';
+  el.style.left = Math.max(HW_PAD, window.innerWidth  - 300 - n * 26) + 'px';
+  el.style.top  = Math.max(HW_PAD, window.innerHeight - 430 - n * 26) + 'px';
 
   el.innerHTML =
     '<div class="hw-bar" id="hwbar-' + id + '">' +
       '<strong>' + tool.nome + '</strong>' +
-      '<button class="hw-btn" onclick="hubMinimizar(\'' + id + '\')" aria-label="Encolher">&minus;</button>' +
-      '<button class="hw-btn x" onclick="hubFechar(\'' + id + '\')" aria-label="Fechar">&times;</button>' +
-      '<div class="hw-mini" id="hwmini-' + id + '" onclick="hubExpandir(\'' + id + '\')">' +
-        '<b id="hwminitxt-' + id + '">--</b><span>FOCO</span>' +
-      '</div>' +
+      '<button class="hw-btn" onclick="hubModo(\'' + id + '\',\'full\')" title="Tela cheia">⛶</button>' +
+      '<button class="hw-btn" onclick="hubModo(\'' + id + '\',\'min\')" title="Encolher">&minus;</button>' +
+      '<button class="hw-btn x" onclick="hubFechar(\'' + id + '\')" title="Fechar">&times;</button>' +
+      '<div class="hw-mini" id="hwmini-' + id + '"><b id="hwminitxt-' + id + '">--</b><span>FOCO</span></div>' +
     '</div>' +
-    '<div class="hw-body" id="hwbody-' + id + '"></div>';
+    '<div class="hw-body" id="hwbody-' + id + '"></div>' +
+    '<div class="hw-resize" id="hwrz-' + id + '"></div>';
 
   document.getElementById('hubDock').appendChild(el);
-  HUB.janelas[id] = { el: el, min: false };
-  hubArrastavel(el, document.getElementById('hwbar-' + id));
+  HUB.janelas[id] = { el: el, modo: 'pip', tool: tool, antes: null };
+
+  hubArrastavel(el, document.getElementById('hwbar-' + id), id);
+  hubRedimensionavel(el, document.getElementById('hwrz-' + id));
 
   if (id === 'pomodoro') pmMontar(document.getElementById('hwbody-' + id));
+  hubClamp(el);
 }
 
 function hubFechar(id) {
   var j = HUB.janelas[id];
   if (!j) return;
-  if (id === 'pomodoro') pmParar();
+  if (id === 'pomodoro') { pmSalvarEstado(); pmParar(); }
   j.el.classList.add('closing');
   setTimeout(function () { j.el.remove(); delete HUB.janelas[id]; }, 210);
 }
 
-function hubMinimizar(id) {
+// Troca de modo com transição real (FLIP): mede antes e depois,
+// inverte a diferença e anima até zero. Sem isso a janela "pula"
+// de uma geometria para outra, que era a quebra de sensação premium.
+function hubModo(id, modo) {
   var j = HUB.janelas[id];
-  if (!j) return;
-  j.el.classList.add('min');
-  j.min = true;
-  pmAtualizarMini();
+  if (!j || j.modo === modo) return;
+  var el = j.el;
+
+  var r0 = el.getBoundingClientRect();          // FIRST
+
+  // guarda a geometria do PiP para poder voltar a ela
+  if (j.modo === 'pip') {
+    j.antes = { left: el.offsetLeft, top: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+  }
+
+  el.classList.remove('pip', 'min', 'full');
+  el.classList.add(modo);
+  j.modo = modo;
+
+  if (modo === 'full') {
+    var area = hubAreaUtil();
+    el.style.left = area.x + 'px';  el.style.top = area.y + 'px';
+    el.style.width = area.w + 'px'; el.style.height = area.h + 'px';
+  } else if (modo === 'min') {
+    // bolinha ancorada perto de onde a janela estava
+    el.style.width = ''; el.style.height = '';
+    el.style.left = Math.min(window.innerWidth - 60 - HW_PAD, Math.max(HW_PAD, r0.left)) + 'px';
+    el.style.top  = Math.min(window.innerHeight - 60 - HW_PAD, Math.max(HW_PAD, r0.top))  + 'px';
+  } else {                                       // volta ao PiP
+    var a = j.antes || { left: 40, top: 90, w: 270, h: 0 };
+    el.style.left = a.left + 'px'; el.style.top = a.top + 'px';
+    el.style.width = a.w + 'px';   el.style.height = '';
+  }
+
+  el.style.zIndex = ++HUB.z;
+  hubClamp(el);
+
+  var r1 = el.getBoundingClientRect();          // LAST
+  var dx = r0.left - r1.left, dy = r0.top - r1.top;
+  var sx = r1.width  ? (r0.width  / r1.width)  : 1;
+  var sy = r1.height ? (r0.height / r1.height) : 1;
+
+  el.classList.add('morph');
+  el.style.transformOrigin = '0 0';
+  el.style.transition = 'none';
+  el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + sx.toFixed(4) + ',' + sy.toFixed(4) + ')';
+  void el.offsetWidth;                           // força reflow
+
+  el.style.transition = 'transform .46s cubic-bezier(.22,1,.36,1), border-radius .46s ease';
+  el.style.transform = '';
+  setTimeout(function () {
+    el.classList.remove('morph');
+    el.style.transition = '';
+  }, 470);
+
+  if (id === 'pomodoro') pmAtualizarMini();
 }
 
-function hubExpandir(id) {
-  var j = HUB.janelas[id];
-  if (!j) return;
-  j.el.classList.remove('min');
-  j.min = false;
-  j.el.style.zIndex = ++HUB.z;
+// Área útil do app (desconta topbar e a nav quando é barra inferior)
+function hubAreaUtil() {
+  var top = 0, bot = 0;
+  var tb = document.querySelector('.topbar');
+  if (tb) top = tb.offsetHeight || 0;
+  var nav = document.querySelector('.bottom-nav');
+  if (nav && window.innerWidth < 1024) bot = nav.offsetHeight || 0;
+  var esq = (window.innerWidth >= 1024 && nav) ? (nav.offsetWidth || 0) : 0;
+  return { x: esq, y: top, w: window.innerWidth - esq, h: window.innerHeight - top - bot };
 }
 
-// Arrastar pela barra — mantém a janela dentro da tela
-function hubArrastavel(el, bar) {
+// Nenhuma janela pode ficar parcialmente fora da viewport
+function hubClamp(el) {
+  if (el.classList.contains('full')) return;
+  var w = el.offsetWidth, h = el.offsetHeight;
+  var maxX = window.innerWidth  - w - HW_PAD;
+  var maxY = window.innerHeight - h - HW_PAD;
+  el.style.left = Math.max(HW_PAD, Math.min(maxX, el.offsetLeft)) + 'px';
+  el.style.top  = Math.max(HW_PAD, Math.min(maxY, el.offsetTop )) + 'px';
+}
+
+function hubClampTodas() {
+  Object.keys(HUB.janelas).forEach(function (id) {
+    var j = HUB.janelas[id];
+    if (j.modo === 'full') {
+      var a = hubAreaUtil();
+      j.el.style.left = a.x + 'px';  j.el.style.top = a.y + 'px';
+      j.el.style.width = a.w + 'px'; j.el.style.height = a.h + 'px';
+    } else {
+      hubClamp(j.el);
+    }
+  });
+}
+window.addEventListener('resize', hubClampTodas);
+
+// Arrastar pela barra (ou pela bolinha inteira quando minimizada)
+function hubArrastavel(el, bar, id) {
   var on = false, sx = 0, sy = 0, ox = 0, oy = 0, moveu = false;
 
   bar.addEventListener('pointerdown', function (e) {
-    if (e.target.closest('.hw-btn')) return;   // botão é botão, não alça
+    if (e.target.closest('.hw-btn')) return;      // botão é botão, não alça
+    if (el.classList.contains('full')) return;    // tela cheia não arrasta
     on = true; moveu = false;
     sx = e.clientX; sy = e.clientY;
     ox = el.offsetLeft; oy = el.offsetTop;
@@ -9527,8 +9665,8 @@ function hubArrastavel(el, bar) {
     if (!on) return;
     var dx = e.clientX - sx, dy = e.clientY - sy;
     if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moveu = true;
-    el.style.left = Math.max(4, Math.min(window.innerWidth  - el.offsetWidth  - 4, ox + dx)) + 'px';
-    el.style.top  = Math.max(4, Math.min(window.innerHeight - el.offsetHeight - 4, oy + dy)) + 'px';
+    el.style.left = Math.max(HW_PAD, Math.min(window.innerWidth  - el.offsetWidth  - HW_PAD, ox + dx)) + 'px';
+    el.style.top  = Math.max(HW_PAD, Math.min(window.innerHeight - el.offsetHeight - HW_PAD, oy + dy)) + 'px';
   });
 
   function solta(e) {
@@ -9536,11 +9674,34 @@ function hubArrastavel(el, bar) {
     on = false;
     bar.classList.remove('grabbing');
     try { bar.releasePointerCapture(e.pointerId); } catch (err) {}
-    // clique curto na bolinha expande (o handler do .hw-mini cobre o resto)
-    if (!moveu && el.classList.contains('min')) hubExpandir(el.id.replace('hw-', ''));
+    if (!moveu && el.classList.contains('min')) hubModo(id, 'pip');  // toque curto expande
   }
   bar.addEventListener('pointerup', solta);
   bar.addEventListener('pointercancel', solta);
+}
+
+function hubRedimensionavel(el, alca) {
+  if (!alca) return;
+  var on = false, sx = 0, sy = 0, ow = 0, oh = 0;
+  alca.addEventListener('pointerdown', function (e) {
+    on = true; sx = e.clientX; sy = e.clientY;
+    ow = el.offsetWidth; oh = el.offsetHeight;
+    alca.setPointerCapture(e.pointerId);
+    e.stopPropagation();
+  });
+  alca.addEventListener('pointermove', function (e) {
+    if (!on) return;
+    var w = Math.max(230, Math.min(window.innerWidth  - el.offsetLeft - HW_PAD, ow + (e.clientX - sx)));
+    var h = Math.max(240, Math.min(window.innerHeight - el.offsetTop  - HW_PAD, oh + (e.clientY - sy)));
+    el.style.width = w + 'px';
+    el.style.height = h + 'px';
+  });
+  function solta(e) {
+    on = false;
+    try { alca.releasePointerCapture(e.pointerId); } catch (err) {}
+  }
+  alca.addEventListener('pointerup', solta);
+  alca.addEventListener('pointercancel', solta);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -9554,12 +9715,134 @@ var PM = {
     { l:'50/10', foco:50, pausa:10 }
   ],
   idx: 0, rest: 25 * 60, total: 25 * 60,
-  fase: 'foco', rodando: false, timer: null, ciclos: 0
+  fase: 'foco', rodando: false, timer: null,
+  ciclosAlvo: 3, concluidos: 0, painel: false
 };
 
+// ── Efeitos sonoros ─────────────────────────────────────────
+// Sintetizados na Web Audio API: nada de arquivo pra baixar, e o
+// timbre de cada evento é distinto o bastante pra você saber em que
+// etapa está só de ouvir.
+var PM_SONS_PADRAO = {
+  inicioFoco: { som:'suave',   vol:0.55, on:true },
+  fimFoco:    { som:'alerta',  vol:0.80, on:true },
+  inicioDesc: { som:'agua',    vol:0.50, on:true },
+  fimDesc:    { som:'sino',    vol:0.70, on:true },
+  conclusao:  { som:'vitoria', vol:0.85, on:true }
+};
+var PM_EVENTOS = [
+  { k:'inicioFoco', nome:'Início do foco' },
+  { k:'fimFoco',    nome:'Fim do foco' },
+  { k:'inicioDesc', nome:'Início do descanso' },
+  { k:'fimDesc',    nome:'Fim do descanso' },
+  { k:'conclusao',  nome:'Conclusão de todos os ciclos' }
+];
+var PM_TIMBRES = ['suave', 'sino', 'alerta', 'agua', 'vitoria', 'nenhum'];
+
+// notas: [freq, atraso(s), duração(s), tipo]
+var PM_RECEITAS = {
+  suave:   [[523.25, 0,    0.30, 'sine'], [659.25, 0.13, 0.42, 'sine']],
+  sino:    [[880,    0,    1.15, 'triangle'], [1318.5, 0.02, 0.85, 'sine']],
+  alerta:  [[740,    0,    0.16, 'square'], [740, 0.22, 0.16, 'square'], [740, 0.44, 0.28, 'square']],
+  agua:    [[659.25, 0,    0.34, 'sine'], [493.88, 0.14, 0.40, 'sine'], [392, 0.28, 0.55, 'sine']],
+  vitoria: [[523.25, 0,    0.22, 'triangle'], [659.25, 0.11, 0.22, 'triangle'],
+            [783.99, 0.22, 0.24, 'triangle'], [1046.5, 0.34, 0.60, 'triangle']],
+  nenhum:  []
+};
+
+function pmCfg() {
+  if (PM._cfg) return PM._cfg;
+  var c = null;
+  try { c = JSON.parse(localStorage.getItem('pm_sons') || 'null'); } catch (e) {}
+  PM._cfg = {};
+  PM_EVENTOS.forEach(function (ev) {
+    var d = PM_SONS_PADRAO[ev.k];
+    var u = (c && c[ev.k]) || {};
+    PM._cfg[ev.k] = {
+      som: PM_TIMBRES.indexOf(u.som) >= 0 ? u.som : d.som,
+      vol: (typeof u.vol === 'number') ? u.vol : d.vol,
+      on:  (typeof u.on  === 'boolean') ? u.on  : d.on
+    };
+  });
+  return PM._cfg;
+}
+
+function pmSalvarCfg() {
+  try { localStorage.setItem('pm_sons', JSON.stringify(pmCfg())); } catch (e) {}
+}
+
+function pmTocar(evento, forcarTimbre) {
+  var cfg = pmCfg()[evento] || {};
+  var timbre = forcarTimbre || cfg.som;
+  if (!timbre || timbre === 'nenhum') return;
+  if (!forcarTimbre && cfg.on === false) return;
+
+  var receita = PM_RECEITAS[timbre];
+  if (!receita || !receita.length) return;
+  var vol = (typeof cfg.vol === 'number') ? cfg.vol : 0.6;
+
+  try {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    var ctx = new Ctx();
+    var fim = 0;
+    receita.forEach(function (n) {
+      var f = n[0], atraso = n[1], dur = n[2], tipo = n[3];
+      var t0 = ctx.currentTime + atraso;
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = tipo; o.frequency.value = f;
+      o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.001, vol), t0 + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.start(t0); o.stop(t0 + dur + 0.02);
+      fim = Math.max(fim, atraso + dur);
+    });
+    setTimeout(function () { try { ctx.close(); } catch (e) {} }, (fim + 0.4) * 1000);
+  } catch (e) {}
+}
+
+// ── Persistência do cronômetro ──────────────────────────────
+function pmSalvarEstado() {
+  try {
+    localStorage.setItem('pm_estado', JSON.stringify({
+      rest: PM.rest, total: PM.total, fase: PM.fase, idx: PM.idx,
+      ciclosAlvo: PM.ciclosAlvo, concluidos: PM.concluidos
+    }));
+  } catch (e) {}
+}
+
+function pmRestaurarEstado() {
+  try {
+    var s = JSON.parse(localStorage.getItem('pm_estado') || 'null');
+    if (!s) return false;
+    PM.idx        = (s.idx >= 0 && s.idx < PM.presets.length) ? s.idx : 0;
+    PM.fase       = (s.fase === 'pausa') ? 'pausa' : 'foco';
+    PM.total      = s.total > 0 ? s.total : PM.presets[PM.idx].foco * 60;
+    PM.rest       = (s.rest > 0 && s.rest <= PM.total) ? s.rest : PM.total;
+    PM.ciclosAlvo = [1, 2, 3].indexOf(s.ciclosAlvo) >= 0 ? s.ciclosAlvo : 3;
+    PM.concluidos = s.concluidos > 0 ? s.concluidos : 0;
+    return true;
+  } catch (e) { return false; }
+}
+
+window.addEventListener('beforeunload', function () { if (PM.rest !== PM.total) pmSalvarEstado(); });
+
 function pmMontar(box) {
-  box.innerHTML =
-    '<div class="pm-ring">' +
+  pmRestaurarEstado();
+  PM.box = box;
+  pmVista();
+}
+
+function pmVista() {
+  var box = PM.box;
+  if (!box) return;
+  box.innerHTML = PM.painel ? pmHtmlConfig() : pmHtmlTimer();
+  if (!PM.painel) pmPintar();
+}
+
+function pmHtmlTimer() {
+  return '<div class="pm-ring">' +
       '<svg width="150" height="150">' +
         '<circle cx="75" cy="75" r="66" fill="none" stroke="rgba(76,175,80,.12)" stroke-width="8"/>' +
         '<circle id="pmArc" cx="75" cy="75" r="66" fill="none" stroke="#4caf50" stroke-width="8" ' +
@@ -9574,23 +9857,74 @@ function pmMontar(box) {
         return '<button class="' + (i === PM.idx ? 'on' : '') + '" onclick="pmPreset(' + i + ')">' + p.l + '</button>';
       }).join('') +
     '</div>' +
+    '<div class="pm-ciclo-sel">' +
+      '<span>Ciclos</span>' +
+      [1, 2, 3].map(function (n) {
+        return '<button class="' + (PM.ciclosAlvo === n ? 'on' : '') + '" onclick="pmCiclos(' + n + ')">' + n + '</button>';
+      }).join('') +
+    '</div>' +
     '<div class="pm-acts">' +
       '<button class="go" id="pmGo" onclick="pmToggle()">Iniciar</button>' +
       '<button onclick="pmReset()">Zerar</button>' +
     '</div>' +
-    '<div class="pm-ciclos" id="pmCiclos">Nenhum ciclo concluído hoje</div>';
-  pmPintar();
+    '<div class="pm-ciclos" id="pmCiclos"></div>' +
+    '<button class="pm-cfg-link" onclick="pmAbrirConfig()">⚙ Sons do ciclo</button>';
+}
+
+function pmHtmlConfig() {
+  var cfg = pmCfg();
+  var rotulo = { suave:'Suave', sino:'Sino', alerta:'Alerta', agua:'Água', vitoria:'Vitória', nenhum:'Sem som' };
+  return '<div class="pm-cfg-head">' +
+      '<button class="pm-volta" onclick="pmFecharConfig()">‹</button>' +
+      '<strong>Sons do ciclo</strong>' +
+    '</div>' +
+    PM_EVENTOS.map(function (ev) {
+      var c = cfg[ev.k];
+      return '<div class="pm-cfg-item">' +
+        '<div class="pm-cfg-top">' +
+          '<label><input type="checkbox" ' + (c.on ? 'checked' : '') +
+            ' onchange="pmSetSom(\'' + ev.k + '\',\'on\',this.checked)"> ' + ev.nome + '</label>' +
+          '<button class="pm-prev" onclick="pmTocar(\'' + ev.k + '\', pmCfg()[\'' + ev.k + '\'].som)" title="Ouvir">▶</button>' +
+        '</div>' +
+        '<select onchange="pmSetSom(\'' + ev.k + '\',\'som\',this.value)">' +
+          PM_TIMBRES.map(function (t) {
+            return '<option value="' + t + '"' + (c.som === t ? ' selected' : '') + '>' + rotulo[t] + '</option>';
+          }).join('') +
+        '</select>' +
+        '<input type="range" min="0" max="100" value="' + Math.round(c.vol * 100) + '" ' +
+          'oninput="pmSetSom(\'' + ev.k + '\',\'vol\',this.value/100)">' +
+      '</div>';
+    }).join('') +
+    '<button class="pm-cfg-link" onclick="pmFecharConfig()">Concluído</button>';
+}
+
+function pmAbrirConfig()  { PM.painel = true;  pmVista(); }
+function pmFecharConfig() { PM.painel = false; pmVista(); }
+
+function pmSetSom(evento, campo, valor) {
+  var c = pmCfg()[evento];
+  if (!c) return;
+  c[campo] = valor;
+  pmSalvarCfg();
+  if (campo === 'som' && valor !== 'nenhum') pmTocar(evento, valor);
+}
+
+function pmCiclos(n) {
+  PM.ciclosAlvo = n;
+  if (PM.concluidos >= n) PM.concluidos = 0;
+  pmSalvarEstado();
+  pmVista();
 }
 
 function pmPreset(i) {
   PM.idx = i;
   pmParar();
   PM.fase = 'foco';
+  PM.concluidos = 0;
   PM.total = PM.presets[i].foco * 60;
   PM.rest  = PM.total;
-  var bs = document.querySelectorAll('#pmPresets button');
-  for (var k = 0; k < bs.length; k++) bs[k].className = (k === i ? 'on' : '');
-  pmPintar();
+  pmSalvarEstado();
+  pmVista();
 }
 
 function pmToggle() {
@@ -9599,6 +9933,8 @@ function pmToggle() {
 
 function pmIniciar() {
   if (PM.rodando) return;
+  // som só quando a etapa começa do zero (retomar pausa não re-anuncia)
+  if (PM.rest === PM.total) pmTocar(PM.fase === 'foco' ? 'inicioFoco' : 'inicioDesc');
   PM.rodando = true;
   var go = document.getElementById('pmGo');
   if (go) { go.textContent = 'Pausar'; go.className = ''; }
@@ -9609,47 +9945,55 @@ function pmIniciar() {
   }, 1000);
 }
 
+// Pausar preserva onde parou: etapa, tempo restante e ciclo atual
 function pmParar() {
   PM.rodando = false;
   clearInterval(PM.timer);
   var go = document.getElementById('pmGo');
   if (go) { go.textContent = 'Iniciar'; go.className = 'go'; }
+  pmSalvarEstado();
 }
 
 function pmReset() {
   pmParar();
+  PM.fase = 'foco';
+  PM.concluidos = 0;
+  PM.total = PM.presets[PM.idx].foco * 60;
   PM.rest = PM.total;
-  pmPintar();
+  pmSalvarEstado();
+  pmVista();
 }
 
-// Troca foco <-> pausa e avisa com um bip curto
+// Encadeia os ciclos: foco → descanso → foco … até a meta.
+// O último ciclo termina no fim do foco, sem descanso sobrando.
 function pmVirar() {
   var p = PM.presets[PM.idx];
+
   if (PM.fase === 'foco') {
-    PM.ciclos++;
+    PM.concluidos++;
+    pmTocar('fimFoco');
+
+    if (PM.concluidos >= PM.ciclosAlvo) {          // meta batida
+      setTimeout(function () { pmTocar('conclusao'); }, 900);
+      pmParar();
+      PM.fase  = 'foco';
+      PM.total = p.foco * 60;
+      PM.rest  = PM.total;
+      pmSalvarEstado();
+      pmVista();
+      return;
+    }
     PM.fase  = 'pausa';
     PM.total = p.pausa * 60;
+    setTimeout(function () { pmTocar('inicioDesc'); }, 700);
   } else {
+    pmTocar('fimDesc');
     PM.fase  = 'foco';
     PM.total = p.foco * 60;
+    setTimeout(function () { pmTocar('inicioFoco'); }, 700);
   }
   PM.rest = PM.total;
-  pmBip();
-}
-
-function pmBip() {
-  try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    var o = ctx.createOscillator(), g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.frequency.value = PM.fase === 'foco' ? 880 : 560;
-    o.type = 'sine';
-    g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.22, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.7);
-    o.start(); o.stop(ctx.currentTime + 0.72);
-    setTimeout(function () { try { ctx.close(); } catch (e) {} }, 900);
-  } catch (e) {}
+  pmSalvarEstado();
 }
 
 function pmMMSS(s) {
@@ -9674,8 +10018,9 @@ function pmPintar() {
   }
   var c = document.getElementById('pmCiclos');
   if (c) {
-    c.textContent = PM.ciclos === 0 ? 'Nenhum ciclo concluído hoje'
-      : PM.ciclos + (PM.ciclos === 1 ? ' ciclo concluído hoje' : ' ciclos concluídos hoje');
+    c.textContent = 'Ciclo ' + Math.min(PM.concluidos + 1, PM.ciclosAlvo) +
+                    ' de ' + PM.ciclosAlvo +
+                    (PM.concluidos >= PM.ciclosAlvo ? ' · meta concluída 🎉' : '');
   }
   pmAtualizarMini();
 }
