@@ -2813,6 +2813,7 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     <button class="player-dismiss-btn" onclick="minimizePlayer()" title="Minimizar">▾</button>
     <div class="player-label">Áudio do Desafio</div>
     <div style="display:flex;gap:6px">
+      <button class="player-dismiss-btn" id="specToggleBtn" onclick="specEntrar()" title="Modo Espectrograma" style="font-size:14px">◉</button>
       <button class="player-dismiss-btn" id="settingsBtn" onclick="openPlayerSettings()" title="Configurações" style="font-size:14px">⚙</button>
       <button class="player-dismiss-btn" onclick="closeAudio()" title="Fechar">✕</button>
     </div>
@@ -9683,6 +9684,471 @@ function pmAtualizarMini() {
   var m = document.getElementById('hwminitxt-pomodoro');
   if (m) m.textContent = pmMMSS(Math.max(0, PM.rest));
 }
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODO ESPECTROGRAMA (v110) — legendas SRT sincronizadas +
+     visualizador reativo ao áudio. Bloco isolado, namespace .sp-/SPEC.
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+#specMode { position:fixed; inset:0; z-index:1400; display:none;
+  background:#04070500; overflow:hidden; }
+#specMode.on { display:block; animation:spIn .5s ease both; }
+@keyframes spIn { from{opacity:0} to{opacity:1} }
+#specMode.saindo { animation:spOut .3s ease both; }
+@keyframes spOut { to{opacity:0} }
+
+/* fundo: capa borrada, escura, com deriva lenta */
+.sp-bg { position:absolute; inset:-8%; background-size:cover; background-position:center;
+  filter:blur(46px) saturate(.85) brightness(.42); opacity:.55; transform:scale(1.12);
+  animation:spDrift 46s ease-in-out infinite alternate; will-change:transform; }
+@keyframes spDrift {
+  from { transform:scale(1.12) translate3d(-1.6%, -1%, 0); }
+  to   { transform:scale(1.22) translate3d(1.6%, 1.4%, 0); }
+}
+.sp-veu { position:absolute; inset:0;
+  background:radial-gradient(ellipse 78% 58% at 50% 45%, rgba(4,7,5,.42) 0%, rgba(4,7,5,.9) 78%),
+             linear-gradient(180deg, rgba(4,7,5,.75), rgba(4,7,5,.55) 40%, rgba(4,7,5,.92)); }
+
+#spCanvas { position:absolute; left:0; right:0; bottom:0; width:100%; height:34vh;
+  display:block; pointer-events:none; opacity:.9; }
+
+/* legenda */
+.sp-legenda { position:absolute; left:0; right:0; top:50%; transform:translateY(-54%);
+  padding:0 8vw; text-align:center; pointer-events:none; }
+.sp-frase { font-family:'DM Sans',sans-serif; font-weight:600;
+  font-size:clamp(21px, 4.4vw, 40px); line-height:1.42; color:#f2f7f1;
+  letter-spacing:-.01em; text-shadow:0 2px 30px rgba(0,0,0,.85), 0 0 44px rgba(76,175,80,.16); }
+.sp-frase.saindo { animation:spFraseOut .34s cubic-bezier(.4,0,1,1) both; }
+@keyframes spFraseOut { to { opacity:0; transform:translateY(9px) scale(.985); } }
+.sp-w { display:inline-block; opacity:0; transform:translateY(13px) scale(.975);
+  animation:spWIn .42s cubic-bezier(.22,1,.36,1) forwards; white-space:pre; }
+@keyframes spWIn { to { opacity:1; transform:none; } }
+
+.sp-aguardando { font-size:13px; letter-spacing:.16em; text-transform:uppercase;
+  color:rgba(200,220,200,.32); font-weight:700; }
+
+/* controles (somem sozinhos) */
+.sp-ctrl { position:absolute; left:0; right:0; bottom:0; padding:20px 20px 26px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  background:linear-gradient(180deg, transparent, rgba(4,7,5,.82) 55%);
+  transition:opacity .45s ease, transform .45s ease; }
+.sp-ctrl.oculto { opacity:0; transform:translateY(14px); pointer-events:none; }
+.sp-linha { display:flex; align-items:center; gap:18px; }
+.sp-b { width:46px; height:46px; border-radius:50%; border:1px solid rgba(255,255,255,.16);
+  background:rgba(255,255,255,.07); color:#eaf3ea; cursor:pointer; font-size:13px;
+  font-family:inherit; font-weight:700; line-height:1.05;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  display:flex; align-items:center; justify-content:center;
+  transition:background .2s, transform .16s, border-color .2s; }
+.sp-b:hover { background:rgba(76,175,80,.24); border-color:var(--green); transform:scale(1.08); }
+.sp-b:active { transform:scale(.93); }
+.sp-b.main { width:66px; height:66px; font-size:22px; background:var(--green);
+  color:#04140a; border-color:var(--green); box-shadow:0 6px 30px rgba(76,175,80,.42); }
+.sp-b.main:hover { background:var(--green-l); }
+.sp-topo { position:absolute; top:0; left:0; right:0; padding:16px 18px;
+  display:flex; align-items:center; gap:10px;
+  background:linear-gradient(180deg, rgba(4,7,5,.72), transparent);
+  transition:opacity .45s ease; }
+.sp-topo.oculto { opacity:0; pointer-events:none; }
+.sp-tit { flex:1; font-size:12.5px; color:rgba(226,240,226,.72); font-weight:600;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sp-x { width:38px; height:38px; border-radius:12px; border:1px solid rgba(255,255,255,.14);
+  background:rgba(0,0,0,.34); color:#eaf3ea; cursor:pointer; font-size:15px;
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  display:flex; align-items:center; justify-content:center; transition:background .2s, transform .15s; }
+.sp-x:hover { background:rgba(76,175,80,.24); transform:scale(1.07); }
+
+.sp-barra { width:min(560px, 86vw); height:4px; border-radius:99px;
+  background:rgba(255,255,255,.13); cursor:pointer; position:relative; }
+.sp-barra-fill { height:100%; border-radius:99px; background:var(--green);
+  box-shadow:0 0 14px rgba(76,175,80,.6); width:0%; }
+.sp-tempos { width:min(560px, 86vw); display:flex; justify-content:space-between;
+  font-size:11px; color:rgba(200,220,200,.5); font-variant-numeric:tabular-nums; }
+.sp-vel { display:flex; gap:6px; }
+.sp-vel button { padding:6px 13px; border-radius:99px; font-size:11.5px; font-weight:700;
+  font-family:inherit; cursor:pointer; border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.06); color:rgba(226,240,226,.7); transition:all .2s; }
+.sp-vel button.on { background:var(--green-glow); border-color:var(--green); color:var(--green-l); }
+
+@media (max-width:640px){
+  .sp-legenda { padding:0 6vw; top:46%; }
+  #spCanvas { height:26vh; }
+  .sp-b { width:42px; height:42px; }
+  .sp-b.main { width:60px; height:60px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .sp-bg { animation:none; }
+  .sp-w { animation-duration:.01s; }
+}
+</style>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// MODO ESPECTROGRAMA (v110)
+// Componentes: SubtitleParser · PlaybackSynchronizer ·
+//              SubtitleRenderer · AudioVisualizer
+// ════════════════════════════════════════════════════════════
+var SPEC = {
+  ativo:false, cues:[], idx:-1, raf:null, srtUrl:'',
+  ctx:null, node:null, analyser:null, data:null, sintetico:false,
+  energia:0, barras:null, timerCtrl:null, ultimoT:0
+};
+
+// ── SubtitleParser: SRT → [{s, e, t}] ───────────────────────
+function specParseSrt(txt) {
+  var out = [];
+  var blocos = String(txt || '').replace(/\r/g, '').split(/\n\s*\n/);
+  for (var i = 0; i < blocos.length; i++) {
+    var linhas = blocos[i].split('\n').filter(function (l) { return l.trim() !== ''; });
+    if (linhas.length < 2) continue;
+
+    var ti = -1;
+    for (var k = 0; k < linhas.length; k++) { if (linhas[k].indexOf('-->') !== -1) { ti = k; break; } }
+    if (ti < 0) continue;
+
+    var m = linhas[ti].match(/(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})\s*-->\s*(\d{1,2}):(\d{2}):(\d{2})[,.](\d{1,3})/);
+    if (!m) continue;
+    var s = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) + (+m[4]) / 1000;
+    var e = (+m[5]) * 3600 + (+m[6]) * 60 + (+m[7]) + (+m[8]) / 1000;
+
+    // remove rótulo de locutor ("Speaker:") que vem em linha própria
+    var texto = linhas.slice(ti + 1)
+      .map(function (l) { return l.replace(/^\s*[A-Za-zÀ-ÿ0-9 _-]{1,24}:\s*$/, '').replace(/^\s*Speaker:\s*/i, '').trim(); })
+      .filter(Boolean).join(' ').trim();
+
+    if (texto) out.push({ s: s, e: e, t: texto });
+  }
+  out.sort(function (a, b) { return a.s - b.s; });
+  return out;
+}
+
+// ── Entrar / sair ───────────────────────────────────────────
+async function specEntrar() {
+  if (!AUDIO_P.el) { toast('Abra um áudio primeiro.', 'info'); return; }
+
+  var ov = document.getElementById('specMode') || specMontar();
+  ov.classList.add('on');
+  SPEC.ativo = true;
+  try { localStorage.setItem('spec_modo', '1'); } catch (e) {}
+
+  document.getElementById('spTit').textContent =
+    (AUDIO_P.dia ? 'Dia ' + AUDIO_P.dia + ' · ' : '') + (AUDIO_P.title || '');
+
+  var bg = ov.querySelector('.sp-bg');
+  if (bg) bg.style.backgroundImage = AUDIO_P.capa ? 'url("' + AUDIO_P.capa + '")' : 'none';
+
+  specDimensionar();
+  specSetupAnalyser();
+  specMostrarCtrl();
+  specPintarVel();
+
+  // legendas: só recarrega se mudou de áudio
+  if (SPEC.srtUrl !== AUDIO_P.legenda_url) {
+    SPEC.cues = []; SPEC.idx = -1; SPEC.srtUrl = AUDIO_P.legenda_url;
+    specTexto('<div class="sp-aguardando">Carregando legendas…</div>');
+    if (AUDIO_P.legenda_url) {
+      try {
+        var r = await rpc('getTextFileContent', { url: AUDIO_P.legenda_url });
+        if (r && r.ok) SPEC.cues = specParseSrt(r.data || '');
+      } catch (e) {}
+    }
+    if (!SPEC.cues.length) {
+      specTexto('<div class="sp-aguardando">Sem legendas para este áudio</div>');
+    }
+  }
+
+  if (SPEC.raf) cancelAnimationFrame(SPEC.raf);
+  SPEC.raf = requestAnimationFrame(specLoop);
+}
+
+// preservarPref=true quando a saída é consequência de fechar/minimizar
+// o player — nesse caso o modo escolhido pelo usuário continua valendo
+function specSair(preservarPref) {
+  var ov = document.getElementById('specMode');
+  if (!ov) return;
+  SPEC.ativo = false;
+  if (preservarPref !== true) { try { localStorage.setItem('spec_modo', '0'); } catch (e) {} }
+  if (SPEC.raf) { cancelAnimationFrame(SPEC.raf); SPEC.raf = null; }
+  ov.classList.add('saindo');
+  setTimeout(function () { ov.classList.remove('on', 'saindo'); }, 300);
+  // o áudio NUNCA para ao trocar de modo
+}
+
+function specMontar() {
+  var ov = document.createElement('div');
+  ov.id = 'specMode';
+  ov.innerHTML =
+    '<div class="sp-bg"></div><div class="sp-veu"></div>' +
+    '<canvas id="spCanvas"></canvas>' +
+    '<div class="sp-topo" id="spTopo">' +
+      '<button class="sp-x" onclick="specSair()" title="Voltar ao player">▾</button>' +
+      '<div class="sp-tit" id="spTit"></div>' +
+      '<button class="sp-x" onclick="specSair()" title="Sair do modo">✕</button>' +
+    '</div>' +
+    '<div class="sp-legenda" id="spLegenda"></div>' +
+    '<div class="sp-ctrl" id="spCtrl">' +
+      '<div class="sp-barra" id="spBarra" onclick="specSeek(event)">' +
+        '<div class="sp-barra-fill" id="spFill"></div>' +
+      '</div>' +
+      '<div class="sp-tempos"><span id="spCur">0:00</span><span id="spDur">--:--</span></div>' +
+      '<div class="sp-linha">' +
+        '<button class="sp-b" onclick="skipAudio(-10)">◁10</button>' +
+        '<button class="sp-b main" id="spPlay" onclick="toggleAudio()">▶</button>' +
+        '<button class="sp-b" onclick="skipAudio(10)">10▷</button>' +
+      '</div>' +
+      '<div class="sp-vel" id="spVel">' +
+        [1, 1.25, 1.5, 2].map(function (r) {
+          return '<button data-r="' + r + '" onclick="setPlaybackRate(' + r + ');specPintarVel()">' + r + 'x</button>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(ov);
+
+  ['pointermove', 'pointerdown', 'touchstart'].forEach(function (ev) {
+    ov.addEventListener(ev, specMostrarCtrl);
+  });
+  window.addEventListener('resize', specDimensionar);
+  return ov;
+}
+
+function specTexto(html) {
+  var el = document.getElementById('spLegenda');
+  if (el) el.innerHTML = html;
+}
+
+function specPintarVel() {
+  var box = document.getElementById('spVel');
+  if (!box) return;
+  box.querySelectorAll('button').forEach(function (b) {
+    b.classList.toggle('on', parseFloat(b.dataset.r) === AUDIO_P.rate);
+  });
+}
+
+// controles somem após 3.2s parados
+function specMostrarCtrl() {
+  var c = document.getElementById('spCtrl'), t = document.getElementById('spTopo');
+  if (!c) return;
+  c.classList.remove('oculto'); if (t) t.classList.remove('oculto');
+  clearTimeout(SPEC.timerCtrl);
+  SPEC.timerCtrl = setTimeout(function () {
+    if (AUDIO_P.el && !AUDIO_P.el.paused) {
+      c.classList.add('oculto'); if (t) t.classList.add('oculto');
+    }
+  }, 3200);
+}
+
+function specSeek(ev) {
+  var el = AUDIO_P.el;
+  if (!el || !el.duration) return;
+  var r = document.getElementById('spBarra').getBoundingClientRect();
+  el.currentTime = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * el.duration;
+  SPEC.idx = -1;   // força re-sincronizar a legenda
+}
+
+// ── AudioVisualizer ─────────────────────────────────────────
+// createMediaElementSource é IRREVERSÍVEL e, numa fonte cross-origin
+// sem CORS, o navegador substitui a saída por SILÊNCIO. Por isso só
+// conectamos quando a fonte é comprovadamente same-origin. O áudio do
+// Drive chega como data: URL (proxy GAS), então o caminho principal
+// roda com FFT real; os demais caem no modo sintético.
+function specSetupAnalyser() {
+  if (SPEC.analyser || SPEC.sintetico) return;
+  var el = AUDIO_P.el;
+  var src = (el && (el.currentSrc || el.src)) || '';
+  var seguro = src.indexOf('data:') === 0 || src.indexOf('blob:') === 0 ||
+               src.indexOf(location.origin) === 0;
+  if (!seguro) { SPEC.sintetico = true; return; }
+
+  try {
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) { SPEC.sintetico = true; return; }
+    SPEC.ctx      = new Ctx();
+    SPEC.node     = SPEC.ctx.createMediaElementSource(el);
+    SPEC.analyser = SPEC.ctx.createAnalyser();
+    SPEC.analyser.fftSize = 512;
+    SPEC.analyser.smoothingTimeConstant = 0.84;
+    SPEC.node.connect(SPEC.analyser);
+    SPEC.analyser.connect(SPEC.ctx.destination);
+    SPEC.data = new Uint8Array(SPEC.analyser.frequencyBinCount);
+  } catch (e) {
+    SPEC.sintetico = true;
+  }
+}
+
+function specDimensionar() {
+  var c = document.getElementById('spCanvas');
+  if (!c) return;
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  c.width  = Math.floor(c.clientWidth  * dpr);
+  c.height = Math.floor(c.clientHeight * dpr);
+  var ctx = c.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// Energia quando não há FFT: usa a própria legenda como pista —
+// falando = energia alta, silêncio entre blocos = energia baixa.
+function specEnergiaSintetica(t) {
+  var falando = false;
+  for (var i = 0; i < SPEC.cues.length; i++) {
+    if (t >= SPEC.cues[i].s && t <= SPEC.cues[i].e) { falando = true; break; }
+  }
+  var base = falando ? 0.62 : 0.16;
+  var osc  = Math.sin(t * 5.1) * 0.12 + Math.sin(t * 11.7) * 0.07 + Math.sin(t * 2.3) * 0.05;
+  return Math.max(0.05, Math.min(1, base + osc * (falando ? 1 : 0.4)));
+}
+
+function specDesenhar(t, tocando) {
+  var c = document.getElementById('spCanvas');
+  if (!c) return;
+  var ctx = c.getContext('2d');
+  var W = c.clientWidth, H = c.clientHeight;
+  ctx.clearRect(0, 0, W, H);
+
+  var N = 64;
+  if (!SPEC.barras || SPEC.barras.length !== N) SPEC.barras = new Array(N).fill(0);
+
+  var alvo = new Array(N);
+  if (SPEC.analyser && !SPEC.sintetico) {
+    SPEC.analyser.getByteFrequencyData(SPEC.data);
+    var passo = Math.floor(SPEC.data.length / N) || 1;
+    for (var i = 0; i < N; i++) {
+      var soma = 0;
+      for (var j = 0; j < passo; j++) soma += SPEC.data[i * passo + j] || 0;
+      alvo[i] = (soma / passo) / 255;
+    }
+  } else {
+    var en = tocando ? specEnergiaSintetica(t) : 0.05;
+    for (var k = 0; k < N; k++) {
+      // curva em sino: centro mais alto, bordas suaves
+      var forma = Math.pow(Math.sin((k / (N - 1)) * Math.PI), 0.8);
+      var ruido = Math.sin(t * 6 + k * 0.55) * 0.5 + Math.sin(t * 13 + k * 1.3) * 0.3;
+      alvo[k] = Math.max(0.02, en * forma * (0.72 + ruido * 0.28));
+    }
+  }
+  if (!tocando) for (var z = 0; z < N; z++) alvo[z] *= 0.18;
+
+  var media = 0;
+  var larg = W / N, meio = H * 0.62;
+
+  for (var b = 0; b < N; b++) {
+    SPEC.barras[b] += (alvo[b] - SPEC.barras[b]) * 0.22;   // suavização
+    var v = SPEC.barras[b];
+    media += v;
+    var alt = Math.max(2, v * H * 0.72);
+    var x = b * larg + larg * 0.22;
+    var w = larg * 0.56;
+
+    var g = ctx.createLinearGradient(0, meio - alt, 0, meio + alt * 0.5);
+    g.addColorStop(0,   'rgba(140,240,150,' + (0.35 + v * 0.6).toFixed(3) + ')');
+    g.addColorStop(0.5, 'rgba(76,175,80,'   + (0.28 + v * 0.5).toFixed(3) + ')');
+    g.addColorStop(1,   'rgba(76,175,80,0)');
+    ctx.fillStyle = g;
+
+    ctx.beginPath();
+    var r = Math.min(w / 2, 3);
+    ctx.roundRect ? ctx.roundRect(x, meio - alt, w, alt, r) : ctx.rect(x, meio - alt, w, alt);
+    ctx.fill();
+
+    // reflexo curto embaixo
+    ctx.globalAlpha = 0.16;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, meio, w, alt * 0.34, r) : ctx.rect(x, meio, w, alt * 0.34);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  SPEC.energia = media / N;
+}
+
+// ── PlaybackSynchronizer + SubtitleRenderer ─────────────────
+function specLoop() {
+  if (!SPEC.ativo) { SPEC.raf = null; return; }
+  SPEC.raf = requestAnimationFrame(specLoop);
+
+  var el = AUDIO_P.el;
+  if (!el) return;
+  var t = el.currentTime || 0;
+  var tocando = !el.paused;
+
+  specDesenhar(t, tocando);
+
+  // progresso + tempos
+  var fill = document.getElementById('spFill');
+  if (fill && el.duration) fill.style.width = (t / el.duration * 100).toFixed(2) + '%';
+  if (Math.floor(t) !== Math.floor(SPEC.ultimoT)) {
+    var cu = document.getElementById('spCur'), du = document.getElementById('spDur');
+    if (cu) cu.textContent = _fmtTime(t);
+    if (du) du.textContent = el.duration ? _fmtTime(el.duration) : '--:--';
+    SPEC.ultimoT = t;
+  }
+  var pb = document.getElementById('spPlay');
+  if (pb) pb.textContent = tocando ? '⏸' : '▶';
+
+  // legenda ativa
+  if (!SPEC.cues.length) return;
+  var novo = -1;
+  for (var i = 0; i < SPEC.cues.length; i++) {
+    if (t >= SPEC.cues[i].s && t <= SPEC.cues[i].e) { novo = i; break; }
+    if (SPEC.cues[i].s > t) break;
+  }
+  if (novo !== SPEC.idx) {
+    SPEC.idx = novo;
+    specRenderizarFrase(novo >= 0 ? SPEC.cues[novo] : null);
+  }
+}
+
+function specRenderizarFrase(cue) {
+  var box = document.getElementById('spLegenda');
+  if (!box) return;
+
+  var antigo = box.querySelector('.sp-frase');
+  if (antigo) {
+    antigo.classList.add('saindo');
+    setTimeout(function () { if (antigo.parentNode) antigo.remove(); }, 340);
+  }
+  if (!cue) return;
+
+  // monta palavra por palavra, escalonando dentro da duração da fala
+  var palavras = cue.t.split(/\s+/);
+  var dur = Math.max(0.4, (cue.e - cue.s));
+  var passo = Math.min(70, (dur * 380) / Math.max(1, palavras.length));
+
+  var d = document.createElement('div');
+  d.className = 'sp-frase';
+  d.innerHTML = palavras.map(function (p, i) {
+    return '<span class="sp-w" style="animation-delay:' + (i * passo).toFixed(0) + 'ms">' +
+           escH(p) + (i < palavras.length - 1 ? ' ' : '') + '</span>';
+  }).join('');
+  box.appendChild(d);
+}
+
+// Abrir o player já no modo espectrograma, se foi a última escolha
+function specAplicarPreferencia() {
+  try {
+    if (localStorage.getItem('spec_modo') === '1') setTimeout(specEntrar, 320);
+  } catch (e) {}
+}
+
+// Liga no ciclo de vida do player sem editar as funções originais
+(function () {
+  var abrir = window.openExpandedPlayer;
+  if (typeof abrir === 'function') {
+    window.openExpandedPlayer = function () {
+      var r = abrir.apply(this, arguments);
+      specAplicarPreferencia();
+      return r;
+    };
+  }
+  ['closeAudio', 'minimizePlayer'].forEach(function (nome) {
+    var orig = window[nome];
+    if (typeof orig !== 'function') return;
+    window[nome] = function () {
+      if (SPEC.ativo) specSair(true);   // mantém a preferência de modo
+      return orig.apply(this, arguments);
+    };
+  });
+})();
 </script>
 
 <!-- Fase 1 — UX premium (tilt 3D + som + toast) -->
