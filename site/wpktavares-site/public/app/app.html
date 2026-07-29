@@ -2177,23 +2177,29 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 /* v116: mesma estrutura já aprovada na página evento-fabio —
    overlay escurecido + caixa branca flutuante no canto. Não ocupa a
    tela toda; no celular vira cartão ancorado embaixo. */
+/* Picture-in-picture de verdade: nada de escurecer ou desfocar o app.
+   O container não recebe cliques — só a caixa — então o resto do app
+   segue navegável com o chat aberto. */
 .bia-modal {
   position: fixed; inset: 0; z-index: 401;
-  background: rgba(0,0,0,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  background: none; backdrop-filter: none; -webkit-backdrop-filter: none;
   display: flex; align-items: flex-end; justify-content: flex-end;
-  padding: 24px;
+  padding: 16px 16px 92px;
+  pointer-events: none;
 }
 .bia-chat-box {
-  width: 100%; max-width: 420px; height: min(650px, calc(100dvh - 48px));
+  pointer-events: auto;
+  width: 100%; max-width: 400px; height: min(620px, calc(100dvh - 130px));
   background: #fff; border-radius: 20px; overflow: hidden;
   display: flex; flex-direction: column;
-  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  box-shadow: 0 24px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(76,175,80,.25);
   animation: bia-in .35s cubic-bezier(.16,1,.3,1) both;
 }
-@media (max-width: 640px) {
-  .bia-modal { padding: 0; justify-content: stretch; }
-  .bia-chat-box { max-width: 100%; height: min(580px, calc(100dvh - 70px));
-    border-radius: 20px 20px 0 0; }
+.has-miniplayer .bia-modal { padding-bottom: 160px; }
+@media (min-width: 1024px) {
+  .bia-modal { padding: 20px 20px 24px; }
+  .bia-chat-box { height: min(650px, calc(100dvh - 60px)); }
+  .has-miniplayer .bia-modal { padding-bottom: 100px; }
 }
 @keyframes bia-in {
   from { opacity:0; transform: translateY(20px) scale(.95); }
@@ -7671,7 +7677,7 @@ function _leitHandleBack() {
        onerror="this.style.display='none';document.getElementById('biaFabInitials').style.display=''">
   <span id="biaFabInitials" class="bia-fab-initials">BIA</span>
 </div>
-<div id="biaModal" class="bia-modal hidden" style="display:none" onclick="_biaCliqueFora(event)">
+<div id="biaModal" class="bia-modal hidden" style="display:none">
   <div class="bia-chat-box">
     <div class="bia-modal-header">
       <img id="biaHdAv" class="bia-hd-av" src="https://i.imgur.com/ixZb0qL.png" alt="Bia"
@@ -7686,9 +7692,12 @@ function _leitHandleBack() {
          Abra numa aba separada para conversar com a Bia.</p>
       <a id="biaAbrirAba" href="#" target="_blank" rel="noopener">Abrir conversa</a>
     </div>
+    <!-- about:blank (e NÃO src="") porque iframe.src de um src vazio
+         resolve para a URL da própria página — a checagem !frame.src
+         dava falso e o widget nunca era carregado. -->
     <iframe
       id="biaFrame"
-      src=""
+      src="about:blank"
       width="100%"
       style="height:100%;min-height:500px"
       allow="microphone;"
@@ -7801,8 +7810,12 @@ function _biaOpenModal() {
   var link = document.getElementById('biaAbrirAba');
   if (link) link.href = BIA_URL;
 
+  // Carrega sob demanda, no primeiro clique — não pesa a navegação.
+  // Marcador próprio: não dá para confiar em frame.src, que nunca vem
+  // vazio (o navegador resolve src="" para a URL da página).
   var frame = document.getElementById('biaFrame');
-  if (frame && !frame.src) {
+  if (frame && !frame.getAttribute('data-loaded')) {
+    frame.setAttribute('data-loaded', '1');
     frame.src = BIA_URL;
     // Se o widget nem chegar a carregar (bloqueio de terceiros/rede),
     // mostra a saída em aba separada em vez de deixar o painel vazio.
@@ -7824,10 +7837,6 @@ function _biaNovaAba() {
   window.open(BIA_URL, '_blank', 'noopener');
 }
 
-// Clicar no fundo escurecido fecha — só quando o alvo é o overlay
-function _biaCliqueFora(e) {
-  if (e.target === document.getElementById('biaModal')) _biaClose();
-}
 
 // ── Balão proativo (automação nossa, fora do iframe) ────────
 var _biaBalaoTimer = null;
