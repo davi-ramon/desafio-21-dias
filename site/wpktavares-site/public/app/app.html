@@ -2174,82 +2174,96 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 .bia-fab.hidden { display: none; }
 /* Sobe o botão quando mini player está ativo */
 .has-miniplayer .bia-fab { bottom: 158px; }
-/* v115: o widget do GPT Maker pede min-height 700px no snippet oficial.
-   Com 540px o iframe abria em branco. No celular vira folha quase cheia
-   (que também é o formato de conversa que o Davi quer). */
+/* v116: mesma estrutura já aprovada na página evento-fabio —
+   overlay escurecido + caixa branca flutuante no canto. Não ocupa a
+   tela toda; no celular vira cartão ancorado embaixo. */
 .bia-modal {
-  position: fixed; bottom: 12px; right: 12px; left: 12px; z-index: 401;
-  width: auto; max-width: 400px; margin-left: auto;
-  height: min(700px, calc(100dvh - 96px));
-  border-radius: 18px;
-  background: #0b141a; border: 1px solid rgba(76,175,80,.3);
-  box-shadow: 0 16px 48px rgba(0,0,0,.55);
-  display: flex; flex-direction: column; overflow: hidden;
-  animation: bia-in .25s cubic-bezier(.22,1,.36,1) both;
+  position: fixed; inset: 0; z-index: 401;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  display: flex; align-items: flex-end; justify-content: flex-end;
+  padding: 24px;
+}
+.bia-chat-box {
+  width: 100%; max-width: 420px; height: min(650px, calc(100dvh - 48px));
+  background: #fff; border-radius: 20px; overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  animation: bia-in .35s cubic-bezier(.16,1,.3,1) both;
 }
 @media (max-width: 640px) {
-  .bia-modal { left: 0; right: 0; bottom: 0; max-width: none; border-radius: 16px 16px 0 0;
-    height: calc(100dvh - 58px); }
+  .bia-modal { padding: 0; justify-content: stretch; }
+  .bia-chat-box { max-width: 100%; height: min(580px, calc(100dvh - 70px));
+    border-radius: 20px 20px 0 0; }
 }
-@media (min-width: 1024px) {
-  .bia-modal { bottom: 16px; right: 16px; left: auto; }
-}
-/* Sobe modal quando mini player ativo */
-.has-miniplayer .bia-modal { bottom: 84px; }
-@media (max-width: 640px) { .has-miniplayer .bia-modal { bottom: 0; } }
 @keyframes bia-in {
   from { opacity:0; transform: translateY(20px) scale(.95); }
   to   { opacity:1; transform: translateY(0)   scale(1); }
 }
-/* Cabeçalho no tom do WhatsApp escuro */
+/* Cabeçalho verde, texto escuro — igual ao do evento */
 .bia-modal-header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 11px 14px; background: #1f2c34;
-  border-bottom: 1px solid rgba(255,255,255,.06);
-  font-size: 13.5px; font-weight: 600; color: #e9edef; flex-shrink: 0;
+  display: flex; align-items: center; gap: 9px;
+  padding: 14px 18px; background: var(--green); color: #04140a;
+  font-size: 14.5px; font-weight: 700; flex-shrink: 0;
 }
-.bia-modal-header .bia-hd-av { width: 34px; height: 34px; border-radius: 50%;
-  object-fit: cover; flex-shrink: 0; background: #25d366; }
-.bia-modal-header .bia-hd-txt { flex: 1; min-width: 0; line-height: 1.25; }
-.bia-modal-header .bia-hd-txt small { display: block; font-size: 11px;
-  font-weight: 400; color: #8696a0; }
+.bia-modal-header .bia-hd-av { width: 30px; height: 30px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0; border: 1px solid rgba(0,0,0,.15); }
+.bia-modal-header .bia-hd-txt { flex: 1; min-width: 0; }
 .bia-modal-header button {
-  background: transparent; border: none; color: #aebac1;
-  font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 50%;
-  line-height: 1; flex-shrink: 0;
+  background: rgba(0,0,0,.15); border: none; color: #04140a;
+  width: 30px; height: 30px; border-radius: 50%; font-size: 14px;
+  cursor: pointer; line-height: 1; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .2s;
 }
-.bia-modal-header button:hover { background: rgba(255,255,255,.1); color: #fff; }
-.bia-iframe { flex: 1; border: none; width: 100%; min-height: 0; background: #0b141a; }
+.bia-modal-header button:hover { background: rgba(0,0,0,.28); }
+.bia-iframe { flex: 1; border: none; width: 100%; min-height: 0; background: #fff; }
 
 /* Aviso quando o widget não consegue carregar (bloqueio de terceiros) */
-.bia-fallback { padding: 26px 22px; text-align: center; color: #e9edef;
+.bia-fallback { padding: 26px 22px; text-align: center; color: #1a1a1a;
   display: none; flex-direction: column; align-items: center; gap: 12px; }
 .bia-fallback.on { display: flex; }
-.bia-fallback p { font-size: 13px; line-height: 1.6; color: #8696a0; }
-.bia-fallback a { display: inline-block; background: #25d366; color: #0b141a;
+.bia-fallback p { font-size: 13px; line-height: 1.6; color: #666; }
+.bia-fallback a { display: inline-block; background: var(--green); color: #04140a;
   font-weight: 700; font-size: 13px; text-decoration: none;
   padding: 11px 20px; border-radius: 10px; }
 
-/* Balão proativo — fica FORA do iframe, é automação nossa */
+/* Balão proativo — verde luminoso, uma linha, com ponta apontando p/ Bia */
 .bia-bubble {
-  position: fixed; z-index: 402; right: 80px; bottom: 92px;
-  max-width: min(258px, calc(100vw - 110px));
-  background: #1f2c34; color: #e9edef;
-  border: 1px solid rgba(76,175,80,.28); border-radius: 14px 14px 4px 14px;
-  padding: 12px 14px; font-size: 13px; line-height: 1.5; cursor: pointer;
-  box-shadow: 0 10px 34px rgba(0,0,0,.55);
-  animation: bia-bub-in .42s cubic-bezier(.22,1,.36,1) both;
+  position: fixed; z-index: 402;
+  background: linear-gradient(135deg, #6dde71, #4caf50);
+  color: #04140a; font-weight: 700; font-size: 13px; line-height: 1.3;
+  border-radius: 16px 16px 2px 16px;
+  padding: 11px 16px; cursor: pointer; white-space: nowrap;
+  box-shadow: 0 0 0 1px rgba(109,222,113,.55),
+              0 8px 28px rgba(76,175,80,.5),
+              0 0 34px rgba(76,175,80,.42);
+  animation: bia-bub-in .42s cubic-bezier(.16,1,.3,1) both,
+             bia-bub-glow 2.4s ease-in-out .5s infinite;
+  transition: transform .14s;
 }
+.bia-bubble:active { transform: scale(.955); }
 .bia-bubble.saindo { animation: bia-bub-out .3s ease both; }
-@keyframes bia-bub-in  { from{opacity:0; transform:translateY(10px) scale(.9)} to{opacity:1; transform:none} }
-@keyframes bia-bub-out { to{opacity:0; transform:translateY(6px) scale(.94)} }
-.bia-bubble b { color: #6dde71; }
-.bia-bubble .bia-bub-x { position: absolute; top: -8px; right: -8px;
-  width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(255,255,255,.16);
-  background: #0b141a; color: #8696a0; font-size: 12px; line-height: 1;
-  display: flex; align-items: center; justify-content: center; }
-.bia-bubble .bia-bub-x:hover { color: #fff; }
-.has-miniplayer .bia-bubble { bottom: 164px; }
+@keyframes bia-bub-in  { from{opacity:0; transform:scale(.8) translateY(10px)} to{opacity:1; transform:none} }
+@keyframes bia-bub-out { to{opacity:0; transform:scale(.9) translateY(8px)} }
+@keyframes bia-bub-glow {
+  50% { box-shadow: 0 0 0 1px rgba(109,222,113,.85),
+                    0 8px 32px rgba(76,175,80,.7),
+                    0 0 48px rgba(76,175,80,.62); }
+}
+/* ponta do balão mirando a foto da Bia */
+.bia-bubble::after {
+  content: ''; position: absolute; bottom: -7px; right: 16px;
+  width: 0; height: 0; border-left: 8px solid transparent;
+  border-right: 8px solid transparent; border-top: 8px solid #4caf50;
+}
+.bia-bubble.esq { border-radius: 16px 16px 16px 2px; }
+.bia-bubble.esq::after { right: auto; left: 16px; }
+.bia-bubble .bia-bub-x { position: absolute; top: -9px; right: -9px;
+  width: 21px; height: 21px; border-radius: 50%; border: none;
+  background: #1b3a1d; color: #cfeacf; font-size: 11px; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.bia-bubble .bia-bub-x:hover { background: #04140a; color: #fff; }
+@media (max-width: 380px) { .bia-bubble { font-size: 12px; padding: 10px 13px; } }
 /* Grupo: espaço extra quando mini player cobre o input */
 .has-miniplayer #commGrupo { padding-bottom: 70px; }
 
@@ -7657,31 +7671,32 @@ function _leitHandleBack() {
        onerror="this.style.display='none';document.getElementById('biaFabInitials').style.display=''">
   <span id="biaFabInitials" class="bia-fab-initials">BIA</span>
 </div>
-<div id="biaModal" class="bia-modal hidden" style="display:none">
-  <div class="bia-modal-header">
-    <img id="biaHdAv" class="bia-hd-av" src="" alt=""
-         onerror="this.style.visibility='hidden'">
-    <div class="bia-hd-txt">
-      Bia
-      <small id="biaHdSub">Assistente do Desafio · online</small>
+<div id="biaModal" class="bia-modal hidden" style="display:none" onclick="_biaCliqueFora(event)">
+  <div class="bia-chat-box">
+    <div class="bia-modal-header">
+      <img id="biaHdAv" class="bia-hd-av" src="https://i.imgur.com/ixZb0qL.png" alt="Bia"
+           onerror="this.style.visibility='hidden'">
+      <div class="bia-hd-txt">Bia — Assistente do Desafio</div>
+      <button onclick="_biaNovaAba()" aria-label="Abrir em nova aba" title="Abrir em nova aba">⧉</button>
+      <button onclick="_biaClose()" aria-label="Fechar">✕</button>
     </div>
-    <button onclick="_biaNovaAba()" aria-label="Abrir em nova aba" title="Abrir em nova aba">⧉</button>
-    <button onclick="_biaClose()" aria-label="Fechar">✕</button>
+    <div class="bia-fallback" id="biaFallback">
+      <div style="font-size:34px">💬</div>
+      <p>Seu navegador está bloqueando o chat dentro do app.<br>
+         Abra numa aba separada para conversar com a Bia.</p>
+      <a id="biaAbrirAba" href="#" target="_blank" rel="noopener">Abrir conversa</a>
+    </div>
+    <iframe
+      id="biaFrame"
+      src=""
+      width="100%"
+      style="height:100%;min-height:500px"
+      allow="microphone;"
+      frameborder="0"
+      class="bia-iframe"
+      title="Bia Assistente">
+    </iframe>
   </div>
-  <div class="bia-fallback" id="biaFallback">
-    <div style="font-size:34px">💬</div>
-    <p>Seu navegador está bloqueando o chat dentro do app.<br>
-       Abra numa aba separada para conversar com a Bia.</p>
-    <a id="biaAbrirAba" href="#" target="_blank" rel="noopener">Abrir conversa</a>
-  </div>
-  <iframe
-    id="biaFrame"
-    src=""
-    allow="microphone; clipboard-write; autoplay"
-    frameborder="0"
-    class="bia-iframe"
-    title="Bia Assistente">
-  </iframe>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
@@ -7809,6 +7824,11 @@ function _biaNovaAba() {
   window.open(BIA_URL, '_blank', 'noopener');
 }
 
+// Clicar no fundo escurecido fecha — só quando o alvo é o overlay
+function _biaCliqueFora(e) {
+  if (e.target === document.getElementById('biaModal')) _biaClose();
+}
+
 // ── Balão proativo (automação nossa, fora do iframe) ────────
 var _biaBalaoTimer = null;
 
@@ -7831,9 +7851,10 @@ function _biaMostrarBalao() {
   var el = document.createElement('div');
   el.className = 'bia-bubble';
   el.id = 'biaBubble';
+  // uma linha só — texto curto para caber sem quebrar
   el.innerHTML =
     '<button class="bia-bub-x" onclick="event.stopPropagation();_biaFecharBalao()" aria-label="Dispensar">✕</button>' +
-    'Oi' + (nome ? ', <b>' + escH(nome) + '</b>' : '') + '! 👋<br>Precisa de ajuda com alguma coisa?';
+    '👋 Oi' + (nome ? ', ' + escH(nome) : '') + '! Precisa de ajuda?';
   el.onclick = function () { _biaFecharBalao(); _biaOpenModal(); };
   document.body.appendChild(el);
 
@@ -7842,9 +7863,9 @@ function _biaMostrarBalao() {
     var r = btn.getBoundingClientRect();
     el.style.bottom = Math.max(12, window.innerHeight - r.top + 8) + 'px';
     if (r.left < window.innerWidth / 2) {          // botão à esquerda
+      el.classList.add('esq');                     // vira a ponta do balão
       el.style.left = Math.max(12, r.left) + 'px';
       el.style.right = 'auto';
-      el.style.borderRadius = '14px 14px 14px 4px';
     } else {
       el.style.right = Math.max(12, window.innerWidth - r.right) + 'px';
       el.style.left = 'auto';
