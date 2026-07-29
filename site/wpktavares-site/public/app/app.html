@@ -2164,6 +2164,40 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 /* ═══════════════════════════════════════════════════════════
    BIA — Assistente Flutuante
 ═══════════════════════════════════════════════════════════ */
+/* ── Patente e pontos (v120) ──────────────────────────────── */
+.gam-card { background:
+  radial-gradient(ellipse 80% 100% at 100% 0%, rgba(76,175,80,.09), transparent 70%),
+  var(--surface2); }
+.gam-topo { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.gam-patente { display:flex; align-items:center; gap:12px; min-width:0; }
+.gam-insignia { font-size:20px; color:var(--green-l); letter-spacing:-2px;
+  background:var(--green-glow); border:1px solid var(--border2); border-radius:12px;
+  width:46px; height:46px; display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; text-shadow:0 0 14px rgba(109,222,113,.5); }
+.gam-nome { font-family:'Bebas Neue',sans-serif; font-size:23px; line-height:1;
+  color:var(--cream); letter-spacing:.02em; }
+.gam-nivel { font-size:10.5px; color:var(--muted); letter-spacing:.09em;
+  text-transform:uppercase; font-weight:600; margin-top:3px; }
+.gam-pontos { text-align:right; flex-shrink:0; }
+.gam-pts-val { font-family:'Bebas Neue',sans-serif; font-size:27px; line-height:1;
+  color:var(--green-l); }
+.gam-pts-lbl { font-size:10px; color:var(--muted2); letter-spacing:.1em;
+  text-transform:uppercase; margin-top:2px; }
+.gam-barra { height:5px; border-radius:99px; background:rgba(76,175,80,.13);
+  margin:15px 0 8px; overflow:hidden; }
+.gam-barra-fill { height:100%; border-radius:99px;
+  background:linear-gradient(90deg,var(--green),var(--green-l));
+  box-shadow:0 0 12px rgba(76,175,80,.5); transition:width .6s cubic-bezier(.22,1,.36,1); }
+.gam-proxima { font-size:11.5px; color:var(--muted); }
+.gam-proxima b { color:var(--green-l); font-weight:700; }
+.gam-proxima.gam-max { margin-top:14px; color:var(--green-l); font-weight:600; }
+.gam-stats { display:flex; gap:8px; margin-top:15px;
+  border-top:1px solid rgba(76,175,80,.1); padding-top:13px; }
+.gam-stats > div { flex:1; text-align:center; }
+.gam-stats b { display:block; font-size:17px; font-weight:800; color:var(--text2); }
+.gam-stats span { display:block; font-size:9.5px; color:var(--muted2);
+  letter-spacing:.06em; text-transform:uppercase; margin-top:2px; }
+
 .bia-fab {
   position: fixed; bottom: 86px; right: 16px; z-index: 400;
   width: 56px; height: 56px; border-radius: 50%;
@@ -3764,6 +3798,36 @@ function renderInicio() {
       <div class="hero-ring-inner"><span class="hero-ring-val">${prog}%</span><span class="hero-ring-lbl">concluído</span></div>
     </div>
   </div>`;
+
+  // ── Patente + pontos (v120) ──
+  const g = d.gamificacao;
+  if (g) {
+    html += `
+  <div class="card gam-card">
+    <div class="gam-topo">
+      <div class="gam-patente">
+        <span class="gam-insignia">${g.insignia}</span>
+        <div>
+          <div class="gam-nome">${escH(g.patente)}</div>
+          <div class="gam-nivel">Nível ${g.nivel} de ${g.totalNiveis}</div>
+        </div>
+      </div>
+      <div class="gam-pontos">
+        <div class="gam-pts-val">${g.pontos.toLocaleString('pt-BR')}</div>
+        <div class="gam-pts-lbl">pontos</div>
+      </div>
+    </div>
+    ${g.proxima ? `
+    <div class="gam-barra"><div class="gam-barra-fill" style="width:${g.progressoNivel}%"></div></div>
+    <div class="gam-proxima">Faltam <b>${g.faltamDias}</b> ${g.faltamDias === 1 ? 'dia' : 'dias'} para <b>${escH(g.proxima)}</b></div>
+    ` : `<div class="gam-proxima gam-max">Patente máxima alcançada 🎖</div>`}
+    <div class="gam-stats">
+      <div><b>${g.sequencia}</b><span>em sequência</span></div>
+      <div><b>${g.totalCheckins}</b><span>check-ins</span></div>
+      <div><b>${g.diasPerfeitos}</b><span>dias perfeitos</span></div>
+    </div>
+  </div>`;
+  }
 
   if (!concluido) {
     // Mensagem dinâmica
