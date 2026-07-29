@@ -5,6 +5,29 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "//": "Sem regra, o Firebase serve tudo que nao e index.html com max-age=3600. Como o app e app.html, cada deploy demorava ate 1h para chegar no aluno. no-cache nao desliga o cache: o navegador so revalida e recebe 304 quando nada mudou.",
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" }
+        ]
+      },
+      {
+        "//": "CSS/JS acompanham o release e sao pequenos — mesma politica.",
+        "source": "/assets/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, max-age=0, must-revalidate" }
+        ]
+      },
+      {
+        "//": "Icones e imagens quase nunca mudam: cache longo de verdade.",
+        "source": "**/*.@(png|jpg|jpeg|gif|svg|webp|ico|woff|woff2)",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=604800" }
+        ]
+      }
     ]
   }
 }
