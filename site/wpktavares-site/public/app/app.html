@@ -9390,8 +9390,12 @@ window.addEventListener('resize', function () {
    anel, presets, ciclos e botões lado a lado e quebrava o layout */
 .hw.full .hw-body { flex:1; min-height:0; overflow-y:auto;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:4px; padding:28px 22px 42px; }
-.hw.full .hw-body > * { width:100%; max-width:360px; flex:0 0 auto; }
+  padding:28px 22px 42px; }
+/* O conteúdo vive num invólucro ÚNICO. Com um filho só, a direção do
+   flex acima deixa de ser crítica — row ou column centralizam igual.
+   É o que torna o layout imune a essa declaração não valer. */
+.pm-wrap { display:block; width:100%; }
+.hw.full .pm-wrap { max-width:360px; margin:auto; }
 .hw.full .pm-ring { width:min(62vw, 250px); height:min(62vw, 250px); max-width:none; margin-bottom:22px; }
 .hw.full .pm-time { font-size:clamp(46px, 13vw, 78px); }
 .hw.full .pm-fase { font-size:12px; letter-spacing:.2em; margin-top:10px; }
@@ -9403,7 +9407,7 @@ window.addEventListener('resize', function () {
 .hw.full .pm-ciclos { font-size:12px; margin-top:14px; }
 .hw.full .pm-cfg-link { margin-top:18px; padding:12px; font-size:12.5px; }
 @media (min-width:900px) {
-  .hw.full .hw-body > * { max-width:400px; }
+  .hw.full .pm-wrap { max-width:400px; }
   .hw.full .pm-ring { width:270px; height:270px; margin-bottom:26px; }
 }
 
@@ -9553,7 +9557,7 @@ function hubAbrir(id) {
   el.innerHTML =
     '<div class="hw-bar" id="hwbar-' + id + '">' +
       '<strong>' + tool.nome + '</strong>' +
-      '<button class="hw-btn" onclick="hubModo(\'' + id + '\',\'full\')" title="Tela cheia">⛶</button>' +
+      '<button class="hw-btn" onclick="hubToggleFull(\'' + id + '\')" title="Tela cheia">⛶</button>' +
       '<button class="hw-btn" onclick="hubModo(\'' + id + '\',\'min\')" title="Encolher">&minus;</button>' +
       '<button class="hw-btn x" onclick="hubFechar(\'' + id + '\')" title="Fechar">&times;</button>' +
       '<div class="hw-mini" id="hwmini-' + id + '"><b id="hwminitxt-' + id + '">--</b><span>FOCO</span></div>' +
@@ -9604,6 +9608,12 @@ function hubModo(id, modo) {
   el.classList.add(modo);
   j.modo = modo;
 
+  // Garantia extra: estilo inline vence a cascata. O layout já é imune
+  // via .pm-wrap, mas isso elimina qualquer chance de a direção do flex
+  // ser sobrescrita por regra que eu não consiga observar daqui.
+  var corpo = el.querySelector('.hw-body');
+  if (corpo) corpo.style.flexDirection = (modo === 'full') ? 'column' : '';
+
   if (modo === 'full') {
     var area = hubAreaUtil();
     el.style.left = area.x + 'px';  el.style.top = area.y + 'px';
@@ -9641,6 +9651,13 @@ function hubModo(id, modo) {
   }, 470);
 
   if (id === 'pomodoro') pmAtualizarMini();
+}
+
+// ⛶ alterna: em tela cheia volta pro PiP, fora dela expande
+function hubToggleFull(id) {
+  var j = HUB.janelas[id];
+  if (!j) return;
+  hubModo(id, j.modo === 'full' ? 'pip' : 'full');
 }
 
 // Área útil do app (desconta topbar e a nav quando é barra inferior)
@@ -9874,7 +9891,10 @@ function pmVista() {
 }
 
 function pmHtmlTimer() {
-  return '<div class="pm-ring">' +
+  // Tudo dentro de UM invólucro: com um único filho, a direção do flex
+  // do .hw-body deixa de importar — centraliza igual em row ou column.
+  return '<div class="pm-wrap">' +
+    '<div class="pm-ring">' +
       '<svg viewBox="0 0 150 150" preserveAspectRatio="xMidYMid meet">' +
         '<circle cx="75" cy="75" r="66" fill="none" stroke="rgba(76,175,80,.12)" stroke-width="8"/>' +
         '<circle id="pmArc" cx="75" cy="75" r="66" fill="none" stroke="#4caf50" stroke-width="8" ' +
@@ -9900,13 +9920,15 @@ function pmHtmlTimer() {
       '<button onclick="pmReset()">Zerar</button>' +
     '</div>' +
     '<div class="pm-ciclos" id="pmCiclos"></div>' +
-    '<button class="pm-cfg-link" onclick="pmAbrirConfig()">⚙ Sons do ciclo</button>';
+    '<button class="pm-cfg-link" onclick="pmAbrirConfig()">⚙ Sons do ciclo</button>' +
+  '</div>';
 }
 
 function pmHtmlConfig() {
   var cfg = pmCfg();
   var rotulo = { suave:'Suave', sino:'Sino', alerta:'Alerta', agua:'Água', vitoria:'Vitória', nenhum:'Sem som' };
-  return '<div class="pm-cfg-head">' +
+  return '<div class="pm-wrap">' +
+    '<div class="pm-cfg-head">' +
       '<button class="pm-volta" onclick="pmFecharConfig()">‹</button>' +
       '<strong>Sons do ciclo</strong>' +
     '</div>' +
@@ -9927,7 +9949,8 @@ function pmHtmlConfig() {
           'oninput="pmSetSom(\'' + ev.k + '\',\'vol\',this.value/100)">' +
       '</div>';
     }).join('') +
-    '<button class="pm-cfg-link" onclick="pmFecharConfig()">Concluído</button>';
+    '<button class="pm-cfg-link" onclick="pmFecharConfig()">Concluído</button>' +
+  '</div>';
 }
 
 function pmAbrirConfig()  { PM.painel = true;  pmVista(); }
