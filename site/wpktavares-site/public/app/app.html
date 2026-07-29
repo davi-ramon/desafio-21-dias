@@ -2174,34 +2174,82 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 .bia-fab.hidden { display: none; }
 /* Sobe o botão quando mini player está ativo */
 .has-miniplayer .bia-fab { bottom: 158px; }
+/* v115: o widget do GPT Maker pede min-height 700px no snippet oficial.
+   Com 540px o iframe abria em branco. No celular vira folha quase cheia
+   (que também é o formato de conversa que o Davi quer). */
 .bia-modal {
-  position: fixed; bottom: 156px; right: 12px; z-index: 401;
-  width: calc(100vw - 24px); max-width: 380px;
-  height: 540px; border-radius: 20px;
-  background: #ffffff; border: 1px solid rgba(76,175,80,.3);
-  box-shadow: 0 16px 48px rgba(0,0,0,.4);
+  position: fixed; bottom: 12px; right: 12px; left: 12px; z-index: 401;
+  width: auto; max-width: 400px; margin-left: auto;
+  height: min(700px, calc(100dvh - 96px));
+  border-radius: 18px;
+  background: #0b141a; border: 1px solid rgba(76,175,80,.3);
+  box-shadow: 0 16px 48px rgba(0,0,0,.55);
   display: flex; flex-direction: column; overflow: hidden;
   animation: bia-in .25s cubic-bezier(.22,1,.36,1) both;
 }
+@media (max-width: 640px) {
+  .bia-modal { left: 0; right: 0; bottom: 0; max-width: none; border-radius: 16px 16px 0 0;
+    height: calc(100dvh - 58px); }
+}
+@media (min-width: 1024px) {
+  .bia-modal { bottom: 16px; right: 16px; left: auto; }
+}
 /* Sobe modal quando mini player ativo */
-.has-miniplayer .bia-modal { bottom: 228px; }
+.has-miniplayer .bia-modal { bottom: 84px; }
+@media (max-width: 640px) { .has-miniplayer .bia-modal { bottom: 0; } }
 @keyframes bia-in {
   from { opacity:0; transform: translateY(20px) scale(.95); }
   to   { opacity:1; transform: translateY(0)   scale(1); }
 }
+/* Cabeçalho no tom do WhatsApp escuro */
 .bia-modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; background: #2e7d32;
-  border-bottom: 1px solid rgba(0,0,0,.08);
-  font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; background: #1f2c34;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  font-size: 13.5px; font-weight: 600; color: #e9edef; flex-shrink: 0;
 }
+.bia-modal-header .bia-hd-av { width: 34px; height: 34px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0; background: #25d366; }
+.bia-modal-header .bia-hd-txt { flex: 1; min-width: 0; line-height: 1.25; }
+.bia-modal-header .bia-hd-txt small { display: block; font-size: 11px;
+  font-weight: 400; color: #8696a0; }
 .bia-modal-header button {
-  background: rgba(255,255,255,.2); border: none; color: #fff;
-  font-size: 16px; cursor: pointer; padding: 2px 8px; border-radius: 20px;
-  line-height: 1.4;
+  background: transparent; border: none; color: #aebac1;
+  font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 50%;
+  line-height: 1; flex-shrink: 0;
 }
-.bia-modal-header button:hover { background: rgba(255,255,255,.35); }
-.bia-iframe { flex: 1; border: none; width: 100%; background: #fff; }
+.bia-modal-header button:hover { background: rgba(255,255,255,.1); color: #fff; }
+.bia-iframe { flex: 1; border: none; width: 100%; min-height: 0; background: #0b141a; }
+
+/* Aviso quando o widget não consegue carregar (bloqueio de terceiros) */
+.bia-fallback { padding: 26px 22px; text-align: center; color: #e9edef;
+  display: none; flex-direction: column; align-items: center; gap: 12px; }
+.bia-fallback.on { display: flex; }
+.bia-fallback p { font-size: 13px; line-height: 1.6; color: #8696a0; }
+.bia-fallback a { display: inline-block; background: #25d366; color: #0b141a;
+  font-weight: 700; font-size: 13px; text-decoration: none;
+  padding: 11px 20px; border-radius: 10px; }
+
+/* Balão proativo — fica FORA do iframe, é automação nossa */
+.bia-bubble {
+  position: fixed; z-index: 402; right: 80px; bottom: 92px;
+  max-width: min(258px, calc(100vw - 110px));
+  background: #1f2c34; color: #e9edef;
+  border: 1px solid rgba(76,175,80,.28); border-radius: 14px 14px 4px 14px;
+  padding: 12px 14px; font-size: 13px; line-height: 1.5; cursor: pointer;
+  box-shadow: 0 10px 34px rgba(0,0,0,.55);
+  animation: bia-bub-in .42s cubic-bezier(.22,1,.36,1) both;
+}
+.bia-bubble.saindo { animation: bia-bub-out .3s ease both; }
+@keyframes bia-bub-in  { from{opacity:0; transform:translateY(10px) scale(.9)} to{opacity:1; transform:none} }
+@keyframes bia-bub-out { to{opacity:0; transform:translateY(6px) scale(.94)} }
+.bia-bubble b { color: #6dde71; }
+.bia-bubble .bia-bub-x { position: absolute; top: -8px; right: -8px;
+  width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(255,255,255,.16);
+  background: #0b141a; color: #8696a0; font-size: 12px; line-height: 1;
+  display: flex; align-items: center; justify-content: center; }
+.bia-bubble .bia-bub-x:hover { color: #fff; }
+.has-miniplayer .bia-bubble { bottom: 164px; }
 /* Grupo: espaço extra quando mini player cobre o input */
 .has-miniplayer #commGrupo { padding-bottom: 70px; }
 
@@ -7611,13 +7659,25 @@ function _leitHandleBack() {
 </div>
 <div id="biaModal" class="bia-modal hidden" style="display:none">
   <div class="bia-modal-header">
-    <span>✨ Bia — Assistente do Desafio</span>
+    <img id="biaHdAv" class="bia-hd-av" src="" alt=""
+         onerror="this.style.visibility='hidden'">
+    <div class="bia-hd-txt">
+      Bia
+      <small id="biaHdSub">Assistente do Desafio · online</small>
+    </div>
+    <button onclick="_biaNovaAba()" aria-label="Abrir em nova aba" title="Abrir em nova aba">⧉</button>
     <button onclick="_biaClose()" aria-label="Fechar">✕</button>
+  </div>
+  <div class="bia-fallback" id="biaFallback">
+    <div style="font-size:34px">💬</div>
+    <p>Seu navegador está bloqueando o chat dentro do app.<br>
+       Abra numa aba separada para conversar com a Bia.</p>
+    <a id="biaAbrirAba" href="#" target="_blank" rel="noopener">Abrir conversa</a>
   </div>
   <iframe
     id="biaFrame"
     src=""
-    allow="microphone;"
+    allow="microphone; clipboard-write; autoplay"
     frameborder="0"
     class="bia-iframe"
     title="Bia Assistente">
@@ -7710,15 +7770,110 @@ var _biaOpen = false, _biaForced = false, _biaDragging = false;
 function _biaShow() { _biaForced=false; var b=document.getElementById('biaBtn'); if(b) b.classList.remove('hidden'); }
 function _biaHide() { _biaForced=true; _biaClose(); var b=document.getElementById('biaBtn'); if(b) b.classList.add('hidden'); }
 function _biaToggle() { if (_biaDragging) return; if (_biaOpen) _biaClose(); else _biaOpenModal(); }
+var BIA_URL = 'https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/iframe';
+
 function _biaOpenModal() {
   _biaOpen = true;
+  _biaFecharBalao();
   var m = document.getElementById('biaModal');
   if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
+
+  // avatar da Bia no cabeçalho reusa a foto do botão flutuante
+  var av = document.getElementById('biaHdAv');
+  var fab = document.getElementById('biaFabPhoto');
+  if (av && fab && fab.src && !av.src) av.src = fab.src;
+
+  var link = document.getElementById('biaAbrirAba');
+  if (link) link.href = BIA_URL;
+
   var frame = document.getElementById('biaFrame');
   if (frame && !frame.src) {
-    frame.src = 'https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/iframe';
+    frame.src = BIA_URL;
+    // Se o widget nem chegar a carregar (bloqueio de terceiros/rede),
+    // mostra a saída em aba separada em vez de deixar o painel vazio.
+    var carregou = false;
+    frame.addEventListener('load', function () { carregou = true; }, { once: true });
+    setTimeout(function () {
+      if (!carregou) {
+        var fb = document.getElementById('biaFallback');
+        if (fb) fb.classList.add('on');
+        frame.style.display = 'none';
+      }
+    }, 9000);
   }
 }
+
+// Escape manual: se o widget carregar mas renderizar vazio, não há como
+// detectar de fora (o iframe é de outro domínio). Este botão sempre serve.
+function _biaNovaAba() {
+  window.open(BIA_URL, '_blank', 'noopener');
+}
+
+// ── Balão proativo (automação nossa, fora do iframe) ────────
+var _biaBalaoTimer = null;
+
+function _biaPrimeiroNome() {
+  var n = '';
+  try {
+    n = (typeof APP !== 'undefined' && (APP.userName || (APP.data && APP.data.nome))) || '';
+    if (!n) n = (JSON.parse(sessionStorage.getItem('crm_user') || '{}').name) || '';
+  } catch (e) {}
+  return String(n || '').trim().split(' ')[0] || '';
+}
+
+function _biaMostrarBalao() {
+  if (_biaOpen || document.getElementById('biaBubble')) return;
+  var btn = document.getElementById('biaBtn');
+  if (!btn || btn.classList.contains('hidden')) return;
+  try { sessionStorage.setItem('bia_balao', '1'); } catch (e) {}
+
+  var nome = _biaPrimeiroNome();
+  var el = document.createElement('div');
+  el.className = 'bia-bubble';
+  el.id = 'biaBubble';
+  el.innerHTML =
+    '<button class="bia-bub-x" onclick="event.stopPropagation();_biaFecharBalao()" aria-label="Dispensar">✕</button>' +
+    'Oi' + (nome ? ', <b>' + escH(nome) + '</b>' : '') + '! 👋<br>Precisa de ajuda com alguma coisa?';
+  el.onclick = function () { _biaFecharBalao(); _biaOpenModal(); };
+  document.body.appendChild(el);
+
+  // ancora no botão real — ele pode ter sido arrastado para outro canto
+  try {
+    var r = btn.getBoundingClientRect();
+    el.style.bottom = Math.max(12, window.innerHeight - r.top + 8) + 'px';
+    if (r.left < window.innerWidth / 2) {          // botão à esquerda
+      el.style.left = Math.max(12, r.left) + 'px';
+      el.style.right = 'auto';
+      el.style.borderRadius = '14px 14px 14px 4px';
+    } else {
+      el.style.right = Math.max(12, window.innerWidth - r.right) + 'px';
+      el.style.left = 'auto';
+    }
+  } catch (e) {}
+
+  _biaBalaoTimer = setTimeout(_biaFecharBalao, 15000);   // some após 15s
+}
+
+function _biaFecharBalao() {
+  clearTimeout(_biaBalaoTimer);
+  var el = document.getElementById('biaBubble');
+  if (!el) return;
+  el.classList.add('saindo');
+  setTimeout(function () { if (el.parentNode) el.remove(); }, 310);
+}
+
+// Dispara 10s depois que o aluno chega no Início — uma vez por sessão
+(function () {
+  var t = setInterval(function () {
+    var jaFoi = false;
+    try { jaFoi = sessionStorage.getItem('bia_balao') === '1'; } catch (e) {}
+    if (jaFoi) { clearInterval(t); return; }
+    if (typeof APP !== 'undefined' && APP.token && APP.page === 'inicio') {
+      clearInterval(t);
+      setTimeout(_biaMostrarBalao, 10000);
+    }
+  }, 1500);
+})();
 function _biaClose() {
   _biaOpen = false;
   var m = document.getElementById('biaModal');
