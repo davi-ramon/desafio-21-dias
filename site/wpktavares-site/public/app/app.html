@@ -2194,7 +2194,7 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 .bia-modal {
   position: fixed; z-index: 401;
   left: 10px; right: 10px; bottom: 84px;
-  max-width: 420px; margin-left: auto;
+  max-width: 580px; margin-left: auto;
   height: min(600px, calc(100dvh - 170px));
   display: flex;
 }
@@ -2207,7 +2207,7 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 }
 .has-miniplayer .bia-modal { bottom: 152px; height: min(560px, calc(100dvh - 240px)); }
 @media (min-width: 1024px) {
-  .bia-modal { left: auto; right: 20px; bottom: 20px; width: 420px;
+  .bia-modal { left: auto; right: 20px; bottom: 20px; width: 580px;
     height: min(640px, calc(100dvh - 110px)); }
   .has-miniplayer .bia-modal { bottom: 100px; }
 }
@@ -2232,7 +2232,13 @@ input[type=range].adm-slider::-webkit-slider-thumb {
   transition: background .2s;
 }
 .bia-modal-header button:hover { background: rgba(0,0,0,.28); }
-.bia-iframe { flex: 1; border: none; width: 100%; min-height: 0; background: #fff; }
+/* v119: o widget tem largura mínima interna própria — abaixo dela ele
+   estoura e cria barra horizontal. Em vez de brigar com isso, o iframe
+   é renderizado numa largura confortável e reduzido por transform até
+   caber. O wrapper recorta o excedente. */
+.bia-frame-wrap { flex: 1; min-height: 0; position: relative; overflow: hidden; background: #fff; }
+.bia-iframe { position: absolute; top: 0; left: 0; border: none;
+  width: 100%; height: 100%; transform-origin: 0 0; background: #fff; }
 
 /* Aviso quando o widget não consegue carregar (bloqueio de terceiros) */
 .bia-fallback { padding: 26px 22px; text-align: center; color: #1a1a1a;
@@ -7703,16 +7709,16 @@ function _leitHandleBack() {
     <!-- about:blank (e NÃO src="") porque iframe.src de um src vazio
          resolve para a URL da própria página — a checagem !frame.src
          dava falso e o widget nunca era carregado. -->
-    <iframe
-      id="biaFrame"
-      src="about:blank"
-      width="100%"
-      style="height:100%;min-height:500px"
-      allow="microphone;"
-      frameborder="0"
-      class="bia-iframe"
-      title="Bia Assistente">
-    </iframe>
+    <div class="bia-frame-wrap" id="biaFrameWrap">
+      <iframe
+        id="biaFrame"
+        src="about:blank"
+        allow="microphone;"
+        frameborder="0"
+        class="bia-iframe"
+        title="Bia Assistente">
+      </iframe>
+    </div>
   </div>
 </div>
 
@@ -7809,6 +7815,8 @@ function _biaOpenModal() {
   _biaFecharBalao();
   var m = document.getElementById('biaModal');
   if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
+  // espera o layout assentar antes de medir para calcular a escala
+  requestAnimationFrame(_biaAjustarEscala);
 
   // avatar da Bia no cabeçalho reusa a foto do botão flutuante
   var av = document.getElementById('biaHdAv');
@@ -7840,6 +7848,36 @@ function _biaOpenModal() {
 }
 
 
+
+// Largura interna em que o widget renderiza sem estourar. Se ainda
+// sobrar barra horizontal, é só aumentar este número.
+var BIA_LARGURA_INTERNA = 560;
+
+// Renderiza o iframe em BIA_LARGURA_INTERNA e reduz por transform até
+// caber. Onde já cabe (desktop), roda em escala 1 — nítido, sem truque.
+function _biaAjustarEscala() {
+  var wrap  = document.getElementById('biaFrameWrap');
+  var frame = document.getElementById('biaFrame');
+  if (!wrap || !frame) return;
+
+  var disp = wrap.clientWidth, alt = wrap.clientHeight;
+  if (!disp || !alt) return;
+
+  var esc = Math.min(1, disp / BIA_LARGURA_INTERNA);
+  if (esc >= 0.999) {
+    frame.style.width = '100%';
+    frame.style.height = '100%';
+    frame.style.transform = '';
+  } else {
+    frame.style.width  = BIA_LARGURA_INTERNA + 'px';
+    frame.style.height = (alt / esc) + 'px';
+    frame.style.transform = 'scale(' + esc.toFixed(4) + ')';
+  }
+}
+
+window.addEventListener('resize', function () {
+  if (_biaOpen) _biaAjustarEscala();
+});
 
 // ── Balão proativo (automação nossa, fora do iframe) ────────
 var _biaBalaoTimer = null;
