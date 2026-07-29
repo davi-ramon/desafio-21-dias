@@ -9,6 +9,10 @@
 >
 > **Nos primeiros 10 segundos ela SEMPRE está fazendo alguma coisa com as mãos.**
 > Isso divide a atenção de quem assiste e quebra o padrão de rolagem.
+>
+> **Todo roteiro fecha com um CTA falado, ANTES do corte de loop.** Reels/Shorts
+> desativam link em comentário fixado — o CTA sempre aponta para o **link na bio**.
+> Ela aponta ou mostra o celular no gesto, para reforçar visualmente o clique.
 
 ---
 
@@ -58,11 +62,13 @@ O movimento do líquido é o que segura o olho. Ela **não olha** para a xícara
 | 23,0 – 27,0s | Ela mostra o celular com o app aberto, tela dos pilares | "Quem me organiza isso é o Desafio 21 Dias." |
 | 27,0 – 31,0s | Close na tela: os pilares sendo marcados | "Ele me dá a ordem. Eu só executo e marco." |
 | 31,0 – 35,0s | Ela volta o olhar pra câmera, tranquila | "Estou no dia oitenta e três. Sem falhar." |
-| 35,0 – 38,0s | Ela levanta a xícara de leve, quase brindando | "E o café? Virou recompensa. Por isso…" |
-| **Loop** | Corta seco para o frame inicial | *(engata em "Eu parei de tomar café assim que acordo")* |
+| 35,0 – 38,0s | Ela levanta a xícara de leve, quase brindando | "E o café? Virou recompensa." |
+| **38,0 – 41,0s** | **CTA.** Ela pousa a xícara, pega o celular e aponta o dedo pra tela, olhando pra câmera | **"Tem o link na minha bio. Clica e começa o seu Dia 1 hoje."** |
+| **Loop** | Corta seco para o frame inicial | *(reinicia em "Eu parei de tomar café assim que acordo")* |
 
 **Por que funciona:** a primeira frase contraria um hábito que todo mundo tem.
 Enquanto o cérebro tenta processar "por que ela parou?", os olhos ficam presos no café caindo.
+O CTA chega só depois que a história fechou — ninguém sente que está sendo vendido antes disso.
 
 ---
 
@@ -96,11 +102,13 @@ Não precisa disfarçar o cansaço — ele é parte do efeito.
 | 25,0 – 29,0s | Ela vira o celular e mostra rapidamente o app | "O Desafio 21 Dias já me entrega o áudio pronto." |
 | 29,0 – 33,0s | Close na tela: o pilar de áudio marcado | "Quando eu chego em casa, dois pilares já estão feitos." |
 | 33,0 – 37,0s | Ela diminui o passo, olhar firme | "Não é sobre andar. É sobre chegar decidida." |
-| 37,0 – 40,0s | Ela dá um passo à frente, quase saindo do quadro | "Por isso eu digo que…" |
-| **Loop** | Corte seco para o frame inicial | *(engata em "Isso aqui não é exercício")* |
+| 37,0 – 40,0s | Ela para, olha de frente pra câmera | "E isso mudou tudo pra mim." |
+| **40,0 – 43,0s** | **CTA.** Ela aponta pra baixo/pro perfil, sorrindo | **"O link tá na minha bio. Clica e começa também."** |
+| **Loop** | Corte seco para o frame inicial | *(reinicia em "Isso aqui não é exercício")* |
 
 **Por que funciona:** ela nega o óbvio no primeiro segundo ("não é exercício") e o fundo em
 movimento constante impede o olho de descansar. A respiração real dá autenticidade.
+Parar de andar no CTA é o próprio corte visual que sinaliza "presta atenção, isso é importante".
 
 ---
 
@@ -134,11 +142,13 @@ com o tom da fala — o corpo dela conta a história junto.
 | 26,0 – 30,0s | Ela mostra a sequência de dias | "Oitenta e três dias. Dá pra ver o histórico inteiro." |
 | 30,0 – 34,0s | Ela para a esteira, respiração calma, olhar firme | "Ver a sequência é o que me impede de quebrar ela." |
 | 34,0 – 38,0s | Ela desce da esteira, pega a toalha | "Então não, não é sobre estética." |
-| 38,0 – 41,0s | Ela olha pra câmera e sorri de canto | "É sobre provar pra mim que eu cumpro. Porque…" |
-| **Loop** | Corte seco para o frame inicial | *(engata em "Eu não venho aqui pelo corpo")* |
+| 38,0 – 41,0s | Ela olha pra câmera e sorri de canto | "É sobre provar pra mim que eu cumpro." |
+| **41,0 – 44,0s** | **CTA.** Ela pega o celular parado no painel e aponta pra tela | **"O link do app tá na bio. Clica agora e começa."** |
+| **Loop** | Corte seco para o frame inicial | *(reinicia em "Eu não venho aqui pelo corpo")* |
 
 **Por que funciona:** ofegante = urgência real, o corpo entrega antes da fala.
 A queda de ritmo ao longo do vídeo faz a pessoa ficar até o fim quase sem perceber.
+O celular já estava no enquadramento desde o início — pegá-lo no CTA não parece um corte forçado.
 
 ---
 
@@ -172,11 +182,13 @@ afasta o celular, acende a luminária, abre o caderno. Termina de montar por vol
 | 30,0 – 34,0s | Ela recosta na cadeira, olhando pra câmera | "Parar na hora certa é o que me faz voltar inteira." |
 | 34,0 – 38,0s | Plano mais aberto, mesa organizada, luz bonita | "É o mesmo app que organiza a minha manhã." |
 | 38,0 – 42,0s | Ela sorri, gesto de "é isso" | "Desafio 21 Dias. Manhã e trabalho no mesmo lugar." |
-| 42,0 – 45,0s | Ela volta pro notebook, começa a digitar | "Porque no fim das contas…" |
-| **Loop** | Corte seco para o frame inicial | *(engata em "Eu tenho noventa minutos por dia")* |
+| 42,0 – 45,0s | Ela olha pra câmera, tom mais leve | "E fez muito mais diferença do que eu esperava." |
+| **45,0 – 48,0s** | **CTA.** Ela vira a tela do celular pra câmera, mostrando o app, e aponta com o dedo | **"O link tá na bio. Clica e organiza sua rotina também."** |
+| **Loop** | Corte seco para o frame inicial | *(reinicia em "Eu tenho noventa minutos por dia")* |
 
 **Por que funciona:** o número específico no primeiro segundo cria uma âncora concreta.
 Montar a mesa dá ao olho algo para acompanhar enquanto o ouvido processa a dor.
+Virar a tela do celular no CTA é a prova visual de que o app existe de verdade — não é só discurso.
 
 ---
 
@@ -185,9 +197,14 @@ Montar a mesa dá ao olho algo para acompanhar enquanto o ouvido processa a dor.
 Os quatro já nascem prontos para as duas coisas. Para subir como anúncio:
 
 1. **Não mude o começo.** O gancho é o que compra a atenção no leilão.
-2. Corte o loop final e substitua por 2 segundos com o nome do app e o botão.
+2. O CTA falado já está pronto — em anúncio, ele casa com o **botão nativo** do Meta/TikTok
+   Ads ("Saiba mais" / "Instalar"), que aparece bem na hora da fala do CTA. No orgânico,
+   é o "link na bio" que faz esse papel.
 3. Teste primeiro o **Roteiro 3 (academia)** e o **Roteiro 1 (café)** — são os de gancho mais forte.
 4. Suba os quatro no mesmo conjunto de anúncios e deixe o algoritmo escolher.
+
+**Antes de publicar:** trocar "o link na minha bio" pelo link real de afiliada da Leide
+em cada legenda/bio — o roteiro fala genérico de propósito, o link concreto vai no perfil.
 
 ## Ordem sugerida de gravação
 
