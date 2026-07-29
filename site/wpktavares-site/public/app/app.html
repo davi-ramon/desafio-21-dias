@@ -9381,10 +9381,31 @@ window.addEventListener('resize', function () {
 
 /* tela cheia — ocupa a área útil do app */
 .hw.full { border-radius:0; box-shadow:none;
-  background:rgba(8,13,10,.97); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); }
+  background:radial-gradient(ellipse 70% 50% at 50% 0%, rgba(76,175,80,.06), transparent 70%),
+             rgba(8,13,10,.98);
+  backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px);
+  display:flex; flex-direction:column; }
 .hw.full .hw-resize { display:none; }
-.hw.full .hw-body { max-height:none; display:flex; align-items:center; justify-content:center; }
-.hw.full .hw-body > * { width:100%; max-width:380px; }
+/* flex-direction:column é essencial — sem ele o padrão 'row' jogava
+   anel, presets, ciclos e botões lado a lado e quebrava o layout */
+.hw.full .hw-body { flex:1; min-height:0; overflow-y:auto;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:4px; padding:28px 22px 42px; }
+.hw.full .hw-body > * { width:100%; max-width:360px; flex:0 0 auto; }
+.hw.full .pm-ring { width:min(62vw, 250px); height:min(62vw, 250px); max-width:none; margin-bottom:22px; }
+.hw.full .pm-time { font-size:clamp(46px, 13vw, 78px); }
+.hw.full .pm-fase { font-size:12px; letter-spacing:.2em; margin-top:10px; }
+.hw.full .pm-presets, .hw.full .pm-acts { gap:9px; }
+.hw.full .pm-presets button { padding:11px 0; font-size:12.5px; }
+.hw.full .pm-acts button { padding:15px; font-size:14px; }
+.hw.full .pm-ciclo-sel { margin-top:16px; }
+.hw.full .pm-ciclo-sel button { width:34px; height:34px; font-size:13px; }
+.hw.full .pm-ciclos { font-size:12px; margin-top:14px; }
+.hw.full .pm-cfg-link { margin-top:18px; padding:12px; font-size:12.5px; }
+@media (min-width:900px) {
+  .hw.full .hw-body > * { max-width:400px; }
+  .hw.full .pm-ring { width:270px; height:270px; margin-bottom:26px; }
+}
 
 /* alça de redimensionar (só no PiP) */
 .hw-resize { position:absolute; right:0; bottom:0; width:20px; height:20px;
@@ -9393,8 +9414,11 @@ window.addEventListener('resize', function () {
   width:8px; height:8px; border-right:2px solid rgba(109,222,113,.5);
   border-bottom:2px solid rgba(109,222,113,.5); border-radius:0 0 3px 0; }
 
-/* durante a transição de modo o conteúdo não deve "esticar" */
-.hw.morph .hw-body, .hw.morph .hw-bar { opacity:.001; transition:opacity .16s; }
+/* durante a transição o conteúdo some, senão o texto estica junto com
+   o scale do FLIP. A barra fica — perder o título no meio da animação
+   é pior que o leve esticão dela. */
+.hw-body { transition:opacity .24s ease; }
+.hw.morph .hw-body { opacity:0; }
 
 /* ── Pomodoro ── */
 .pm-time { font-family:'Bebas Neue',sans-serif; font-size:52px; line-height:1;
@@ -9403,7 +9427,9 @@ window.addEventListener('resize', function () {
   color:var(--green-l); font-weight:700; margin-top:6px; }
 .pm-fase.pausa { color:#f5c842; }
 .pm-ring { position:relative; width:150px; height:150px; margin:0 auto 6px; }
-.pm-ring svg { transform:rotate(-90deg); display:block; }
+/* viewBox + 100% deixam o anel acompanhar o tamanho do container,
+   que é o que permite ampliá-lo no modo tela cheia */
+.pm-ring svg { transform:rotate(-90deg); display:block; width:100%; height:100%; }
 .pm-ring .inner { position:absolute; inset:0; display:flex; flex-direction:column;
   align-items:center; justify-content:center; }
 .pm-acts { display:flex; gap:8px; margin-top:16px; }
@@ -9538,6 +9564,11 @@ function hubAbrir(id) {
   document.getElementById('hubDock').appendChild(el);
   HUB.janelas[id] = { el: el, modo: 'pip', tool: tool, antes: null };
 
+  // hwIn usa fill-mode 'both', então continuaria aplicando transform:none
+  // para sempre — e animação CSS vence estilo inline. Sem limpar isso, o
+  // FLIP da troca de modo nunca chega a valer.
+  setTimeout(function () { el.style.animation = 'none'; }, 380);
+
   hubArrastavel(el, document.getElementById('hwbar-' + id), id);
   hubRedimensionavel(el, document.getElementById('hwrz-' + id));
 
@@ -9560,6 +9591,7 @@ function hubModo(id, modo) {
   var j = HUB.janelas[id];
   if (!j || j.modo === modo) return;
   var el = j.el;
+  el.style.animation = 'none';                  // libera o transform p/ o FLIP
 
   var r0 = el.getBoundingClientRect();          // FIRST
 
@@ -9843,7 +9875,7 @@ function pmVista() {
 
 function pmHtmlTimer() {
   return '<div class="pm-ring">' +
-      '<svg width="150" height="150">' +
+      '<svg viewBox="0 0 150 150" preserveAspectRatio="xMidYMid meet">' +
         '<circle cx="75" cy="75" r="66" fill="none" stroke="rgba(76,175,80,.12)" stroke-width="8"/>' +
         '<circle id="pmArc" cx="75" cy="75" r="66" fill="none" stroke="#4caf50" stroke-width="8" ' +
           'stroke-linecap="round" stroke-dasharray="414.7" stroke-dashoffset="0" ' +
