@@ -1307,6 +1307,80 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 #medSession.med-paused .med-orb { animation-play-state: paused !important; }
 #medSession.med-paused .med-timer { color: var(--muted); }
 
+/* ── Exercício Físico (v121) — reusa .med-* para overlay, telas,
+   timer e conclusão. Só o que é genuinamente novo ganha classe própria. ── */
+#exoSession.med-paused .med-orb { animation-play-state: paused !important; }
+#exoSession.med-paused .med-timer { color: var(--muted); }
+#exoSession.med-paused .exo-figure { animation-play-state: paused !important; }
+
+.exo-chips { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center;
+  max-width: 340px; margin-top: 4px; }
+.exo-chip { padding: 11px 16px; border-radius: 12px; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+  background: var(--surface2); border: 1px solid var(--border2);
+  transition: background .18s, border-color .18s, transform .12s; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent; }
+.exo-chip:active { transform: scale(.96); }
+.exo-chip.on { background: var(--green-glow); border-color: var(--green); color: var(--green-l); }
+
+.exo-meta-card { width: 100%; max-width: 380px; background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 18px; padding: 22px; text-align: center; }
+.exo-meta-top { display: flex; align-items: center; gap: 14px; text-align: left; }
+.exo-meta-top > span { font-size: 34px; flex-shrink: 0; }
+.exo-meta-nome { font-size: 17px; font-weight: 800; color: var(--text2); }
+.exo-meta-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+.exo-stats-row { display: flex; gap: 8px; width: 100%; max-width: 380px; margin: 16px 0; }
+.exo-stats-row > div { flex: 1; text-align: center; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 6px; }
+.exo-stats-row b { display: block; font-size: 18px; font-weight: 800; color: var(--green-l); }
+.exo-stats-row span { display: block; font-size: 9.5px; color: var(--muted2);
+  letter-spacing: .05em; text-transform: uppercase; margin-top: 3px; }
+
+.exo-hist-title { width: 100%; max-width: 380px; font-size: 11px; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 6px 0 8px; }
+.exo-hist-empty { font-size: 12.5px; color: var(--muted2); margin: 10px 0; }
+.exo-hist-item { width: 100%; max-width: 380px; display: flex; align-items: center; gap: 12px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 11px 14px; margin-bottom: 8px; }
+.exo-hist-ico { font-size: 20px; flex-shrink: 0; }
+.exo-hist-info { flex: 1; min-width: 0; }
+.exo-hist-nome { font-size: 13px; font-weight: 700; color: var(--text2); }
+.exo-hist-det { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.exo-hist-ok { color: var(--green-l); font-weight: 800; flex-shrink: 0; }
+
+.exo-link-btn { background: none; border: none; color: var(--muted); font-size: 12px;
+  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; margin-top: 14px;
+  font-family: 'DM Sans', sans-serif; }
+
+.exo-anim-wrap { height: 74px; display: flex; align-items: center; justify-content: center;
+  margin-bottom: 6px; }
+.exo-figure { font-size: 52px; display: inline-block; }
+.exo-walk { animation: exoBounce .62s ease-in-out infinite alternate; }
+.exo-run  { animation: exoBounce .34s ease-in-out infinite alternate; }
+.exo-bike { animation: exoSpin 1.3s linear infinite; }
+.exo-pulse { animation: exoPulse 1.7s ease-in-out infinite; }
+@keyframes exoBounce { from { transform: translateY(0) rotate(-4deg); } to { transform: translateY(-9px) rotate(4deg); } }
+@keyframes exoSpin   { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes exoPulse  { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+
+.exo-live-stats { display: flex; gap: 8px; width: 100%; max-width: 340px; margin: 18px 0 14px; }
+.exo-live-stats > div { flex: 1; text-align: center; }
+.exo-live-stats b { display: block; font-size: 16px; font-weight: 800; color: var(--text2);
+  font-variant-numeric: tabular-nums; }
+.exo-live-stats span { display: block; font-size: 9px; color: var(--muted2);
+  letter-spacing: .05em; text-transform: uppercase; margin-top: 2px; }
+
+.exo-sensor-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px;
+  color: var(--muted); margin-bottom: 18px; }
+.exo-sensor-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted2);
+  flex-shrink: 0; transition: background .3s, box-shadow .3s; }
+.exo-sensor-dot.on { background: var(--green-l); box-shadow: 0 0 8px rgba(109,222,113,.7); }
+
+@media (prefers-reduced-motion: reduce) {
+  .exo-figure { animation: none !important; }
+}
+
 /* ── Conclusão ── */
 .med-complete-inner {
   flex: 1; display: flex; flex-direction: column;
@@ -3862,7 +3936,7 @@ function renderInicio() {
       <div class="pilar-list">
         ${_pilarItem('meditacao','🧘','Meditação','15 min guiados',          pilaresHoje, false, 'openMeditacao()',  pilarLocked('meditacao'))}
         ${_pilarItem('leitura',  '📖','Leitura',  '15 minutos',              pilaresHoje, false, 'openLeitura()',    pilarLocked('leitura'))}
-        ${_pilarItem('exercicio','🏃','Exercício Físico','15 minutos',       pilaresHoje, false, null,              pilarLocked('exercicio'))}
+        ${_pilarItem('exercicio','🏃','Exercício Físico','15 minutos',       pilaresHoje, false, 'openExercicio()', pilarLocked('exercicio'))}
         ${_pilarItem('audio',    '🎧','Áudio do Dia', d.audioUrlHoje ? escH(d.audioTituloHoje||'Ouça o áudio motivacional') : 'Não configurado', pilaresHoje, false, audioOnclick, pilarLocked('audio'))}
       </div>
       <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">${qtdFeitos} de 4 pilares concluídos hoje</div>
@@ -3950,7 +4024,7 @@ function renderRotina() {
     <div class="pilar-list">
       ${_pilarItem('meditacao','🧘','Meditação','15 min guiados', pilaresHoje, true, 'openMeditacao()', pilarLocked('meditacao'))}
       ${_pilarItem('leitura','📖','Leitura','15 minutos', pilaresHoje, true, 'openLeitura()', pilarLocked('leitura'))}
-      ${_pilarItem('exercicio','🏃','Exercício Físico','15 minutos', pilaresHoje, true, null, pilarLocked('exercicio'))}
+      ${_pilarItem('exercicio','🏃','Exercício Físico','15 minutos', pilaresHoje, true, 'openExercicio()', pilarLocked('exercicio'))}
       ${_pilarItem('audio','🎧','Áudio do Dia','Ouça o áudio motivacional', pilaresHoje, true, 'navigate(\'audios\')', pilarLocked('audio'))}
     </div>
   </div>`;
@@ -5804,6 +5878,101 @@ function appAlert(opts) {
   <audio id="medAudio" loop preload="none" style="display:none"></audio>
 
 </div><!-- /medOverlay -->
+
+<!-- ═══════════════════════════════════════════════════════════
+     EXERCÍCIO FÍSICO — mini Strava (v121)
+     Reusa .med-* para overlay/telas/timer/conclusão. Estrutura:
+     onboarding (1x) → home (meta+histórico) → sessão → conclusão.
+════════════════════════════════════════════════════════════ -->
+<div id="exoOverlay" class="med-overlay">
+
+  <button class="med-close-btn" id="exoCloseBtn" onclick="closeExercicio()" title="Fechar">✕</button>
+
+  <!-- ── Onboarding passo 1 — Atividade ── -->
+  <div id="exoOb1" class="med-screen">
+    <div class="med-step-content">
+      <div class="med-step-icon-wrap">🏃</div>
+      <div class="med-step-tag">Configuração · Passo 1 de 4</div>
+      <div class="med-step-title">Qual atividade você prefere?</div>
+      <div class="med-step-body">Isso personaliza a experiência — inclusive as métricas mostradas na sua sessão.</div>
+      <div class="exo-chips" id="exoOb1Chips"></div>
+    </div>
+    <div class="med-footer">
+      <button class="med-btn-next" onclick="exoOnboardNext(2)">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- ── Onboarding passo 2 — Ambiente ── -->
+  <div id="exoOb2" class="med-screen">
+    <div class="med-step-content">
+      <div class="med-step-icon-wrap">📍</div>
+      <div class="med-step-tag">Configuração · Passo 2 de 4</div>
+      <div class="med-step-title">Onde você costuma praticar?</div>
+      <div class="med-step-body">Define se usamos GPS (ao ar livre) ou o sensor de movimento (em casa/academia).</div>
+      <div class="exo-chips" id="exoOb2Chips"></div>
+    </div>
+    <div class="med-footer">
+      <button class="med-btn-back" onclick="showExoScreen('onboard1')">← Voltar</button>
+      <button class="med-btn-next" onclick="exoOnboardNext(3)">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- ── Onboarding passo 3 — Meta diária ── -->
+  <div id="exoOb3" class="med-screen">
+    <div class="med-step-content">
+      <div class="med-step-icon-wrap">🎯</div>
+      <div class="med-step-tag">Configuração · Passo 3 de 4</div>
+      <div class="med-step-title">Qual sua meta diária?</div>
+      <div class="med-step-body">A sessão encerra sozinha e marca seu pilar automaticamente ao bater esse tempo.</div>
+      <div class="exo-chips" id="exoOb3Chips"></div>
+    </div>
+    <div class="med-footer">
+      <button class="med-btn-back" onclick="showExoScreen('onboard2')">← Voltar</button>
+      <button class="med-btn-next" onclick="exoOnboardNext(4)">Próximo →</button>
+    </div>
+  </div>
+
+  <!-- ── Onboarding passo 4 — Objetivo ── -->
+  <div id="exoOb4" class="med-screen">
+    <div class="med-step-content">
+      <div class="med-step-icon-wrap">✨</div>
+      <div class="med-step-tag">Configuração · Passo 4 de 4</div>
+      <div class="med-step-title">Qual seu objetivo principal?</div>
+      <div class="med-step-body">Opcional — ajuda a gente a te mostrar as coisas certas no futuro.</div>
+      <div class="exo-chips" id="exoOb4Chips"></div>
+    </div>
+    <div class="med-footer">
+      <button class="med-btn-back" onclick="showExoScreen('onboard3')">← Voltar</button>
+      <button class="med-btn-start" onclick="exoFinalizarOnboard()">✦ COMEÇAR</button>
+    </div>
+  </div>
+
+  <!-- ── Home — painel do exercício ── -->
+  <div id="exoHome" class="med-screen">
+    <div class="med-step-content" style="padding-top:52px" id="exoHomeBody"></div>
+  </div>
+
+  <!-- ── Sessão ── -->
+  <div id="exoSession" class="med-screen">
+    <div class="med-ambient">
+      <div class="med-orb"></div>
+      <div class="med-orb"></div>
+      <div class="med-orb"></div>
+    </div>
+    <div class="med-session-inner" id="exoSessionBody"></div>
+  </div>
+
+  <!-- ── Conclusão ── -->
+  <div id="exoComplete" class="med-screen">
+    <div class="med-ambient">
+      <div class="med-orb"></div>
+      <div class="med-orb"></div>
+      <div class="med-orb"></div>
+    </div>
+    <div class="med-complete-inner" id="exoCompleteBody"></div>
+  </div>
+
+</div><!-- /exoOverlay -->
 
 <!-- ═══════════════════════════════════════════════════════════
      ADMIN SELECTOR — Aparece ao fazer login com conta admin
@@ -10840,6 +11009,488 @@ function specAplicarPreferencia() {
     };
   });
 })();
+</script>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// EXERCÍCIO FÍSICO — mini Strava (v121)
+// ════════════════════════════════════════════════════════════
+// LIMITE HONESTO (documentado aqui pra quem mexer depois): isto é
+// um app web. GPS e sensor de movimento só funcionam com o app
+// ABERTO e a tela LIGADA — não existe rastreamento em segundo
+// plano de verdade como um app nativo teria. Integrações com
+// Google Fit / Apple Health / wearables exigem um wrapper nativo
+// e ficam fora do alcance deste módulo (backlog).
+var EXO = {
+  perfil: null, onboardTemp: {}, screen: 'home',
+  running: false, paused: false, tickTimer: null,
+  startTs: 0, startISO: '', pausedAccumMs: 0, _pauseStart: 0,
+  elapsedSec: 0, metaSeg: 900,
+  distanciaM: 0, velAtualKmh: 0, velMaxKmh: 0,
+  lastPoint: null, routePoints: [], watchId: null,
+  motionListener: null, _motionBaseline: null, _motionLastPulse: 0, _motionDotTimer: null,
+  lastResult: null, historico: null
+};
+
+var EXO_KCAL_MIN = {
+  caminhada: 4, corrida: 10, bicicleta: 7, alongamento: 2.5,
+  casa: 5, funcional: 6, polichinelos: 7, flexoes: 6,
+  agachamentos: 6, estacionario: 5, outro: 5
+};
+
+var EXO_ATIVIDADES = [
+  { v: 'caminhada', l: 'Caminhada', i: '🚶' }, { v: 'corrida', l: 'Corrida', i: '🏃' },
+  { v: 'bicicleta', l: 'Bicicleta', i: '🚴' }, { v: 'casa', l: 'Exercícios em casa', i: '🏠' },
+  { v: 'alongamento', l: 'Alongamento', i: '🧘' }, { v: 'funcional', l: 'Funcional', i: '💪' },
+  { v: 'polichinelos', l: 'Polichinelos', i: '⭐' }, { v: 'flexoes', l: 'Flexões', i: '🔽' },
+  { v: 'agachamentos', l: 'Agachamentos', i: '🏋️' }, { v: 'estacionario', l: 'Estacionário', i: '📍' },
+  { v: 'outro', l: 'Outro', i: '✨' }
+];
+var EXO_AMBIENTES = [
+  { v: 'ar_livre', l: 'Ao ar livre', i: '🌳' }, { v: 'casa', l: 'Dentro de casa', i: '🏠' },
+  { v: 'academia', l: 'Academia', i: '🏋️' }, { v: 'tanto_faz', l: 'Tanto faz', i: '🤷' }
+];
+var EXO_METAS = [10, 15, 30, 45, 60];
+var EXO_OBJETIVOS = [
+  { v: 'saude', l: 'Melhorar saúde' }, { v: 'emagrecer', l: 'Emagrecer' },
+  { v: 'disciplina', l: 'Criar disciplina' }, { v: 'condicionamento', l: 'Ganhar condicionamento' },
+  { v: 'ansiedade', l: 'Reduzir ansiedade' }, { v: 'manter', l: 'Apenas manter rotina' }
+];
+var EXO_ANIM = {
+  caminhada: '<div class="exo-figure exo-walk">🚶</div>',
+  corrida:   '<div class="exo-figure exo-run">🏃</div>',
+  bicicleta: '<div class="exo-figure exo-bike">🚴</div>',
+  alongamento: '<div class="exo-figure exo-pulse">🧘</div>'
+};
+function exoMapa_(lista) {
+  var m = {}; lista.forEach(function (x) { m[x.v] = x; }); return m;
+}
+var EXO_ATIVIDADES_MAP = exoMapa_(EXO_ATIVIDADES);
+function exoAnimHtml(atv) { return EXO_ANIM[atv] || '<div class="exo-figure exo-pulse">💪</div>'; }
+
+// Fora do enquadramento outdoor/estacionário, decide qual sensor usar
+function exoEhOutdoor() {
+  if (!EXO.perfil) return false;
+  var atv = EXO.perfil.atividade;
+  var deslocamento = ['caminhada', 'corrida', 'bicicleta'].indexOf(atv) !== -1;
+  var ambienteFechado = EXO.perfil.ambiente === 'casa' || EXO.perfil.ambiente === 'academia';
+  return deslocamento && !ambienteFechado;
+}
+
+// ── Abrir / fechar ──────────────────────────────────────────
+async function openExercicio() {
+  if (!_checkPremium_()) return;
+  var ov = document.getElementById('exoOverlay');
+  ov.classList.add('open');
+  document.getElementById('mainScroll').style.overflow = 'hidden';
+  if (typeof _biaHide === 'function') _biaHide();
+
+  if (!EXO.perfil) {
+    try {
+      var r = await rpc('getExercicioPerfil', {});
+      if (r && r.ok) EXO.perfil = r.data;
+    } catch (e) {}
+  }
+  if (EXO.perfil) { showExoScreen('home'); exoRenderHome(); }
+  else { EXO.onboardTemp = {}; showExoScreen('onboard1'); exoRenderOnboard(); }
+}
+
+function closeExercicio() {
+  if (EXO.running) {
+    // sessão em andamento: confirma antes de fechar, não descarta silenciosamente
+    exoConfirmarSair();
+    return;
+  }
+  var ov = document.getElementById('exoOverlay');
+  ov.classList.remove('open');
+  document.getElementById('mainScroll').style.overflow = '';
+  if (typeof _biaShow === 'function') _biaShow();
+}
+
+function showExoScreen(name) {
+  EXO.screen = name;
+  var ids = { onboard1: 'exoOb1', onboard2: 'exoOb2', onboard3: 'exoOb3', onboard4: 'exoOb4',
+    home: 'exoHome', session: 'exoSession', complete: 'exoComplete' };
+  Object.keys(ids).forEach(function (k) {
+    var el = document.getElementById(ids[k]);
+    if (el) el.classList.toggle('med-screen--active', k === name);
+  });
+  var closeBtn = document.getElementById('exoCloseBtn');
+  if (closeBtn) closeBtn.style.display = (name === 'session') ? 'none' : '';
+}
+
+// ── Onboarding ──────────────────────────────────────────────
+function exoRenderOnboard() {
+  var t = EXO.onboardTemp;
+  document.getElementById('exoOb1Chips').innerHTML = EXO_ATIVIDADES.map(function (a) {
+    return '<button class="exo-chip' + (t.atividade === a.v ? ' on' : '') + '" onclick="exoPick(\'atividade\',\'' + a.v + '\')">' + a.i + ' ' + a.l + '</button>';
+  }).join('');
+  document.getElementById('exoOb2Chips').innerHTML = EXO_AMBIENTES.map(function (a) {
+    return '<button class="exo-chip' + (t.ambiente === a.v ? ' on' : '') + '" onclick="exoPick(\'ambiente\',\'' + a.v + '\')">' + a.i + ' ' + a.l + '</button>';
+  }).join('');
+  document.getElementById('exoOb3Chips').innerHTML = EXO_METAS.map(function (m) {
+    return '<button class="exo-chip' + (t.metaMinutos === m ? ' on' : (m === 15 && !t.metaMinutos ? ' on' : '')) + '" onclick="exoPick(\'metaMinutos\',' + m + ')">' + m + ' min</button>';
+  }).join('');
+  document.getElementById('exoOb4Chips').innerHTML = EXO_OBJETIVOS.map(function (o) {
+    return '<button class="exo-chip' + (t.objetivo === o.v ? ' on' : '') + '" onclick="exoPick(\'objetivo\',\'' + o.v + '\')">' + o.l + '</button>';
+  }).join('');
+}
+
+function exoPick(campo, valor) {
+  EXO.onboardTemp[campo] = valor;
+  exoRenderOnboard();
+}
+
+function exoOnboardNext(n) {
+  if (n === 2 && !EXO.onboardTemp.atividade) { toast('Escolha uma atividade.', 'error'); return; }
+  if (n === 3 && !EXO.onboardTemp.ambiente)  { toast('Escolha um ambiente.', 'error'); return; }
+  showExoScreen('onboard' + n);
+}
+
+async function exoFinalizarOnboard() {
+  var prefs = {
+    atividade:   EXO.onboardTemp.atividade || 'outro',
+    ambiente:    EXO.onboardTemp.ambiente || 'tanto_faz',
+    metaMinutos: EXO.onboardTemp.metaMinutos || 15,
+    objetivo:    EXO.onboardTemp.objetivo || ''
+  };
+  try { await rpc('salvarExercicioPerfil', prefs); } catch (e) {}
+  EXO.perfil = prefs;
+  showExoScreen('home');
+  exoRenderHome();
+}
+
+function exoAbrirPreferencias() {
+  EXO.onboardTemp = Object.assign({}, EXO.perfil);
+  showExoScreen('onboard1');
+  exoRenderOnboard();
+}
+
+// ── Home (painel) ────────────────────────────────────────────
+async function exoRenderHome() {
+  var box = document.getElementById('exoHomeBody');
+  box.innerHTML = '<div class="loading-center" style="height:120px"><div class="spinner"></div></div>';
+
+  var h = null;
+  try { var r = await rpc('getHistoricoExercicio', { limit: 3 }); if (r && r.ok) h = r; } catch (e) {}
+  EXO.historico = h;
+
+  var meta  = (EXO.perfil && EXO.perfil.metaMinutos) || 15;
+  var stats = (h && h.stats) || { totalSessoes: 0, totalMinutos: 0, totalKm: 0, sequencia: 0 };
+  var lista = (h && h.data) || [];
+  var info  = EXO_ATIVIDADES_MAP[EXO.perfil.atividade] || { l: 'Atividade', i: '🏃' };
+
+  box.innerHTML =
+    '<div class="exo-meta-card">' +
+      '<div class="exo-meta-top"><span>' + info.i + '</span><div>' +
+        '<div class="exo-meta-nome">' + info.l + '</div>' +
+        '<div class="exo-meta-sub">Meta de hoje: ' + meta + ' min</div>' +
+      '</div></div>' +
+      '<button class="med-btn-start" style="margin-top:16px;width:100%" onclick="exoIniciarSessao()">▶ INICIAR EXERCÍCIO</button>' +
+    '</div>' +
+    '<div class="exo-stats-row">' +
+      '<div><b>' + stats.sequencia + '</b><span>em sequência</span></div>' +
+      '<div><b>' + stats.totalSessoes + '</b><span>sessões</span></div>' +
+      '<div><b>' + stats.totalKm + '</b><span>km totais</span></div>' +
+    '</div>' +
+    (lista.length
+      ? '<div class="exo-hist-title">Últimas atividades</div>' + lista.map(exoHistItemHtml).join('')
+      : '<div class="exo-hist-empty">Sua primeira sessão aparece aqui.</div>') +
+    '<button class="exo-link-btn" onclick="exoAbrirPreferencias()">⚙ Mudar preferências</button>';
+}
+
+function exoHistItemHtml(s) {
+  var min  = Math.round((s.duracaoSeg || 0) / 60);
+  var info = EXO_ATIVIDADES_MAP[s.atividade] || { l: s.atividade, i: '🏃' };
+  var km   = s.distanciaM > 0 ? (s.distanciaM / 1000).toFixed(2) + ' km · ' : '';
+  return '<div class="exo-hist-item">' +
+    '<div class="exo-hist-ico">' + info.i + '</div>' +
+    '<div class="exo-hist-info"><div class="exo-hist-nome">' + info.l + '</div>' +
+      '<div class="exo-hist-det">' + km + min + ' min · ' + (s.caloriasEst || 0) + ' kcal</div></div>' +
+    (s.metaAtingida ? '<div class="exo-hist-ok">✓</div>' : '') +
+  '</div>';
+}
+
+// ── Sessão ───────────────────────────────────────────────────
+function exoIniciarSessao() {
+  EXO.elapsedSec = 0;
+  EXO.metaSeg = ((EXO.perfil && EXO.perfil.metaMinutos) || 15) * 60;
+  EXO.distanciaM = 0; EXO.velAtualKmh = 0; EXO.velMaxKmh = 0;
+  EXO.lastPoint = null; EXO.routePoints = [];
+  EXO.pausedAccumMs = 0; EXO.paused = false; EXO.running = true;
+  EXO.startTs = Date.now();
+  EXO.startISO = new Date().toISOString();
+
+  showExoScreen('session');
+  exoRenderSessionShell();
+  exoStartTracking();   // chamado de dentro do gesto do usuário — necessário no iOS p/ permissão de sensor
+
+  clearInterval(EXO.tickTimer);
+  EXO.tickTimer = setInterval(exoTick, 1000);
+  exoTick();
+}
+
+function exoRenderSessionShell() {
+  var outdoor = exoEhOutdoor();
+  document.getElementById('exoSessionBody').innerHTML =
+    '<div class="exo-anim-wrap">' + exoAnimHtml(EXO.perfil.atividade) + '</div>' +
+    '<div class="med-timer-wrap">' +
+      '<svg viewBox="0 0 140 140" width="140" height="140" class="med-timer-ring">' +
+        '<circle cx="70" cy="70" r="62" fill="none" stroke="rgba(76,175,80,0.10)" stroke-width="4"/>' +
+        '<circle cx="70" cy="70" r="62" fill="none" stroke="rgba(76,175,80,0.75)" stroke-width="4" ' +
+          'stroke-dasharray="389.6" stroke-dashoffset="0" stroke-linecap="round" ' +
+          'transform="rotate(-90 70 70)" id="exoTimerArc" class="med-timer-arc"/>' +
+      '</svg>' +
+      '<div class="med-timer" id="exoTimerDisp">' + _fmtTime(EXO.metaSeg) + '</div>' +
+    '</div>' +
+    '<div class="exo-live-stats" id="exoLiveStats"></div>' +
+    '<div class="exo-sensor-row" id="exoSensorRow">' +
+      '<span class="exo-sensor-dot" id="exoSensorDot"></span>' +
+      '<span id="exoSensorTxt">' + (outdoor ? 'Aguardando GPS…' : 'Sensor de movimento aguardando…') + '</span>' +
+    '</div>' +
+    '<div class="med-session-footer">' +
+      '<button class="med-pause-btn" id="exoPauseBtn" onclick="exoTogglePause()">' +
+        '<span id="exoPauseIcon">⏸</span><span id="exoPauseLabel">Pausar</span></button>' +
+      '<button class="med-exit-btn" onclick="exoConfirmarSair()">Encerrar sessão</button>' +
+    '</div>';
+  exoRenderLiveStats();
+}
+
+function exoTick() {
+  if (!EXO.running || EXO.paused) return;
+  var nowMs = Date.now();
+  EXO.elapsedSec = Math.floor((nowMs - EXO.startTs - EXO.pausedAccumMs) / 1000);
+  var restante = Math.max(0, EXO.metaSeg - EXO.elapsedSec);
+
+  var disp = document.getElementById('exoTimerDisp');
+  if (disp) disp.textContent = _fmtTime(restante);
+  var arc = document.getElementById('exoTimerArc');
+  if (arc) {
+    var frac = EXO.metaSeg > 0 ? Math.min(1, EXO.elapsedSec / EXO.metaSeg) : 0;
+    arc.style.strokeDashoffset = (389.6 * frac).toFixed(1);
+  }
+  exoRenderLiveStats();
+
+  if (EXO.elapsedSec >= EXO.metaSeg) exoFinalizar(true);
+}
+
+function exoRenderLiveStats() {
+  var el = document.getElementById('exoLiveStats');
+  if (!el) return;
+  var kcal = Math.round((EXO.elapsedSec / 60) * (EXO_KCAL_MIN[EXO.perfil.atividade] || 5));
+  var itens = [
+    { v: _fmtTime(EXO.elapsedSec), l: 'tempo' },
+    { v: kcal, l: 'kcal (est.)' }
+  ];
+  if (exoEhOutdoor()) {
+    itens.splice(1, 0, { v: (EXO.distanciaM / 1000).toFixed(2) + ' km', l: 'distância' });
+    itens.push({ v: EXO.velAtualKmh.toFixed(1) + ' km/h', l: 'velocidade' });
+  }
+  el.innerHTML = itens.map(function (i) { return '<div><b>' + i.v + '</b><span>' + i.l + '</span></div>'; }).join('');
+}
+
+// ── Rastreamento: GPS (outdoor) ou sensor de movimento (estacionário) ──
+function exoStartTracking() {
+  if (exoEhOutdoor() && navigator.geolocation) {
+    try {
+      EXO.watchId = navigator.geolocation.watchPosition(exoOnPos, exoOnGeoErr, {
+        enableHighAccuracy: true, maximumAge: 2000, timeout: 12000
+      });
+    } catch (e) { exoOnGeoErr(); }
+  } else {
+    exoStartMotion();
+  }
+}
+
+function exoStopTracking() {
+  if (EXO.watchId != null && navigator.geolocation) { navigator.geolocation.clearWatch(EXO.watchId); EXO.watchId = null; }
+  exoStopMotion();
+}
+
+function exoOnGeoErr() {
+  var txt = document.getElementById('exoSensorTxt');
+  if (txt) txt.textContent = 'Sem sinal de GPS — mantenha o app aberto e a tela ligada.';
+}
+
+function _exoHaversine(lat1, lng1, lat2, lng2) {
+  var R = 6371000, toRad = Math.PI / 180;
+  var dLat = (lat2 - lat1) * toRad, dLng = (lng2 - lng1) * toRad;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function exoOnPos(pos) {
+  var dot = document.getElementById('exoSensorDot');
+  var txt = document.getElementById('exoSensorTxt');
+  if (dot) dot.classList.add('on');
+  if (txt) txt.textContent = 'GPS ativo';
+
+  var p = { lat: pos.coords.latitude, lng: pos.coords.longitude, t: Date.now() };
+  if (EXO.lastPoint) {
+    var dt = (p.t - EXO.lastPoint.t) / 1000;
+    var d  = _exoHaversine(EXO.lastPoint.lat, EXO.lastPoint.lng, p.lat, p.lng);
+    var vKmh = dt > 0 ? (d / dt) * 3.6 : 0;
+    // filtra ruído de GPS: ignora saltos implausíveis pra atividade
+    var limite = (EXO.perfil.atividade === 'bicicleta') ? 60 : 40;
+    if (vKmh <= limite && d < 200) {
+      EXO.distanciaM += d;
+      EXO.velAtualKmh = (pos.coords.speed != null && pos.coords.speed >= 0) ? pos.coords.speed * 3.6 : vKmh;
+      if (EXO.velAtualKmh > EXO.velMaxKmh) EXO.velMaxKmh = EXO.velAtualKmh;
+    }
+  }
+  var ultimo = EXO.routePoints[EXO.routePoints.length - 1];
+  if (!ultimo || _exoHaversine(ultimo.lat, ultimo.lng, p.lat, p.lng) > 8 || (p.t - ultimo.t) > 8000) {
+    EXO.routePoints.push(p);
+    if (EXO.routePoints.length > 400) EXO.routePoints = EXO.routePoints.filter(function (_, i) { return i % 2 === 0; });
+  }
+  EXO.lastPoint = p;
+  exoRenderLiveStats();
+}
+
+// Sensor de movimento (estacionário): NÃO classifica o exercício, só
+// confirma que há movimento compatível — a meta é sempre por tempo.
+function exoStartMotion() {
+  var txt = document.getElementById('exoSensorTxt');
+  function attach() {
+    EXO._motionBaseline = null;
+    EXO._motionLastPulse = 0;
+    EXO.motionListener = function (e) {
+      var ac = e.accelerationIncludingGravity || e.acceleration;
+      if (!ac) return;
+      var mag = Math.sqrt((ac.x || 0) * (ac.x || 0) + (ac.y || 0) * (ac.y || 0) + (ac.z || 0) * (ac.z || 0));
+      if (EXO._motionBaseline == null) { EXO._motionBaseline = mag; return; }
+      var delta = Math.abs(mag - EXO._motionBaseline);
+      EXO._motionBaseline = EXO._motionBaseline * 0.9 + mag * 0.1;
+      var agora = Date.now();
+      if (delta > 2.2 && (agora - EXO._motionLastPulse) > 250) {
+        EXO._motionLastPulse = agora;
+        var dot = document.getElementById('exoSensorDot');
+        if (dot) {
+          dot.classList.add('on');
+          clearTimeout(EXO._motionDotTimer);
+          EXO._motionDotTimer = setTimeout(function () { dot.classList.remove('on'); }, 900);
+        }
+        if (txt) txt.textContent = 'Movimento detectado';
+      }
+    };
+    window.addEventListener('devicemotion', EXO.motionListener);
+  }
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission().then(function (resp) {
+      if (resp === 'granted') attach();
+      else if (txt) txt.textContent = 'Sensor não autorizado — a sessão segue pelo tempo normalmente.';
+    }).catch(function () { if (txt) txt.textContent = 'Sensor indisponível neste aparelho.'; });
+  } else if (typeof DeviceMotionEvent !== 'undefined') {
+    attach();
+  } else if (txt) {
+    txt.textContent = 'Sensor de movimento indisponível neste navegador.';
+  }
+}
+
+function exoStopMotion() {
+  if (EXO.motionListener) { window.removeEventListener('devicemotion', EXO.motionListener); EXO.motionListener = null; }
+  clearTimeout(EXO._motionDotTimer);
+}
+
+// ── Pausar / retomar ─────────────────────────────────────────
+function exoTogglePause() {
+  if (!EXO.running) return;
+  EXO.paused = !EXO.paused;
+  var icon = document.getElementById('exoPauseIcon');
+  var label = document.getElementById('exoPauseLabel');
+  var tela = document.getElementById('exoSession');
+  if (EXO.paused) {
+    EXO._pauseStart = Date.now();
+    if (icon) icon.textContent = '▶'; if (label) label.textContent = 'Retomar';
+    if (tela) tela.classList.add('med-paused');
+  } else {
+    EXO.pausedAccumMs += (Date.now() - EXO._pauseStart);
+    if (icon) icon.textContent = '⏸'; if (label) label.textContent = 'Pausar';
+    if (tela) tela.classList.remove('med-paused');
+  }
+}
+
+// ── Encerrar ─────────────────────────────────────────────────
+function exoConfirmarSair() {
+  if (EXO.elapsedSec >= EXO.metaSeg) { exoFinalizar(true); return; }
+  var minutos = Math.floor(EXO.elapsedSec / 60);
+  var metaMin = Math.round(EXO.metaSeg / 60);
+  if (typeof muConfirmar !== 'function') { exoFinalizar(false); return; }
+  muConfirmar(
+    'Encerrar antes da meta?',
+    'Você fez ' + minutos + ' de ' + metaMin + ' minutos. O pilar de exercício só é marcado automaticamente ao atingir a meta. Deseja encerrar mesmo assim e salvar esta sessão no histórico?',
+    'Encerrar'
+  ).then(function (ok) { if (ok) exoFinalizar(false); });
+}
+
+async function exoFinalizar(metaAtingida) {
+  EXO.running = false;
+  clearInterval(EXO.tickTimer);
+  exoStopTracking();
+
+  var payload = {
+    atividade: EXO.perfil.atividade, ambiente: EXO.perfil.ambiente,
+    duracaoSeg: EXO.elapsedSec, metaSeg: EXO.metaSeg, metaAtingida: !!metaAtingida,
+    distanciaM: Math.round(EXO.distanciaM),
+    velMediaKmh: EXO.elapsedSec > 0 ? (EXO.distanciaM / 1000) / (EXO.elapsedSec / 3600) : 0,
+    velMaxKmh: EXO.velMaxKmh, inicio: EXO.startISO, rota: EXO.routePoints
+  };
+
+  var resp = null;
+  try { resp = await rpc('registrarSessaoExercicio', payload); } catch (e) {}
+
+  if (resp && resp.ok) {
+    if (metaAtingida) {
+      if (!APP.data.pilaresHoje) APP.data.pilaresHoje = {};
+      APP.data.pilaresHoje.exercicio = true;
+      var dia = APP.data.diaAtual || 1;
+      if (!APP.data.pilaresJson) APP.data.pilaresJson = {};
+      if (!APP.data.pilaresJson[String(dia)]) APP.data.pilaresJson[String(dia)] = {};
+      APP.data.pilaresJson[String(dia)].exercicio = true;
+      if (resp.progresso != null) APP.data.progresso = resp.progresso;
+      if (resp.diasConcluidos != null) APP.data.diasConcluidos = resp.diasConcluidos;
+      if (resp.gamificacao) APP.data.gamificacao = resp.gamificacao;
+      document.querySelectorAll('#pilar_exercicio').forEach(function (el) {
+        el.classList.add('done');
+        var c = el.querySelector('.pilar-check'); if (c) c.textContent = '✓';
+      });
+    }
+    EXO.lastResult = {
+      metaAtingida: metaAtingida, duracaoSeg: EXO.elapsedSec, distanciaM: EXO.distanciaM,
+      caloriasEst: resp.caloriasEst || Math.round((EXO.elapsedSec / 60) * (EXO_KCAL_MIN[EXO.perfil.atividade] || 5))
+    };
+  } else {
+    EXO.lastResult = { metaAtingida: false, duracaoSeg: EXO.elapsedSec, distanciaM: EXO.distanciaM, caloriasEst: 0, erro: true };
+    toast('Sessão salva localmente — houve um problema ao sincronizar.', 'error');
+  }
+
+  showExoScreen('complete');
+  exoRenderComplete();
+}
+
+function exoRenderComplete() {
+  var r = EXO.lastResult || {};
+  var min = Math.round((r.duracaoSeg || 0) / 60);
+  var km  = ((r.distanciaM || 0) / 1000).toFixed(2);
+  var box = document.getElementById('exoCompleteBody');
+  box.innerHTML =
+    '<span class="med-complete-icon">' + (r.metaAtingida ? '🏅' : '👏') + '</span>' +
+    '<div class="med-complete-title">' + (r.metaAtingida ? 'Exercício concluído!' : 'Sessão registrada') + '</div>' +
+    '<div class="med-complete-sub">' + (r.metaAtingida
+      ? 'Meta batida — seu pilar de hoje já está marcado.'
+      : 'Não bateu a meta desta vez, mas ficou no histórico. Sem culpa — amanhã tem mais.') + '</div>' +
+    '<div class="med-complete-stats">' +
+      '<div class="med-cstat"><div class="med-cstat-val">' + min + '</div><div class="med-cstat-lbl">minutos</div></div>' +
+      (r.distanciaM > 0 ? '<div class="med-cstat"><div class="med-cstat-val">' + km + '</div><div class="med-cstat-lbl">km</div></div>' : '') +
+      '<div class="med-cstat"><div class="med-cstat-val">' + (r.caloriasEst || 0) + '</div><div class="med-cstat-lbl">kcal (est.)</div></div>' +
+    '</div>' +
+    '<div class="med-complete-footer">' +
+      '<button class="med-btn-start" onclick="exoVoltarHome()">Concluir</button>' +
+    '</div>';
+}
+
+function exoVoltarHome() { showExoScreen('home'); exoRenderHome(); }
 </script>
 
 <!-- Fase 1 — UX premium (tilt 3D + som + toast) -->

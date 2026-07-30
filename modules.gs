@@ -284,6 +284,11 @@ function handleRequest(payload) {
     case 'atualizarDreamItem':        return atualizarDreamItem(token, data && data.id, data && data.updates);
     case 'salvarPosicoesDream':       return salvarPosicoesDream(token, data && data.posicoes);
     case 'excluirDreamItem':          return excluirDreamItem(token, data && data.id);
+    // v121 — Módulo Exercício Físico (mini Strava)
+    case 'getExercicioPerfil':        return getExercicioPerfil(token);
+    case 'salvarExercicioPerfil':     return salvarExercicioPerfil(token, data);
+    case 'registrarSessaoExercicio':  return registrarSessaoExercicio(token, data);
+    case 'getHistoricoExercicio':     return getHistoricoExercicio(token, data && data.limit);
     // v106 — onboarding pós-compra (todas públicas)
     case 'confirmarCheckoutStripe':   return confirmarCheckoutStripe(data && data.sessionId);
     case 'validarTokenAcesso':        return validarTokenAcesso(data && data.t);
