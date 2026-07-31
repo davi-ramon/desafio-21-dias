@@ -51,21 +51,43 @@ function initDreamBoardSheet_() {
   return sh;
 }
 
-// ── Upload de imagem (Drive, pasta própria) ──────────────────
+// ─────────────────────────────────────────────────────────────
+// StorageProvider — camada desacoplada de armazenamento (v122)
+// O resto do módulo só conhece _dreamUploadImagem_(). Para trocar
+// de provedor, escreva outro _storage*_ e mude DREAM_STORAGE.
+// Assinatura do contrato: (base64, mimeType, filename) -> URL | null
+// ─────────────────────────────────────────────────────────────
+var DREAM_STORAGE = 'drive';   // 'drive' — futuros: 'imgbb', 'supabase', 'r2'
+
 function _dreamUploadImagem_(base64, mimeType, filename) {
-  try {
-    if (base64 && base64.indexOf(',') !== -1) base64 = base64.split(',')[1];
-    var bytes  = Utilities.base64Decode(base64);
-    var blob   = Utilities.newBlob(bytes, mimeType, filename);
-    var pastas = DriveApp.getFoldersByName(DREAM_MEDIA_FOLDER);
-    var pasta  = pastas.hasNext() ? pastas.next() : DriveApp.createFolder(DREAM_MEDIA_FOLDER);
-    var file   = pasta.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    return 'https://drive.google.com/uc?export=view&id=' + file.getId();
-  } catch (e) {
-    logAction('system', 'DREAM_UPLOAD_ERRO', 'dream_board', '', e.message);
+  var provider = _storageProvider_(DREAM_STORAGE);
+  if (!provider) {
+    logAction('system', 'DREAM_STORAGE_INVALIDO', 'dream_board', '', DREAM_STORAGE);
     return null;
   }
+  try {
+    if (base64 && base64.indexOf(',') !== -1) base64 = base64.split(',')[1];
+    return provider(base64, mimeType, filename);
+  } catch (e) {
+    logAction('system', 'DREAM_UPLOAD_ERRO', 'dream_board', DREAM_STORAGE, e.message);
+    return null;
+  }
+}
+
+function _storageProvider_(nome) {
+  var mapa = { drive: _storageDrive_ };
+  return mapa[nome] || null;
+}
+
+// Provider: Google Drive (pasta própria, compartilhada por link)
+function _storageDrive_(base64, mimeType, filename) {
+  var bytes  = Utilities.base64Decode(base64);
+  var blob   = Utilities.newBlob(bytes, mimeType, filename);
+  var pastas = DriveApp.getFoldersByName(DREAM_MEDIA_FOLDER);
+  var pasta  = pastas.hasNext() ? pastas.next() : DriveApp.createFolder(DREAM_MEDIA_FOLDER);
+  var file   = pasta.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return 'https://drive.google.com/uc?export=view&id=' + file.getId();
 }
 
 // ── Contexto do desafio no momento da criação ────────────────
