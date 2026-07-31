@@ -59,18 +59,21 @@ function initDreamBoardSheet_() {
 // ─────────────────────────────────────────────────────────────
 var DREAM_STORAGE = 'drive';   // 'drive' — futuros: 'imgbb', 'supabase', 'r2'
 
+// Retorna { url } em sucesso ou { erro } com a mensagem REAL.
+// Antes devolvia null e o motivo morria no log — impossível diagnosticar
+// sem acesso à planilha.
 function _dreamUploadImagem_(base64, mimeType, filename) {
   var provider = _storageProvider_(DREAM_STORAGE);
-  if (!provider) {
-    logAction('system', 'DREAM_STORAGE_INVALIDO', 'dream_board', '', DREAM_STORAGE);
-    return null;
-  }
+  if (!provider) return { erro: 'Provedor de armazenamento inválido: ' + DREAM_STORAGE };
+
   try {
     if (base64 && base64.indexOf(',') !== -1) base64 = base64.split(',')[1];
+    if (!base64) return { erro: 'Imagem vazia.' };
     return provider(base64, mimeType, filename);
   } catch (e) {
-    logAction('system', 'DREAM_UPLOAD_ERRO', 'dream_board', DREAM_STORAGE, e.message);
-    return null;
+    var msg = (e && e.message) ? e.message : String(e);
+    logAction('system', 'DREAM_UPLOAD_ERRO', 'dream_board', DREAM_STORAGE, msg);
+    return { erro: msg };
   }
 }
 
@@ -79,15 +82,52 @@ function _storageProvider_(nome) {
   return mapa[nome] || null;
 }
 
+// ─────────────────────────────────────────────────────────────
+// DIAGNÓSTICO — rode no editor do Apps Script para ver o erro REAL
+// do upload sem precisar passar pela interface do app.
+// ─────────────────────────────────────────────────────────────
+function testarUploadMural() {
+  // PNG 1x1 transparente — payload mínimo, isola o problema do tamanho
+  var px = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  var r = _dreamUploadImagem_(px, 'image/png', 'teste_mural_' + Date.now());
+  Logger.log(JSON.stringify(r, null, 2));
+
+  if (r && r.url) {
+    Logger.log('OK — upload funcionou. URL: ' + r.url);
+  } else {
+    Logger.log('FALHOU. Motivo: ' + ((r && r.erro) || 'desconhecido'));
+  }
+  return r;
+}
+
 // Provider: Google Drive (pasta própria, compartilhada por link)
 function _storageDrive_(base64, mimeType, filename) {
-  var bytes  = Utilities.base64Decode(base64);
+  var bytes = Utilities.base64Decode(base64);
+
+  // Extensão coerente com o mime: sem ela o Drive as vezes trata o
+  // arquivo como binário genérico e a URL de visualização não renderiza.
+  var ext = ({ 'image/jpeg': '.jpg', 'image/jpg': '.jpg', 'image/png': '.png',
+               'image/webp': '.webp', 'image/gif': '.gif' })[String(mimeType).toLowerCase()] || '.jpg';
+  if (filename.indexOf('.') === -1) filename = filename + ext;
+
   var blob   = Utilities.newBlob(bytes, mimeType, filename);
   var pastas = DriveApp.getFoldersByName(DREAM_MEDIA_FOLDER);
   var pasta  = pastas.hasNext() ? pastas.next() : DriveApp.createFolder(DREAM_MEDIA_FOLDER);
   var file   = pasta.createFile(blob);
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  return 'https://drive.google.com/uc?export=view&id=' + file.getId();
+
+  // Compartilhamento pode falhar sozinho (conta com restrição de
+  // compartilhamento por link). Isolado para não derrubar o upload e
+  // para o erro dizer exatamente o que aconteceu.
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (eShare) {
+    return { erro: 'Arquivo salvo, mas a conta não permite compartilhar por link: ' +
+                   ((eShare && eShare.message) || eShare) };
+  }
+
+  // lh3 é o endpoint de imagem do Google e é mais confiável para
+  // renderizar em <img> do que o antigo uc?export=view.
+  return { url: 'https://lh3.googleusercontent.com/d/' + file.getId() };
 }
 
 // ── Contexto do desafio no momento da criação ────────────────
@@ -218,9 +258,13 @@ function criarDreamItem(token, data) {
   // Imagem (opcional mesmo em item de texto)
   var imageUrl = '';
   if (data.imageBase64 && data.imageType) {
-    imageUrl = _dreamUploadImagem_(data.imageBase64, data.imageType,
-                 'mural_' + Date.now() + '_' + email.replace(/[^a-z0-9]/g, '')) || '';
-    if (!imageUrl) return { ok: false, error: 'Não conseguimos salvar a imagem. Tente novamente.' };
+    var up = _dreamUploadImagem_(data.imageBase64, data.imageType,
+               'mural_' + Date.now() + '_' + email.replace(/[^a-z0-9]/g, ''));
+    if (!up || up.erro || !up.url) {
+      // devolve o motivo real em vez de uma mensagem genérica
+      return { ok: false, error: 'Falha ao salvar a imagem: ' + ((up && up.erro) || 'motivo desconhecido') };
+    }
+    imageUrl = up.url;
   }
   if (tipo === 'imagem' && !imageUrl) {
     return { ok: false, error: 'Selecione uma imagem.' };
