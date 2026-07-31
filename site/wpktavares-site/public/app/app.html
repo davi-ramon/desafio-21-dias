@@ -8944,14 +8944,23 @@ function _commTimeHora(iso) {
    as bordas em vez de ficar preso numa caixa com borda. */
 #page-mural { padding:0 !important; }
 .mu-wrap { display:flex; flex-direction:column; }
-.mu-head { padding:18px 18px 0; }
+/* v125: cabeçalho FLUTUA sobre o canvas (que agora ocupa a viewport
+   inteira). z-index acima do palco, abaixo da topbar/nav/Bia/painel. */
+.mu-head { padding:18px 18px 0; position:relative; z-index:2; pointer-events:none; }
+.mu-head > * { pointer-events:auto; }
 .mu-top { display:flex; align-items:center; gap:10px; margin-bottom:13px; }
 .mu-top h2 { font-size:20px; font-weight:800; color:var(--text2); letter-spacing:-.025em; }
 .mu-count { font-size:12px; color:var(--muted); }
 @media (min-width:1024px){
-  #page-mural { margin:-32px -36px -48px; }
+  /* margens negativas não são mais necessárias: o palco é fixed */
   .mu-head { padding:26px 32px 0; }
 }
+
+/* Área ÚTIL onde os itens vivem. O canvas sangra pra tela toda, mas os
+   itens ficam dentro desta caixa — senão flutuariam para trás da
+   barra lateral ou da topbar e ficariam impossíveis de clicar.
+   Os limites são medidos em JS (muAplicarLimites). */
+.mu-campo { position:absolute; inset:0; }
 
 .mu-toggle { display:inline-flex; background:var(--surface2); border:1px solid var(--border);
   border-radius:999px; padding:3px; gap:2px; }
@@ -8978,16 +8987,22 @@ function _commTimeHora(iso) {
 @keyframes muAddIn { from{opacity:0; transform:scale(.5) rotate(-90deg)} to{opacity:1; transform:none} }
 
 /* canvas: sem borda, sem cantos — a altura é medida em JS
-   (muAjustarAltura) para preencher de verdade em qualquer breakpoint */
-.mu-stage { position:relative; margin-top:14px; overflow:hidden;
-  min-height:320px;
+   (muAplicarLimites) para preencher de verdade em qualquer breakpoint */
+/* v125: o canvas É o fundo da viewport inteira. position:fixed com
+   inset:0 e z-index:0 — topbar (100), nav (100), Bia (400) e painel
+   (1200) passam a sobrepor naturalmente, sem precisar mexer neles.
+   Nenhum ancestral tem transform/filter/will-change, então o fixed
+   ancora mesmo na viewport. */
+.mu-stage { position:fixed; inset:0; z-index:0; overflow:hidden;
+  margin:0; min-height:0;
   border:none; border-radius:0;
   background:
     radial-gradient(ellipse 70% 50% at 50% 8%, rgba(76,175,80,.05), transparent 70%),
     radial-gradient(ellipse 50% 40% at 18% 88%, rgba(60,110,180,.05), transparent 72%),
-    linear-gradient(180deg, #070b09 0%, #04060a 55%, #050709 100%);
-  /* leve dessaturação analógica — a "memória" do Dreamcore */
-  filter:saturate(.94) contrast(1.03); }
+    linear-gradient(180deg, #070b09 0%, #04060a 55%, #050709 100%); }
+/* v125: o filter:saturate/contrast saiu daqui. Agora que o palco cobre
+   a viewport inteira, ele forçaria a recomposição da tela cheia a cada
+   frame da física. O tom analógico já vem do grão + scanlines. */
 .mu-stage.fade { animation:muFade .45s ease both; }
 @keyframes muFade { from{opacity:0; transform:scale(.99)} to{opacity:1; transform:scale(1)} }
 
@@ -9387,19 +9402,32 @@ function muAmbienteParar() {
   }, passo);
 }
 
-// Mede o espaço real que sobra e crava a altura do palco. Substitui o
-// calc() em CSS, que errava no desktop e deixava faixa preta embaixo.
-function muAjustarAltura() {
-  var st = document.getElementById('muStage');
-  if (!st) return 0;
-  var topo = st.getBoundingClientRect().top;
-  var nav  = document.querySelector('.bottom-nav');
-  var rodape = 0;
-  // no mobile a nav é barra inferior e come altura; no desktop é sidebar
-  if (nav && window.innerWidth < 1024) rodape = nav.offsetHeight || 0;
-  var h = Math.max(320, window.innerHeight - topo - rodape);
-  st.style.height = h + 'px';
-  return h;
+// v125: o palco é fixed/inset:0 — não precisa mais ter a altura
+// calculada. O que precisa de medida é o CAMPO ÚTIL: a área livre do
+// cromo do app (topbar, cabeçalho do mural, barra lateral ou inferior),
+// onde os itens podem circular sem ficar inalcançáveis.
+function muAplicarLimites() {
+  var campo = document.getElementById('muCampo');
+  if (!campo) return;
+
+  var topo = 0, esq = 0, baixo = 0;
+
+  var tb = document.querySelector('.topbar');
+  if (tb) topo = tb.getBoundingClientRect().height || 0;
+
+  var head = document.querySelector('#page-mural .mu-head');
+  if (head) topo += head.getBoundingClientRect().height || 0;
+
+  var nav = document.querySelector('.bottom-nav');
+  if (nav) {
+    if (window.innerWidth >= 1024) esq = nav.getBoundingClientRect().width || 0;
+    else                           baixo = nav.getBoundingClientRect().height || 0;
+  }
+
+  campo.style.top    = Math.round(topo) + 'px';
+  campo.style.left   = Math.round(esq) + 'px';
+  campo.style.bottom = Math.round(baixo) + 'px';
+  campo.style.right  = '0px';
 }
 
 function muRenderModo() {
@@ -9409,12 +9437,19 @@ function muRenderModo() {
   st.innerHTML = '<div class="mu-dust"></div>';
   muMontarAtmosfera(st);
   muAmbienteIniciar();
-  muAjustarAltura();
 
-  if (!MURAL.itens.length) { muVazio(st); return; }
+  // Campo útil: os itens vivem AQUI, não no palco. O palco sangra pra
+  // tela toda (fundo, grão, partículas); o campo respeita o cromo.
+  var campo = document.createElement('div');
+  campo.className = 'mu-campo';
+  campo.id = 'muCampo';
+  st.appendChild(campo);
+  muAplicarLimites();
 
-  if (MURAL.modo === 'espaco') muMontarEspaco(st);
-  else                        muMontarQuadro(st);
+  if (!MURAL.itens.length) { muVazio(campo); return; }
+
+  if (MURAL.modo === 'espaco') muMontarEspaco(campo);
+  else                        muMontarQuadro(campo);
 }
 
 function muVazio(st) {
@@ -9513,9 +9548,10 @@ function muTick(ts) {
   var dt = Math.min(0.05, (ts - MURAL.last) / 1000);   // clamp: aba em 2º plano
   MURAL.last = ts;
 
-  var st = document.getElementById('muStage');
-  if (!st) { muPause(); return; }
-  var W = st.clientWidth, H = st.clientHeight;
+  // limites da física = CAMPO ÚTIL, não o palco (que sangra pra tela toda)
+  var campo = document.getElementById('muCampo');
+  if (!campo) { muPause(); return; }
+  var W = campo.clientWidth, H = campo.clientHeight;
   var ns = MURAL.nodes;
 
   for (var i = 0; i < ns.length; i++) {
