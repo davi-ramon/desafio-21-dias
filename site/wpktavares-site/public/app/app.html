@@ -10344,7 +10344,7 @@ var HUB = { janelas: {}, z: 1200 };
 var HUB_TOOLS = [
   { id:'pomodoro', nome:'Pomodoro', desc:'Blocos de foco e descanso', pronto:true,
     ico:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 1.9"/>' },
-  { id:'flashcards', nome:'Flashcards', desc:'Repetição espaçada', pronto:false,
+  { id:'flashcards', nome:'Flashcards', desc:'Repetição espaçada', pronto:true,
     ico:'<rect x="3" y="6" width="14" height="12" rx="2"/><path d="M7 3h14v12"/>' },
   { id:'anotacoes', nome:'Anotações', desc:'Bloco de notas adesivas', pronto:false,
     ico:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/>' },
@@ -10422,7 +10422,8 @@ function hubAbrir(id) {
   hubArrastavel(el, document.getElementById('hwbar-' + id), id);
   hubRedimensionavel(el, document.getElementById('hwrz-' + id));
 
-  if (id === 'pomodoro') pmMontar(document.getElementById('hwbody-' + id));
+  if (id === 'pomodoro')   pmMontar(document.getElementById('hwbody-' + id));
+  if (id === 'flashcards') fcMontar(document.getElementById('hwbody-' + id));
   hubClamp(el);
 }
 
@@ -11179,6 +11180,129 @@ function pmAtualizarMini() {
 
 @media (prefers-reduced-motion:reduce){
   .pf-termo-merc, .pf-termo-bulbo, .pf-audio-play.tocando, .pf-audio-play.carregando { animation:none; }
+}
+
+/* ═══ FLASHCARDS — repetição espaçada (v134) ══════════════════ */
+.fc-wrap { display:flex; flex-direction:column; height:100%; padding:14px; gap:12px;
+  overflow-y:auto; font-size:13px; }
+.fc-load { flex:1; display:flex; align-items:center; justify-content:center; }
+.fc-erro { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:12px; color:var(--muted); text-align:center; font-size:12.5px; }
+
+.fc-top { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-shrink:0; }
+.fc-top-t { font-size:15px; font-weight:800; color:var(--text); }
+.fc-top-s { font-size:11.5px; color:var(--muted); margin-top:2px; }
+.fc-voltar { background:none; border:none; color:var(--muted); font-size:12.5px; cursor:pointer;
+  font-family:inherit; padding:4px 0; font-weight:600; }
+.fc-voltar:hover { color:var(--text); }
+
+.fc-btn { padding:9px 15px; border-radius:10px; border:none; cursor:pointer; font-family:inherit;
+  font-size:12.5px; font-weight:800; color:#04140a; flex-shrink:0;
+  background:linear-gradient(135deg,var(--green),#2e7d32);
+  transition:filter .16s, transform .1s; }
+.fc-btn:hover:not(:disabled) { filter:brightness(1.1); }
+.fc-btn:active:not(:disabled) { transform:translateY(1px); }
+.fc-btn:disabled { opacity:.55; cursor:not-allowed; }
+
+/* baralhos */
+.fc-decks { display:flex; flex-direction:column; gap:7px; flex:1; }
+.fc-deck { position:relative; display:flex; align-items:center; gap:11px; padding:11px 12px;
+  border-radius:12px; cursor:pointer; background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.07); transition:background .16s, transform .12s; }
+.fc-deck:hover { background:rgba(255,255,255,.08); transform:translateX(2px); }
+.fc-deck-bar { width:4px; align-self:stretch; border-radius:3px; background:var(--dc,#4caf50); flex-shrink:0; }
+.fc-deck-txt { flex:1; min-width:0; }
+.fc-deck-nome { font-size:13px; font-weight:700; color:var(--text); overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.fc-deck-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+.fc-badge { min-width:24px; height:24px; padding:0 7px; border-radius:12px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:800;
+  background:var(--dc,#4caf50); color:#04140a; }
+.fc-badge.zero { background:rgba(255,255,255,.09); color:var(--muted); }
+.fc-deck-x, .fc-card-x { background:none; border:none; color:#5a6a5e; cursor:pointer; font-size:13px;
+  padding:2px 4px; opacity:0; transition:opacity .16s, color .16s; flex-shrink:0; font-family:inherit; }
+.fc-deck:hover .fc-deck-x, .fc-card-item:hover .fc-card-x { opacity:1; }
+.fc-deck-x:hover, .fc-card-x:hover { color:#e2626b; }
+
+.fc-novo { display:flex; gap:7px; flex-shrink:0; }
+.fc-input { flex:1; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09);
+  border-radius:10px; padding:9px 11px; color:var(--text); font-size:12.5px; font-family:inherit;
+  transition:border-color .16s, box-shadow .16s; }
+.fc-input:focus { outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(76,175,80,.15); }
+.fc-input::placeholder { color:#3d5347; }
+.fc-ta { resize:vertical; min-height:38px; line-height:1.45; }
+
+.fc-vazio { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:9px; color:var(--muted); text-align:center; font-size:12px; line-height:1.6; padding:22px 0; }
+.fc-vazio-ico { font-size:30px; opacity:.75; }
+
+/* cartas */
+.fc-cards { display:flex; flex-direction:column; gap:6px; flex:1; }
+.fc-card-item { display:flex; align-items:flex-start; gap:9px; padding:9px 11px; border-radius:11px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); }
+.fc-card-item.due { border-color:rgba(76,175,80,.28); background:rgba(76,175,80,.06); }
+.fc-card-txt { flex:1; min-width:0; }
+.fc-card-f { font-size:12.5px; font-weight:600; color:var(--text); line-height:1.4; }
+.fc-card-v { font-size:11.5px; color:var(--muted); margin-top:3px; line-height:1.4;
+  overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.fc-card-meta { flex-shrink:0; }
+.fc-tag { display:inline-block; padding:2px 7px; border-radius:6px; font-size:9.5px; font-weight:800;
+  text-transform:uppercase; letter-spacing:.05em; background:rgba(255,255,255,.08); color:var(--muted); }
+.fc-tag.nova { background:rgba(66,165,245,.18); color:#7cc0ff; }
+.fc-form { display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+
+/* revisão */
+.fc-rev-top { display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.fc-rev-cont { font-size:11.5px; color:var(--muted); font-weight:700; }
+.fc-prog { height:3px; background:rgba(255,255,255,.08); border-radius:2px; overflow:hidden; flex-shrink:0; }
+.fc-prog-fill { height:100%; background:var(--green); border-radius:2px; transition:width .3s ease; }
+
+.fc-flip { flex:1; min-height:150px; perspective:1100px; cursor:pointer; }
+.fc-face { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; padding:20px; border-radius:15px; backface-visibility:hidden;
+  border:1px solid rgba(255,255,255,.09); text-align:center; overflow-y:auto;
+  transition:transform .5s cubic-bezier(.4,.2,.2,1); }
+.fc-flip { position:relative; }
+.fc-frente { background:linear-gradient(160deg,#12211a,#0d1813); transform:rotateY(0deg); }
+.fc-verso  { background:linear-gradient(160deg,#132a1c,#0e1f16); transform:rotateY(180deg);
+  border-color:rgba(76,175,80,.28); }
+.fc-flip.virado .fc-frente { transform:rotateY(-180deg); }
+.fc-flip.virado .fc-verso  { transform:rotateY(0deg); }
+.fc-face-txt { font-size:15px; line-height:1.55; color:var(--text); font-weight:600; word-break:break-word; }
+.fc-verso .fc-face-txt { font-weight:500; }
+.fc-dica { position:absolute; bottom:12px; font-size:10.5px; color:#4a5f50; letter-spacing:.03em; }
+
+.fc-notas { display:flex; gap:6px; flex-shrink:0; }
+.fc-nota { flex:1; padding:9px 4px; border-radius:11px; border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.05); cursor:pointer; font-family:inherit; display:flex;
+  flex-direction:column; align-items:center; gap:2px; transition:background .16s, transform .1s, border-color .16s; }
+.fc-nota b { font-size:12px; font-weight:800; color:var(--text); }
+.fc-nota span { font-size:9.5px; color:var(--muted); }
+.fc-nota:hover { transform:translateY(-2px); }
+.fc-nota:active { transform:translateY(0); }
+.fc-nota:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+.fc-nota.n0:hover { background:rgba(232,64,64,.16); border-color:rgba(232,64,64,.4); }
+.fc-nota.n3:hover { background:rgba(224,168,60,.16); border-color:rgba(224,168,60,.4); }
+.fc-nota.n4:hover { background:rgba(76,175,80,.16); border-color:rgba(76,175,80,.4); }
+.fc-nota.n5:hover { background:rgba(66,165,245,.16); border-color:rgba(66,165,245,.4); }
+.fc-revelar { width:100%; }
+
+/* fim */
+.fc-fim { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:9px; text-align:center; }
+.fc-fim-ico { font-size:38px; animation:fcPop .5s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes fcPop { from{opacity:0;transform:scale(.5)} to{opacity:1;transform:none} }
+.fc-fim-t { font-size:16px; font-weight:800; color:var(--text); }
+.fc-fim-s { font-size:12px; color:var(--muted); }
+.fc-fim-nums { display:flex; gap:9px; margin:12px 0 6px; }
+.fc-fim-nums div { background:rgba(255,255,255,.05); border-radius:11px; padding:10px 14px; }
+.fc-fim-nums b { display:block; font-size:16px; font-weight:800; color:var(--text); }
+.fc-fim-nums span { display:block; font-size:9.5px; color:var(--muted); margin-top:2px;
+  text-transform:uppercase; letter-spacing:.05em; }
+
+@media (prefers-reduced-motion:reduce){
+  .fc-face { transition:none; }
+  .fc-fim-ico { animation:none; }
 }
 </style>
 
@@ -12664,6 +12788,349 @@ function _leitLivrosVisiveis() {
 // O drawer do app-enhance.js chama isto se existir
 window.renderConfigPrefs = renderConfigPrefs;
 window._pfPararPreview   = _pfPararPreview;
+
+// ════════════════════════════════════════════════════════════
+// FLASHCARDS — repetição espaçada (v134)
+// ------------------------------------------------------------
+// O agendamento (SM-2) vive no servidor. Aqui só desenhamos e
+// enviamos a avaliação: mexer no relógio do celular não adianta
+// as revisões.
+// ════════════════════════════════════════════════════════════
+var FC = {
+  tela: 'baralhos',      // baralhos | cartas | revisao | fim
+  baralhos: [], resumo: null,
+  baralho: null, cards: [],
+  fila: [], idx: 0, revelado: false,
+  sessao: { certas: 0, erradas: 0 },
+  carregando: false
+};
+
+function fcEsc(s) { return muEsc(s); }
+
+function fcCorpo() {
+  var j = HUB.janelas['flashcards'];
+  return j ? document.getElementById('hwbody-flashcards') : null;
+}
+
+function fcMontar(body) {
+  if (!body) return;
+  body.innerHTML = '<div class="fc-wrap" id="fcWrap">' +
+    '<div class="fc-load"><div class="spinner"></div></div></div>';
+  fcCarregarResumo();
+}
+
+async function fcCarregarResumo() {
+  FC.carregando = true;
+  try {
+    var r = await rpc('fcResumo', {});
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Falha ao carregar');
+    FC.resumo = r.data;
+    FC.baralhos = r.data.baralhos || [];
+    FC.tela = 'baralhos';
+    fcRender();
+  } catch (e) {
+    var w = document.getElementById('fcWrap');
+    if (w) w.innerHTML = '<div class="fc-erro">Não consegui carregar seus baralhos.<br>' +
+      '<button class="fc-btn" onclick="fcCarregarResumo()">Tentar de novo</button></div>';
+  } finally { FC.carregando = false; }
+}
+
+function fcRender() {
+  var w = document.getElementById('fcWrap');
+  if (!w) return;
+  if (FC.tela === 'baralhos') w.innerHTML = fcTelaBaralhos();
+  else if (FC.tela === 'cartas')  w.innerHTML = fcTelaCartas();
+  else if (FC.tela === 'revisao') w.innerHTML = fcTelaRevisao();
+  else if (FC.tela === 'fim')     w.innerHTML = fcTelaFim();
+  fcLigar(w);
+}
+
+// ── Tela 1: baralhos ────────────────────────────────────────
+function fcTelaBaralhos() {
+  var r = FC.resumo || { totalCartas: 0, totalVence: 0 };
+  var lista = FC.baralhos.length
+    ? FC.baralhos.map(function (b) {
+        return '<div class="fc-deck" data-id="' + fcEsc(b.id) + '" style="--dc:' + fcEsc(b.cor) + '">' +
+          '<div class="fc-deck-bar"></div>' +
+          '<div class="fc-deck-txt">' +
+            '<div class="fc-deck-nome">' + fcEsc(b.nome) + '</div>' +
+            '<div class="fc-deck-sub">' + b.total + (b.total === 1 ? ' carta' : ' cartas') +
+              (b.novas ? ' · ' + b.novas + ' novas' : '') + '</div>' +
+          '</div>' +
+          (b.vencem ? '<div class="fc-badge">' + b.vencem + '</div>'
+                    : '<div class="fc-badge zero">✓</div>') +
+          '<button class="fc-deck-x" data-del="' + fcEsc(b.id) + '" aria-label="Excluir baralho">✕</button>' +
+        '</div>';
+      }).join('')
+    : '<div class="fc-vazio">' +
+        '<div class="fc-vazio-ico">🗂️</div>' +
+        '<p>Nenhum baralho ainda.<br>Crie o primeiro e comece a estudar.</p>' +
+      '</div>';
+
+  return '' +
+    '<div class="fc-top">' +
+      '<div>' +
+        '<div class="fc-top-t">Seus baralhos</div>' +
+        '<div class="fc-top-s">' + (r.totalVence
+          ? r.totalVence + (r.totalVence === 1 ? ' carta para revisar hoje' : ' cartas para revisar hoje')
+          : 'Nada vencendo hoje. Bom trabalho.') + '</div>' +
+      '</div>' +
+      (r.totalVence ? '<button class="fc-btn" id="fcRevisarTudo">Revisar tudo</button>' : '') +
+    '</div>' +
+    '<div class="fc-decks">' + lista + '</div>' +
+    '<div class="fc-novo">' +
+      '<input class="fc-input" id="fcNovoNome" maxlength="60" placeholder="Nome do novo baralho">' +
+      '<button class="fc-btn" id="fcCriar">Criar</button>' +
+    '</div>';
+}
+
+// ── Tela 2: cartas do baralho ───────────────────────────────
+function fcTelaCartas() {
+  var b = FC.baralho || {};
+  var lista = FC.cards.length
+    ? FC.cards.map(function (c) {
+        return '<div class="fc-card-item' + (c.vence ? ' due' : '') + '" data-id="' + fcEsc(c.id) + '">' +
+          '<div class="fc-card-txt">' +
+            '<div class="fc-card-f">' + fcEsc(c.frente) + '</div>' +
+            '<div class="fc-card-v">' + fcEsc(c.verso) + '</div>' +
+          '</div>' +
+          '<div class="fc-card-meta">' +
+            (c.nova ? '<span class="fc-tag nova">nova</span>'
+                    : '<span class="fc-tag">' + (c.vence ? 'hoje' : 'em ' + c.intervalo + 'd') + '</span>') +
+          '</div>' +
+          '<button class="fc-card-x" data-del="' + fcEsc(c.id) + '" aria-label="Excluir carta">✕</button>' +
+        '</div>';
+      }).join('')
+    : '<div class="fc-vazio"><div class="fc-vazio-ico">📇</div>' +
+      '<p>Baralho vazio.<br>Adicione a primeira carta abaixo.</p></div>';
+
+  var vencem = FC.cards.filter(function (c) { return c.vence; }).length;
+
+  return '' +
+    '<div class="fc-top">' +
+      '<button class="fc-voltar" id="fcVoltar">‹ Baralhos</button>' +
+      (vencem ? '<button class="fc-btn" id="fcEstudar">Estudar ' + vencem + '</button>' : '') +
+    '</div>' +
+    '<div class="fc-top-t" style="margin-bottom:10px">' + fcEsc(b.nome || '') + '</div>' +
+    '<div class="fc-cards">' + lista + '</div>' +
+    '<div class="fc-form">' +
+      '<textarea class="fc-input fc-ta" id="fcFrente" maxlength="500" rows="2" placeholder="Frente — a pergunta"></textarea>' +
+      '<textarea class="fc-input fc-ta" id="fcVerso" maxlength="1000" rows="2" placeholder="Verso — a resposta"></textarea>' +
+      '<button class="fc-btn" id="fcAddCard">Adicionar carta</button>' +
+    '</div>';
+}
+
+// ── Tela 3: sessão de revisão ───────────────────────────────
+function fcTelaRevisao() {
+  var c = FC.fila[FC.idx];
+  if (!c) return fcTelaFim();
+  var total = FC.fila.length;
+  var pos = FC.idx + 1;
+  var pct = Math.round((FC.idx / total) * 100);
+
+  return '' +
+    '<div class="fc-rev-top">' +
+      '<button class="fc-voltar" id="fcSair">‹ Sair</button>' +
+      '<div class="fc-rev-cont">' + pos + ' / ' + total + '</div>' +
+    '</div>' +
+    '<div class="fc-prog"><div class="fc-prog-fill" style="width:' + pct + '%"></div></div>' +
+    '<div class="fc-flip' + (FC.revelado ? ' virado' : '') + '" id="fcFlip">' +
+      '<div class="fc-face fc-frente">' +
+        (c.nova ? '<span class="fc-tag nova" style="margin-bottom:10px">nova</span>' : '') +
+        '<div class="fc-face-txt">' + fcEsc(c.frente) + '</div>' +
+        '<div class="fc-dica">toque para ver a resposta</div>' +
+      '</div>' +
+      '<div class="fc-face fc-verso">' +
+        '<div class="fc-face-txt">' + fcEsc(c.verso) + '</div>' +
+      '</div>' +
+    '</div>' +
+    (FC.revelado
+      ? '<div class="fc-notas">' +
+          '<button class="fc-nota n0" data-q="0"><b>Errei</b><span>1 dia</span></button>' +
+          '<button class="fc-nota n3" data-q="3"><b>Difícil</b><span>logo</span></button>' +
+          '<button class="fc-nota n4" data-q="4"><b>Bom</b><span>normal</span></button>' +
+          '<button class="fc-nota n5" data-q="5"><b>Fácil</b><span>depois</span></button>' +
+        '</div>'
+      : '<div class="fc-notas"><button class="fc-btn fc-revelar" id="fcRevelar">Ver resposta</button></div>');
+}
+
+function fcTelaFim() {
+  var s = FC.sessao;
+  var tot = s.certas + s.erradas;
+  var pct = tot ? Math.round((s.certas / tot) * 100) : 0;
+  return '' +
+    '<div class="fc-fim">' +
+      '<div class="fc-fim-ico">🎉</div>' +
+      '<div class="fc-fim-t">Sessão concluída</div>' +
+      '<div class="fc-fim-s">' + tot + (tot === 1 ? ' carta revisada' : ' cartas revisadas') + '</div>' +
+      '<div class="fc-fim-nums">' +
+        '<div><b>' + s.certas + '</b><span>acertos</span></div>' +
+        '<div><b>' + s.erradas + '</b><span>a reforçar</span></div>' +
+        '<div><b>' + pct + '%</b><span>aproveitamento</span></div>' +
+      '</div>' +
+      '<button class="fc-btn" id="fcFimVoltar">Voltar aos baralhos</button>' +
+    '</div>';
+}
+
+// ── Eventos ─────────────────────────────────────────────────
+function fcLigar(w) {
+  function on(id, fn) { var e = document.getElementById(id); if (e) e.addEventListener('click', fn); }
+
+  on('fcCriar', fcCriarBaralho);
+  on('fcRevisarTudo', function () { fcIniciarRevisao(null); });
+  on('fcVoltar', function () { FC.tela = 'baralhos'; fcCarregarResumo(); });
+  on('fcSair', function () { FC.tela = 'baralhos'; fcCarregarResumo(); });
+  on('fcFimVoltar', function () { FC.tela = 'baralhos'; fcCarregarResumo(); });
+  on('fcAddCard', fcAdicionarCarta);
+  on('fcEstudar', function () { fcIniciarRevisao(FC.baralho && FC.baralho.id); });
+  on('fcRevelar', function () { FC.revelado = true; fcRender(); });
+
+  var nome = document.getElementById('fcNovoNome');
+  if (nome) nome.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); fcCriarBaralho(); }
+  });
+
+  var flip = document.getElementById('fcFlip');
+  if (flip) flip.addEventListener('click', function () {
+    if (!FC.revelado) { FC.revelado = true; fcRender(); }
+  });
+
+  // Abrir / excluir baralho
+  w.querySelectorAll('.fc-deck').forEach(function (d) {
+    d.addEventListener('click', function (ev) {
+      var x = ev.target.closest('[data-del]');
+      if (x) { ev.stopPropagation(); fcExcluirBaralho(x.getAttribute('data-del')); return; }
+      fcAbrirBaralho(d.getAttribute('data-id'));
+    });
+  });
+
+  // Excluir carta
+  w.querySelectorAll('.fc-card-item [data-del]').forEach(function (x) {
+    x.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      fcExcluirCarta(x.getAttribute('data-del'));
+    });
+  });
+
+  // Notas da revisão
+  w.querySelectorAll('.fc-nota').forEach(function (b) {
+    b.addEventListener('click', function () { fcAvaliar(parseInt(b.getAttribute('data-q'), 10), b); });
+  });
+}
+
+// ── Ações ───────────────────────────────────────────────────
+async function fcCriarBaralho() {
+  var inp = document.getElementById('fcNovoNome');
+  var nome = inp ? inp.value.trim() : '';
+  if (nome.length < 2) { toast('Dê um nome ao baralho.', 'error'); return; }
+  var cores = ['#4caf50','#42a5f5','#ab47bc','#ef5350','#ffa726','#26c6da'];
+  var cor = cores[FC.baralhos.length % cores.length];
+  try {
+    var r = await rpc('fcCriarBaralho', { nome: nome, cor: cor });
+    if (!r || !r.ok) { toast((r && r.error) || 'Erro ao criar.', 'error'); return; }
+    if (inp) inp.value = '';
+    toast('Baralho criado.', 'success');
+    fcCarregarResumo();
+  } catch (e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+async function fcExcluirBaralho(id) {
+  var b = FC.baralhos.find(function (x) { return x.id === id; }) || {};
+  var ok = await muConfirmar('Excluir baralho',
+    'O baralho "' + (b.nome || '') + '" e todas as cartas dele serão apagados. Não dá para desfazer.',
+    'Excluir');
+  if (!ok) return;
+  try {
+    var r = await rpc('fcExcluirBaralho', { id: id });
+    if (!r || !r.ok) { toast((r && r.error) || 'Erro.', 'error'); return; }
+    toast('Baralho excluído.', 'success');
+    fcCarregarResumo();
+  } catch (e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+async function fcAbrirBaralho(id) {
+  FC.baralho = FC.baralhos.find(function (x) { return x.id === id; }) || null;
+  var w = document.getElementById('fcWrap');
+  if (w) w.innerHTML = '<div class="fc-load"><div class="spinner"></div></div>';
+  try {
+    var r = await rpc('fcListarCards', { baralhoId: id });
+    FC.cards = (r && r.ok && r.data) ? r.data : [];
+    FC.tela = 'cartas';
+    fcRender();
+  } catch (e) {
+    toast('Erro ao abrir o baralho.', 'error');
+    FC.tela = 'baralhos'; fcRender();
+  }
+}
+
+async function fcAdicionarCarta() {
+  var f = document.getElementById('fcFrente');
+  var v = document.getElementById('fcVerso');
+  var frente = f ? f.value.trim() : '', verso = v ? v.value.trim() : '';
+  if (!frente) { toast('Escreva a frente da carta.', 'error'); f && f.focus(); return; }
+  if (!verso)  { toast('Escreva o verso da carta.', 'error');  v && v.focus(); return; }
+  try {
+    var r = await rpc('fcSalvarCard', { baralhoId: FC.baralho.id, frente: frente, verso: verso });
+    if (!r || !r.ok) { toast((r && r.error) || 'Erro ao salvar.', 'error'); return; }
+    if (f) f.value = ''; if (v) v.value = '';
+    FC.cards.push({ id: r.data.id, frente: frente, verso: verso, nova: true, vence: true,
+                    intervalo: 0, repeticoes: 0 });
+    fcRender();
+    var f2 = document.getElementById('fcFrente'); if (f2) f2.focus();
+  } catch (e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+async function fcExcluirCarta(id) {
+  try {
+    var r = await rpc('fcExcluirCard', { id: id });
+    if (!r || !r.ok) { toast((r && r.error) || 'Erro.', 'error'); return; }
+    FC.cards = FC.cards.filter(function (c) { return c.id !== id; });
+    fcRender();
+  } catch (e) { toast('Erro: ' + e.message, 'error'); }
+}
+
+async function fcIniciarRevisao(baralhoId) {
+  var w = document.getElementById('fcWrap');
+  if (w) w.innerHTML = '<div class="fc-load"><div class="spinner"></div></div>';
+  try {
+    var r = await rpc('fcParaRevisar', { baralhoId: baralhoId || '', limite: 30 });
+    if (!r || !r.ok) { toast((r && r.error) || 'Erro.', 'error'); FC.tela = 'baralhos'; fcRender(); return; }
+    FC.fila = r.data.cartas || [];
+    if (!FC.fila.length) {
+      toast('Nada para revisar agora.', 'info');
+      FC.tela = 'baralhos'; fcRender(); return;
+    }
+    FC.idx = 0; FC.revelado = false;
+    FC.sessao = { certas: 0, erradas: 0 };
+    FC.tela = 'revisao';
+    fcRender();
+  } catch (e) { toast('Erro: ' + e.message, 'error'); FC.tela = 'baralhos'; fcRender(); }
+}
+
+async function fcAvaliar(q, botao) {
+  var c = FC.fila[FC.idx];
+  if (!c) return;
+  if (botao) botao.disabled = true;
+  try {
+    var r = await rpc('fcRevisar', { cardId: c.id, qualidade: q });
+    if (!r || !r.ok) { toast((r && r.error) || 'Erro ao registrar.', 'error'); if (botao) botao.disabled = false; return; }
+    if (q < 3) {
+      FC.sessao.erradas++;
+      // Errou: volta pro fim da fila desta sessão. O SM-2 já reagendou
+      // pra amanhã, mas rever agora é o que fixa.
+      FC.fila.push(c);
+    } else {
+      FC.sessao.certas++;
+    }
+    FC.idx++;
+    FC.revelado = false;
+    if (FC.idx >= FC.fila.length) FC.tela = 'fim';
+    fcRender();
+  } catch (e) {
+    toast('Erro: ' + e.message, 'error');
+    if (botao) botao.disabled = false;
+  }
+}
 </script>
 
 <!-- Fase 1 — UX premium (tilt 3D + som + toast) -->

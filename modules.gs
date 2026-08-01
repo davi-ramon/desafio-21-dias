@@ -297,6 +297,16 @@ function handleRequest(payload) {
     case 'salvarNomeAluno':           return salvarNomeAluno(token, data && data.nome);
     case 'salvarFotoAluno':           return salvarFotoAluno(token, data && data.fileBase64, data && data.mimeType);
     case 'removerFotoAluno':          return removerFotoAluno(token);
+    // v134 — Flashcards com repetição espaçada (SM-2)
+    case 'fcResumo':                  return fcResumo(token);
+    case 'fcCriarBaralho':            return fcCriarBaralho(token, data && data.nome, data && data.cor);
+    case 'fcRenomearBaralho':         return fcRenomearBaralho(token, data && data.id, data && data.nome, data && data.cor);
+    case 'fcExcluirBaralho':          return fcExcluirBaralho(token, data && data.id);
+    case 'fcListarCards':             return fcListarCards(token, data && data.baralhoId);
+    case 'fcSalvarCard':              return fcSalvarCard(token, data);
+    case 'fcExcluirCard':             return fcExcluirCard(token, data && data.id);
+    case 'fcParaRevisar':             return fcParaRevisar(token, data && data.baralhoId, data && data.limite);
+    case 'fcRevisar':                 return fcRevisar(token, data && data.cardId, data && data.qualidade);
     // v130 — 2FA do próprio admin (autenticadas)
     case 'get2FAStatus':              return get2FAStatus(token);
     case 'definir2FA':                return definir2FA(token, data && data.ativo);
