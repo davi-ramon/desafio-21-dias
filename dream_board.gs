@@ -215,7 +215,40 @@ function getDreamBoard(token) {
     itens.push(_dreamLinha2Obj_(dados[i]));
   }
   itens.sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
-  return { ok: true, data: itens };
+  return { ok: true, data: itens, config: _dreamConfig_() };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Config do Mural — vive na aba `config` (chave/valor), editável
+// pelo painel administrativo. Sem nada configurado, os padrões
+// abaixo mantêm o módulo funcionando exatamente como hoje.
+// ─────────────────────────────────────────────────────────────
+function _dreamConfig_() {
+  function ler(chave, padrao) {
+    try {
+      var v = getConfig_(chave);
+      return (v === '' || v == null) ? padrao : v;
+    } catch (e) { return padrao; }
+  }
+  function num(chave, padrao, min, max) {
+    var n = parseFloat(ler(chave, padrao));
+    if (isNaN(n)) n = padrao;
+    return Math.max(min, Math.min(max, n));
+  }
+  function bool(chave, padrao) {
+    var v = String(ler(chave, padrao ? 'true' : 'false')).toLowerCase();
+    return v === 'true' || v === '1' || v === 'sim';
+  }
+
+  return {
+    musicaUrl:      String(ler('mural_musica_url', '')).trim(),
+    musicaAtiva:    bool('mural_musica_ativa', true),
+    musicaVolume:   num('mural_musica_volume', 22, 0, 100),   // % quando é o único som
+    maxFlutuantes:  num('mural_max_flutuantes', 80, 10, 300),
+    glitchAtivo:    bool('mural_glitch_ativo', true),
+    particulas:     num('mural_particulas', 34, 0, 120),
+    paralaxe:       bool('mural_paralaxe', true)
+  };
 }
 
 // ─────────────────────────────────────────────────────────────

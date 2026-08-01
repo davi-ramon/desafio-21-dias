@@ -9032,6 +9032,19 @@ function _commTimeHora(iso) {
     rgba(255,255,255,.035) 0px, rgba(255,255,255,.035) 1px,
     transparent 1px, transparent 3px); }
 
+/* v126: camadas de paralaxe — estrelas em 3 profundidades.
+   Cada camada desloca numa intensidade diferente, criando a sensação
+   de espaço infinito. Só transform: nada de reflow, tudo na GPU. */
+.mu-par { position:absolute; inset:-14%; pointer-events:none; z-index:0;
+  will-change:transform; transition:transform 1.6s cubic-bezier(.22,1,.36,1); }
+.mu-par i { position:absolute; display:block; border-radius:50%; }
+.mu-par-1 i { background:rgba(200,235,210,.30); }   /* fundo: menor e mais apagada */
+.mu-par-2 i { background:rgba(210,240,220,.46); }
+.mu-par-3 i { background:rgba(225,250,235,.68); }   /* frente: maior e mais nítida */
+/* respiração lenta das estrelas da frente */
+.mu-par-3 i { animation:muPisca 7s ease-in-out infinite; }
+@keyframes muPisca { 0%,100% { opacity:.55; } 50% { opacity:1; } }
+
 /* partículas / poeira espacial — deriva lentíssima */
 .mu-poeira { position:absolute; inset:-10%; pointer-events:none; z-index:1; }
 .mu-poeira i { position:absolute; display:block; border-radius:50%;
@@ -9227,7 +9240,7 @@ var MURAL = {
 // Espaço Mental renderiza no máximo N nós. Acima disso a física
 // vira O(n²) visual e emocionalmente ruidosa — o excedente continua
 // acessível no Quadro dos Sonhos, que é estático e barato.
-var MU_MAX_FLUTUANTES = 80;
+var MU_MAX_FLUTUANTES = 80;   // padrão; o admin pode ajustar (MURAL.config)
 
 function muEsc(s) {
   return String(s == null ? '' : s)
@@ -9243,6 +9256,8 @@ async function renderMural() {
     try {
       var res = await rpc('getDreamBoard', {});
       MURAL.itens = (res && res.ok && res.data) ? res.data : [];
+      // v126: config vinda do painel admin (música, partículas, glitch…)
+      MURAL.config = (res && res.config) ? res.config : {};
       MURAL.carregado = true;
     } catch (e) {
       el.innerHTML = '<div class="page-header"><h2>Mural</h2></div>' +
@@ -9302,10 +9317,31 @@ function muSetModo(m) {
 var MU_PARTICULAS = 34;
 
 function muMontarAtmosfera(st) {
+  // ── Paralaxe: 3 camadas de estrelas em profundidades diferentes ──
+  if (muCfg().paralaxe !== false) {
+    [1, 2, 3].forEach(function (camada) {
+      var qtd = [26, 18, 10][camada - 1];
+      var el = document.createElement('div');
+      el.className = 'mu-par mu-par-' + camada;
+      var html = '';
+      for (var k = 0; k < qtd; k++) {
+        var tam = (camada * 0.7 + Math.random() * 0.9).toFixed(1);
+        html += '<i style="width:' + tam + 'px;height:' + tam + 'px;' +
+          'left:' + (Math.random() * 100).toFixed(1) + '%;' +
+          'top:'  + (Math.random() * 100).toFixed(1) + '%;' +
+          'animation-delay:' + (-Math.random() * 7).toFixed(1) + 's"></i>';
+      }
+      el.innerHTML = html;
+      st.appendChild(el);
+    });
+    muLigarParalaxe(st);
+  }
+
   var poeira = document.createElement('div');
   poeira.className = 'mu-poeira';
   var frag = '';
-  for (var i = 0; i < MU_PARTICULAS; i++) {
+  var qtdParticulas = (muCfg().particulas != null) ? muCfg().particulas : MU_PARTICULAS;
+  for (var i = 0; i < qtdParticulas; i++) {
     var tam  = (Math.random() * 2.2 + 0.8).toFixed(1);
     var dur  = (Math.random() * 50 + 45).toFixed(0);      // 45s a 95s: deriva lenta
     var atr  = (Math.random() * -90).toFixed(0);
@@ -9329,9 +9365,50 @@ function muMontarAtmosfera(st) {
   muAgendarGlitch();
 }
 
+// Paralaxe: o fundo responde ao ponteiro/toque com atraso e em
+// intensidades diferentes por camada. Sem rAF — só um transform por
+// movimento, com a transição do CSS fazendo a suavização.
+function muLigarParalaxe(st) {
+  var camadas = st.querySelectorAll('.mu-par');
+  if (!camadas.length) return;
+
+  function mover(px, py) {
+    // px/py em -1..1 a partir do centro da tela
+    for (var i = 0; i < camadas.length; i++) {
+      var forca = (i + 1) * 9;   // camada 1 = 9px, 3 = 27px
+      camadas[i].style.transform =
+        'translate3d(' + (-px * forca).toFixed(1) + 'px,' + (-py * forca).toFixed(1) + 'px,0)';
+    }
+  }
+
+  var pend = false;
+  st.addEventListener('pointermove', function (e) {
+    if (pend) return;                 // no máximo 1 atualização por frame
+    pend = true;
+    requestAnimationFrame(function () {
+      pend = false;
+      mover((e.clientX / window.innerWidth) * 2 - 1,
+            (e.clientY / window.innerHeight) * 2 - 1);
+    });
+  }, { passive: true });
+
+  // No celular não há ponteiro: uma deriva lenta e automática mantém
+  // a sensação de profundidade sem exigir interação.
+  if (!window.matchMedia('(hover: hover)').matches) {
+    var t = 0;
+    clearInterval(MURAL.parTimer);
+    MURAL.parTimer = setInterval(function () {
+      if (!document.getElementById('muStage')) { clearInterval(MURAL.parTimer); return; }
+      t += 0.06;
+      mover(Math.sin(t) * 0.7, Math.cos(t * 0.8) * 0.7);
+    }, 1600);
+  }
+}
+
 // Glitch curto em intervalo aleatório de 30 a 45s
 function muAgendarGlitch() {
   clearTimeout(MURAL.glitchTimer);
+  if (muCfg().glitchAtivo === false) return;
   var espera = 30000 + Math.random() * 15000;
   MURAL.glitchTimer = setTimeout(function () {
     var st = document.getElementById('muStage');
@@ -9345,28 +9422,33 @@ function muAgendarGlitch() {
   }, espera);
 }
 
-// ── v122: trilha ambiente do Mural ──────────────────────────
-// Basta colar a URL do áudio aqui (Drive público, MP3 direto, etc.)
-// e a trilha passa a tocar. Vazio = silêncio, sem quebrar nada.
-var MU_TRILHA_URL   = '';
-var MU_VOL_SOZINHO  = 0.22;   // volume quando é o único som
-var MU_VOL_MIXADO   = 0.06;   // abaixa se o áudio motivacional estiver tocando
+// ── Trilha ambiente do Mural ────────────────────────────────
+// v126: a URL e o volume vêm do painel administrativo (aba config),
+// não mais de constante no código. Ver MURAL.config.
 var MU_FADE_IN_MS   = 10000;  // entrada longa, quase imperceptível
 var MU_FADE_OUT_MS  = 700;
 
+function muCfg() {
+  return MURAL.config || {};
+}
+
 function muAmbienteAlvo() {
+  var vol = (muCfg().musicaVolume != null ? muCfg().musicaVolume : 22) / 100;
   // Mixagem: o áudio motivacional é sempre o principal
   try {
-    if (AUDIO_P && AUDIO_P.el && !AUDIO_P.el.paused) return MU_VOL_MIXADO;
+    if (AUDIO_P && AUDIO_P.el && !AUDIO_P.el.paused) return vol * 0.28;
   } catch (e) {}
-  return MU_VOL_SOZINHO;
+  return vol;
 }
 
 function muAmbienteIniciar() {
-  if (!MU_TRILHA_URL) return;
-  if (!MURAL.audio) {
-    MURAL.audio = new Audio(MU_TRILHA_URL);
-    MURAL.audio.loop = true;
+  var cfg = muCfg();
+  if (!cfg.musicaUrl || cfg.musicaAtiva === false) return;
+  if (!MURAL.audio || MURAL.audio.getAttribute('data-src') !== cfg.musicaUrl) {
+    if (MURAL.audio) { try { MURAL.audio.pause(); } catch (e) {} }
+    MURAL.audio = new Audio(cfg.musicaUrl);
+    MURAL.audio.setAttribute('data-src', cfg.musicaUrl);
+    MURAL.audio.loop = true;               // loop contínuo enquanto estiver no Mural
     MURAL.audio.preload = 'auto';
   }
   var a = MURAL.audio;
@@ -9474,7 +9556,8 @@ function muMontarEspaco(st) {
 
   // itens vivem DENTRO da área visível — nada fora da tela
   var W = st.clientWidth, H = st.clientHeight;
-  var lista = MURAL.itens.slice(0, MU_MAX_FLUTUANTES);
+  var teto = muCfg().maxFlutuantes || MU_MAX_FLUTUANTES;
+  var lista = MURAL.itens.slice(0, teto);
   var total = MURAL.itens.length;
   MURAL.nodes = [];
 
@@ -9503,10 +9586,10 @@ function muMontarEspaco(st) {
     });
   });
 
-  if (total > MU_MAX_FLUTUANTES) {
+  if (total > teto) {
     var hint = document.createElement('div');
     hint.className = 'mu-hint';
-    hint.textContent = 'Flutuando ' + MU_MAX_FLUTUANTES + ' de ' + total +
+    hint.textContent = 'Flutuando ' + teto + ' de ' + total +
                        ' · veja todos no Quadro dos Sonhos';
     st.appendChild(hint);
   }
@@ -9537,6 +9620,7 @@ function muStart() {
 function muPause() {
   if (MURAL.raf) { cancelAnimationFrame(MURAL.raf); MURAL.raf = null; }
   clearTimeout(MURAL.glitchTimer);   // v122: não deixa glitch agendado fora do Mural
+  clearInterval(MURAL.parTimer);     // v126: deriva da paralaxe no mobile
   muAmbienteParar();                 // v122: trilha só toca dentro do módulo
 }
 

@@ -1136,6 +1136,10 @@ button,
       <div class="nav-icon"><i data-lucide="headphones" class="luc"></i></div>
       <span class="nav-label">Áudios 21 Dias</span>
     </div>
+    <div class="nav-item" data-page="mural" id="navMural" onclick="navigate('mural')" title="Mural dos Sonhos">
+      <div class="nav-icon"><i data-lucide="sparkles" class="luc"></i></div>
+      <span class="nav-label">Mural dos Sonhos</span>
+    </div>
     <div class="nav-item" data-page="notificacoes" id="navNotificacoes" onclick="navigate('notificacoes')" title="Notificações">
       <div class="nav-icon"><i data-lucide="bell" class="luc"></i></div>
       <span class="nav-label">Notificações</span>
@@ -1430,6 +1434,7 @@ function navigate(page) {
     compradores:    'Alunos — Desafio 21 Dias',
     log:            'Log de Atividade',
     audios21:       'Áudios 21 Dias',
+    mural:          'Mural dos Sonhos',
     notificacoes:   'Notificações para Alunos',
     configuracoes:  'Configurações do Workspace'
   };
@@ -1455,7 +1460,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, notificacoes: renderNotificacoes, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, notificacoes: renderNotificacoes, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -3547,6 +3552,131 @@ async function submitSaveAudio21(dia) {
 // ══════════════════════════════════════════════════════════
 // CONFIGURAÇÕES DO WORKSPACE
 // ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// MURAL DOS SONHOS — configuração da experiência (v126)
+// Grava na aba `config` via saveConfig, igual às demais telas.
+// ══════════════════════════════════════════════════════════
+async function renderMuralConfig() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const res = await rpc('getConfig', {});
+    if (!res.ok) throw new Error(res.error);
+    const c = res.data || {};
+
+    const musicaAtiva = String(c.mural_musica_ativa ?? 'true') !== 'false';
+    const glitchAtivo = String(c.mural_glitch_ativo ?? 'true') !== 'false';
+    const paralaxe    = String(c.mural_paralaxe ?? 'true') !== 'false';
+
+    content.innerHTML =
+      '<div style="max-width:640px">' +
+
+        '<div class="card" style="margin-bottom:16px">' +
+          '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px">' +
+            '<i data-lucide="music" class="luc"></i> M&uacute;sica ambiente' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+            'Toca em <b>loop cont&iacute;nuo</b> enquanto o aluno estiver no Mural. Entra com fade de 10s, ' +
+            'sai em menos de 1s ao trocar de tela, e abaixa sozinha se um &aacute;udio motivacional estiver tocando.' +
+          '</div>' +
+
+          '<div class="form-group"><label class="form-label">URL do arquivo de &aacute;udio</label>' +
+            '<input class="form-control" id="mural_musica_url" value="' + escHtml(c.mural_musica_url || '') + '" placeholder="https://... (MP3, OGG ou M4A)">' +
+            '<div style="font-size:11px;color:var(--muted);margin-top:4px">' +
+              'Precisa ser um <b>link direto para o arquivo</b>. Link do Drive: use ' +
+              '<code>https://drive.google.com/uc?export=download&amp;id=ID_DO_ARQUIVO</code> ' +
+              '(e deixe o arquivo compartilhado como &quot;qualquer pessoa com o link&quot;). Vazio = sem m&uacute;sica.' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="form-row">' +
+            '<div class="form-group"><label class="form-label">Volume (%)</label>' +
+              '<input class="form-control" type="number" min="0" max="100" id="mural_musica_volume" value="' + escHtml(c.mural_musica_volume || '22') + '">' +
+              '<div style="font-size:11px;color:var(--muted);margin-top:4px">Sugerido: 15 a 30. Deve ficar sob o conte&uacute;do, n&atilde;o competir.</div></div>' +
+            '<div class="form-group"><label class="form-label">Ativa?</label>' +
+              '<select class="form-control" id="mural_musica_ativa">' +
+                '<option value="true"'  + (musicaAtiva ? ' selected' : '') + '>Sim</option>' +
+                '<option value="false"' + (!musicaAtiva ? ' selected' : '') + '>N&atilde;o</option>' +
+              '</select></div>' +
+          '</div>' +
+
+          '<button class="btn btn-ghost btn-sm" onclick="testarMusicaMural()" style="margin-top:4px">' +
+            '<i data-lucide="play" class="luc"></i> Testar o &aacute;udio agora</button>' +
+          '<div id="muralAudioTeste" style="margin-top:10px"></div>' +
+        '</div>' +
+
+        '<div class="card" style="margin-bottom:16px">' +
+          '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px">' +
+            '<i data-lucide="wand-sparkles" class="luc"></i> Atmosfera e desempenho' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+            'Se algum aluno relatar lentid&atilde;o no Mural, reduza as part&iacute;culas e o limite de itens flutuantes.' +
+          '</div>' +
+
+          '<div class="form-row">' +
+            '<div class="form-group"><label class="form-label">Itens flutuando no Espa&ccedil;o Mental</label>' +
+              '<input class="form-control" type="number" min="10" max="300" id="mural_max_flutuantes" value="' + escHtml(c.mural_max_flutuantes || '80') + '">' +
+              '<div style="font-size:11px;color:var(--muted);margin-top:4px">O excedente continua vis&iacute;vel no Quadro dos Sonhos.</div></div>' +
+            '<div class="form-group"><label class="form-label">Part&iacute;culas de fundo</label>' +
+              '<input class="form-control" type="number" min="0" max="120" id="mural_particulas" value="' + escHtml(c.mural_particulas || '34') + '">' +
+              '<div style="font-size:11px;color:var(--muted);margin-top:4px">0 desliga por completo.</div></div>' +
+          '</div>' +
+
+          '<div class="form-row">' +
+            '<div class="form-group"><label class="form-label">Efeito glitch (VHS)</label>' +
+              '<select class="form-control" id="mural_glitch_ativo">' +
+                '<option value="true"'  + (glitchAtivo ? ' selected' : '') + '>Ligado</option>' +
+                '<option value="false"' + (!glitchAtivo ? ' selected' : '') + '>Desligado</option>' +
+              '</select>' +
+              '<div style="font-size:11px;color:var(--muted);margin-top:4px">Dispara por 0,2s a cada 30-45s.</div></div>' +
+            '<div class="form-group"><label class="form-label">Paralaxe do fundo</label>' +
+              '<select class="form-control" id="mural_paralaxe">' +
+                '<option value="true"'  + (paralaxe ? ' selected' : '') + '>Ligada</option>' +
+                '<option value="false"' + (!paralaxe ? ' selected' : '') + '>Desligada</option>' +
+              '</select>' +
+              '<div style="font-size:11px;color:var(--muted);margin-top:4px">Camadas de estrelas em profundidade.</div></div>' +
+          '</div>' +
+        '</div>' +
+
+        '<button class="btn btn-primary" onclick="salvarMuralConfig()">Salvar configura&ccedil;&otilde;es</button>' +
+      '</div>';
+
+    if (window.lucide) lucide.createIcons();
+  } catch (e) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-title">Erro ao carregar</div>' +
+      '<div class="empty-sub">' + escHtml(e.message || String(e)) + '</div></div>';
+  }
+}
+
+// Toca o arquivo direto no admin: confirma que a URL é um link direto
+// e que o formato é suportado, antes de publicar pros alunos.
+function testarMusicaMural() {
+  const url = (document.getElementById('mural_musica_url').value || '').trim();
+  const box = document.getElementById('muralAudioTeste');
+  if (!url) { box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Informe uma URL primeiro.</div>'; return; }
+  box.innerHTML =
+    '<audio controls autoplay style="width:100%" ' +
+      'onerror="document.getElementById(\'muralAudioTeste\').innerHTML=' +
+        '\'<div style=&quot;font-size:12px;color:#e2626b&quot;>N&atilde;o foi poss&iacute;vel tocar. ' +
+        'Verifique se o link aponta direto para o arquivo e se ele est&aacute; p&uacute;blico.</div>\'">' +
+      '<source src="' + escHtml(url) + '"></audio>';
+}
+
+async function salvarMuralConfig() {
+  const cfg = {
+    mural_musica_url:     (document.getElementById('mural_musica_url').value || '').trim(),
+    mural_musica_ativa:   document.getElementById('mural_musica_ativa').value,
+    mural_musica_volume:  document.getElementById('mural_musica_volume').value,
+    mural_max_flutuantes: document.getElementById('mural_max_flutuantes').value,
+    mural_particulas:     document.getElementById('mural_particulas').value,
+    mural_glitch_ativo:   document.getElementById('mural_glitch_ativo').value,
+    mural_paralaxe:       document.getElementById('mural_paralaxe').value
+  };
+  const res = await rpc('saveConfig', { config: cfg });
+  if (res.ok) toast('Configura&ccedil;&otilde;es do Mural salvas.', 'success');
+  else        toast(res.error || 'Erro ao salvar.', 'error');
+}
+
 async function renderConfiguracoes() {
   const content = document.getElementById('content');
   content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
