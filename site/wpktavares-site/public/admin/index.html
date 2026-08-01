@@ -941,8 +941,21 @@ button,
   function _showLogin(msg) {
     var ov = document.getElementById('loginOverlay');
     if (ov) ov.style.display = 'flex';
+
+    // v127: SEMPRE restaura o botão. Antes, quando _adminLogout()
+    // chamava sem mensagem, o botão continuava desabilitado exibindo
+    // "Validando..." — e o painel ficava inutilizável para sempre.
+    var btn = document.getElementById('loginBtn');
+    if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+    var inputs = ov ? ov.querySelectorAll('input') : [];
+    for (var i = 0; i < inputs.length; i++) inputs[i].disabled = false;
+
     var m = document.getElementById('loginMsg');
-    if (m && msg) { m.textContent = msg; m.style.color = '#e53935'; }
+    if (m) {
+      if (msg) { m.textContent = msg; m.style.color = '#e53935'; }
+      else     { m.textContent = ''; }   // não deixa texto obsoleto na tela
+    }
+
     // Limpa estado do CRM
     CRM.token = null;
     CRM.user  = null;
@@ -994,24 +1007,41 @@ button,
     if (msgEl) { msgEl.textContent = 'Validando...'; msgEl.style.color = '#7a8f80'; }
     var btn = document.getElementById('loginBtn');
     if (btn) { btn.disabled = true; btn.textContent = 'Validando...'; }
+
+    // v127: guarda de timeout. Sem isso, uma resposta que nunca chega
+    // deixava o botão preso em "Validando..." indefinidamente.
+    var _resolvido = false;
+    function _liberar(txtErro) {
+      if (_resolvido) return true;
+      _resolvido = true;
+      if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+      if (txtErro && msgEl) { msgEl.textContent = txtErro; msgEl.style.color = '#e53935'; }
+      return false;
+    }
+    var _tmo = setTimeout(function () {
+      _liberar('O servidor demorou demais para responder. Tente novamente.');
+    }, 20000);
+
     fetch(GAS_LOGIN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
       body: JSON.stringify({ action: 'login', data: { email: email, password: pass } }),
       redirect: 'follow'
     }).then(function(r){ return r.json(); }).then(function(res){
+      clearTimeout(_tmo);
+      if (_resolvido) return;              // timeout já assumiu
+
       if (!res || !res.ok || !res.token) {
         // Mensagem generica — backend ja anti-enumeracao
-        if (msgEl) { msgEl.textContent = (res && res.error) || 'E-mail ou senha invalidos.'; msgEl.style.color = '#e53935'; }
-        if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+        _liberar((res && res.error) || 'E-mail ou senha invalidos.');
         return;
       }
       var user = res.user || { email: email, role: 'admin' };
       if (user.role !== 'admin') {
-        if (msgEl) { msgEl.textContent = 'Acesso restrito a administradores.'; msgEl.style.color = '#e53935'; }
-        if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+        _liberar('Acesso restrito a administradores.');
         return;
       }
+      _resolvido = true;
       _storeSet('token', res.token);
       _storeSet('user', user);
       _storeSet('exp', Date.now() + INACT_MS);
@@ -1022,8 +1052,8 @@ button,
       _initApp();
       _bindInactivity();
     }).catch(function(err){
-      if (msgEl) { msgEl.textContent = 'Erro de conexao: ' + (err && err.message ? err.message : err); msgEl.style.color = '#e53935'; }
-      if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+      clearTimeout(_tmo);
+      _liberar('Erro de conexao: ' + (err && err.message ? err.message : err));
     });
   }
 
@@ -1349,8 +1379,15 @@ function redirectLogin() {
 
 function loadUserInfo() {
   let u = null;
-  // v94: le da chave correta (auth novo grava em 'crm_admin_user')
-  try { u = JSON.parse(sessionStorage.getItem('crm_admin_user') || 'null'); } catch(e){}
+  // v127: a MEMÓRIA vem primeiro. Antes lia direto do sessionStorage e,
+  // quando o navegador bloqueia armazenamento (Tracking Prevention do
+  // Edge, aba anônima, cookies de terceiros), caía no fallback
+  // role:'user' e SOBRESCREVIA o admin que tinha acabado de logar.
+  if (CRM && CRM.user && CRM.user.role) u = CRM.user;
+
+  if (!u || !u.role) {
+    try { u = JSON.parse(sessionStorage.getItem('crm_admin_user') || 'null'); } catch(e){}
+  }
   // Fallback: tenta crm_user antigo (legado do GAS) se a nova estiver vazia
   if (!u || !u.role) {
     try { u = JSON.parse(sessionStorage.getItem('crm_user') || 'null'); } catch(e) {}

@@ -95,8 +95,14 @@ function login(email, password) {
 
     // Generate session token
     const token = generateId();
-    updateUserToken(sheet, users, email, token);
-    logAction(email, 'LOGIN', 'session', '', '');
+    // v127: passa o e-mail NORMALIZADO — o mesmo critério usado na busca
+    const gravou = updateUserToken(sheet, users, emailNorm, token);
+    if (!gravou) {
+      // Falha silenciosa aqui deixava o usuário logar e cair em
+      // "Não autorizado" na chamada seguinte. Melhor falhar na cara.
+      return { ok: false, error: 'Não foi possível iniciar a sessão. Tente novamente.' };
+    }
+    logAction(emailNorm, 'LOGIN', 'session', '', '');
 
     return {
       ok: true,
@@ -189,16 +195,26 @@ function getUserByToken(token) {
   return users.find(u => u.token === token && u.active) || null;
 }
 
+// v127: comparação NORMALIZADA. O login() encontra o usuário com
+// toLowerCase().trim() desde a v102, mas esta função ainda comparava o
+// e-mail cru — então, se o cadastro tivesse caps ou espaço diferente do
+// que foi digitado, o login "funcionava" e o token NUNCA era gravado.
+// Toda chamada seguinte caía em "Não autorizado" e derrubava a sessão.
+// Retorna true se gravou, para o chamador poder reagir.
 function updateUserToken(sheet, users, email, token) {
+  const alvo = String(email || '').toLowerCase().trim();
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const tokenCol = headers.indexOf('token') + 1;
+  const emailCol = headers.indexOf('email');
   for (let i = 1; i < data.length; i++) {
-    if (data[i][headers.indexOf('email')] === email) {
+    if (String(data[i][emailCol] || '').toLowerCase().trim() === alvo) {
       sheet.getRange(i + 1, tokenCol).setValue(token);
-      break;
+      return true;
     }
   }
+  logAction('system', 'TOKEN_NAO_GRAVADO', 'auth', alvo, 'linha do usuario nao encontrada');
+  return false;
 }
 
 // ── User CRUD ────────────────────────────────────────────────
