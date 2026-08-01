@@ -290,6 +290,11 @@ function handleRequest(payload) {
     case 'salvarPosicoesDream':       return salvarPosicoesDream(token, data && data.posicoes);
     case 'excluirDreamItem':          return excluirDreamItem(token, data && data.id);
     case 'diagnosticarMusicaMural':   return diagnosticarMusicaMural(token);   // v129 — só admin
+    // v132 — personalização da experiência do aluno
+    case 'getPreferencias':           return getPreferencias(token);
+    case 'salvarPreferencias':        return salvarPreferencias(token, data && data.prefs);
+    case 'restaurarPreferencias':     return restaurarPreferencias(token);
+    case 'salvarNomeAluno':           return salvarNomeAluno(token, data && data.nome);
     // v130 — 2FA do próprio admin (autenticadas)
     case 'get2FAStatus':              return get2FAStatus(token);
     case 'definir2FA':                return definir2FA(token, data && data.ativo);

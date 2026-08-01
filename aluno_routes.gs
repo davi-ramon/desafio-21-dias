@@ -235,6 +235,7 @@ function _getAdminAlunoData_(user) {
       gamificacao:     { pontos: 0, diasPerfeitos: 0, totalCheckins: 0, sequencia: 0,
                          patente: 'Recruta', insignia: '▴', nivel: 1, totalNiveis: 5,
                          proxima: 'Soldado', faltamDias: 7, progressoNivel: 0 },
+      preferencias:    _prefsPadrao_(),   // admin em preview: padrões
       pilaresHoje:     {},
       pilaresJson:     {},
       ebookUrl,
@@ -352,6 +353,9 @@ function getAlunoData(token) {
       // O frontend usa localStorage para mostrar o modal só 1 vez
       concluido:     stats.diasConcluidos >= 21,
       gamificacao:   _calcGamificacao_(pilaresJson, stats),
+      // v132: vem no boot pra meditação/leitura/áudio já abrirem
+      // personalizados, sem uma segunda ida ao servidor.
+      preferencias:  _prefsLer_(row, headers),
       pilaresHoje,
       pilaresJson,
       ebookUrl,

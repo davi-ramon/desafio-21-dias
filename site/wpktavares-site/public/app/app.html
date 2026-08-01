@@ -3148,6 +3148,9 @@ async function loadAlunoData(silent) {
     if (!r.ok) { toast(r.error || 'Erro ao carregar dados.', 'error'); return; }
     APP.data = r.data;
     if (r.data && r.data.subscription) APP.subscription = r.data.subscription;
+    // v132: aplica a personalização ANTES de qualquer render — a
+    // meditação e a leitura já nascem com a duração escolhida.
+    try { _prefsSincronizar(); _pfAplicar(); } catch (e) { console.warn('[Prefs]', e); }
     _renderSubBanner();
 
     // Se for admin e ainda não escolheu o painel → mostrar seletor
@@ -6126,6 +6129,7 @@ function openMeditacao() {
   ov.classList.add('open');
   showMedScreen(1);
   document.getElementById('mainScroll').style.overflow = 'hidden';
+  try { _pfAplicar(); } catch (e) {}   // v132: duração e áudio do aluno
   if (!_medAudiosLoaded) _medLoadAudioConfig();
   if (typeof _biaHide === 'function') _biaHide();
 
@@ -6212,7 +6216,7 @@ function startMedSession() {
   _medSyncMuteBtn();
   showMedScreen(4);
   _medUpdateTimer();
-  _medShowMsg(MED_MSGS[0]);
+  _medShowMsg(_medFrasesAtivas()[0]);
 
   // Inicia áudio ambiente automaticamente
   _medAudioPlay(MED.audioIdx, true);
@@ -6247,8 +6251,8 @@ function startMedSession() {
   // Troca de mensagem a cada 45 s
   MED.msgInterval = setInterval(function() {
     if (MED.paused) return;
-    MED.msgIdx = (MED.msgIdx + 1) % MED_MSGS.length;
-    _medShowMsg(MED_MSGS[MED.msgIdx]);
+    MED.msgIdx = (MED.msgIdx + 1) % _medFrasesAtivas().length;
+    _medShowMsg(_medFrasesAtivas()[MED.msgIdx]);
   }, 45000);
 }
 
@@ -6372,8 +6376,8 @@ function _medStartResumed(elapsedSeconds) {
   }, 1000);
   MED.msgInterval = setInterval(function() {
     if (MED.paused) return;
-    MED.msgIdx = (MED.msgIdx + 1) % MED_MSGS.length;
-    _medShowMsg(MED_MSGS[MED.msgIdx]);
+    MED.msgIdx = (MED.msgIdx + 1) % _medFrasesAtivas().length;
+    _medShowMsg(_medFrasesAtivas()[MED.msgIdx]);
   }, 45000);
 }
 
@@ -6427,7 +6431,7 @@ function toggleMedPause() {
     if (icon)    icon.textContent  = '⏸';
     if (label)   label.textContent = 'Pausar';
     if (session) session.classList.remove('med-paused');
-    _medShowMsg(MED_MSGS[MED.msgIdx]);
+    _medShowMsg(_medFrasesAtivas()[MED.msgIdx]);
     // Retoma áudio com fade
     if (aud) { aud.volume = 0; aud.play().catch(function(){}); }
     _medAudioFadeIn();
@@ -6528,6 +6532,10 @@ function _medLoadAudioConfig() {
       if (cfg.msgs    && Array.isArray(cfg.msgs)     && cfg.msgs.length    > 0) MED_MSGS   = cfg.msgs;
       if (cfg.total   && cfg.total > 0)  MED.total     = cfg.total;
       if (cfg.defaultAudio !== undefined) MED.audioIdx = Number(cfg.defaultAudio) || 0;
+      // v132: a config do admin é o PADRÃO da casa; a escolha do aluno
+      // vem depois e ganha. Sem isso, esta linha desfazia a preferência
+      // de duração e de áudio a cada abertura da meditação.
+      try { _pfAplicar(); } catch (e) {}
       // Aplica textos configurados nas telas de onboarding
       if (cfg.texto_s1) { var el = document.getElementById('medS1Body'); if (el) el.textContent = cfg.texto_s1; }
       if (cfg.texto_s2) { var el = document.getElementById('medS2Body'); if (el) el.textContent = cfg.texto_s2; }
@@ -7383,7 +7391,7 @@ function _leitRenderLibrary() {
   var grid = document.getElementById('leitBookGrid');
   if (!grid) return;
   grid.innerHTML = '';
-  LIVROS_DATA.forEach(function(livro) {
+  _leitLivrosVisiveis().forEach(function(livro) {
     var prog = _leitGetProgress(livro.id);
     var progHtml = prog && prog.pct > 0
       ? '<div class="leit-book-progress">' + Math.round(prog.pct) + '% lido</div>'
@@ -11083,6 +11091,150 @@ function pmAtualizarMini() {
   .sp-bg { animation:none; }
   .sp-w { animation-duration:.01s; }
 }
+
+/* ═══ PREFERÊNCIAS — drawer de Configurações (v132) ═══════════ */
+.pf-sec { margin-bottom:22px; }
+.pf-sec-h { display:flex; align-items:center; gap:9px; font-size:11px; font-weight:800;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--muted); margin-bottom:11px; }
+.pf-ico { font-size:14px; filter:saturate(.85); }
+
+.pf-row { display:flex; align-items:center; justify-content:space-between; gap:14px;
+  padding:13px 0; border-bottom:1px solid rgba(255,255,255,.055); flex-wrap:wrap; }
+.pf-row:last-child { border-bottom:none; }
+.pf-row-txt { min-width:120px; flex:1; }
+.pf-row-t { font-size:13.5px; font-weight:600; color:var(--text); }
+.pf-row-s { font-size:11.5px; color:var(--muted); margin-top:3px; line-height:1.5; }
+
+/* chips de duração */
+.pf-chips { display:flex; gap:6px; flex-wrap:wrap; }
+.pf-chip { padding:7px 12px; border-radius:9px; font-size:12px; font-weight:700; cursor:pointer;
+  background:rgba(255,255,255,.05); color:var(--muted); border:1px solid rgba(255,255,255,.08);
+  font-family:inherit; transition:background .18s, color .18s, border-color .18s, transform .12s; }
+.pf-chip:hover { color:var(--text); background:rgba(255,255,255,.09); }
+.pf-chip:active { transform:scale(.95); }
+.pf-chip.on { background:rgba(76,175,80,.16); color:var(--green); border-color:rgba(76,175,80,.42); }
+
+/* switch */
+.pf-sw { position:relative; display:inline-block; width:44px; height:25px; flex-shrink:0; }
+.pf-sw input { opacity:0; width:0; height:0; position:absolute; }
+.pf-sw-tr { position:absolute; inset:0; background:rgba(255,255,255,.13); border-radius:25px;
+  cursor:pointer; transition:background .22s; }
+.pf-sw-tr::before { content:''; position:absolute; width:19px; height:19px; left:3px; top:3px;
+  background:#fff; border-radius:50%; transition:transform .22s cubic-bezier(.34,1.56,.64,1); }
+.pf-sw input:checked + .pf-sw-tr { background:var(--green); }
+.pf-sw input:checked + .pf-sw-tr::before { transform:translateX(19px); }
+.pf-sw input:focus-visible + .pf-sw-tr { outline:2px solid var(--green); outline-offset:2px; }
+
+/* blocos */
+.pf-bloco { padding:14px 0 4px; border-bottom:1px solid rgba(255,255,255,.055); }
+.pf-bloco:last-child { border-bottom:none; }
+.pf-bloco-t { font-size:13.5px; font-weight:600; color:var(--text); }
+.pf-bloco-s { font-size:11.5px; color:var(--muted); margin:3px 0 11px; line-height:1.55; }
+.pf-vazio { font-size:12px; color:var(--muted); padding:10px 0; }
+
+/* lista de áudios */
+.pf-audios { display:flex; flex-direction:column; gap:6px; }
+.pf-audio { display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:11px;
+  cursor:pointer; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+  transition:background .18s, border-color .18s; }
+.pf-audio:hover { background:rgba(255,255,255,.07); }
+.pf-audio.on { background:rgba(76,175,80,.11); border-color:rgba(76,175,80,.38); }
+.pf-audio-nome { flex:1; font-size:12.5px; color:var(--text); line-height:1.35; }
+.pf-audio-tick { color:var(--green); font-weight:800; opacity:0; transition:opacity .18s; font-size:13px; }
+.pf-audio.on .pf-audio-tick { opacity:1; }
+.pf-audio-play { width:28px; height:28px; flex-shrink:0; border-radius:50%; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; font-family:inherit;
+  background:rgba(255,255,255,.09); color:var(--text); border:none; transition:background .18s, color .18s; }
+.pf-audio-play:hover { background:var(--green); color:#04140a; }
+.pf-audio-play.tocando { background:var(--green); color:#04140a; animation:pfPulse 1.5s ease-in-out infinite; }
+.pf-audio-play.carregando { background:rgba(255,255,255,.09); animation:pfGirar .8s linear infinite; }
+@keyframes pfPulse { 0%,100%{box-shadow:0 0 0 0 rgba(76,175,80,.5)} 50%{box-shadow:0 0 0 7px rgba(76,175,80,0)} }
+@keyframes pfGirar { to { transform:rotate(360deg); } }
+
+/* frases */
+.pf-frases-topo { display:flex; align-items:center; justify-content:space-between; margin-bottom:9px;
+  font-size:11.5px; color:var(--muted); }
+.pf-linkbtn { background:none; border:none; color:var(--green); font-size:11.5px; font-weight:700;
+  cursor:pointer; font-family:inherit; padding:0; }
+.pf-linkbtn:hover { text-decoration:underline; }
+.pf-frases { display:flex; flex-wrap:wrap; gap:6px; max-height:190px; overflow-y:auto; padding-right:4px; }
+.pf-frases::-webkit-scrollbar { width:5px; }
+.pf-frases::-webkit-scrollbar-thumb { background:rgba(255,255,255,.14); border-radius:3px; }
+.pf-frase { padding:6px 10px; border-radius:8px; font-size:11.5px; cursor:pointer; font-family:inherit;
+  background:rgba(255,255,255,.04); color:#6d7f72; border:1px solid rgba(255,255,255,.06);
+  text-align:left; transition:background .16s, color .16s, border-color .16s; }
+.pf-frase.on { background:rgba(76,175,80,.12); color:var(--text); border-color:rgba(76,175,80,.3); }
+.pf-frase:hover { border-color:rgba(255,255,255,.2); }
+
+/* livros */
+.pf-livros { display:flex; flex-direction:column; gap:6px; }
+.pf-livro { display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:11px;
+  cursor:pointer; font-family:inherit; text-align:left;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+  color:#6d7f72; transition:background .18s, color .18s, border-color .18s; }
+.pf-livro.on { background:rgba(76,175,80,.1); border-color:rgba(76,175,80,.32); color:var(--text); }
+.pf-livro-e { font-size:15px; flex-shrink:0; }
+.pf-livro-t { flex:1; font-size:12.5px; line-height:1.35; }
+.pf-livro-tick { color:var(--green); font-weight:800; opacity:0; transition:opacity .18s; }
+.pf-livro.on .pf-livro-tick { opacity:1; }
+
+/* perfil */
+.pf-perfil { display:flex; align-items:center; gap:13px; margin-bottom:14px; }
+.pf-av { width:52px; height:52px; border-radius:16px; flex-shrink:0; display:flex;
+  align-items:center; justify-content:center; font-size:19px; font-weight:800; color:#04140a;
+  background:linear-gradient(135deg,var(--green),#2e7d32); box-shadow:0 6px 18px rgba(76,175,80,.28); }
+.pf-av-txt { flex:1; min-width:0; }
+.pf-nome { width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.09);
+  border-radius:9px; padding:8px 11px; color:var(--text); font-size:14px; font-weight:600;
+  font-family:inherit; transition:border-color .18s, box-shadow .18s; }
+.pf-nome:focus { outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(76,175,80,.15); }
+.pf-email { display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--muted);
+  margin-top:6px; padding-left:2px; word-break:break-all; }
+
+/* termômetro */
+.pf-termo-card { display:flex; align-items:center; gap:15px; padding:15px 16px; border-radius:15px;
+  background:linear-gradient(135deg, color-mix(in srgb, var(--tc) 13%, transparent), rgba(255,255,255,.03));
+  border:1px solid color-mix(in srgb, var(--tc) 32%, transparent); margin-bottom:13px; }
+@supports not (background: color-mix(in srgb, red 10%, transparent)) {
+  .pf-termo-card { background:rgba(255,255,255,.045); border-color:rgba(255,255,255,.12); }
+}
+.pf-termo { flex-shrink:0; }
+.pf-termo-merc { animation:pfSubir 1.1s cubic-bezier(.2,.8,.3,1) both; transform-origin:center bottom; }
+@keyframes pfSubir { from { transform:scaleY(0); } to { transform:scaleY(1); } }
+.pf-termo-bulbo { animation:pfBater 2.6s ease-in-out infinite; transform-origin:20px 88px; }
+@keyframes pfBater { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
+.pf-termo-info { flex:1; min-width:0; }
+.pf-termo-lbl { font-size:10px; font-weight:800; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--muted); }
+.pf-termo-nivel { font-size:19px; font-weight:800; color:var(--tc); margin-top:2px; line-height:1.15; }
+.pf-termo-dias { font-size:12px; color:var(--text); margin-top:2px; }
+.pf-termo-frase { font-size:11.5px; color:var(--muted); margin-top:7px; line-height:1.5; }
+.pf-termo-prox { font-size:11.5px; color:var(--muted); margin-top:7px;
+  padding-top:7px; border-top:1px solid rgba(255,255,255,.07); }
+.pf-termo-prox b { color:var(--text); }
+
+.pf-mini { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+.pf-mini-i { background:rgba(255,255,255,.04); border-radius:11px; padding:10px 6px; text-align:center; }
+.pf-mini-i b { display:block; font-size:14px; font-weight:800; color:var(--text); line-height:1.2;
+  word-break:break-word; }
+.pf-mini-i span { display:block; font-size:9.5px; color:var(--muted); margin-top:3px;
+  text-transform:uppercase; letter-spacing:.06em; }
+
+/* ações */
+.pf-acoes { display:flex; gap:9px; margin-top:6px; }
+.pf-btn, .pf-btn-ghost { flex:1; padding:12px; border-radius:11px; font-size:13px; font-weight:800;
+  cursor:pointer; font-family:inherit; border:none; transition:filter .18s, transform .1s; }
+.pf-btn { background:linear-gradient(135deg,var(--green),#2e7d32); color:#fff; }
+.pf-btn:hover:not(:disabled) { filter:brightness(1.09); }
+.pf-btn:active:not(:disabled) { transform:translateY(1px); }
+.pf-btn:disabled { opacity:.6; cursor:not-allowed; }
+.pf-btn-ghost { background:rgba(255,255,255,.06); color:var(--muted); border:1px solid rgba(255,255,255,.09); }
+.pf-btn-ghost:hover { color:var(--text); background:rgba(255,255,255,.1); }
+.pf-rodape { font-size:11px; color:var(--muted); text-align:center; margin-top:14px; line-height:1.6; }
+
+@media (prefers-reduced-motion:reduce){
+  .pf-termo-merc, .pf-termo-bulbo, .pf-audio-play.tocando, .pf-audio-play.carregando { animation:none; }
+}
 </style>
 
 <script>
@@ -11933,6 +12085,543 @@ function exoRenderComplete() {
 }
 
 function exoVoltarHome() { showExoScreen('home'); exoRenderHome(); }
+
+// ════════════════════════════════════════════════════════════
+// PREFERÊNCIAS — personalização da experiência (v132)
+// ------------------------------------------------------------
+// Vivem aqui, e não no app-enhance.js, de propósito: quem lê e
+// aplica essas escolhas é o MED / LEIT / AUDIO_P, que moram
+// neste arquivo. O drawer só empresta o corpo.
+// ════════════════════════════════════════════════════════════
+
+function _prefPadrao() {
+  return {
+    meditacao: { duracaoMin: 15, audioId: '', frases: [] },
+    audio:     { animacoes: true, miniPlayer: true },
+    leitura:   { metaMin: 15, livrosOcultos: [] },
+    exercicio: { metaMin: 15 }
+  };
+}
+
+// Precisa bater com PREF_DURACOES do preferencias.gs: o servidor
+// rejeita qualquer valor fora desta lista e cai no padrão.
+var PREF_DURACOES = [5, 10, 15, 20, 30];
+
+// Estado vivo. Nasce do getAlunoData e é reescrito ao salvar.
+var PREFS = _prefPadrao();
+
+function _prefsMesclar(vindo) {
+  var p = _prefPadrao();
+  if (!vindo) return p;
+  ['meditacao','audio','leitura','exercicio'].forEach(function (sec) {
+    if (!vindo[sec]) return;
+    Object.keys(p[sec]).forEach(function (k) {
+      if (vindo[sec][k] !== undefined && vindo[sec][k] !== null) p[sec][k] = vindo[sec][k];
+    });
+  });
+  return p;
+}
+
+function _prefsSincronizar() {
+  PREFS = _prefsMesclar(APP.data && APP.data.preferencias);
+  return PREFS;
+}
+
+// ── Termômetro de consistência ──────────────────────────────
+// Cinco faixas. O emoji virou um SVG que enche e pulsa conforme
+// a sequência sobe — dá pra sentir a diferença entre 3 e 30 dias.
+var PREF_TEMPERATURAS = [
+  { min:  0, nome: 'Frio',        cor: '#5b9bd5', frase: 'Todo mundo começa aqui. Bora esquentar.' },
+  { min:  7, nome: 'Morno',       cor: '#3fb6a8', frase: 'Uma semana em pé. A rotina está pegando.' },
+  { min: 14, nome: 'Quente',      cor: '#e0a83c', frase: 'Duas semanas. Isso já virou hábito.' },
+  { min: 21, nome: 'Muito quente',cor: '#e8722c', frase: 'Vinte e um dias. Você fechou o ciclo.' },
+  { min: 30, nome: 'Em chamas',   cor: '#e8442c', frase: 'Mais de um mês seguido. Poucos chegam aqui.' }
+];
+
+function _prefTemperatura(dias) {
+  var atual = PREF_TEMPERATURAS[0], idx = 0;
+  for (var i = 0; i < PREF_TEMPERATURAS.length; i++) {
+    if (dias >= PREF_TEMPERATURAS[i].min) { atual = PREF_TEMPERATURAS[i]; idx = i; }
+  }
+  var prox = PREF_TEMPERATURAS[idx + 1] || null;
+  // Quanto o mercúrio sobe: proporcional dentro da faixa atual
+  var base = atual.min, teto = prox ? prox.min : (atual.min + 30);
+  var frac = Math.max(0.14, Math.min(1, (dias - base) / Math.max(1, teto - base)));
+  // A faixa já conquistada conta como piso, pra nunca "esvaziar" ao subir de nível
+  var altura = Math.round((idx / PREF_TEMPERATURAS.length + frac / PREF_TEMPERATURAS.length) * 100);
+  return { nivel: atual, idx: idx, proxima: prox, altura: Math.max(10, Math.min(100, altura)), dias: dias };
+}
+
+function _prefTermometroSvg(t) {
+  var c = t.nivel.cor;
+  var h = t.altura;                       // 0..100 (% do tubo)
+  var yTopo = 26 + (74 - 26) * (1 - h / 100);
+  return '' +
+  '<svg class="pf-termo" viewBox="0 0 40 108" width="40" height="108" aria-hidden="true">' +
+    '<defs>' +
+      '<linearGradient id="pfTg" x1="0" y1="1" x2="0" y2="0">' +
+        '<stop offset="0%" stop-color="' + c + '" stop-opacity=".55"/>' +
+        '<stop offset="100%" stop-color="' + c + '"/>' +
+      '</linearGradient>' +
+    '</defs>' +
+    // tubo
+    '<rect x="13" y="18" width="14" height="62" rx="7" fill="rgba(255,255,255,.07)" ' +
+          'stroke="rgba(255,255,255,.13)" stroke-width="1"/>' +
+    // mercúrio
+    '<rect class="pf-termo-merc" x="15" y="' + yTopo.toFixed(1) + '" width="10" ' +
+          'height="' + (80 - yTopo).toFixed(1) + '" rx="5" fill="url(#pfTg)"/>' +
+    // bulbo
+    '<circle class="pf-termo-bulbo" cx="20" cy="88" r="13" fill="' + c + '"/>' +
+    '<circle cx="20" cy="88" r="13" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="1"/>' +
+    // brilho
+    '<circle cx="16" cy="84" r="3.4" fill="rgba(255,255,255,.32)"/>' +
+    // marcas
+    '<g stroke="rgba(255,255,255,.16)" stroke-width="1" stroke-linecap="round">' +
+      '<line x1="29" y1="30" x2="33" y2="30"/><line x1="29" y1="44" x2="33" y2="44"/>' +
+      '<line x1="29" y1="58" x2="33" y2="58"/><line x1="29" y1="72" x2="33" y2="72"/>' +
+    '</g>' +
+  '</svg>';
+}
+
+// ── Blocos de UI reutilizáveis ──────────────────────────────
+function _pfChips(id, valorAtual, opcoes, sufixo) {
+  return '<div class="pf-chips" data-campo="' + id + '">' +
+    opcoes.map(function (o) {
+      var on = String(o) === String(valorAtual);
+      return '<button type="button" class="pf-chip' + (on ? ' on' : '') + '" data-v="' + o + '">' +
+             o + (sufixo || '') + '</button>';
+    }).join('') + '</div>';
+}
+
+function _pfSwitch(id, ligado) {
+  return '<label class="pf-sw"><input type="checkbox" data-campo="' + id + '"' +
+         (ligado ? ' checked' : '') + '><span class="pf-sw-tr"></span></label>';
+}
+
+function _pfLinha(titulo, sub, direita) {
+  return '<div class="pf-row"><div class="pf-row-txt"><div class="pf-row-t">' + muEsc(titulo) + '</div>' +
+         (sub ? '<div class="pf-row-s">' + muEsc(sub) + '</div>' : '') + '</div>' +
+         (direita || '') + '</div>';
+}
+
+function _pfSecao(titulo, icone, corpo) {
+  return '<div class="pf-sec"><div class="pf-sec-h">' + icone + '<span>' + titulo + '</span></div>' +
+         corpo + '</div>';
+}
+
+// ── Corpo do drawer ─────────────────────────────────────────
+function renderConfigPrefs(body) {
+  if (!body) return;
+  _prefsSincronizar();
+
+  var d     = APP.data || {};
+  var gam   = d.gamificacao || {};
+  var dias  = Number(gam.sequencia || 0) || Number(d.diasConcluidos || 0) || 0;
+  var t     = _prefTemperatura(dias);
+  var nome  = String(d.nome || '').trim();
+  var iniciais = (nome.split(/\s+/).map(function (x) { return x.charAt(0); }).join('') || 'A')
+                 .slice(0, 2).toUpperCase();
+
+  // ── Perfil ──
+  var perfil =
+    '<div class="pf-perfil">' +
+      '<div class="pf-av">' + muEsc(iniciais) + '</div>' +
+      '<div class="pf-av-txt">' +
+        '<input class="pf-nome" id="pfNome" value="' + muEsc(nome) + '" maxlength="80" ' +
+               'placeholder="Seu nome" aria-label="Seu nome">' +
+        '<div class="pf-email" title="O e-mail da compra não pode ser alterado">' +
+          '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">' +
+            '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> ' +
+          muEsc(d.email || '') +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="pf-termo-card" style="--tc:' + t.nivel.cor + '">' +
+      _prefTermometroSvg(t) +
+      '<div class="pf-termo-info">' +
+        '<div class="pf-termo-lbl">Consistência</div>' +
+        '<div class="pf-termo-nivel">' + t.nivel.nome + '</div>' +
+        '<div class="pf-termo-dias">' + dias + (dias === 1 ? ' dia seguido' : ' dias seguidos') + '</div>' +
+        '<div class="pf-termo-frase">' + t.nivel.frase + '</div>' +
+        (t.proxima
+          ? '<div class="pf-termo-prox">Faltam <b>' + Math.max(0, t.proxima.min - dias) +
+            '</b> para <b>' + t.proxima.nome + '</b></div>'
+          : '<div class="pf-termo-prox">Nível máximo alcançado.</div>') +
+      '</div>' +
+    '</div>' +
+    '<div class="pf-mini">' +
+      '<div class="pf-mini-i"><b>' + (d.diaAtual || 1) + '</b><span>dia atual</span></div>' +
+      '<div class="pf-mini-i"><b>' + (d.diasConcluidos || 0) + '</b><span>concluídos</span></div>' +
+      '<div class="pf-mini-i"><b>' + (gam.pontos || 0) + '</b><span>pontos</span></div>' +
+      '<div class="pf-mini-i"><b>' + (gam.patente || '—') + '</b><span>patente</span></div>' +
+    '</div>';
+
+  // ── Meditação ──
+  var listaAudios = (typeof MED_AUDIOS !== 'undefined' ? MED_AUDIOS : []);
+  var audioAtual  = PREFS.meditacao.audioId;
+  var audiosHtml = listaAudios.length
+    ? '<div class="pf-audios" id="pfAudios">' +
+        listaAudios.map(function (a, i) {
+          var id = a.fileId || String(i);
+          var on = audioAtual ? (id === audioAtual) : (i === 0);
+          return '<div class="pf-audio' + (on ? ' on' : '') + '" data-id="' + muEsc(id) + '">' +
+            '<button type="button" class="pf-audio-play" data-prev="' + muEsc(id) + '" ' +
+                    'aria-label="Ouvir ' + muEsc(a.name) + '">' +
+              '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>' +
+            '</button>' +
+            '<span class="pf-audio-nome">' + muEsc(a.name) + '</span>' +
+            '<span class="pf-audio-tick">✓</span>' +
+          '</div>';
+        }).join('') +
+      '</div>'
+    : '<div class="pf-vazio">Os áudios carregam ao abrir a meditação pela primeira vez.</div>';
+
+  var frasesSel = PREFS.meditacao.frases || [];
+  var listaMsgs = (typeof MED_MSGS !== 'undefined' ? MED_MSGS : []);
+  var frasesHtml =
+    '<div class="pf-frases-topo">' +
+      '<span id="pfFrasesCont">' + (frasesSel.length ? frasesSel.length + ' escolhidas' : 'Todas') + '</span>' +
+      '<button type="button" class="pf-linkbtn" id="pfFrasesTodas">Usar todas</button>' +
+    '</div>' +
+    '<div class="pf-frases" id="pfFrases">' +
+      listaMsgs.map(function (m, i) {
+        var on = !frasesSel.length || frasesSel.indexOf(i) >= 0;
+        return '<button type="button" class="pf-frase' + (on ? ' on' : '') + '" data-i="' + i + '">' +
+               muEsc(m) + '</button>';
+      }).join('') +
+    '</div>';
+
+  var meditacao =
+    _pfLinha('Duração da sessão', 'Hoje o padrão é 15 minutos',
+             _pfChips('meditacao.duracaoMin', PREFS.meditacao.duracaoMin, PREF_DURACOES, ' min')) +
+    '<div class="pf-bloco"><div class="pf-bloco-t">Áudio padrão</div>' +
+      '<div class="pf-bloco-s">Toque no ▶ para ouvir antes de escolher. Ele abre já tocando na próxima sessão.</div>' +
+      audiosHtml +
+    '</div>' +
+    '<div class="pf-bloco"><div class="pf-bloco-t">Frases que aparecem</div>' +
+      '<div class="pf-bloco-s">Desmarque as que não combinam com você.</div>' +
+      frasesHtml +
+    '</div>';
+
+  // ── Áudio do dia ──
+  var audio =
+    _pfLinha('Animações de fundo', 'Ondas e brilhos durante a reprodução',
+             _pfSwitch('audio.animacoes', PREFS.audio.animacoes)) +
+    _pfLinha('Mini player ao navegar', 'O áudio continua tocando quando você troca de tela',
+             _pfSwitch('audio.miniPlayer', PREFS.audio.miniPlayer));
+
+  // ── Leitura ──
+  var livros = (typeof LIVROS_DATA !== 'undefined' ? LIVROS_DATA : []);
+  var ocultos = PREFS.leitura.livrosOcultos || [];
+  var leitura =
+    _pfLinha('Meta de leitura', 'Tempo para completar o pilar',
+             _pfChips('leitura.metaMin', PREFS.leitura.metaMin, PREF_DURACOES, ' min')) +
+    '<div class="pf-bloco"><div class="pf-bloco-t">Livros na sua biblioteca</div>' +
+      '<div class="pf-bloco-s">Desmarque os que você não quer ver.</div>' +
+      '<div class="pf-livros" id="pfLivros">' +
+        livros.map(function (l) {
+          var on = ocultos.indexOf(l.id) < 0;
+          return '<button type="button" class="pf-livro' + (on ? ' on' : '') + '" data-id="' + muEsc(l.id) + '">' +
+                 '<span class="pf-livro-e">' + (l.emoji || '📘') + '</span>' +
+                 '<span class="pf-livro-t">' + muEsc(l.titulo) + '</span>' +
+                 '<span class="pf-livro-tick">✓</span></button>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+
+  // ── Exercício ──
+  var exercicio = _pfLinha('Meta de exercício', 'Minutos para completar o pilar',
+    _pfChips('exercicio.metaMin', PREFS.exercicio.metaMin, PREF_DURACOES, ' min'));
+
+  body.innerHTML =
+    _pfSecao('Seu perfil', '<span class="pf-ico">👤</span>', perfil) +
+    _pfSecao('Meditação',  '<span class="pf-ico">🧘</span>', meditacao) +
+    _pfSecao('Áudio do dia','<span class="pf-ico">🎧</span>', audio) +
+    _pfSecao('Leitura',    '<span class="pf-ico">📖</span>', leitura) +
+    _pfSecao('Exercício',  '<span class="pf-ico">🏃</span>', exercicio) +
+    '<div class="pf-acoes">' +
+      '<button type="button" class="pf-btn-ghost" id="pfRestaurar">Restaurar padrões</button>' +
+      '<button type="button" class="pf-btn" id="pfSalvar">Salvar preferências</button>' +
+    '</div>' +
+    '<div class="pf-rodape">Suas escolhas valem só para você. Sem personalizar nada, ' +
+      'o app segue exatamente como está hoje.</div>';
+
+  _pfLigarEventos(body);
+}
+
+// ── Eventos do drawer ───────────────────────────────────────
+function _pfLigarEventos(body) {
+  // Chips (duração/meta)
+  body.querySelectorAll('.pf-chips').forEach(function (grupo) {
+    grupo.addEventListener('click', function (ev) {
+      var b = ev.target.closest('.pf-chip');
+      if (!b) return;
+      grupo.querySelectorAll('.pf-chip').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+    });
+  });
+
+  // Escolha do áudio padrão + preview
+  var wrapA = document.getElementById('pfAudios');
+  if (wrapA) wrapA.addEventListener('click', function (ev) {
+    var play = ev.target.closest('.pf-audio-play');
+    if (play) { ev.stopPropagation(); _pfPreview(play.getAttribute('data-prev'), play); return; }
+    var item = ev.target.closest('.pf-audio');
+    if (!item) return;
+    wrapA.querySelectorAll('.pf-audio').forEach(function (x) { x.classList.remove('on'); });
+    item.classList.add('on');
+  });
+
+  // Frases
+  var wrapF = document.getElementById('pfFrases');
+  if (wrapF) wrapF.addEventListener('click', function (ev) {
+    var b = ev.target.closest('.pf-frase');
+    if (!b) return;
+    b.classList.toggle('on');
+    // Nunca deixa zerar: sem frase nenhuma a meditação fica muda
+    if (!wrapF.querySelector('.pf-frase.on')) {
+      b.classList.add('on');
+      toast('Deixe ao menos uma frase.', 'info');
+    }
+    _pfAtualizarContFrases();
+  });
+  var todas = document.getElementById('pfFrasesTodas');
+  if (todas) todas.addEventListener('click', function () {
+    if (wrapF) wrapF.querySelectorAll('.pf-frase').forEach(function (x) { x.classList.add('on'); });
+    _pfAtualizarContFrases();
+  });
+
+  // Livros
+  var wrapL = document.getElementById('pfLivros');
+  if (wrapL) wrapL.addEventListener('click', function (ev) {
+    var b = ev.target.closest('.pf-livro');
+    if (!b) return;
+    b.classList.toggle('on');
+    if (!wrapL.querySelector('.pf-livro.on')) {
+      b.classList.add('on');
+      toast('Deixe ao menos um livro na biblioteca.', 'info');
+    }
+  });
+
+  var salvar = document.getElementById('pfSalvar');
+  if (salvar) salvar.addEventListener('click', _pfSalvar);
+  var restaurar = document.getElementById('pfRestaurar');
+  if (restaurar) restaurar.addEventListener('click', _pfRestaurar);
+}
+
+function _pfAtualizarContFrases() {
+  var wrapF = document.getElementById('pfFrases');
+  var cont  = document.getElementById('pfFrasesCont');
+  if (!wrapF || !cont) return;
+  var total = wrapF.querySelectorAll('.pf-frase').length;
+  var on    = wrapF.querySelectorAll('.pf-frase.on').length;
+  cont.textContent = (on >= total) ? 'Todas' : on + ' escolhidas';
+}
+
+// Preview do áudio, dentro do próprio drawer.
+// Usa o MESMO proxy da meditação (getAudioBase64): o Drive não entrega
+// mídia direto pro navegador — lição da trilha do Mural, v131.
+// Como são arquivos de ~20 MB, o base64 fica em cache por fileId, senão
+// cada clique baixaria tudo de novo.
+var _pfPrevEl = null, _pfPrevId = '', _pfPrevCache = {}, _pfPrevCarregando = false;
+
+function _pfPreview(fileId, botao) {
+  document.querySelectorAll('.pf-audio-play.tocando, .pf-audio-play.carregando')
+    .forEach(function (b) { b.classList.remove('tocando', 'carregando'); });
+
+  // Segundo clique no mesmo item = parar
+  if (_pfPrevEl && _pfPrevId === fileId && !_pfPrevEl.paused) {
+    _pfPrevEl.pause();
+    _pfPrevId = '';
+    return;
+  }
+  if (_pfPrevEl) { try { _pfPrevEl.pause(); } catch (e) {} }
+  if (_pfPrevCarregando) return;
+
+  function tocar(dataUrl) {
+    _pfPrevEl = new Audio(dataUrl);
+    _pfPrevId = fileId;
+    _pfPrevEl.volume = 0.7;
+    _pfPrevEl.addEventListener('ended', function () { botao.classList.remove('tocando'); });
+    _pfPrevEl.addEventListener('error', function () {
+      botao.classList.remove('tocando');
+      toast('Não consegui tocar esta prévia.', 'error');
+    });
+    botao.classList.add('tocando');
+    var p = _pfPrevEl.play();
+    if (p && p.catch) p.catch(function (e) {
+      botao.classList.remove('tocando');
+      if (e && e.name === 'NotAllowedError') toast('Toque na tela uma vez e tente de novo.', 'info');
+    });
+  }
+
+  if (_pfPrevCache[fileId]) { tocar(_pfPrevCache[fileId]); return; }
+
+  botao.classList.add('carregando');
+  _pfPrevCarregando = true;
+  rpc('getAudioBase64', { fileId: fileId })
+    .then(function (r) {
+      if (!r || !r.ok || !r.data) throw new Error((r && r.error) || 'Sem resposta do servidor');
+      _pfPrevCache[fileId] = r.data;
+      botao.classList.remove('carregando');
+      tocar(r.data);
+    })
+    .catch(function (e) {
+      botao.classList.remove('carregando');
+      console.error('[Prefs] prévia falhou:', e && e.message);
+      toast('Não consegui carregar a prévia agora.', 'error');
+    })
+    .then(function () { _pfPrevCarregando = false; });
+}
+
+function _pfPararPreview() {
+  if (_pfPrevEl) { try { _pfPrevEl.pause(); } catch (e) {} }
+  _pfPrevEl = null; _pfPrevId = '';
+  document.querySelectorAll('.pf-audio-play.tocando, .pf-audio-play.carregando')
+    .forEach(function (b) { b.classList.remove('tocando', 'carregando'); });
+}
+
+// ── Coletar e salvar ────────────────────────────────────────
+function _pfColetar() {
+  function chip(campo, padrao) {
+    var g = document.querySelector('.pf-chips[data-campo="' + campo + '"] .pf-chip.on');
+    return g ? parseInt(g.getAttribute('data-v'), 10) : padrao;
+  }
+  function sw(campo, padrao) {
+    var i = document.querySelector('input[data-campo="' + campo + '"]');
+    return i ? !!i.checked : padrao;
+  }
+
+  var audioSel = document.querySelector('#pfAudios .pf-audio.on');
+  var wrapF = document.getElementById('pfFrases');
+  var frases = [];
+  if (wrapF) {
+    var todas = wrapF.querySelectorAll('.pf-frase');
+    var on    = wrapF.querySelectorAll('.pf-frase.on');
+    // Todas marcadas = [] (padrão), não a lista inteira
+    if (on.length < todas.length) {
+      on.forEach(function (b) { frases.push(parseInt(b.getAttribute('data-i'), 10)); });
+    }
+  }
+  var ocultos = [];
+  document.querySelectorAll('#pfLivros .pf-livro').forEach(function (b) {
+    if (!b.classList.contains('on')) ocultos.push(b.getAttribute('data-id'));
+  });
+
+  return {
+    meditacao: {
+      duracaoMin: chip('meditacao.duracaoMin', 15),
+      audioId:    audioSel ? audioSel.getAttribute('data-id') : '',
+      frases:     frases
+    },
+    audio: {
+      animacoes:  sw('audio.animacoes', true),
+      miniPlayer: sw('audio.miniPlayer', true)
+    },
+    leitura: {
+      metaMin:       chip('leitura.metaMin', 15),
+      livrosOcultos: ocultos
+    },
+    exercicio: { metaMin: chip('exercicio.metaMin', 15) }
+  };
+}
+
+async function _pfSalvar() {
+  var btn = document.getElementById('pfSalvar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+  _pfPararPreview();
+
+  // Nome vai por rota separada — vive na planilha, não no JSON
+  var campoNome = document.getElementById('pfNome');
+  var nomeNovo  = campoNome ? campoNome.value.trim() : '';
+  var nomeAntes = String((APP.data && APP.data.nome) || '').trim();
+
+  try {
+    if (nomeNovo && nomeNovo !== nomeAntes) {
+      var rn = await rpc('salvarNomeAluno', { nome: nomeNovo });
+      if (rn && rn.ok) {
+        APP.data.nome = rn.nome;
+        var av = document.getElementById('avatarEl');
+        if (av) av.textContent = rn.nome.charAt(0).toUpperCase();
+      } else if (rn && rn.error) {
+        toast(rn.error, 'error');
+      }
+    }
+
+    var res = await rpc('salvarPreferencias', { prefs: _pfColetar() });
+    if (!res || !res.ok) { toast((res && res.error) || 'Não consegui salvar.', 'error'); return; }
+
+    APP.data.preferencias = res.data;
+    _prefsSincronizar();
+    _pfAplicar();
+    toast('Preferências salvas.', 'success');
+  } catch (e) {
+    toast('Erro ao salvar: ' + (e && e.message ? e.message : e), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar preferências'; }
+  }
+}
+
+async function _pfRestaurar() {
+  var ok = await muConfirmar('Restaurar padrões',
+    'Suas personalizações voltam ao padrão do app: 15 minutos, áudio inicial, todas as frases e todos os livros.',
+    'Restaurar');
+  if (!ok) return;
+  try {
+    var res = await rpc('restaurarPreferencias', {});
+    if (!res || !res.ok) { toast((res && res.error) || 'Não consegui restaurar.', 'error'); return; }
+    APP.data.preferencias = res.data;
+    _prefsSincronizar();
+    _pfAplicar();
+    var body = document.getElementById('cfgBody');
+    if (body) renderConfigPrefs(body);
+    toast('Tudo de volta ao padrão.', 'success');
+  } catch (e) {
+    toast('Erro: ' + (e && e.message ? e.message : e), 'error');
+  }
+}
+
+// ── Aplicar as preferências nos módulos ─────────────────────
+function _pfAplicar() {
+  // Meditação: duração e áudio de entrada
+  try {
+    if (typeof MED !== 'undefined') {
+      MED.total = (PREFS.meditacao.duracaoMin || 15) * 60;
+      if (PREFS.meditacao.audioId && typeof MED_AUDIOS !== 'undefined') {
+        for (var i = 0; i < MED_AUDIOS.length; i++) {
+          if ((MED_AUDIOS[i].fileId || String(i)) === PREFS.meditacao.audioId) { MED.audioIdx = i; break; }
+        }
+      }
+    }
+  } catch (e) {}
+
+  // Leitura: meta em segundos
+  try {
+    if (typeof LEIT !== 'undefined') LEIT.targetSeconds = (PREFS.leitura.metaMin || 15) * 60;
+  } catch (e) {}
+}
+
+// Frases da sessão, já filtradas pela escolha do aluno
+function _medFrasesAtivas() {
+  var todas = (typeof MED_MSGS !== 'undefined' ? MED_MSGS : []);
+  var sel = (PREFS.meditacao && PREFS.meditacao.frases) || [];
+  if (!sel.length) return todas;
+  var out = sel.map(function (i) { return todas[i]; }).filter(Boolean);
+  return out.length ? out : todas;
+}
+
+// Livros visíveis, já filtrados
+function _leitLivrosVisiveis() {
+  var todos = (typeof LIVROS_DATA !== 'undefined' ? LIVROS_DATA : []);
+  var ocultos = (PREFS.leitura && PREFS.leitura.livrosOcultos) || [];
+  if (!ocultos.length) return todos;
+  var out = todos.filter(function (l) { return ocultos.indexOf(l.id) < 0; });
+  return out.length ? out : todos;
+}
+
+// O drawer do app-enhance.js chama isto se existir
+window.renderConfigPrefs = renderConfigPrefs;
+window._pfPararPreview   = _pfPararPreview;
 </script>
 
 <!-- Fase 1 — UX premium (tilt 3D + som + toast) -->

@@ -81,7 +81,7 @@
   /* ───────── TILT 3D ─────────
      Aplica nos cards de pilar individuais + cards de display.
      NÃO no contêiner .card.ga-pilares (agrupa clicáveis). Glare = pointer-events:none. */
-  var TILT_SEL = '.pilar-item:not(.locked), .audio-card, .hero, .msg-dinamica, .ga-checkin';
+  var TILT_SEL = '.pilar-item:not(.locked), .audio-card, .hero, .msg-dinamica, .ga-checkin, .premium-card';
 
   /* ── Transição cinematográfica ao abrir o livro ──
      Clica → capa voa pro centro, cresce, abre, e a câmera atravessa as
@@ -319,6 +319,39 @@
     var u = _appUser();
     var muted = window.appFx ? window.appFx.isMuted() : false;
     var body = document.getElementById('cfgBody');
+
+    // v132: se o app.html expôs a tela real de preferências, ela manda.
+    // O conteúdo abaixo virou fallback — só aparece se, por algum motivo,
+    // o app.html não tiver carregado (drawer nunca fica vazio).
+    if (typeof window.renderConfigPrefs === 'function') {
+      try {
+        window.renderConfigPrefs(body);
+        // o som do app não vive nas preferências do servidor: é local
+        var secSom = document.createElement('div');
+        secSom.className = 'pf-sec';
+        secSom.innerHTML =
+          '<div class="pf-sec-h"><span class="pf-ico">🔔</span><span>App</span></div>' +
+          '<div class="pf-row"><div class="pf-row-txt">' +
+            '<div class="pf-row-t">Som do app</div>' +
+            '<div class="pf-row-s">Cliques e confirmações</div></div>' +
+            '<label class="pf-sw"><input type="checkbox" id="cfgSom"' + (muted?'':' checked') +
+            '><span class="pf-sw-tr"></span></label></div>' +
+          '<div class="pf-row"><div class="pf-row-txt">' +
+            '<div class="pf-row-t">Versão</div>' +
+            '<div class="pf-row-s">Desafio 21 Dias · 2026.08</div></div></div>';
+        var acoes = body.querySelector('.pf-acoes');
+        if (acoes) body.insertBefore(secSom, acoes); else body.appendChild(secSom);
+
+        var s = document.getElementById('cfgSom');
+        if (s) s.addEventListener('change', function(){
+          if(window.appFx){ window.appFx.setMute(!s.checked); if(s.checked) fxClick(); }
+          appToast(s.checked?'Som ativado':'Som desativado', 'info');
+        });
+        document.getElementById('cfgOverlay').classList.add('show');
+        return;
+      } catch(e){ console.warn('[Config] preferências falharam, usando fallback:', e); }
+    }
+
     body.innerHTML =
       '<div class="cfg-sec"><div class="cfg-sec-title">Perfil</div>' +
         '<div class="cfg-row"><div><div class="cfg-row-label">' + (u.nome||'Aluno') + '</div>' + (u.email?'<div class="cfg-row-sub">'+u.email+'</div>':'') + '</div></div>' +
@@ -344,7 +377,11 @@
     });
     document.getElementById('cfgOverlay').classList.add('show');
   }
-  function closeConfig(){ var o=document.getElementById('cfgOverlay'); if(o) o.classList.remove('show'); }
+  function closeConfig(){
+    // v132: nunca deixa uma prévia de áudio tocando depois de fechar
+    try { if (typeof window._pfPararPreview === 'function') window._pfPararPreview(); } catch(e){}
+    var o=document.getElementById('cfgOverlay'); if(o) o.classList.remove('show');
+  }
   window.openConfig = openConfig;
 
   /* ───────── FASE 2 fix: marca (ícone 21) no topo da sidebar ───────── */
