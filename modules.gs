@@ -295,6 +295,8 @@ function handleRequest(payload) {
     case 'salvarPreferencias':        return salvarPreferencias(token, data && data.prefs);
     case 'restaurarPreferencias':     return restaurarPreferencias(token);
     case 'salvarNomeAluno':           return salvarNomeAluno(token, data && data.nome);
+    case 'salvarFotoAluno':           return salvarFotoAluno(token, data && data.fileBase64, data && data.mimeType);
+    case 'removerFotoAluno':          return removerFotoAluno(token);
     // v130 — 2FA do próprio admin (autenticadas)
     case 'get2FAStatus':              return get2FAStatus(token);
     case 'definir2FA':                return definir2FA(token, data && data.ativo);

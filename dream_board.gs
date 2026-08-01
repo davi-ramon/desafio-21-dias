@@ -240,8 +240,21 @@ function _dreamConfig_() {
     return v === 'true' || v === '1' || v === 'sim';
   }
 
+  // v133: a trilha padrão passou a ser servida pelo próprio app.
+  var TRILHA_APP = '/media/mural-ambiente.mp3';
+  var url = String(ler('mural_musica_url', TRILHA_APP)).trim() || TRILHA_APP;
+
+  // O Drive não entrega áudio pro <audio> do navegador — está provado
+  // em campo (v131): HTTP 200 + audio/mpeg no servidor e
+  // NotSupportedError no cliente. Uma URL do Drive aqui é garantia de
+  // silêncio, então servimos a MESMA faixa pelo host que funciona em vez
+  // de deixar o aluno sem som esperando alguém reconfigurar o painel.
+  if (/drive\.google\.com|docs\.google\.com|drive\.usercontent\.google\.com/i.test(url)) {
+    url = TRILHA_APP;
+  }
+
   return {
-    musicaUrl:      String(ler('mural_musica_url', '')).trim(),
+    musicaUrl:      url,
     musicaAtiva:    bool('mural_musica_ativa', true),
     musicaVolume:   num('mural_musica_volume', 22, 0, 100),   // % quando é o único som
     maxFlutuantes:  num('mural_max_flutuantes', 80, 10, 300),
@@ -288,11 +301,18 @@ function diagnosticarMusicaMural(token) {
   // aluno vai de outra origem e sem cookie, e leva página HTML, redirect
   // ou bloqueio de rastreamento. Comprovado em campo: HTTP 200 +
   // audio/mpeg no servidor e NotSupportedError no Edge, mesmo arquivo.
-  if (/drive\.google\.com|docs\.google\.com|drive\.usercontent\.google\.com/i.test(cfg.musicaUrl)) {
-    out.problemas.push('O Google Drive NÃO serve áudio para o navegador do aluno — nem no formato ' +
-                       'uc?export=download, nem com o arquivo público. O servidor consegue baixar; ' +
-                       'o <audio> não. Use a trilha hospedada no próprio app (botão "Usar a trilha ' +
-                       'do app") ou outro host que sirva o arquivo direto.');
+  // Obs.: cfg.musicaUrl já vem trocado pelo _dreamConfig_ quando o valor
+  // salvo é do Drive. Aqui olhamos o valor CRU da planilha, senão o aviso
+  // nunca apareceria e o admin acharia que a configuração dele vale.
+  var urlSalva = '';
+  try { urlSalva = String(getConfig_('mural_musica_url') || '').trim(); } catch (e) {}
+  if (/drive\.google\.com|docs\.google\.com|drive\.usercontent\.google\.com/i.test(urlSalva)) {
+    out.urlSalvaCrua = urlSalva;
+    out.problemas.push('A URL salva aponta para o Google Drive, que NÃO serve áudio para o ' +
+                       'navegador do aluno — nem no formato uc?export=download, nem com o arquivo ' +
+                       'público. O app está ignorando essa URL e tocando a trilha hospedada aqui ' +
+                       '(' + cfg.musicaUrl + ') para ninguém ficar sem som. Clique em "Usar a ' +
+                       'trilha do app" e salve para deixar isso explícito.');
   }
   if (/pixabay\.com\/(music|sound-effects)\//i.test(cfg.musicaUrl)) {
     out.problemas.push('Esse é o link da PÁGINA do Pixabay, não do arquivo. Baixe o MP3 e ' +

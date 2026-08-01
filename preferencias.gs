@@ -28,6 +28,9 @@ function _prefsPadrao_() {
     },
     exercicio: {
       metaMin: 15
+    },
+    perfil: {
+      avatarUrl: ''      // vazio = mostra as iniciais
     }
   };
 }
@@ -85,6 +88,12 @@ function _prefsSanitizar_(entrada) {
 
   var e = entrada.exercicio || {};
   p.exercicio.metaMin = _prefsNum_(e.metaMin, 15, PREF_DURACOES);
+
+  // Só aceita https do host de imagem do Google — a URL vai parar num
+  // <img> do app, então não pode virar porta pra javascript: ou data:
+  var pf = entrada.perfil || {};
+  var av = String(pf.avatarUrl || '').trim().slice(0, 300);
+  p.perfil.avatarUrl = /^https:\/\/(lh3\.googleusercontent\.com|drive\.google\.com)\//i.test(av) ? av : '';
 
   return p;
 }
@@ -158,6 +167,56 @@ function salvarPreferencias(token, prefs) {
 // ROTA: restaurarPreferencias — volta tudo ao padrão
 function restaurarPreferencias(token) {
   return salvarPreferencias(token, _prefsPadrao_());
+}
+
+// ROTA: salvarFotoAluno — reusa o upload do Mural, que já entrega URL
+// do lh3.googleusercontent.com (renderiza em <img> de forma confiável;
+// o uc?export=view antigo não). A URL fica no mesmo JSON de prefs.
+var PREF_FOTO_MAX_BYTES = 3 * 1024 * 1024;   // 3 MB
+
+function salvarFotoAluno(token, base64, mimeType) {
+  var aluno = getAlunoByToken_(token);
+  if (!aluno) return { ok: false, error: 'Não autorizado.' };
+
+  var b64 = String(base64 || '');
+  if (!b64) return { ok: false, error: 'Nenhuma imagem recebida.' };
+  // base64 infla ~33%: converte pro tamanho real antes de aceitar
+  if ((b64.length * 3) / 4 > PREF_FOTO_MAX_BYTES) {
+    return { ok: false, error: 'A imagem passa de 3 MB. Escolha uma menor.' };
+  }
+  var mime = String(mimeType || '').toLowerCase();
+  if (['image/jpeg','image/jpg','image/png','image/webp'].indexOf(mime) < 0) {
+    return { ok: false, error: 'Use uma imagem JPG, PNG ou WEBP.' };
+  }
+
+  var email = String(aluno.user.email || '').toLowerCase().trim();
+  var up;
+  try {
+    up = _dreamUploadImagem_(b64, mime, 'avatar_' + email.replace(/[^a-z0-9]/g, '_') + '_' + Date.now());
+  } catch (e) {
+    return { ok: false, error: 'Falha no upload: ' + (e && e.message ? e.message : e) };
+  }
+  if (!up || !up.url) return { ok: false, error: (up && up.erro) || 'Não consegui salvar a imagem.' };
+
+  // Grava mantendo o resto das preferências intacto
+  var atuais = _prefsLer_(aluno.row, aluno.headers);
+  atuais.perfil = atuais.perfil || {};
+  atuais.perfil.avatarUrl = up.url;
+  var res = salvarPreferencias(token, atuais);
+  if (!res || !res.ok) return res;
+
+  try { logAction(email, 'FOTO_ATUALIZADA', 'aluno', '', ''); } catch (e) {}
+  return { ok: true, url: up.url, data: res.data };
+}
+
+// ROTA: removerFotoAluno
+function removerFotoAluno(token) {
+  var aluno = getAlunoByToken_(token);
+  if (!aluno) return { ok: false, error: 'Não autorizado.' };
+  var atuais = _prefsLer_(aluno.row, aluno.headers);
+  atuais.perfil = atuais.perfil || {};
+  atuais.perfil.avatarUrl = '';
+  return salvarPreferencias(token, atuais);
 }
 
 // ROTA: salvarNomeAluno — o aluno corrige o próprio nome.
