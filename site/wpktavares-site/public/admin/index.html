@@ -3915,8 +3915,16 @@ async function renderMuralConfig() {
               '</select></div>' +
           '</div>' +
 
-          '<button class="btn btn-ghost btn-sm" onclick="testarMusicaMural()" style="margin-top:4px">' +
-            '<i data-lucide="play" class="luc"></i> Testar o &aacute;udio agora</button>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">' +
+            '<button class="btn btn-ghost btn-sm" onclick="testarMusicaMural()">' +
+              '<i data-lucide="play" class="luc"></i> Testar o &aacute;udio agora</button>' +
+            '<button class="btn btn-ghost btn-sm" onclick="diagnosticarMusicaMural()">' +
+              '<i data-lucide="stethoscope" class="luc"></i> Diagnosticar</button>' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:6px">' +
+            '<b>Testar</b> toca aqui no seu navegador. <b>Diagnosticar</b> checa o que est&aacute; ' +
+            'realmente <i>salvo</i> e acessa a URL pelo servidor &mdash; use quando n&atilde;o tocar no app do aluno.' +
+          '</div>' +
           '<div id="muralAudioTeste" style="margin-top:10px"></div>' +
         '</div>' +
 
@@ -3966,7 +3974,9 @@ async function renderMuralConfig() {
 // Toca o arquivo direto no admin: confirma que a URL é um link direto
 // e que o formato é suportado, antes de publicar pros alunos.
 function testarMusicaMural() {
-  const url = (document.getElementById('mural_musica_url').value || '').trim();
+  const campo = document.getElementById('mural_musica_url');
+  const url = _normalizarUrlAudio(campo.value);
+  if (url !== (campo.value || '').trim()) campo.value = url;   // mostra o link já corrigido
   const box = document.getElementById('muralAudioTeste');
   if (!url) { box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Informe uma URL primeiro.</div>'; return; }
   box.innerHTML =
@@ -3977,9 +3987,57 @@ function testarMusicaMural() {
       '<source src="' + escHtml(url) + '"></audio>';
 }
 
+// v129: o engano mais comum é colar o link de VISUALIZAÇÃO do Drive,
+// que devolve HTML e nunca toca. Converte pro formato de download.
+function _normalizarUrlAudio(v) {
+  var url = String(v || '').trim();
+  var m = url.match(/drive\.google\.com\/file\/d\/([^\/\?]+)/i);
+  if (m) return 'https://drive.google.com/uc?export=download&id=' + m[1];
+  m = url.match(/drive\.google\.com\/open\?id=([^&]+)/i);
+  if (m) return 'https://drive.google.com/uc?export=download&id=' + m[1];
+  return url;
+}
+
+// v129: pergunta ao SERVIDOR o que está gravado e se a URL responde.
+// O "Testar" acima só prova que toca no seu navegador — não prova que
+// o valor chegou na planilha nem que o arquivo é público.
+async function diagnosticarMusicaMural() {
+  const box = document.getElementById('muralAudioTeste');
+  box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Diagnosticando&hellip;</div>';
+  let res;
+  try { res = await rpc('diagnosticarMusicaMural', {}); }
+  catch (e) { box.innerHTML = '<div style="font-size:12px;color:#e2626b">Falha ao diagnosticar: ' + escHtml(e.message) + '</div>'; return; }
+  if (!res || !res.ok) { box.innerHTML = '<div style="font-size:12px;color:#e2626b">' + escHtml((res && res.error) || 'Erro.') + '</div>'; return; }
+
+  const d  = res.data || {};
+  const ok = !(d.problemas || []).length;
+  let h = '<div style="border:1px solid ' + (ok ? 'rgba(76,175,80,.35)' : 'rgba(232,64,64,.35)') +
+          ';background:' + (ok ? 'rgba(76,175,80,.07)' : 'rgba(232,64,64,.06)') +
+          ';border-radius:10px;padding:13px 15px;font-size:12.5px;line-height:1.65">';
+  h += '<div style="font-weight:700;color:' + (ok ? 'var(--green)' : '#e2626b') + ';margin-bottom:8px">' +
+       escHtml(d.veredito || '') + '</div>';
+
+  h += '<div style="color:var(--muted);font-size:11.5px;margin-bottom:8px">' +
+       '<b>URL salva:</b> ' + (d.url ? escHtml(d.url) : '<i>(vazia)</i>') + '<br>' +
+       '<b>Ativa:</b> ' + (d.ativa ? 'sim' : 'não') + ' &nbsp;·&nbsp; <b>Volume:</b> ' + escHtml(String(d.volume)) + '%' +
+       (d.httpStatus ? '<br><b>Resposta do servidor:</b> HTTP ' + escHtml(String(d.httpStatus)) +
+                       ' &nbsp;·&nbsp; <b>Tipo:</b> ' + escHtml(d.contentType || '') +
+                       (d.tamanhoKB ? ' &nbsp;·&nbsp; <b>Tamanho:</b> ' + escHtml(String(d.tamanhoKB)) + ' KB' : '') : '') +
+       '</div>';
+
+  (d.problemas || []).forEach(function (p) {
+    h += '<div style="color:#e2626b;margin-top:6px">&bull; ' + escHtml(p) + '</div>';
+  });
+  (d.avisos || []).forEach(function (a) {
+    h += '<div style="color:#e0a83c;margin-top:6px">&bull; ' + escHtml(a) + '</div>';
+  });
+  h += '</div>';
+  box.innerHTML = h;
+}
+
 async function salvarMuralConfig() {
   const cfg = {
-    mural_musica_url:     (document.getElementById('mural_musica_url').value || '').trim(),
+    mural_musica_url:     _normalizarUrlAudio(document.getElementById('mural_musica_url').value),
     mural_musica_ativa:   document.getElementById('mural_musica_ativa').value,
     mural_musica_volume:  document.getElementById('mural_musica_volume').value,
     mural_max_flutuantes: document.getElementById('mural_max_flutuantes').value,

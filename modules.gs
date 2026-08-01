@@ -284,6 +284,7 @@ function handleRequest(payload) {
     case 'atualizarDreamItem':        return atualizarDreamItem(token, data && data.id, data && data.updates);
     case 'salvarPosicoesDream':       return salvarPosicoesDream(token, data && data.posicoes);
     case 'excluirDreamItem':          return excluirDreamItem(token, data && data.id);
+    case 'diagnosticarMusicaMural':   return diagnosticarMusicaMural(token);   // v129 — só admin
     // v121 — Módulo Exercício Físico (mini Strava)
     case 'getExercicioPerfil':        return getExercicioPerfil(token);
     case 'salvarExercicioPerfil':     return salvarExercicioPerfil(token, data);

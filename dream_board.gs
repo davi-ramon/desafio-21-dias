@@ -252,6 +252,86 @@ function _dreamConfig_() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ROTA: diagnosticarMusicaMural — responde POR QUE a trilha não toca.
+// Lê o que está realmente gravado na aba config e BATE NA URL de
+// verdade (status HTTP + content-type), em vez de a gente adivinhar.
+// ─────────────────────────────────────────────────────────────
+function diagnosticarMusicaMural(token) {
+  var user = getUserByToken(token);
+  if (!user || user.role !== 'admin') return { ok: false, error: 'Sem permissão.' };
+
+  var cfg = _dreamConfig_();
+  var out = {
+    url: cfg.musicaUrl, ativa: cfg.musicaAtiva, volume: cfg.musicaVolume,
+    problemas: [], avisos: []
+  };
+
+  if (!cfg.musicaUrl) {
+    out.problemas.push('Nenhuma URL está gravada (chave mural_musica_url da aba config está vazia). ' +
+                       'Se você preencheu o campo, o Salvar não chegou até aqui.');
+    out.veredito = 'Não há música configurada.';
+    return { ok: true, data: out };
+  }
+
+  if (!cfg.musicaAtiva)     out.problemas.push('A música está marcada como INATIVA no painel.');
+  if (cfg.musicaVolume === 0) out.problemas.push('O volume está em 0%.');
+  if (!/^https:\/\//i.test(cfg.musicaUrl)) {
+    out.problemas.push('A URL não começa com https://. O app roda em HTTPS e o navegador ' +
+                       'bloqueia áudio servido por http://.');
+  }
+
+  // Os três enganos que respondem pela imensa maioria dos casos
+  if (/pixabay\.com\/(music|sound-effects)\//i.test(cfg.musicaUrl)) {
+    out.problemas.push('Esse é o link da PÁGINA do Pixabay, não do arquivo. Baixe o MP3 e hospede ' +
+                       'no Drive, ou use o link direto que começa com cdn.pixabay.com.');
+  }
+  if (/drive\.google\.com\/file\/d\//i.test(cfg.musicaUrl)) {
+    var id = (cfg.musicaUrl.match(/\/file\/d\/([^\/\?]+)/) || [])[1] || 'ID_DO_ARQUIVO';
+    out.problemas.push('Link de visualização do Drive não toca — ele devolve uma página HTML. ' +
+                       'Use: https://drive.google.com/uc?export=download&id=' + id);
+  }
+  if (/youtube\.com|youtu\.be|spotify\.com|soundcloud\.com|deezer\./i.test(cfg.musicaUrl)) {
+    out.problemas.push('YouTube, Spotify, SoundCloud e Deezer não entregam arquivo de áudio direto. ' +
+                       'Não é possível tocar por <audio> — precisa ser um MP3/OGG/M4A hospedado.');
+  }
+
+  // Bate na URL de verdade
+  try {
+    var resp = UrlFetchApp.fetch(cfg.musicaUrl, { muteHttpExceptions: true, followRedirects: true });
+    var code = resp.getResponseCode();
+    var hdr  = resp.getAllHeaders() || {};
+    var ct   = String(hdr['Content-Type'] || hdr['content-type'] || '');
+    var len  = Number(hdr['Content-Length'] || hdr['content-length'] || 0);
+
+    out.httpStatus  = code;
+    out.contentType = ct || '(não informado)';
+    if (!len) { try { len = resp.getContent().length; } catch (e) {} }
+    out.tamanhoKB = len ? Math.round(len / 1024) : 0;
+
+    if (code >= 400) {
+      out.problemas.push('O servidor respondeu HTTP ' + code + '. O arquivo não está acessível ' +
+                         'publicamente — se for Drive, marque "qualquer pessoa com o link".');
+    }
+    if (ct && ct.toLowerCase().indexOf('audio') < 0 && ct.toLowerCase().indexOf('octet-stream') < 0) {
+      out.problemas.push('A URL devolve "' + ct + '" em vez de áudio. É uma página, não o arquivo.');
+    }
+    if (out.tamanhoKB && out.tamanhoKB < 20) {
+      out.avisos.push('O conteúdo tem só ' + out.tamanhoKB + ' KB — pequeno demais para uma trilha.');
+    }
+  } catch (e) {
+    out.problemas.push('Não consegui acessar a URL: ' + e.message);
+  }
+
+  out.veredito = out.problemas.length
+    ? 'Encontrei ' + out.problemas.length + ' problema(s) — a lista abaixo diz o que corrigir.'
+    : 'A URL está acessível e é mesmo um arquivo de áudio. Se ainda assim não toca no app, ' +
+      'é o autoplay do navegador: a partir da v129 a trilha entra sozinha no primeiro toque na tela, ' +
+      'e o botão de som no cabeçalho do Mural fica pulsando até lá.';
+
+  return { ok: true, data: out };
+}
+
+// ─────────────────────────────────────────────────────────────
 // ROTA: criarDreamItem
 // data: { type:'texto'|'imagem', text, notes, imageBase64, imageType }
 // ─────────────────────────────────────────────────────────────

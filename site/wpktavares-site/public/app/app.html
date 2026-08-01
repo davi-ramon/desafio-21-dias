@@ -8970,7 +8970,23 @@ function _commTimeHora(iso) {
 .mu-toggle button.on { background:var(--green-glow); color:var(--green-l); }
 
 /* botão quadrado, só o "+", com animação em tudo */
-.mu-add { margin-left:auto; width:44px; height:44px; flex-shrink:0;
+/* v129: o + ganhou um vizinho (som), então o margin-left:auto que
+   empurrava o botão pra direita passou pro contêiner. */
+.mu-acoes { margin-left:auto; display:flex; align-items:center; gap:9px; flex-shrink:0; }
+.mu-som { width:36px; height:36px; flex-shrink:0; cursor:pointer;
+  background:rgba(255,255,255,.055); color:#8fa89a; border:1px solid rgba(255,255,255,.09);
+  border-radius:11px; display:inline-flex; align-items:center; justify-content:center;
+  transition:color .2s, background .2s, border-color .2s, transform .18s; }
+.mu-som:hover { color:#e8efe9; background:rgba(255,255,255,.1); transform:translateY(-1px); }
+.mu-som:active { transform:scale(.93); }
+.mu-som.on { color:var(--green); border-color:rgba(76,175,80,.35); background:rgba(76,175,80,.11); }
+.mu-som:focus-visible { outline:2px solid var(--green); outline-offset:2px; }
+/* Autoplay bloqueado: o botão respira pra dizer "tem som aqui, me toque" */
+.mu-som.pulsa { color:var(--green); border-color:rgba(76,175,80,.45); animation:muSomPulsa 2.1s ease-in-out infinite; }
+@keyframes muSomPulsa { 0%,100%{box-shadow:0 0 0 0 rgba(76,175,80,.42)} 50%{box-shadow:0 0 0 8px rgba(76,175,80,0)} }
+@media (prefers-reduced-motion:reduce){ .mu-som.pulsa{animation:none} }
+
+.mu-add { width:44px; height:44px; flex-shrink:0;
   background:var(--green); color:#04140a; border:none; border-radius:13px; cursor:pointer;
   display:inline-flex; align-items:center; justify-content:center; position:relative;
   box-shadow:0 4px 18px rgba(76,175,80,.28);
@@ -9234,7 +9250,12 @@ function _commTimeHora(iso) {
 // ════════════════════════════════════════════════════════════
 var MURAL = {
   itens: [], modo: 'espaco', nodes: [], raf: null, sel: null,
-  carregado: false, frozen: false, last: 0, pend: {}, timer: null
+  carregado: false, frozen: false, last: 0, pend: {}, timer: null,
+  // v129: estado da trilha ambiente. `motivo` guarda POR QUE não está
+  // tocando — antes toda falha era engolida e o Mural ficava mudo sem
+  // nenhum rastro no console.
+  audio: null, fadeTimer: null, motivo: '', destraveArmado: false,
+  mudo: (function () { try { return localStorage.getItem('mu_mudo') === '1'; } catch (e) { return false; } })()
 };
 
 // Espaço Mental renderiza no máximo N nós. Acima disso a física
@@ -9281,9 +9302,12 @@ function muShell() {
               (n ? n + (n === 1 ? ' declaração' : ' declarações') : 'Seu espaço de visualização') +
             '</div>' +
           '</div>' +
-          '<button class="mu-add" onclick="muAbrirCriar()" aria-label="Adicionar declaração" title="Adicionar">' +
-            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>' +
-          '</button>' +
+          '<div class="mu-acoes">' +
+            '<button class="mu-som" id="muSom" onclick="muToggleSom()" style="display:none"></button>' +
+            '<button class="mu-add" onclick="muAbrirCriar()" aria-label="Adicionar declaração" title="Adicionar">' +
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>' +
+            '</button>' +
+          '</div>' +
         '</div>' +
         '<div class="mu-toggle">' +
           '<button id="muTabEsp" class="' + (MURAL.modo === 'espaco' ? 'on' : '') + '" onclick="muSetModo(\'espaco\')">✦ Espaço Mental</button>' +
@@ -9441,20 +9465,71 @@ function muAmbienteAlvo() {
   return vol;
 }
 
+// v129: quando o autoplay é bloqueado, o navegador só libera áudio depois
+// de um gesto do usuário. Em vez de desistir calado, a trilha fica armada
+// e entra sozinha no primeiro toque — que no Mural acontece em segundos.
+function muArmarDestrave() {
+  if (MURAL.destraveArmado) return;
+  MURAL.destraveArmado = true;
+  function destravar() {
+    document.removeEventListener('pointerdown', destravar, true);
+    document.removeEventListener('keydown', destravar, true);
+    MURAL.destraveArmado = false;
+    if (!document.getElementById('muStage')) return;   // já saiu do Mural
+    muAmbienteIniciar();
+  }
+  document.addEventListener('pointerdown', destravar, true);
+  document.addEventListener('keydown', destravar, true);
+}
+
 function muAmbienteIniciar() {
   var cfg = muCfg();
-  if (!cfg.musicaUrl || cfg.musicaAtiva === false) return;
+  MURAL.motivo = '';
+  if (!cfg.musicaUrl)            { MURAL.motivo = 'sem-url';    muBotaoSom(); return; }
+  if (cfg.musicaAtiva === false) { MURAL.motivo = 'desativada'; muBotaoSom(); return; }
+  if (MURAL.mudo)                { MURAL.motivo = 'mudo';       muBotaoSom(); return; }
+
   if (!MURAL.audio || MURAL.audio.getAttribute('data-src') !== cfg.musicaUrl) {
     if (MURAL.audio) { try { MURAL.audio.pause(); } catch (e) {} }
     MURAL.audio = new Audio(cfg.musicaUrl);
     MURAL.audio.setAttribute('data-src', cfg.musicaUrl);
     MURAL.audio.loop = true;               // loop contínuo enquanto estiver no Mural
     MURAL.audio.preload = 'auto';
+
+    // v129: PARAR de engolir o erro. URL de página em vez de arquivo,
+    // link do Drive não público, formato não suportado — tudo isso
+    // falhava sem deixar UM rastro sequer. Agora diz o que aconteceu.
+    MURAL.audio.addEventListener('error', function () {
+      var er = MURAL.audio && MURAL.audio.error;
+      var cods = {
+        1: 'download interrompido',
+        2: 'erro de rede ao baixar o arquivo',
+        3: 'falha ao decodificar (arquivo corrompido)',
+        4: 'formato não suportado — a URL provavelmente não aponta para um arquivo de áudio'
+      };
+      MURAL.motivo = 'erro';
+      console.error('[Mural] a trilha não carregou: ' + ((er && cods[er.code]) || 'erro desconhecido') +
+                    '\n         URL configurada: ' + cfg.musicaUrl);
+      muBotaoSom();
+    });
   }
   var a = MURAL.audio;
   a.volume = 0;
   var p = a.play();
-  if (p && p.catch) p.catch(function () {});   // autoplay bloqueado: silencia sem erro
+  if (p && p.catch) {
+    p.catch(function (err) {
+      if (err && err.name === 'NotAllowedError') {
+        MURAL.motivo = 'autoplay';
+        console.info('[Mural] autoplay bloqueado pelo navegador — a trilha entra no primeiro toque na tela.');
+        muArmarDestrave();
+      } else {
+        MURAL.motivo = 'erro';
+        console.error('[Mural] play() falhou:', (err && err.name) || err, (err && err.message) || '');
+      }
+      muBotaoSom();
+    });
+  }
+  muBotaoSom();
 
   clearInterval(MURAL.fadeTimer);
   var passo = 100, decorrido = 0;
@@ -9466,6 +9541,45 @@ function muAmbienteIniciar() {
     // depois do fade-in segue ajustando p/ acompanhar o áudio motivacional
     if (frac >= 1 && Math.abs(a.volume - alvo) < 0.005) { /* mantém rodando p/ mixagem */ }
   }, passo);
+}
+
+// ── Controle de som visível (v129) ──────────────────────────
+// Música ambiente sem botão de desligar é hostil. E, de quebra, o
+// botão é o lugar onde o aluno descobre que existe trilha quando o
+// autoplay foi bloqueado.
+var MU_ICO_ON  = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+var MU_ICO_OFF = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="m22 9-6 6M16 9l6 6"/></svg>';
+
+function muBotaoSom() {
+  var b = document.getElementById('muSom');
+  if (!b) return;
+  var cfg = muCfg();
+
+  // Sem trilha configurada ou desligada pelo admin: o botão nem aparece
+  if (!cfg.musicaUrl || cfg.musicaAtiva === false) { b.style.display = 'none'; return; }
+  b.style.display = '';
+
+  var tocando = MURAL.audio && !MURAL.audio.paused && !MURAL.mudo && MURAL.motivo !== 'erro';
+  b.innerHTML = tocando ? MU_ICO_ON : MU_ICO_OFF;
+  b.classList.toggle('on', !!tocando);
+  b.classList.toggle('pulsa', MURAL.motivo === 'autoplay');
+
+  var titulos = {
+    autoplay: 'Toque para ligar a trilha',
+    erro:     'A trilha não pôde ser carregada',
+    mudo:     'Ligar trilha ambiente'
+  };
+  var t = titulos[MURAL.motivo] || (tocando ? 'Desligar trilha ambiente' : 'Ligar trilha ambiente');
+  b.setAttribute('title', t);
+  b.setAttribute('aria-label', t);
+  b.setAttribute('aria-pressed', tocando ? 'true' : 'false');
+}
+
+function muToggleSom() {
+  MURAL.mudo = !MURAL.mudo;
+  try { localStorage.setItem('mu_mudo', MURAL.mudo ? '1' : '0'); } catch (e) {}
+  if (MURAL.mudo) { muAmbienteParar(); MURAL.motivo = 'mudo'; muBotaoSom(); }
+  else            { muAmbienteIniciar(); }
 }
 
 function muAmbienteParar() {
