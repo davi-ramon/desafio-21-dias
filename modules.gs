@@ -205,6 +205,11 @@ function handleRequest(payload) {
     // Auth — recuperação de senha (sem token, por isso fora do bloco autenticado)
     case 'sendPasswordReset':        return sendPasswordReset(data.email);
     case 'verifyAndResetPassword':   return verifyAndResetPassword(data.email, data.code, data.newPassword);
+    // v130 — 2FA e link mágico do painel (públicas: são a própria entrada)
+    case 'verificar2FA':             return verificar2FA(data && data.desafio, data && data.codigo);
+    case 'reenviar2FA':              return reenviar2FA(data && data.desafio);
+    case 'solicitarLinkMagicoAdmin': return solicitarLinkMagicoAdmin(data && data.email);
+    case 'entrarComLinkMagico':      return entrarComLinkMagico(data && data.t);
 
     // Área do aluno
     case 'getAlunoData':             return getAlunoData(token);
@@ -285,6 +290,9 @@ function handleRequest(payload) {
     case 'salvarPosicoesDream':       return salvarPosicoesDream(token, data && data.posicoes);
     case 'excluirDreamItem':          return excluirDreamItem(token, data && data.id);
     case 'diagnosticarMusicaMural':   return diagnosticarMusicaMural(token);   // v129 — só admin
+    // v130 — 2FA do próprio admin (autenticadas)
+    case 'get2FAStatus':              return get2FAStatus(token);
+    case 'definir2FA':                return definir2FA(token, data && data.ativo);
     // v121 — Módulo Exercício Físico (mini Strava)
     case 'getExercicioPerfil':        return getExercicioPerfil(token);
     case 'salvarExercicioPerfil':     return salvarExercicioPerfil(token, data);

@@ -161,6 +161,22 @@ function login(email, password) {
       } catch (_up) {}
     }
 
+    // v130: segundo fator. A senha está certa, mas quem tem 2FA ligado
+    // ainda não recebe token — recebe um desafio e um código por e-mail.
+    if (typeof _twofaAtivo_ === 'function' && _twofaAtivo_(user)) {
+      _rlLimpar_(emailNorm);   // a senha estava certa; não penaliza
+      const desafio = _2faCriarDesafio_(user);
+      if (!desafio) {
+        return { ok: false, error: 'Não consegui enviar seu código de acesso. Tente de novo em instantes.' };
+      }
+      return {
+        ok: false,
+        need2fa: true,
+        desafio: desafio,
+        email: (typeof _maskEmail_ === 'function') ? _maskEmail_(user.email) : ''
+      };
+    }
+
     // Generate session token
     const token = generateId();
     // v127: passa o e-mail NORMALIZADO — o mesmo critério usado na busca
@@ -342,11 +358,16 @@ function updateUser(token, userId, updates) {
 function sendPasswordReset(email) {
   if (!email) return { ok: false, error: 'E-mail obrigatório.' };
 
+  // v130: comparação normalizada — antes usava o e-mail cru e quem
+  // tivesse caps/espaço no cadastro nunca recebia o código de reset.
+  const alvoReset = String(email).toLowerCase().trim();
   const sheet = getSheet(SHEET_USERS);
   const users = sheetToObjects(sheet);
-  const user  = users.find(u => u.email === email && u.active);
+  const user  = users.find(u => String(u.email || '').toLowerCase().trim() === alvoReset && u.active);
   // Não revela se o e-mail existe (anti-enumeração): finge sucesso e não envia nada.
   if (!user) return { ok: true };
+  // Freio: no máximo 3 pedidos de código por e-mail a cada 15 min
+  if (typeof _freioOk_ === 'function' && !_freioOk_('rst', alvoReset, 3, 15 * 60)) return { ok: true };
 
   // Código de 6 dígitos + expiração de 5 minutos
   const code    = String(Math.floor(100000 + Math.random() * 900000));

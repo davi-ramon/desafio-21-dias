@@ -218,7 +218,13 @@ function doPost(e) {
       payload.action === 'confirmarCheckoutStripe' ||
       payload.action === 'validarTokenAcesso'      ||
       payload.action === 'definirSenhaComToken'    ||
-      payload.action === 'reenviarLinkAcesso'
+      payload.action === 'reenviarLinkAcesso'      ||
+      // v130 — entrada do painel: são públicas por natureza (ainda não
+      // existe sessão neste ponto). Todas passam pelo _gatePublico_.
+      payload.action === 'verificar2FA'             ||
+      payload.action === 'reenviar2FA'              ||
+      payload.action === 'solicitarLinkMagicoAdmin' ||
+      payload.action === 'entrarComLinkMagico'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

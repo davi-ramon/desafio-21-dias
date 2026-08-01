@@ -975,6 +975,19 @@ button,
 .lg-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
+/* ── v130: 2FA, recuperação de senha e link mágico ───────────── */
+.lg-explica{margin:0 0 16px;font-size:12.5px;line-height:1.6;color:#8fa89a;text-align:center}
+.lg-explica b{color:#cfe0d3;font-weight:700}
+.lg-code{text-align:center;font-size:23px;font-weight:800;letter-spacing:11px;padding-left:11px}
+.lg-code::placeholder{letter-spacing:11px;color:#2d4038}
+.lg-links{margin-top:14px;text-align:center;font-size:12px;line-height:1.9}
+.lg-link{background:none;border:none;padding:0;font-family:inherit;font-size:12px;color:#7fb083;
+  cursor:pointer;text-decoration:none;border-bottom:1px solid transparent;transition:color .15s,border-color .15s}
+.lg-link:hover{color:#a5d6a7;border-bottom-color:rgba(165,214,167,.45)}
+.lg-link:focus-visible{outline:2px solid #4caf50;outline-offset:3px;border-radius:3px}
+.lg-link[disabled]{opacity:.45;cursor:not-allowed}
+.lg-sep{color:#37503f;margin:0 7px}
+
 @media (prefers-reduced-motion:reduce){
   #loginOverlay,.lg-card,.lg-card.shake,.lg-check path{animation:none!important;transition:none!important}
   .lg-spin{animation-duration:1.5s}
@@ -999,6 +1012,8 @@ button,
       <div class="lg-sub">Painel Administrativo</div>
     </div>
 
+    <p class="lg-explica" id="lgExplica" hidden></p>
+
     <div class="lg-field" id="lgFieldEmail">
       <label class="lg-label" for="loginEmail">E-mail</label>
       <span class="lg-input-wrap">
@@ -1020,8 +1035,31 @@ button,
       <div class="lg-err" id="lgErrPass" role="alert"></div>
     </div>
 
+    <!-- Código de 6 dígitos: serve ao 2FA e à redefinição de senha -->
+    <div class="lg-field" id="lgFieldCod" hidden>
+      <label class="lg-label" for="lgCodigo">C&oacute;digo de 6 d&iacute;gitos</label>
+      <span class="lg-input-wrap">
+        <input type="text" id="lgCodigo" class="lg-input lg-code" inputmode="numeric" maxlength="6"
+               autocomplete="one-time-code" placeholder="000000" aria-describedby="lgErrCod">
+      </span>
+      <div class="lg-err" id="lgErrCod" role="alert"></div>
+    </div>
+
+    <!-- Nova senha: só na redefinição -->
+    <div class="lg-field lg-pw" id="lgFieldNova" hidden>
+      <label class="lg-label" for="lgNova">Nova senha</label>
+      <span class="lg-input-wrap">
+        <input type="password" id="lgNova" class="lg-input" autocomplete="new-password"
+               placeholder="M&iacute;nimo 6 caracteres" aria-describedby="lgErrNova">
+        <button type="button" class="lg-eye" id="lgEyeNova" aria-label="Mostrar senha" aria-pressed="false"></button>
+      </span>
+      <div class="lg-hint" id="lgCapsNova" role="status" aria-live="polite">Caps Lock est&aacute; ligado</div>
+      <div class="lg-err" id="lgErrNova" role="alert"></div>
+    </div>
+
     <button type="submit" class="lg-btn" id="loginBtn"><span>Entrar</span></button>
     <div class="lg-msg" id="loginMsg" role="status" aria-live="polite"></div>
+    <div class="lg-links" id="lgLinks"></div>
     <div class="lg-foot">Acesso restrito &middot; WPK Tavares</div>
   </form>
 </div>
@@ -1046,6 +1084,13 @@ button,
 
   function _el(id) { return document.getElementById(id); }
 
+  var LG_ROTULO = 'Entrar';   // v130: muda conforme a vista do cartão
+
+  function _lgEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
   // Botão: 'idle' | 'loading' | 'ok'
   function _lgBtn(estado) {
     var b = _el('loginBtn');
@@ -1058,7 +1103,7 @@ button,
       b.innerHTML = '<svg class="lg-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Pronto!</span>';
     } else {
       b.disabled = false;
-      b.innerHTML = '<span>Entrar</span>';
+      b.innerHTML = '<span>' + _lgEsc(LG_ROTULO) + '</span>';
     }
   }
 
@@ -1069,20 +1114,30 @@ button,
     m.className = 'lg-msg' + (tipo ? ' ' + tipo : '');
   }
 
+  var LG_CAMPOS = {
+    email: { box: 'lgFieldEmail', err: 'lgErrEmail', input: 'loginEmail' },
+    pass:  { box: 'lgFieldPass',  err: 'lgErrPass',  input: 'loginPass'  },
+    cod:   { box: 'lgFieldCod',   err: 'lgErrCod',   input: 'lgCodigo'   },
+    nova:  { box: 'lgFieldNova',  err: 'lgErrNova',  input: 'lgNova'     }
+  };
+
   function _lgCampoErro(campo, txt) {
-    var f = _el(campo === 'email' ? 'lgFieldEmail' : 'lgFieldPass');
-    var e = _el(campo === 'email' ? 'lgErrEmail'   : 'lgErrPass');
+    var c = LG_CAMPOS[campo]; if (!c) return;
+    var f = _el(c.box), e = _el(c.err);
     if (f) { if (txt) f.classList.add('invalid'); else f.classList.remove('invalid'); }
     if (e) e.textContent = txt || '';
   }
 
   // Marca o campo como suspeito sem repetir texto (a mensagem geral já explica)
   function _lgMarcar(campo) {
-    var f = _el(campo === 'email' ? 'lgFieldEmail' : 'lgFieldPass');
+    var c = LG_CAMPOS[campo]; if (!c) return;
+    var f = _el(c.box);
     if (f) f.classList.add('invalid');
   }
 
-  function _lgLimparErros() { _lgCampoErro('email', ''); _lgCampoErro('pass', ''); }
+  function _lgLimparErros() {
+    Object.keys(LG_CAMPOS).forEach(function (k) { _lgCampoErro(k, ''); });
+  }
 
   function _lgTremer() {
     var c = _el('lgCard');
@@ -1097,11 +1152,125 @@ button,
     _lgBtn('idle');
     _lgMsg(txt, 'err');
     _lgTremer();
-    if (campo) {
+    if (campo && LG_CAMPOS[campo]) {
       _lgMarcar(campo);
-      var i = _el(campo === 'email' ? 'loginEmail' : 'loginPass');
+      var i = _el(LG_CAMPOS[campo].input);
       if (i) { try { i.focus(); i.select && i.select(); } catch (e) {} }
     }
+  }
+
+  // ── Vistas do cartão (v130) ──────────────────────────────────
+  // Um cartão só, cinco estados. O botão e a área de mensagem são
+  // reaproveitados — muda o que está visível, o rótulo e os links.
+  var _lgVista = 'login';
+  var _lg2fa   = { desafio: '', email: '' };
+  var _lgEmailReset = '';
+
+  var LG_VISTAS = {
+    login: {
+      campos: ['email','pass'], botao: 'Entrar',
+      links: [['recuperar','Esqueci minha senha'], ['magico','Entrar por link no e-mail']]
+    },
+    codigo: {
+      campos: ['cod'], botao: 'Confirmar código',
+      links: [['reenviar','Reenviar código'], ['login','Voltar']]
+    },
+    recuperar: {
+      campos: ['email'], botao: 'Enviar código',
+      explica: 'Informe seu e-mail. Enviaremos um código de 6 dígitos para você criar uma senha nova.',
+      links: [['login','Voltar para o login']]
+    },
+    redefinir: {
+      campos: ['cod','nova'], botao: 'Salvar nova senha',
+      links: [['recuperar','Pedir outro código'], ['login','Voltar']]
+    },
+    magico: {
+      campos: ['email'], botao: 'Enviar link',
+      explica: 'Enviaremos um link de acesso válido por 15 minutos. Não precisa digitar senha.',
+      links: [['login','Voltar para o login']]
+    },
+    enviado: {
+      campos: [], botao: '',
+      links: [['login','Voltar para o login']]
+    }
+  };
+
+  function _lgIr(vista, explicaHtml) {
+    var v = LG_VISTAS[vista] || LG_VISTAS.login;
+    _lgVista = vista;
+
+    Object.keys(LG_CAMPOS).forEach(function (k) {
+      var box = _el(LG_CAMPOS[k].box);
+      if (box) box.hidden = v.campos.indexOf(k) < 0;
+    });
+
+    var ex  = _el('lgExplica');
+    var txt = explicaHtml || v.explica || '';
+    if (ex) { ex.innerHTML = txt; ex.hidden = !txt; }
+
+    LG_ROTULO = v.botao || 'Entrar';
+    var b = _el('loginBtn');
+    if (b) b.style.display = v.botao ? '' : 'none';
+    _lgBtn('idle');
+
+    var lk = _el('lgLinks');
+    if (lk) {
+      lk.innerHTML = (v.links || []).map(function (par, i) {
+        return (i ? '<span class="lg-sep">·</span>' : '') +
+               '<button type="button" class="lg-link" data-acao="' + par[0] + '">' + par[1] + '</button>';
+      }).join('');
+    }
+
+    _lgLimparErros();
+    _lgMsg('');
+    ['lgCaps','lgCapsNova'].forEach(function(id){
+      var c = _el(id); if (c) c.classList.remove('on');
+    });
+
+    // Foco no primeiro campo visível da vista
+    setTimeout(function () {
+      for (var i = 0; i < v.campos.length; i++) {
+        var el = _el(LG_CAMPOS[v.campos[i]].input);
+        if (el && !el.value) { try { el.focus(); } catch (e) {} return; }
+      }
+      var p = v.campos.length && _el(LG_CAMPOS[v.campos[0]].input);
+      if (p) { try { p.focus(); } catch (e) {} }
+    }, 60);
+  }
+
+  // POST em rota pública do GAS (login, 2FA, reset, link mágico)
+  function _lgPost(action, data) {
+    return fetch(GAS_LOGIN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      body: JSON.stringify({ action: action, data: data || {} }),
+      redirect: 'follow'
+    }).then(function (r) { return r.json(); });
+  }
+
+  // Caminho único de "entrou" — usado por senha, 2FA e link mágico
+  function _lgEntrou(res, comAnimacao) {
+    var user = res.user || {};
+    if (user.role !== 'admin') { _lgFalhou('Acesso restrito a administradores.'); return; }
+
+    _storeSet('token', res.token);
+    _storeSet('user', user);
+    _storeSet('exp', Date.now() + INACT_MS);
+    CRM.token = res.token;
+    CRM.user  = user;
+
+    if (comAnimacao === false) {
+      _hideLogin(true); _initApp(); _bindInactivity();
+      return;
+    }
+    var primeiro = String(user.name || '').trim().split(/\s+/)[0];
+    _lgBtn('ok');
+    _lgMsg(primeiro ? 'Bem-vindo, ' + primeiro + '!' : 'Tudo certo. Carregando o painel…', 'ok');
+    setTimeout(function () {
+      _hideLogin(true);
+      _initApp();
+      _bindInactivity();
+    }, 620);
   }
 
   // Contagem regressiva quando o backend devolve rate limit
@@ -1144,23 +1313,18 @@ button,
     // v127: SEMPRE restaura o botão. Antes, quando _adminLogout()
     // chamava sem mensagem, o botão continuava desabilitado exibindo
     // "Validando..." — e o painel ficava inutilizável para sempre.
-    _lgBtn('idle');
-    _lgLimparErros();
     var inputs = ov ? ov.querySelectorAll('input') : [];
     for (var i = 0; i < inputs.length; i++) inputs[i].disabled = false;
-    _lgMsg(msg || '', msg ? 'err' : '');
 
-    var caps = _el('lgCaps'); if (caps) caps.classList.remove('on');
+    // v130: volta pra vista de login (limpa erros, foco e rótulo do botão)
+    var cod = _el('lgCodigo'); if (cod) cod.value = '';
+    var nov = _el('lgNova');   if (nov) nov.value = '';
+    _lgIr('login');
+    _lgMsg(msg || '', msg ? 'err' : '');
 
     // Limpa estado do CRM
     CRM.token = null;
     CRM.user  = null;
-
-    // Foco no primeiro campo que falta preencher
-    var em = _el('loginEmail'), pw = _el('loginPass');
-    setTimeout(function(){
-      try { (em && !em.value ? em : (pw || em)).focus(); } catch (e) {}
-    }, 60);
 
     if (typeof _lucideRefresh === 'function') _lucideRefresh(ov);
   }
@@ -1247,31 +1411,22 @@ button,
         _lgBloqueio(Number(res.espera) || 900);
         return;
       }
+      // v130: senha correta, mas a conta tem segundo fator ligado.
+      // Ainda não há sessão — só um desafio e um código no e-mail.
+      if (res && res.need2fa && res.desafio) {
+        _resolvido = true;
+        _lg2fa = { desafio: res.desafio, email: res.email || '' };
+        _lgIr('codigo', 'Enviamos um código de 6 dígitos para <b>' +
+              _lgEsc(res.email || 'seu e-mail') + '</b>.');
+        return;
+      }
       if (!res || !res.ok || !res.token) {
         // Mensagem generica — backend ja anti-enumeracao
         _liberar((res && res.error) || 'E-mail ou senha inválidos.', 'pass');
         return;
       }
-      var user = res.user || { email: email, role: 'admin' };
-      if (user.role !== 'admin') {
-        _liberar('Acesso restrito a administradores.');
-        return;
-      }
       _resolvido = true;
-      _storeSet('token', res.token);
-      _storeSet('user', user);
-      _storeSet('exp', Date.now() + INACT_MS);
-      CRM.token = res.token;
-      CRM.user  = user;
-
-      var primeiro = String(user.name || '').trim().split(/\s+/)[0];
-      _lgBtn('ok');
-      _lgMsg(primeiro ? 'Bem-vindo, ' + primeiro + '!' : 'Tudo certo. Carregando o painel…', 'ok');
-      setTimeout(function(){
-        _hideLogin(true);
-        _initApp();
-        _bindInactivity();
-      }, 620);
+      _lgEntrou(res);
     }).catch(function(err){
       clearTimeout(_tmo);
       _liberar('Erro de conexão: ' + (err && err.message ? err.message : err));
@@ -1315,6 +1470,120 @@ button,
     return true;
   }
 
+  // ── Fluxos de cada vista (v130) ──────────────────────────────
+  function _lgErroRede(err) {
+    _lgFalhou('Erro de conexão: ' + ((err && err.message) ? err.message : err));
+  }
+
+  function _lgSubmitLogin() {
+    var e = _el('loginEmail'), p = _el('loginPass');
+    var em = (e.value || '').trim(), ps = (p.value || '').trim();
+    if (!em)                 { _lgCampoErro('email','Informe seu e-mail.'); _lgTremer(); e.focus(); return; }
+    if (!_lgEmailValido(em)) { _lgCampoErro('email','E-mail inválido.');    _lgTremer(); e.focus(); return; }
+    if (!ps)                 { _lgCampoErro('pass','Informe sua senha.');   _lgTremer(); p.focus(); return; }
+    _doLogin(em, ps);
+  }
+
+  function _lgSubmit2FA() {
+    var c = _el('lgCodigo');
+    var cod = (c.value || '').replace(/\D/g, '');
+    if (cod.length !== 6) { _lgCampoErro('cod','Digite os 6 dígitos.'); _lgTremer(); c.focus(); return; }
+
+    _lgBtn('loading'); _lgMsg('Conferindo o código…', '');
+    _lgPost('verificar2FA', { desafio: _lg2fa.desafio, codigo: cod }).then(function (res) {
+      if (res && res.ok && res.token) { _lgEntrou(res); return; }
+      var msg = (res && res.error) || 'Código incorreto.';
+      _lgFalhou(msg, 'cod');
+      // Desafio queimado (expirou ou estourou tentativas): volta pro início
+      if (/expirou|novamente/i.test(msg)) {
+        setTimeout(function () { _lgIr('login'); _lgMsg(msg, 'err'); }, 1600);
+      }
+    }).catch(_lgErroRede);
+  }
+
+  function _lgSubmitRecuperar() {
+    var e = _el('loginEmail');
+    var em = (e.value || '').trim();
+    if (!_lgEmailValido(em)) { _lgCampoErro('email','Informe um e-mail válido.'); _lgTremer(); e.focus(); return; }
+
+    _lgBtn('loading'); _lgMsg('Enviando o código…', '');
+    _lgPost('sendPasswordReset', { email: em }).then(function () {
+      _lgEmailReset = em;
+      // Resposta idêntica exista ou não a conta — anti-enumeração
+      _lgIr('redefinir', 'Se existe conta para <b>' + _lgEsc(em) + '</b>, o código chegou por e-mail. ' +
+                         'Ele vale por 5 minutos.');
+    }).catch(_lgErroRede);
+  }
+
+  function _lgSubmitRedefinir() {
+    var c = _el('lgCodigo'), n = _el('lgNova');
+    var cod = (c.value || '').replace(/\D/g, ''), nova = (n.value || '');
+    if (cod.length !== 6) { _lgCampoErro('cod','Digite os 6 dígitos.');   _lgTremer(); c.focus(); return; }
+    if (nova.length < 6)  { _lgCampoErro('nova','Mínimo 6 caracteres.');  _lgTremer(); n.focus(); return; }
+
+    _lgBtn('loading'); _lgMsg('Salvando a nova senha…', '');
+    _lgPost('verifyAndResetPassword', { email: _lgEmailReset, code: cod, newPassword: nova })
+      .then(function (res) {
+        if (!res || !res.ok) { _lgFalhou((res && res.error) || 'Código inválido ou expirado.', 'cod'); return; }
+        var em = _lgEmailReset;
+        c.value = ''; n.value = '';
+        _lgIr('login');
+        var e2 = _el('loginEmail'); if (e2) e2.value = em;
+        var p2 = _el('loginPass');  if (p2) { p2.value = ''; try { p2.focus(); } catch (er) {} }
+        _lgMsg('Senha alterada. Entre com a senha nova.', 'ok');
+      })
+      .catch(_lgErroRede);
+  }
+
+  function _lgSubmitMagico() {
+    var e = _el('loginEmail');
+    var em = (e.value || '').trim();
+    if (!_lgEmailValido(em)) { _lgCampoErro('email','Informe um e-mail válido.'); _lgTremer(); e.focus(); return; }
+
+    _lgBtn('loading'); _lgMsg('Enviando o link…', '');
+    _lgPost('solicitarLinkMagicoAdmin', { email: em }).then(function () {
+      _lgIr('enviado',
+        '<b>Link enviado.</b><br>Se <b>' + _lgEsc(em) + '</b> for uma conta de administrador, ' +
+        'o acesso está na caixa de entrada. O link vale por 15 minutos e funciona uma única vez.');
+    }).catch(_lgErroRede);
+  }
+
+  function _lgReenviar2FA(btn) {
+    if (!_lg2fa.desafio) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+    _lgPost('reenviar2FA', { desafio: _lg2fa.desafio }).then(function (res) {
+      if (res && res.ok) _lgMsg('Código reenviado. Confira seu e-mail.', 'ok');
+      else               _lgMsg((res && res.error) || 'Não consegui reenviar.', 'err');
+    }).catch(function () {
+      _lgMsg('Erro de conexão ao reenviar.', 'err');
+    }).then(function () {
+      // Trava o reenvio por 25s — evita rajada e o freio do backend
+      if (btn) setTimeout(function () { btn.disabled = false; btn.textContent = 'Reenviar código'; }, 25000);
+    });
+  }
+
+  // Link mágico chegando pela URL (?ml=...). Consome e limpa a barra
+  // de endereço na hora — o token é de uso único, mas não precisa
+  // ficar no histórico nem em log de proxy.
+  function _lgLinkMagico() {
+    var m = String(location.search || '').match(/[?&]ml=([^&]+)/);
+    if (!m) return false;
+    var t = decodeURIComponent(m[1]);
+    try { history.replaceState({}, '', location.pathname); } catch (e) {}
+
+    _lgVerificando();
+    var chk = _el('lgChecking');
+    if (chk) { var s = chk.querySelector('span:last-child'); if (s) s.textContent = 'Entrando…'; }
+
+    _lgPost('entrarComLinkMagico', { t: t }).then(function (res) {
+      if (res && res.ok && res.token) { _lgEntrou(res, false); return; }
+      _showLogin((res && res.error) || 'Este link expirou ou já foi usado.');
+    }).catch(function () {
+      _showLogin('Não consegui validar o link. Entre com e-mail e senha.');
+    });
+    return true;
+  }
+
   function _attach() {
     var card = document.getElementById('lgCard');
     var b = document.getElementById('loginBtn');
@@ -1323,53 +1592,81 @@ button,
     var eye = document.getElementById('lgEye');
     if (!b || !card) { setTimeout(_attach, 50); return; }
 
-    // Submit do <form>: cobre clique no botão E Enter em qualquer campo
+    // Submit do <form>: cobre clique no botão E Enter em qualquer campo.
+    // v130: despacha conforme a vista aberta no cartão.
     card.addEventListener('submit', function(ev){
       ev.preventDefault();
       if (b.disabled) return;              // já validando ou em rate limit
-      var em = (e.value || '').trim();
-      var ps = (p.value || '').trim();
-
       _lgLimparErros();
-      if (!em) { _lgCampoErro('email', 'Informe seu e-mail.'); _lgTremer(); e.focus(); return; }
-      if (!_lgEmailValido(em)) { _lgCampoErro('email', 'E-mail inválido.'); _lgTremer(); e.focus(); return; }
-      if (!ps) { _lgCampoErro('pass', 'Informe sua senha.'); _lgTremer(); p.focus(); return; }
+      if      (_lgVista === 'codigo')    _lgSubmit2FA();
+      else if (_lgVista === 'recuperar') _lgSubmitRecuperar();
+      else if (_lgVista === 'redefinir') _lgSubmitRedefinir();
+      else if (_lgVista === 'magico')    _lgSubmitMagico();
+      else                               _lgSubmitLogin();
+    });
 
-      _doLogin(em, ps);
+    // Links da vista (Esqueci minha senha, Reenviar, Voltar…)
+    var links = document.getElementById('lgLinks');
+    if (links) links.addEventListener('click', function(ev){
+      var alvo = ev.target && ev.target.closest ? ev.target.closest('.lg-link') : null;
+      if (!alvo || alvo.disabled) return;
+      var acao = alvo.getAttribute('data-acao');
+      if (acao === 'reenviar') { _lgReenviar2FA(alvo); return; }
+      if (acao === 'login') {
+        var c0 = _el('lgCodigo'); if (c0) c0.value = '';
+        var n0 = _el('lgNova');   if (n0) n0.value = '';
+      }
+      _lgIr(acao);
     });
 
     // Limpa o erro do campo assim que o usuário começa a corrigir
-    [[e,'email'], [p,'pass']].forEach(function(par){
-      if (par[0]) par[0].addEventListener('input', function(){ _lgCampoErro(par[1], ''); });
+    Object.keys(LG_CAMPOS).forEach(function(k){
+      var inp = _el(LG_CAMPOS[k].input);
+      if (inp) inp.addEventListener('input', function(){ _lgCampoErro(k, ''); });
     });
 
-    // Mostrar / ocultar senha
-    if (eye) {
-      eye.innerHTML = EYE_ON;
-      eye.addEventListener('click', function(){
-        var visivel = p.type === 'text';
-        p.type = visivel ? 'password' : 'text';
-        eye.innerHTML = visivel ? EYE_ON : EYE_OFF;
-        eye.setAttribute('aria-pressed', visivel ? 'false' : 'true');
-        eye.setAttribute('aria-label', visivel ? 'Mostrar senha' : 'Ocultar senha');
-        try { p.focus(); } catch (er) {}
+    // Código: só dígitos, e confirma sozinho ao completar os 6
+    var cod = _el('lgCodigo');
+    if (cod) cod.addEventListener('input', function(){
+      var limpo = (cod.value || '').replace(/\D/g, '').slice(0, 6);
+      if (limpo !== cod.value) cod.value = limpo;
+      if (limpo.length === 6 && _lgVista === 'codigo' && !b.disabled) _lgSubmit2FA();
+    });
+
+    // Mostrar / ocultar senha (campo de login e campo de senha nova)
+    function _ligarOlho(botao, campo) {
+      if (!botao || !campo) return;
+      botao.innerHTML = EYE_ON;
+      botao.addEventListener('click', function(){
+        var visivel = campo.type === 'text';
+        campo.type = visivel ? 'password' : 'text';
+        botao.innerHTML = visivel ? EYE_ON : EYE_OFF;
+        botao.setAttribute('aria-pressed', visivel ? 'false' : 'true');
+        botao.setAttribute('aria-label', visivel ? 'Mostrar senha' : 'Ocultar senha');
+        try { campo.focus(); } catch (er) {}
       });
     }
+    _ligarOlho(eye, p);
+    _ligarOlho(_el('lgEyeNova'), _el('lgNova'));
 
     // Aviso de Caps Lock — causa clássica de "minha senha está certa!"
+    function _capsEl(alvo) {
+      return document.getElementById(alvo && alvo.id === 'lgNova' ? 'lgCapsNova' : 'lgCaps');
+    }
     function _caps(ev) {
-      var el = document.getElementById('lgCaps');
+      var el = _capsEl(ev.target);
       if (!el || !ev.getModifierState) return;
       if (ev.getModifierState('CapsLock')) el.classList.add('on');
       else el.classList.remove('on');
     }
-    if (p) {
-      ['keydown','keyup','focus'].forEach(function(evt){ p.addEventListener(evt, _caps); });
-      p.addEventListener('blur', function(){
-        var el = document.getElementById('lgCaps');
+    [p, _el('lgNova')].forEach(function(campo){
+      if (!campo) return;
+      ['keydown','keyup','focus'].forEach(function(evt){ campo.addEventListener(evt, _caps); });
+      campo.addEventListener('blur', function(){
+        var el = _capsEl(campo);
         if (el) el.classList.remove('on');
       });
-    }
+    });
 
     // Foco preso no cartão enquanto o login está aberto
     card.addEventListener('keydown', function(ev){
@@ -1382,6 +1679,10 @@ button,
     });
     // FIX v93: auto-login POR URL foi removido (vazava token em logs/history).
     // FIX v93: auto-login por cache agora revalida contra o backend.
+    // v130: o ?ml= do link mágico NÃO é um token de sessão — é um código
+    // de uso único, válido por 15 min, consumido no servidor e apagado
+    // da barra de endereço no mesmo instante. Vem antes de tudo.
+    if (_lgLinkMagico()) return;
     if (!_tryReuseSession()) {
       _showLogin(); // login obrigatorio
     }
@@ -2639,12 +2940,24 @@ async function openMyProfile() {
       '<div class="form-group"><label class="form-label">Senha atual</label><input type="password" class="form-control" id="my_curr_pwd"></div>' +
       '<div class="form-group"><label class="form-label">Nova senha (min 6)</label><input type="password" class="form-control" id="my_new_pwd"></div>' +
       '<button type="button" class="btn btn-primary btn-sm" onclick="_myChangePassword()">Trocar senha</button>' +
+    '</div>' +
+    '<div id="myTabSeguranca" style="display:none">' +
+      '<div class="card" style="margin:0">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">' +
+          'Verifica&ccedil;&atilde;o em duas etapas</div>' +
+        '<div style="font-size:12px;color:var(--muted);line-height:1.65;margin-bottom:14px">' +
+          'Com isso ligado, depois da senha correta o painel pede um <b>c&oacute;digo de 6 d&iacute;gitos</b> ' +
+          'enviado para o seu e-mail. Quem descobrir sua senha ainda assim n&atilde;o entra.' +
+        '</div>' +
+        '<div id="my2faBox" style="font-size:12.5px;color:var(--muted)">Carregando&hellip;</div>' +
+      '</div>' +
     '</div>';
 
   // Tabs header
   var tabsHtml = '<div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border)">' +
     '<button class="btn btn-ghost btn-sm my-tab active" data-tab-id="profile" onclick="_switchMyTab(\'profile\')">Perfil</button>' +
     '<button class="btn btn-ghost btn-sm my-tab" data-tab-id="password" onclick="_switchMyTab(\'password\')">Alterar Senha</button>' +
+    '<button class="btn btn-ghost btn-sm my-tab" data-tab-id="Seguranca" onclick="_switchMyTab(\'Seguranca\')">Seguran&ccedil;a</button>' +
     '</div>';
 
   openModal('Meu Perfil', tabsHtml + html,
@@ -2658,11 +2971,58 @@ async function openMyProfile() {
 }
 
 function _switchMyTab(id) {
-  document.getElementById('myTabProfile').style.display  = (id === 'profile' ? '' : 'none');
-  document.getElementById('myTabPassword').style.display = (id === 'password' ? '' : 'none');
+  document.getElementById('myTabProfile').style.display   = (id === 'profile'   ? '' : 'none');
+  document.getElementById('myTabPassword').style.display  = (id === 'password'  ? '' : 'none');
+  var seg = document.getElementById('myTabSeguranca');
+  if (seg) seg.style.display = (id === 'Seguranca' ? '' : 'none');
   document.querySelectorAll('.my-tab').forEach(function(b) {
     b.classList.toggle('active', b.dataset.tabId === id);
   });
+  if (id === 'Seguranca') _my2faCarregar();
+}
+
+// ── Verificação em duas etapas (v130) ───────────────────────
+async function _my2faCarregar() {
+  var box = document.getElementById('my2faBox');
+  if (!box) return;
+  box.innerHTML = 'Carregando&hellip;';
+  var res;
+  try { res = await rpc('get2FAStatus', {}); }
+  catch (e) { box.innerHTML = '<span style="color:#e2626b">Falha ao consultar: ' + escHtml(e.message) + '</span>'; return; }
+  if (!res || !res.ok) { box.innerHTML = '<span style="color:#e2626b">' + escHtml((res && res.error) || 'Erro.') + '</span>'; return; }
+
+  var on = !!res.ativo;
+  box.innerHTML =
+    '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">' +
+      '<span style="display:inline-flex;align-items:center;gap:7px;font-weight:700;' +
+             'color:' + (on ? 'var(--green)' : 'var(--muted)') + '">' +
+        '<span style="width:9px;height:9px;border-radius:50%;background:' +
+          (on ? 'var(--green)' : '#5a6a5e') + ';display:inline-block"></span>' +
+        (on ? 'Ativada' : 'Desativada') +
+      '</span>' +
+      '<button class="btn ' + (on ? 'btn-ghost' : 'btn-primary') + ' btn-sm" ' +
+        'onclick="_my2faDefinir(' + (on ? 'false' : 'true') + ')">' +
+        (on ? 'Desativar' : 'Ativar agora') + '</button>' +
+    '</div>' +
+    '<div style="margin-top:10px;font-size:11.5px;color:var(--muted)">' +
+      'Os c&oacute;digos v&atilde;o para <b>' + escHtml(res.email || '') + '</b>. ' +
+      'Garanta que voc&ecirc; consegue acessar essa caixa de entrada antes de ativar.' +
+    '</div>';
+}
+
+async function _my2faDefinir(ativo) {
+  var box = document.getElementById('my2faBox');
+  if (box) box.innerHTML = 'Salvando&hellip;';
+  var res;
+  try { res = await rpc('definir2FA', { ativo: ativo }); }
+  catch (e) { toast('Falha: ' + e.message, 'error'); _my2faCarregar(); return; }
+  if (res && res.ok) {
+    toast(ativo ? 'Verificação em duas etapas ativada.' : 'Verificação em duas etapas desativada.',
+          ativo ? 'success' : 'warn');
+  } else {
+    toast((res && res.error) || 'Erro ao salvar.', 'error');
+  }
+  _my2faCarregar();
 }
 
 async function _mySaveProfile() {
