@@ -275,24 +275,41 @@ function diagnosticarMusicaMural(token) {
 
   if (!cfg.musicaAtiva)     out.problemas.push('A música está marcada como INATIVA no painel.');
   if (cfg.musicaVolume === 0) out.problemas.push('O volume está em 0%.');
-  if (!/^https:\/\//i.test(cfg.musicaUrl)) {
-    out.problemas.push('A URL não começa com https://. O app roda em HTTPS e o navegador ' +
-                       'bloqueia áudio servido por http://.');
+  // Caminho começando com "/" é servido pelo próprio app — o ideal
+  var interna = cfg.musicaUrl.charAt(0) === '/';
+  if (!interna && !/^https:\/\//i.test(cfg.musicaUrl)) {
+    out.problemas.push('A URL não começa com https:// nem com "/". O app roda em HTTPS e o ' +
+                       'navegador bloqueia áudio servido por http://.');
   }
 
-  // Os três enganos que respondem pela imensa maioria dos casos
-  if (/pixabay\.com\/(music|sound-effects)\//i.test(cfg.musicaUrl)) {
-    out.problemas.push('Esse é o link da PÁGINA do Pixabay, não do arquivo. Baixe o MP3 e hospede ' +
-                       'no Drive, ou use o link direto que começa com cdn.pixabay.com.');
+  // ── O engano nº 1, e o mais traiçoeiro: Google Drive ──────────
+  // A v129 dava "está tudo certo" aqui, porque o UrlFetch do Apps Script
+  // sai autenticado como Google e recebe o MP3 de verdade. O <audio> do
+  // aluno vai de outra origem e sem cookie, e leva página HTML, redirect
+  // ou bloqueio de rastreamento. Comprovado em campo: HTTP 200 +
+  // audio/mpeg no servidor e NotSupportedError no Edge, mesmo arquivo.
+  if (/drive\.google\.com|docs\.google\.com|drive\.usercontent\.google\.com/i.test(cfg.musicaUrl)) {
+    out.problemas.push('O Google Drive NÃO serve áudio para o navegador do aluno — nem no formato ' +
+                       'uc?export=download, nem com o arquivo público. O servidor consegue baixar; ' +
+                       'o <audio> não. Use a trilha hospedada no próprio app (botão "Usar a trilha ' +
+                       'do app") ou outro host que sirva o arquivo direto.');
   }
-  if (/drive\.google\.com\/file\/d\//i.test(cfg.musicaUrl)) {
-    var id = (cfg.musicaUrl.match(/\/file\/d\/([^\/\?]+)/) || [])[1] || 'ID_DO_ARQUIVO';
-    out.problemas.push('Link de visualização do Drive não toca — ele devolve uma página HTML. ' +
-                       'Use: https://drive.google.com/uc?export=download&id=' + id);
+  if (/pixabay\.com\/(music|sound-effects)\//i.test(cfg.musicaUrl)) {
+    out.problemas.push('Esse é o link da PÁGINA do Pixabay, não do arquivo. Baixe o MP3 e ' +
+                       'hospede no app.');
   }
   if (/youtube\.com|youtu\.be|spotify\.com|soundcloud\.com|deezer\./i.test(cfg.musicaUrl)) {
     out.problemas.push('YouTube, Spotify, SoundCloud e Deezer não entregam arquivo de áudio direto. ' +
                        'Não é possível tocar por <audio> — precisa ser um MP3/OGG/M4A hospedado.');
+  }
+
+  // Caminho interno: não há o que testar por HTTP, é o próprio Firebase
+  if (interna) {
+    out.veredito = out.problemas.length
+      ? 'Encontrei ' + out.problemas.length + ' problema(s).'
+      : 'A trilha é servida pelo próprio app (' + cfg.musicaUrl + '). É a configuração ideal: ' +
+        'mesma origem, sem bloqueio de terceiros, com suporte a streaming e cache longo.';
+    return { ok: true, data: out };
   }
 
   // Bate na URL de verdade
@@ -324,9 +341,10 @@ function diagnosticarMusicaMural(token) {
 
   out.veredito = out.problemas.length
     ? 'Encontrei ' + out.problemas.length + ' problema(s) — a lista abaixo diz o que corrigir.'
-    : 'A URL está acessível e é mesmo um arquivo de áudio. Se ainda assim não toca no app, ' +
-      'é o autoplay do navegador: a partir da v129 a trilha entra sozinha no primeiro toque na tela, ' +
-      'e o botão de som no cabeçalho do Mural fica pulsando até lá.';
+    : 'O SERVIDOR consegue baixar a URL e ela é áudio. Atenção: isso não garante que o navegador ' +
+      'do aluno consiga — hosts que exigem cookie, redirect ou sessão entregam para cá e não para ' +
+      'o <audio>. Se não tocar no app, olhe o console do aluno: a partir da v129 o motivo real ' +
+      'aparece lá. Hospedar no próprio app elimina essa classe inteira de problema.';
 
   return { ok: true, data: out };
 }

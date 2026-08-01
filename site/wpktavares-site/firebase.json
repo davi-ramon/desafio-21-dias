@@ -27,6 +27,13 @@
         "headers": [
           { "key": "Cache-Control", "value": "public, max-age=604800" }
         ]
+      },
+      {
+        "//": "Trilhas de audio: arquivos grandes que nunca mudam. Fica fora de /assets de proposito, pra nao herdar o no-cache de la e obrigar o aluno a revalidar 6 MB a cada entrada no Mural.",
+        "source": "/media/**",
+        "headers": [
+          { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        ]
       }
     ]
   }

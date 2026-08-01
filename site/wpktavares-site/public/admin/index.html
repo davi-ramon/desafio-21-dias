@@ -4257,10 +4257,11 @@ async function renderMuralConfig() {
 
           '<div class="form-group"><label class="form-label">URL do arquivo de &aacute;udio</label>' +
             '<input class="form-control" id="mural_musica_url" value="' + escHtml(c.mural_musica_url || '') + '" placeholder="https://... (MP3, OGG ou M4A)">' +
-            '<div style="font-size:11px;color:var(--muted);margin-top:4px">' +
-              'Precisa ser um <b>link direto para o arquivo</b>. Link do Drive: use ' +
-              '<code>https://drive.google.com/uc?export=download&amp;id=ID_DO_ARQUIVO</code> ' +
-              '(e deixe o arquivo compartilhado como &quot;qualquer pessoa com o link&quot;). Vazio = sem m&uacute;sica.' +
+            '<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.65">' +
+              'Precisa ser um <b>link direto para o arquivo</b>. O jeito recomendado &eacute; o bot&atilde;o ' +
+              '<b>Usar a trilha do app</b> abaixo: o arquivo j&aacute; est&aacute; hospedado aqui, na mesma origem.<br>' +
+              '<b>N&atilde;o funciona:</b> Google Drive (entrega o arquivo pro servidor, mas p&aacute;gina HTML ' +
+              'pro navegador do aluno), YouTube, Spotify e SoundCloud. Vazio = sem m&uacute;sica.' +
             '</div>' +
           '</div>' +
 
@@ -4276,6 +4277,8 @@ async function renderMuralConfig() {
           '</div>' +
 
           '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">' +
+            '<button class="btn btn-primary btn-sm" onclick="usarTrilhaDoApp()">' +
+              '<i data-lucide="check" class="luc"></i> Usar a trilha do app</button>' +
             '<button class="btn btn-ghost btn-sm" onclick="testarMusicaMural()">' +
               '<i data-lucide="play" class="luc"></i> Testar o &aacute;udio agora</button>' +
             '<button class="btn btn-ghost btn-sm" onclick="diagnosticarMusicaMural()">' +
@@ -4347,16 +4350,25 @@ function testarMusicaMural() {
       '<source src="' + escHtml(url) + '"></audio>';
 }
 
-// v129: o engano mais comum é colar o link de VISUALIZAÇÃO do Drive,
-// que devolve HTML e nunca toca. Converte pro formato de download.
-function _normalizarUrlAudio(v) {
-  var url = String(v || '').trim();
-  var m = url.match(/drive\.google\.com\/file\/d\/([^\/\?]+)/i);
-  if (m) return 'https://drive.google.com/uc?export=download&id=' + m[1];
-  m = url.match(/drive\.google\.com\/open\?id=([^&]+)/i);
-  if (m) return 'https://drive.google.com/uc?export=download&id=' + m[1];
-  return url;
+// Trilha dreamcore hospedada no próprio app (public/media/).
+// v129.1: o Drive foi abandonado como host — ele entrega o arquivo pro
+// servidor e uma página pro <audio> do aluno. Mesma origem resolve tudo:
+// sem CORS, sem Tracking Prevention, com streaming por Range e cache longo.
+var TRILHA_APP = '/media/mural-ambiente.mp3';
+
+function usarTrilhaDoApp() {
+  var campo = document.getElementById('mural_musica_url');
+  if (!campo) return;
+  campo.value = TRILHA_APP;
+  toast('Campo preenchido. Clique em "Salvar configurações" para aplicar.', 'info');
+  var box = document.getElementById('muralAudioTeste');
+  if (box) box.innerHTML = '';
 }
+
+// Antes isto convertia link do Drive pro formato uc?export=download.
+// Removido: o problema do Drive não é o formato do link — ele simplesmente
+// não serve mídia pro navegador. Converter só dava falsa sensação de fix.
+function _normalizarUrlAudio(v) { return String(v || '').trim(); }
 
 // v129: pergunta ao SERVIDOR o que está gravado e se a URL responde.
 // O "Testar" acima só prova que toca no seu navegador — não prova que
