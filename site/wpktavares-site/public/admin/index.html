@@ -682,6 +682,7 @@ tr:hover td { background: var(--accent-l2); }
 .toast-success { border-left: 3px solid var(--green); }
 .toast-error   { border-left: 3px solid var(--red); }
 .toast-info    { border-left: 3px solid var(--accent); }
+.toast-warn    { border-left: 3px solid #e0a83c; }
 .toast-icon { font-size: 15px; }
 
 /* ═══════════════════════════════════════
@@ -901,28 +902,128 @@ button,
   .main, .content, #content { margin-left: 64px !important; }
 }
 </style>
-<style>.luc{display:inline-block;width:1em;height:1em;vertical-align:-0.125em;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;flex-shrink:0}</style></head>
+<style>.luc{display:inline-block;width:1em;height:1em;vertical-align:-0.125em;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;flex-shrink:0}</style>
+<style>
+/* ═══ LOGIN v128 — estados, feedback e acessibilidade ═══════════ */
+#loginOverlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 30%,#0a1410 0%,#050a08 100%);font-family:inherit;
+  transition:opacity .35s ease}
+#loginOverlay.lg-gone{opacity:0;pointer-events:none}
+
+.lg-checking{display:flex;align-items:center;gap:11px;color:#7a8f80;font-size:13.5px;letter-spacing:.02em}
+
+.lg-card{background:#0e1a14;border:1px solid #1f3a2a;border-radius:18px;padding:34px 36px;
+  width:min(420px,92vw);box-shadow:0 30px 60px rgba(0,0,0,.6);
+  animation:lgIn .42s cubic-bezier(.16,1,.3,1) both}
+@keyframes lgIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+.lg-card.shake{animation:lgShake .42s cubic-bezier(.36,.07,.19,.97) both}
+@keyframes lgShake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}
+  30%,50%,70%{transform:translateX(-7px)}40%,60%{transform:translateX(7px)}}
+
+.lg-brand{text-align:center;margin-bottom:22px}
+.lg-kicker{font-size:11px;color:#7a8f80;letter-spacing:2px;text-transform:uppercase}
+.lg-title{font-size:20px;font-weight:800;color:#e8efe9;margin-top:6px}
+.lg-sub{font-size:12px;color:#7a8f80;margin-top:6px}
+
+.lg-field{margin-bottom:14px}
+.lg-input-wrap{position:relative;display:block}
+.lg-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7a8f80;
+  display:block;margin-bottom:6px}
+.lg-input{width:100%;padding:11px 13px;background:#0a1410;border:1px solid #1f3a2a;border-radius:10px;
+  color:#e8efe9;font-size:14px;font-family:inherit;transition:border-color .18s,box-shadow .18s}
+.lg-input::placeholder{color:#3d5347}
+.lg-input:focus{outline:none;border-color:#4caf50;box-shadow:0 0 0 3px rgba(76,175,80,.16)}
+.lg-input:disabled{opacity:.55;cursor:not-allowed}
+.lg-field.invalid .lg-input{border-color:#e84040;box-shadow:0 0 0 3px rgba(232,64,64,.13)}
+.lg-pw .lg-input{padding-right:44px}
+
+.lg-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;background:none;border:none;border-radius:8px;
+  color:#7a8f80;cursor:pointer;padding:0;transition:color .15s,background .15s}
+.lg-eye:hover{color:#e8efe9;background:rgba(255,255,255,.05)}
+.lg-eye:focus-visible{outline:2px solid #4caf50;outline-offset:1px}
+
+.lg-hint{font-size:11px;margin-top:6px;color:#e0a83c;display:none;align-items:center;gap:5px}
+.lg-hint.on{display:flex}
+.lg-err{font-size:11.5px;margin-top:6px;color:#e84040;min-height:0;transition:min-height .15s}
+.lg-field.invalid .lg-err{min-height:15px}
+
+.lg-btn{position:relative;width:100%;padding:13px;background:linear-gradient(135deg,#4caf50,#2e7d32);
+  color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;
+  font-family:inherit;letter-spacing:.5px;display:flex;align-items:center;justify-content:center;gap:8px;
+  min-height:45px;margin-top:4px;transition:filter .18s,transform .1s}
+.lg-btn:hover:not(:disabled){filter:brightness(1.09)}
+.lg-btn:active:not(:disabled){transform:translateY(1px)}
+.lg-btn:disabled{cursor:not-allowed;filter:grayscale(.3) brightness(.82)}
+.lg-btn:focus-visible{outline:2px solid #a5d6a7;outline-offset:2px}
+
+.lg-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
+  border-radius:50%;animation:lgSpin .62s linear infinite;flex-shrink:0}
+.lg-spin-lg{width:19px;height:19px;border-color:rgba(122,143,128,.3);border-top-color:#4caf50}
+@keyframes lgSpin{to{transform:rotate(360deg)}}
+
+.lg-check{width:17px;height:17px;flex-shrink:0}
+.lg-check path{stroke:#fff;stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round;
+  stroke-dasharray:24;stroke-dashoffset:24;animation:lgDraw .32s cubic-bezier(.65,0,.35,1) forwards}
+@keyframes lgDraw{to{stroke-dashoffset:0}}
+
+.lg-msg{margin-top:12px;font-size:12.5px;text-align:center;color:#7a8f80;min-height:18px;line-height:1.4}
+.lg-msg.err{color:#e84040}
+.lg-msg.ok{color:#4caf50}
+.lg-foot{margin-top:18px;text-align:center;font-size:11px;color:#4a5f50}
+
+.lg-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+@media (prefers-reduced-motion:reduce){
+  #loginOverlay,.lg-card,.lg-card.shake,.lg-check path{animation:none!important;transition:none!important}
+  .lg-spin{animation-duration:1.5s}
+}
+</style></head>
 <body>
 <!-- Login overlay (admin Firebase-hosted) -->
-<div id="loginOverlay" style="position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 30%, #0a1410 0%, #050a08 100%);font-family:inherit">
-  <div style="background:#0e1a14;border:1px solid #1f3a2a;border-radius:18px;padding:34px 36px;width:min(420px,90vw);box-shadow:0 30px 60px rgba(0,0,0,.6)">
-    <div style="text-align:center;margin-bottom:22px">
-      <div style="font-size:11px;color:#7a8f80;letter-spacing:2px;text-transform:uppercase">WPK TAVARES</div>
-      <div style="font-size:20px;font-weight:800;color:#e8efe9;margin-top:6px">Desafio 21 Dias</div>
-      <div style="font-size:12px;color:#7a8f80;margin-top:6px">Painel Administrativo</div>
-    </div>
-    <div style="margin-bottom:14px">
-      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7a8f80;display:block;margin-bottom:6px">E-mail</label>
-      <input type="email" id="loginEmail" autocomplete="username" style="width:100%;padding:11px 13px;background:#0a1410;border:1px solid #1f3a2a;border-radius:10px;color:#e8efe9;font-size:14px;font-family:inherit" placeholder="admin@wpktavares.com">
-    </div>
-    <div style="margin-bottom:18px">
-      <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#7a8f80;display:block;margin-bottom:6px">Senha</label>
-      <input type="password" id="loginPass" autocomplete="current-password" style="width:100%;padding:11px 13px;background:#0a1410;border:1px solid #1f3a2a;border-radius:10px;color:#e8efe9;font-size:14px;font-family:inherit" placeholder="••••••••">
-    </div>
-    <button id="loginBtn" style="width:100%;padding:13px;background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit;letter-spacing:.5px">Entrar</button>
-    <div id="loginMsg" style="margin-top:12px;font-size:12.5px;text-align:center;color:#7a8f80;min-height:18px"></div>
-    <div style="margin-top:18px;text-align:center;font-size:11px;color:#4a5f50">Acesso restrito · WPK Tavares</div>
+<div id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="lgTitle">
+
+  <!-- Estado 1: revalidando sessão em cache (evita o flash do formulário) -->
+  <!-- Começa visível: sem isso o formulário pisca antes do _attach decidir -->
+  <div class="lg-checking" id="lgChecking" style="display:flex" role="status" aria-live="polite">
+    <span class="lg-spin lg-spin-lg" aria-hidden="true"></span>
+    <span>Verificando sessão&hellip;</span>
   </div>
+
+  <!-- Estado 2: formulário -->
+  <form class="lg-card" id="lgCard" style="display:none" novalidate>
+    <div class="lg-brand">
+      <div class="lg-kicker">WPK Tavares</div>
+      <div class="lg-title" id="lgTitle">Desafio 21 Dias</div>
+      <div class="lg-sub">Painel Administrativo</div>
+    </div>
+
+    <div class="lg-field" id="lgFieldEmail">
+      <label class="lg-label" for="loginEmail">E-mail</label>
+      <span class="lg-input-wrap">
+        <input type="email" id="loginEmail" class="lg-input" autocomplete="username" spellcheck="false"
+               placeholder="admin@wpktavares.com" aria-describedby="lgErrEmail" required>
+      </span>
+      <div class="lg-err" id="lgErrEmail" role="alert"></div>
+    </div>
+
+    <div class="lg-field lg-pw" id="lgFieldPass">
+      <label class="lg-label" for="loginPass">Senha</label>
+      <span class="lg-input-wrap">
+        <input type="password" id="loginPass" class="lg-input" autocomplete="current-password"
+               placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+               aria-describedby="lgCaps lgErrPass" required>
+        <button type="button" class="lg-eye" id="lgEye" aria-label="Mostrar senha" aria-pressed="false"></button>
+      </span>
+      <div class="lg-hint" id="lgCaps" role="status" aria-live="polite">Caps Lock est&aacute; ligado</div>
+      <div class="lg-err" id="lgErrPass" role="alert"></div>
+    </div>
+
+    <button type="submit" class="lg-btn" id="loginBtn"><span>Entrar</span></button>
+    <div class="lg-msg" id="loginMsg" role="status" aria-live="polite"></div>
+    <div class="lg-foot">Acesso restrito &middot; WPK Tavares</div>
+  </form>
 </div>
 <script>
 // ══════════════════════════════════════════════════════════
@@ -938,33 +1039,141 @@ button,
   function _storeGet(k)    { try { var raw = sessionStorage.getItem('crm_admin_' + k); if (!raw) return null; try { return JSON.parse(raw); } catch(e) { return raw; } } catch(e){ return null; } }
   function _storeClear()    { try { ['token','user','exp'].forEach(function(k){ sessionStorage.removeItem('crm_admin_' + k); }); } catch(e){} }
 
+  // ── UI do login (v128) — estados, feedback e acessibilidade ──
+  var EYE_ON  = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_OFF = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19C5.6 19 2 12 2 12a18.6 18.6 0 0 1 5.1-6M9.9 4.2A10.9 10.9 0 0 1 12 4c6.4 0 10 7 10 7a18.5 18.5 0 0 1-2.2 3.2"/><path d="M1 1l22 22M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+  var _lgTrava = null;   // setInterval da contagem regressiva do rate limit
+
+  function _el(id) { return document.getElementById(id); }
+
+  // Botão: 'idle' | 'loading' | 'ok'
+  function _lgBtn(estado) {
+    var b = _el('loginBtn');
+    if (!b) return;
+    if (estado === 'loading') {
+      b.disabled = true;
+      b.innerHTML = '<span class="lg-spin" aria-hidden="true"></span><span>Validando…</span>';
+    } else if (estado === 'ok') {
+      b.disabled = true;
+      b.innerHTML = '<svg class="lg-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Pronto!</span>';
+    } else {
+      b.disabled = false;
+      b.innerHTML = '<span>Entrar</span>';
+    }
+  }
+
+  function _lgMsg(txt, tipo) {
+    var m = _el('loginMsg');
+    if (!m) return;
+    m.textContent = txt || '';
+    m.className = 'lg-msg' + (tipo ? ' ' + tipo : '');
+  }
+
+  function _lgCampoErro(campo, txt) {
+    var f = _el(campo === 'email' ? 'lgFieldEmail' : 'lgFieldPass');
+    var e = _el(campo === 'email' ? 'lgErrEmail'   : 'lgErrPass');
+    if (f) { if (txt) f.classList.add('invalid'); else f.classList.remove('invalid'); }
+    if (e) e.textContent = txt || '';
+  }
+
+  // Marca o campo como suspeito sem repetir texto (a mensagem geral já explica)
+  function _lgMarcar(campo) {
+    var f = _el(campo === 'email' ? 'lgFieldEmail' : 'lgFieldPass');
+    if (f) f.classList.add('invalid');
+  }
+
+  function _lgLimparErros() { _lgCampoErro('email', ''); _lgCampoErro('pass', ''); }
+
+  function _lgTremer() {
+    var c = _el('lgCard');
+    if (!c) return;
+    c.classList.remove('shake');
+    void c.offsetWidth;                    // reflow: reinicia a animação
+    c.classList.add('shake');
+    setTimeout(function(){ c.classList.remove('shake'); }, 460);
+  }
+
+  function _lgFalhou(txt, campo) {
+    _lgBtn('idle');
+    _lgMsg(txt, 'err');
+    _lgTremer();
+    if (campo) {
+      _lgMarcar(campo);
+      var i = _el(campo === 'email' ? 'loginEmail' : 'loginPass');
+      if (i) { try { i.focus(); i.select && i.select(); } catch (e) {} }
+    }
+  }
+
+  // Contagem regressiva quando o backend devolve rate limit
+  function _lgBloqueio(seg) {
+    if (_lgTrava) clearInterval(_lgTrava);
+    var b = _el('loginBtn');
+    if (b) { b.disabled = true; b.innerHTML = '<span>Aguarde</span>'; }
+    function tick() {
+      if (seg <= 0) {
+        clearInterval(_lgTrava); _lgTrava = null;
+        _lgBtn('idle');
+        _lgMsg('Você já pode tentar novamente.', '');
+        return;
+      }
+      var mm = Math.floor(seg / 60), ss = seg % 60;
+      _lgMsg('Muitas tentativas seguidas. Aguarde ' +
+             (mm ? mm + 'min ' + (ss < 10 ? '0' : '') : '') + ss + 's.', 'err');
+      seg--;
+    }
+    tick();
+    _lgTrava = setInterval(tick, 1000);
+  }
+
+  // Tela de "revalidando sessão" — evita piscar o formulário à toa
+  function _lgVerificando() {
+    var ov = _el('loginOverlay');
+    if (ov) { ov.style.display = 'flex'; ov.classList.remove('lg-gone'); }
+    var chk = _el('lgChecking'); if (chk) chk.style.display = 'flex';
+    var card = _el('lgCard');    if (card) card.style.display = 'none';
+  }
+
   function _showLogin(msg) {
-    var ov = document.getElementById('loginOverlay');
-    if (ov) ov.style.display = 'flex';
+    if (_lgTrava) { clearInterval(_lgTrava); _lgTrava = null; }
+
+    var ov = _el('loginOverlay');
+    if (ov) { ov.style.display = 'flex'; ov.classList.remove('lg-gone'); }
+    var chk = _el('lgChecking'); if (chk) chk.style.display = 'none';
+    var card = _el('lgCard');    if (card) card.style.display = '';
 
     // v127: SEMPRE restaura o botão. Antes, quando _adminLogout()
     // chamava sem mensagem, o botão continuava desabilitado exibindo
     // "Validando..." — e o painel ficava inutilizável para sempre.
-    var btn = document.getElementById('loginBtn');
-    if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
+    _lgBtn('idle');
+    _lgLimparErros();
     var inputs = ov ? ov.querySelectorAll('input') : [];
     for (var i = 0; i < inputs.length; i++) inputs[i].disabled = false;
+    _lgMsg(msg || '', msg ? 'err' : '');
 
-    var m = document.getElementById('loginMsg');
-    if (m) {
-      if (msg) { m.textContent = msg; m.style.color = '#e53935'; }
-      else     { m.textContent = ''; }   // não deixa texto obsoleto na tela
-    }
+    var caps = _el('lgCaps'); if (caps) caps.classList.remove('on');
 
     // Limpa estado do CRM
     CRM.token = null;
     CRM.user  = null;
+
+    // Foco no primeiro campo que falta preencher
+    var em = _el('loginEmail'), pw = _el('loginPass');
+    setTimeout(function(){
+      try { (em && !em.value ? em : (pw || em)).focus(); } catch (e) {}
+    }, 60);
+
     if (typeof _lucideRefresh === 'function') _lucideRefresh(ov);
   }
 
-  function _hideLogin() {
-    var ov = document.getElementById('loginOverlay');
-    if (ov) ov.style.display = 'none';
+  function _hideLogin(animado) {
+    var ov = _el('loginOverlay');
+    if (!ov) return;
+    if (!animado) { ov.style.display = 'none'; ov.classList.remove('lg-gone'); return; }
+    ov.classList.add('lg-gone');
+    setTimeout(function(){
+      ov.style.display = 'none';
+      ov.classList.remove('lg-gone');
+    }, 380);
   }
 
   function _initApp() {
@@ -1002,21 +1211,20 @@ button,
     if (typeof toast === 'function') toast('Você saiu.', 'success');
   };
 
+  function _lgEmailValido(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '')); }
+
   function _doLogin(email, pass) {
-    var msgEl = document.getElementById('loginMsg');
-    if (msgEl) { msgEl.textContent = 'Validando...'; msgEl.style.color = '#7a8f80'; }
-    var btn = document.getElementById('loginBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Validando...'; }
+    _lgLimparErros();
+    _lgBtn('loading');
+    _lgMsg('Validando suas credenciais…', '');
 
     // v127: guarda de timeout. Sem isso, uma resposta que nunca chega
     // deixava o botão preso em "Validando..." indefinidamente.
     var _resolvido = false;
-    function _liberar(txtErro) {
-      if (_resolvido) return true;
+    function _liberar(txtErro, campo) {
+      if (_resolvido) return;
       _resolvido = true;
-      if (btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
-      if (txtErro && msgEl) { msgEl.textContent = txtErro; msgEl.style.color = '#e53935'; }
-      return false;
+      _lgFalhou(txtErro, campo);
     }
     var _tmo = setTimeout(function () {
       _liberar('O servidor demorou demais para responder. Tente novamente.');
@@ -1031,9 +1239,17 @@ button,
       clearTimeout(_tmo);
       if (_resolvido) return;              // timeout já assumiu
 
+      // Rate limit do backend: trava o botão e mostra contagem regressiva
+      if (res && res.bloqueado) {
+        _resolvido = true;
+        _lgLimparErros();
+        _lgTremer();
+        _lgBloqueio(Number(res.espera) || 900);
+        return;
+      }
       if (!res || !res.ok || !res.token) {
         // Mensagem generica — backend ja anti-enumeracao
-        _liberar((res && res.error) || 'E-mail ou senha invalidos.');
+        _liberar((res && res.error) || 'E-mail ou senha inválidos.', 'pass');
         return;
       }
       var user = res.user || { email: email, role: 'admin' };
@@ -1047,13 +1263,18 @@ button,
       _storeSet('exp', Date.now() + INACT_MS);
       CRM.token = res.token;
       CRM.user  = user;
-      if (msgEl) { msgEl.textContent = 'Login OK. Carregando painel...'; msgEl.style.color = '#4caf50'; }
-      _hideLogin();
-      _initApp();
-      _bindInactivity();
+
+      var primeiro = String(user.name || '').trim().split(/\s+/)[0];
+      _lgBtn('ok');
+      _lgMsg(primeiro ? 'Bem-vindo, ' + primeiro + '!' : 'Tudo certo. Carregando o painel…', 'ok');
+      setTimeout(function(){
+        _hideLogin(true);
+        _initApp();
+        _bindInactivity();
+      }, 620);
     }).catch(function(err){
       clearTimeout(_tmo);
-      _liberar('Erro de conexao: ' + (err && err.message ? err.message : err));
+      _liberar('Erro de conexão: ' + (err && err.message ? err.message : err));
     });
   }
 
@@ -1067,6 +1288,16 @@ button,
       _storeClear();
       return false;
     }
+    // v128: o token TEM que entrar no CRM ANTES do rpc — o rpc monta o
+    // corpo com (CRM && CRM.token). Do jeito antigo, a revalidação saía
+    // com token vazio, o backend respondia "Não autorizado" e o próprio
+    // rpc chamava _adminLogout(). Ou seja: TODO F5 com sessão válida
+    // derrubava a sessão e voltava pro login.
+    CRM.token = tok;
+    CRM.user  = usr;
+
+    _lgVerificando();   // mostra "Verificando sessão…" em vez do formulário
+
     // Revalida com o backend — se token invalido/expirado, limpa.
     rpc('getAutomacaoStatus', {}).then(function(res){
       if (!res || !res.ok) {
@@ -1074,35 +1305,80 @@ button,
         _showLogin();
         return;
       }
-      CRM.token = tok;
-      CRM.user  = usr;
-      _hideLogin();
+      _hideLogin(true);
       _initApp();
       _bindInactivity();
     }).catch(function(){
       _storeClear();
-      _showLogin();
+      _showLogin('Não foi possível revalidar sua sessão. Entre novamente.');
     });
     return true;
   }
 
   function _attach() {
+    var card = document.getElementById('lgCard');
     var b = document.getElementById('loginBtn');
     var e = document.getElementById('loginEmail');
     var p = document.getElementById('loginPass');
-    if (!b) { setTimeout(_attach, 50); return; }
-    b.addEventListener('click', function(){
+    var eye = document.getElementById('lgEye');
+    if (!b || !card) { setTimeout(_attach, 50); return; }
+
+    // Submit do <form>: cobre clique no botão E Enter em qualquer campo
+    card.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      if (b.disabled) return;              // já validando ou em rate limit
       var em = (e.value || '').trim();
       var ps = (p.value || '').trim();
-      if (!em || !ps) {
-        var m = document.getElementById('loginMsg');
-        if (m) { m.textContent = 'Preencha e-mail e senha.'; m.style.color = '#e53935'; }
-        return;
-      }
+
+      _lgLimparErros();
+      if (!em) { _lgCampoErro('email', 'Informe seu e-mail.'); _lgTremer(); e.focus(); return; }
+      if (!_lgEmailValido(em)) { _lgCampoErro('email', 'E-mail inválido.'); _lgTremer(); e.focus(); return; }
+      if (!ps) { _lgCampoErro('pass', 'Informe sua senha.'); _lgTremer(); p.focus(); return; }
+
       _doLogin(em, ps);
     });
-    [e, p].forEach(function(inp){
-      if (inp) inp.addEventListener('keydown', function(ev){ if (ev.key === 'Enter') b.click(); });
+
+    // Limpa o erro do campo assim que o usuário começa a corrigir
+    [[e,'email'], [p,'pass']].forEach(function(par){
+      if (par[0]) par[0].addEventListener('input', function(){ _lgCampoErro(par[1], ''); });
+    });
+
+    // Mostrar / ocultar senha
+    if (eye) {
+      eye.innerHTML = EYE_ON;
+      eye.addEventListener('click', function(){
+        var visivel = p.type === 'text';
+        p.type = visivel ? 'password' : 'text';
+        eye.innerHTML = visivel ? EYE_ON : EYE_OFF;
+        eye.setAttribute('aria-pressed', visivel ? 'false' : 'true');
+        eye.setAttribute('aria-label', visivel ? 'Mostrar senha' : 'Ocultar senha');
+        try { p.focus(); } catch (er) {}
+      });
+    }
+
+    // Aviso de Caps Lock — causa clássica de "minha senha está certa!"
+    function _caps(ev) {
+      var el = document.getElementById('lgCaps');
+      if (!el || !ev.getModifierState) return;
+      if (ev.getModifierState('CapsLock')) el.classList.add('on');
+      else el.classList.remove('on');
+    }
+    if (p) {
+      ['keydown','keyup','focus'].forEach(function(evt){ p.addEventListener(evt, _caps); });
+      p.addEventListener('blur', function(){
+        var el = document.getElementById('lgCaps');
+        if (el) el.classList.remove('on');
+      });
+    }
+
+    // Foco preso no cartão enquanto o login está aberto
+    card.addEventListener('keydown', function(ev){
+      if (ev.key !== 'Tab') return;
+      var f = card.querySelectorAll('input:not([disabled]), button:not([disabled])');
+      if (!f.length) return;
+      var primeiro = f[0], ultimo = f[f.length - 1];
+      if (ev.shiftKey && document.activeElement === primeiro) { ev.preventDefault(); ultimo.focus(); }
+      else if (!ev.shiftKey && document.activeElement === ultimo) { ev.preventDefault(); primeiro.focus(); }
     });
     // FIX v93: auto-login POR URL foi removido (vazava token em logs/history).
     // FIX v93: auto-login por cache agora revalida contra o backend.
@@ -2569,7 +2845,9 @@ function handleOverlayClick(e) { if (e.target === document.getElementById('modal
 // ══════════════════════════════════════════════════════════
 function toast(msg, type) {
   type = type || 'success';
-  var icons = { success:'<i data-lucide="check" class="luc"></i>', error:'<i data-lucide="x" class="luc"></i>', info:'ℹ' };
+  // 'warn' era usado em 2 lugares (sessão expirada) sem ícone nem cor
+  var icons = { success:'<i data-lucide="check" class="luc"></i>', error:'<i data-lucide="x" class="luc"></i>',
+                warn:'<i data-lucide="alert-triangle" class="luc"></i>', info:'ℹ' };
   var el = document.createElement('div');
   el.className = 'toast toast-' + type;
   el.innerHTML = '<span class="toast-icon">' + (icons[type]||'ℹ') + '</span> ' + escHtml(msg);

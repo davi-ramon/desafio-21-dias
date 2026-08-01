@@ -47,6 +47,58 @@ function verificarSenha_(password, stored) {
   return { ok: _timingEq_(_hashLegado_(password), stored), legado: true };
 }
 
+// ── Rate limit de login (v128) ──────────────────────────────────
+// O Apps Script não enxerga o IP do cliente, então a janela é por
+// e-mail. Isso significa que um atacante consegue trancar um admin
+// específico por 15 min — trade-off aceitável para um painel com
+// meia dúzia de contas, e muito melhor do que força bruta livre.
+const LOGIN_MAX_TENTATIVAS = 5;
+const LOGIN_JANELA_SEG     = 15 * 60;
+
+function _rlChave_(email) {
+  return 'lgnf_' + _sha256Hex_(String(email || '').toLowerCase().trim()).substring(0, 32);
+}
+
+function _rlEstado_(email) {
+  try {
+    const raw = CacheService.getScriptCache().get(_rlChave_(email));
+    if (!raw) return { n: 0, ate: 0 };
+    const o = JSON.parse(raw);
+    return { n: Number(o.n) || 0, ate: Number(o.ate) || 0 };
+  } catch (e) { return { n: 0, ate: 0 }; }
+}
+
+// Retorna 0 se liberado, ou os segundos que ainda faltam para destravar.
+function _rlBloqueado_(email) {
+  const st = _rlEstado_(email);
+  if (st.n < LOGIN_MAX_TENTATIVAS) return 0;
+  const restam = Math.ceil((st.ate - Date.now()) / 1000);
+  return restam > 0 ? restam : 0;
+}
+
+function _rlFalha_(email) {
+  try {
+    const st  = _rlEstado_(email);
+    const n   = st.n + 1;
+    const ate = n >= LOGIN_MAX_TENTATIVAS ? Date.now() + LOGIN_JANELA_SEG * 1000 : (st.ate || 0);
+    CacheService.getScriptCache().put(
+      _rlChave_(email), JSON.stringify({ n: n, ate: ate }), LOGIN_JANELA_SEG);
+    if (n === LOGIN_MAX_TENTATIVAS) {
+      try { logAction(email, 'LOGIN_BLOQUEADO', 'auth', '', n + ' tentativas seguidas'); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
+function _rlLimpar_(email) {
+  try { CacheService.getScriptCache().remove(_rlChave_(email)); } catch (e) {}
+}
+
+// Destrava manualmente um e-mail preso no rate limit (rodar no editor).
+function destravarLogin(email) {
+  _rlLimpar_(email);
+  return 'Login destravado para: ' + email;
+}
+
 function login(email, password) {
   try {
     // v102: normaliza email antes da busca (corrigia casos como
@@ -55,6 +107,18 @@ function login(email, password) {
     var emailNorm = String(email || '').toLowerCase().trim();
     var pwdNorm   = String(password || '').trim();
     if (!emailNorm || !pwdNorm) return { ok: false, error: 'E-mail ou senha inválidos.' };
+
+    // Freio de força bruta ANTES de tocar na planilha
+    const espera = _rlBloqueado_(emailNorm);
+    if (espera > 0) {
+      return {
+        ok: false,
+        bloqueado: true,
+        espera: espera,
+        error: 'Muitas tentativas seguidas. Tente novamente em ' +
+               (espera > 60 ? Math.ceil(espera / 60) + ' minutos.' : espera + ' segundos.')
+      };
+    }
 
     const sheet = getSheet(SHEET_USERS);
     const users = sheetToObjects(sheet);
@@ -66,6 +130,7 @@ function login(email, password) {
     // Mensagem genérica: não revela se o e-mail existe (anti-enumeração)
     const GENERICO = { ok: false, error: 'E-mail ou senha inválidos.' };
     if (!user) {
+      _rlFalha_(emailNorm);
       // v102: log temporário pra debugar casos de "nao encontrou"
       try { logAction(emailNorm, 'LOGIN_FAIL_USER', 'auth', '', 'email nao encontrado'); } catch (e) {}
       return GENERICO;
@@ -73,6 +138,7 @@ function login(email, password) {
 
     const chk = verificarSenha_(pwdNorm, user.password_hash);
     if (!chk.ok) {
+      _rlFalha_(emailNorm);
       try { logAction(emailNorm, 'LOGIN_FAIL_PWD', 'auth', user.id || '', 'hash mismatch'); } catch (e) {}
       return GENERICO;
     }
@@ -85,8 +151,10 @@ function login(email, password) {
         const emailCol = headers.indexOf('email');
         const hashCol  = headers.indexOf('password_hash') + 1;
         for (let i = 1; i < data.length; i++) {
-          if (String(data[i][emailCol]) === email) {
-            sheet.getRange(i + 1, hashCol).setValue(hashPassword(password));
+          // v128: comparação normalizada — igual ao updateUserToken. Cru,
+          // o upgrade de hash silenciosamente nunca acontecia.
+          if (String(data[i][emailCol] || '').toLowerCase().trim() === emailNorm) {
+            sheet.getRange(i + 1, hashCol).setValue(hashPassword(pwdNorm));
             break;
           }
         }
@@ -102,6 +170,7 @@ function login(email, password) {
       // "Não autorizado" na chamada seguinte. Melhor falhar na cara.
       return { ok: false, error: 'Não foi possível iniciar a sessão. Tente novamente.' };
     }
+    _rlLimpar_(emailNorm);   // acertou: zera o contador de tentativas
     logAction(emailNorm, 'LOGIN', 'session', '', '');
 
     return {
