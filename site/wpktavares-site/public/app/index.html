@@ -783,11 +783,39 @@ function doLogin() {
       showErr(res.error || 'E-mail ou senha incorretos.');
     }
   })
-  .catch(function() {
+  .catch(function(err) {
     btn.classList.remove('loading');
     btn.disabled = false;
-    showErr('Falha de conexão. Verifique sua internet e tente novamente.');
+    console.error('[Login] fetch falhou:', err && err.name, err && err.message);
+    showErr('Verificando o que aconteceu...');
+    _diagnosticarFalha(showErr);
   });
+}
+
+// v136: "Verifique sua internet" era mentira na maioria dos casos.
+// Quando o fetch morre e a internet está boa, quase sempre é o próprio
+// navegador barrando script.google.com — proteção contra rastreamento
+// do Edge, extensão de bloqueio ou proxy corporativo. Testamos a MESMA
+// origem para separar os dois casos e dizer o que fazer.
+function _diagnosticarFalha(cb) {
+  if (navigator.onLine === false) {
+    cb('Você está sem internet. Reconecte e tente novamente.');
+    return;
+  }
+  var t = setTimeout(function () { t = null; responder(false); }, 4000);
+  function responder(mesmaOrigemOk) {
+    if (t) { clearTimeout(t); t = null; } else if (arguments.length && mesmaOrigemOk) { return; }
+    if (mesmaOrigemOk) {
+      cb('Sua internet está funcionando, mas o navegador bloqueou a conexão com o servidor do app. ' +
+         'Costuma ser a proteção contra rastreamento ou uma extensão. Tente uma janela anônima, ' +
+         'outro navegador, ou libere este site nas configurações de privacidade.');
+    } else {
+      cb('Não conseguimos falar com o servidor agora. Tente de novo em alguns instantes.');
+    }
+  }
+  fetch('./?ping=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+    .then(function () { responder(true); })
+    .catch(function () { responder(false); });
 }
 
 function showErr(msg) {
@@ -849,10 +877,12 @@ function doSendCode() {
       errBox.classList.add('show');
     }
   })
-  .catch(function() {
+  .catch(function(err) {
     btn.classList.remove('loading'); btn.disabled = false;
-    errBox.textContent = '⚠ Falha de conexão.';
+    console.error('[Login] fetch falhou:', err && err.name, err && err.message);
     errBox.classList.add('show');
+    errBox.textContent = '⚠ Verificando o que aconteceu...';
+    _diagnosticarFalha(function(m){ errBox.textContent = '⚠ ' + m; });
   });
 }
 
@@ -892,10 +922,12 @@ function doResetPassword() {
       errBox.classList.add('show');
     }
   })
-  .catch(function() {
+  .catch(function(err) {
     btn.classList.remove('loading'); btn.disabled = false;
-    errBox.textContent = '⚠ Falha de conexão.';
+    console.error('[Login] fetch falhou:', err && err.name, err && err.message);
     errBox.classList.add('show');
+    errBox.textContent = '⚠ Verificando o que aconteceu...';
+    _diagnosticarFalha(function(m){ errBox.textContent = '⚠ ' + m; });
   });
 }
 </script>
