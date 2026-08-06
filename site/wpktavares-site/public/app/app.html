@@ -3918,17 +3918,45 @@ function renderInicio() {
   </div>`;
   }
 
-  if (!concluido) {
+  // v135: quem concluiu os 21 dias ganha uma FAIXA de celebração — e
+  // continua com tudo. Antes, o `if (!concluido)` embrulhava os pilares,
+  // o áudio e o check-in, e o `else` trocava os três por um troféu
+  // estático. Na prática o app virava uma tela de leitura: a aluna que
+  // terminava o desafio perdia o botão de abrir meditação, leitura,
+  // exercício e áudio. O backend já aceitava check-in depois do dia 21
+  // desde a v122 — era só a home que não oferecia mais.
+  if (concluido) {
+    html += `
+    <div class="card conc-faixa ga-checkin">
+      <div class="conc-tro">🏆</div>
+      <div class="conc-txt">
+        <div class="conc-t">Desafio concluído — e a rotina segue</div>
+        <div class="conc-s">Você fechou os 21 dias. Os pilares continuam aqui todos os dias:
+          o hábito é o prêmio.</div>
+      </div>
+    </div>`;
+  }
+
+  {
     // Mensagem dinâmica
     let msgBadge = '', msgTitle = '', msgSub = '', pendentesHtml = '';
+    // v135: depois do dia 21 não existe mais "Dia X de 21". O texto passa
+    // a falar de rotina, não de contagem regressiva — senão a aluna que
+    // concluiu lê todo dia que "hoje é o Dia 21".
     if (qtdFeitos >= 3) {
       msgBadge = '🔥 Meta diária atingida';
       msgTitle = qtdFeitos === 4 ? 'Você completou todos os pilares hoje! 🏅' : 'Você fez 3 dos 4 pilares — mínimo atingido!';
-      msgSub   = 'Faça o seu check-in agora para registrar o Dia ' + dia + ' e manter sua sequência.';
+      msgSub   = concluido
+        ? 'Faça o seu check-in para manter a sequência viva.'
+        : 'Faça o seu check-in agora para registrar o Dia ' + dia + ' e manter sua sequência.';
     } else if (qtdFeitos === 0) {
-      msgBadge = '⏰ Hora do Milagre da Manhã';
-      msgTitle = 'É hora do Milagre da Manhã, ' + escH(primeiroNome) + '!';
-      msgSub   = 'Hoje é o Dia ' + dia + '. Execute seus pilares e registre o check-in do dia.';
+      msgBadge = concluido ? '☀️ Mais um dia de rotina' : '⏰ Hora do Milagre da Manhã';
+      msgTitle = concluido
+        ? 'Bom dia, ' + escH(primeiroNome) + '. Vamos manter o ritmo?'
+        : 'É hora do Milagre da Manhã, ' + escH(primeiroNome) + '!';
+      msgSub   = concluido
+        ? 'Você já provou que consegue. Execute seus pilares e registre o check-in.'
+        : 'Hoje é o Dia ' + dia + '. Execute seus pilares e registre o check-in do dia.';
       pendentesHtml = pendentes.map(p => '<span class="msg-dinamica-tag">' + pilaresNomes[p] + '</span>').join('');
     } else if (qtdFeitos > 0) {
       msgBadge = '✅ Você já está avançando!';
@@ -3954,7 +3982,7 @@ function renderInicio() {
         ${_pilarItem('exercicio','🏃','Exercício Físico','15 minutos',       pilaresHoje, false, 'openExercicio()', pilarLocked('exercicio'))}
         ${_pilarItem('audio',    '🎧','Áudio do Dia', d.audioUrlHoje ? escH(d.audioTituloHoje||'Ouça o áudio motivacional') : 'Não configurado', pilaresHoje, false, audioOnclick, pilarLocked('audio'))}
       </div>
-      <div style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">${qtdFeitos} de 4 pilares concluídos hoje</div>
+      <div class="pilar-contador" style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">${qtdFeitos} de 4 pilares concluídos hoje</div>
     </div>`;
 
     if (d.audioUrlHoje) {
@@ -4002,8 +4030,6 @@ function renderInicio() {
         <span>${checkinFeito ? '✅ Check-in feito!' : '✏️ Fazer meu check-in'}</span>
       </button>
     </div>`;
-  } else {
-    html += `<div class="card ga-checkin" style="text-align:center;padding:32px 20px"><div style="font-size:48px;margin-bottom:12px">🏆</div><div style="font-size:20px;font-weight:800;color:var(--green);margin-bottom:8px">Desafio Concluído!</div><div style="font-size:13px;color:var(--muted)">Você completou os 21 dias. Continue com seus hábitos!</div></div>`;
   }
 
   if (d.salaLink) {
@@ -4403,6 +4429,7 @@ async function togglePilar(pilar) {
     if (r.ok) {
       if (r.progresso      !== undefined) APP.data.progresso      = r.progresso;
       if (r.diasConcluidos !== undefined) APP.data.diasConcluidos = r.diasConcluidos;
+      _sincronizarContadores();   // v135: contador e botão de check-in
       toast(valor ? 'Pilar marcado! 💪' : 'Pilar desmarcado.', valor ? 'success' : 'info');
     } else {
       // Rollback on failure
@@ -4422,6 +4449,36 @@ async function togglePilar(pilar) {
     });
     toast('Erro de conexão.', 'error');
   }
+}
+
+// v135: o togglePilar atualizava só os ✓ das linhas. O texto "X de 4
+// pilares concluídos hoje" e o BOTÃO DE CHECK-IN continuavam com o valor
+// do render — então quem chegava aos 3 pilares via os ✓ mas o botão
+// seguia desabilitado até recarregar a página. Era a segunda forma de
+// ficar travado, independente do bug dos 21 dias.
+function _sincronizarContadores() {
+  var pilares = (APP.data && APP.data.pilaresHoje) || {};
+  var BASE = ['meditacao','leitura','exercicio','audio'];
+  var feitos = BASE.filter(function (p) { return pilares[p] === true; }).length;
+  var checkinFeito = pilares['checkin'] === true;
+
+  document.querySelectorAll('.pilar-contador').forEach(function (el) {
+    el.textContent = feitos + ' de 4 pilares concluídos hoje';
+  });
+
+  document.querySelectorAll('#checkinBtn, #checkinBtnRotina').forEach(function (b) {
+    if (checkinFeito) return;                    // já fez: não mexe
+    var liberado = feitos >= 3;
+    b.disabled = !liberado;
+    b.innerHTML = '<span>✏️ Fazer meu check-in</span>';
+    var card = b.closest('.checkin-card');
+    var sub  = card && card.querySelector('.checkin-sub');
+    if (sub) {
+      sub.textContent = liberado
+        ? 'Tudo pronto. Registre seu check-in de hoje.'
+        : 'Complete pelo menos 3 pilares para liberar';
+    }
+  });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -11304,6 +11361,18 @@ function pmAtualizarMini() {
   .fc-face { transition:none; }
   .fc-fim-ico { animation:none; }
 }
+
+/* ═══ Faixa de "desafio concluído" (v135) ════════════════════ */
+/* Compacta de propósito: ela SOMA à home, não substitui os pilares.
+   O troféu de 48px ocupando um card inteiro era o que empurrava tudo
+   pra fora da primeira dobra. */
+.conc-faixa { display:flex; align-items:center; gap:13px; padding:14px 16px;
+  background:linear-gradient(135deg, rgba(76,175,80,.13), rgba(76,175,80,.04));
+  border:1px solid rgba(76,175,80,.3); }
+.conc-tro { font-size:26px; flex-shrink:0; line-height:1; }
+.conc-txt { min-width:0; }
+.conc-t { font-size:14px; font-weight:800; color:var(--green); line-height:1.3; }
+.conc-s { font-size:12px; color:var(--muted); margin-top:4px; line-height:1.5; }
 </style>
 
 <script>
