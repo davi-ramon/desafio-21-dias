@@ -3140,6 +3140,40 @@ window.addEventListener('load', function() {
 // ════════════════════════════════════════════════════════════
 // RPC — fetch() para o GAS doPost (sem google.script.run)
 // ════════════════════════════════════════════════════════════
+// v138: quando o fetch morre por bloqueio do navegador (proteção contra
+// rastreamento, extensão, proxy), cada tela mostrava sua própria mensagem
+// genérica — "erro ao carregar" — e o aluno não tinha como saber o que
+// fazer. Aqui o app pergunta à PRÓPRIA origem se ela responde: se sim, o
+// problema é o bloqueio do script.google.com, e dizemos isso na cara.
+var _avisoBloqueioMostrado = false;
+
+function _avisarBloqueio() {
+  if (_avisoBloqueioMostrado) return;
+  _avisoBloqueioMostrado = true;
+
+  fetch(location.pathname + '?ping=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+    .then(function () {
+      var el = document.createElement('div');
+      el.className = 'bloqueio-aviso';
+      el.innerHTML =
+        '<div class="bloqueio-t">O navegador está bloqueando o app</div>' +
+        '<div class="bloqueio-s">Sua internet está funcionando, mas algo neste navegador ' +
+        'está barrando a conexão com o servidor — normalmente a proteção contra rastreamento ' +
+        'ou uma extensão.<br><br>Abra em uma <b>janela anônima</b> ou em outro navegador. ' +
+        'Para resolver de vez, libere <b>' + location.hostname + '</b> nas configurações de ' +
+        'privacidade do navegador.</div>' +
+        '<button class="bloqueio-btn" onclick="location.reload()">Tentar de novo</button>';
+      document.body.appendChild(el);
+      console.error('[App] requisições ao servidor bloqueadas pelo navegador. ' +
+                    'A mesma origem responde, o script.google.com não.');
+    })
+    .catch(function () {
+      // Nem a própria origem respondeu: é queda de rede/servidor mesmo.
+      _avisoBloqueioMostrado = false;
+      console.warn('[App] sem resposta nem da própria origem — rede ou servidor fora do ar.');
+    });
+}
+
 function rpc(action, data) {
   return fetch(WEBAPP_URL, {
     method:  'POST',
@@ -3148,6 +3182,15 @@ function rpc(action, data) {
   }).then(function(r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
+  }).catch(function (err) {
+    // TypeError aqui = a requisição nem chegou (rede caiu, CORS barrou,
+    // extensão interceptou). Erro de aplicação vem como resposta, não
+    // como exceção — por isso só diagnosticamos este caso.
+    if (err instanceof TypeError) {
+      console.error('[rpc] ' + action + ' — requisição bloqueada:', err.message);
+      _avisarBloqueio();
+    }
+    throw err;                              // as telas seguem tratando como antes
   });
 }
 
@@ -11401,6 +11444,21 @@ function pmAtualizarMini() {
   .fc-face { transition:none; }
   .fc-fim-ico { animation:none; }
 }
+
+/* ═══ Aviso de bloqueio do navegador (v138) ══════════════════ */
+.bloqueio-aviso { position:fixed; inset:auto 16px 16px 16px; z-index:99999; max-width:420px;
+  margin:0 auto; background:#1a0f0f; border:1px solid rgba(232,64,64,.45); border-radius:14px;
+  padding:18px 20px; box-shadow:0 18px 44px rgba(0,0,0,.6);
+  animation:blqEntra .35s cubic-bezier(.16,1,.3,1) both; }
+@keyframes blqEntra { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+.bloqueio-t { font-size:14.5px; font-weight:800; color:#ff8a8a; margin-bottom:8px; }
+.bloqueio-s { font-size:12.5px; color:#c9b8b8; line-height:1.6; }
+.bloqueio-s b { color:#f0e4e4; }
+.bloqueio-btn { margin-top:14px; width:100%; padding:11px; border:none; border-radius:10px;
+  background:#e84040; color:#fff; font-family:inherit; font-size:13px; font-weight:800;
+  cursor:pointer; transition:filter .16s; }
+.bloqueio-btn:hover { filter:brightness(1.1); }
+@media (prefers-reduced-motion:reduce){ .bloqueio-aviso { animation:none; } }
 
 /* ═══ Faixa de "desafio concluído" (v135) ════════════════════ */
 /* Compacta de propósito: ela SOMA à home, não substitui os pilares.
