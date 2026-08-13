@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnóstico de conexão — Desafio 21 Dias</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  :root { --bg:#07090a; --card:#0d1410; --border:rgba(76,175,80,.18);
+          --text:#e8efe9; --muted:#7a8f80; --green:#4caf50; --red:#e84040; --amber:#e0a83c; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+       padding:24px 16px;line-height:1.5}
+  .wrap{max-width:640px;margin:0 auto}
+  h1{font-size:20px;font-weight:800;margin-bottom:6px}
+  .sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+  .teste{display:flex;align-items:flex-start;gap:12px;padding:13px 15px;background:var(--card);
+         border:1px solid var(--border);border-radius:12px;margin-bottom:8px}
+  .ico{width:22px;height:22px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;
+       justify-content:center;font-size:12px;font-weight:800;background:rgba(255,255,255,.08)}
+  .ico.ok{background:rgba(76,175,80,.2);color:var(--green)}
+  .ico.falhou{background:rgba(232,64,64,.2);color:var(--red)}
+  .ico.rodando{background:rgba(255,255,255,.08);color:var(--muted);animation:gira 1s linear infinite}
+  @keyframes gira{to{transform:rotate(360deg)}}
+  .t-nome{font-size:13.5px;font-weight:700}
+  .t-desc{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .t-res{font-size:11.5px;margin-top:4px;font-family:ui-monospace,Consolas,monospace}
+  .veredito{margin-top:22px;padding:18px 20px;border-radius:14px;border:1px solid var(--border);
+            background:var(--card);display:none}
+  .veredito.show{display:block}
+  .v-t{font-size:15px;font-weight:800;margin-bottom:8px}
+  .v-s{font-size:13px;color:var(--muted);line-height:1.65}
+  .v-s b{color:var(--text)}
+  .v-s ol{margin:10px 0 0 18px}
+  .v-s li{margin-bottom:6px}
+  button{margin-top:18px;width:100%;padding:13px;border:none;border-radius:11px;cursor:pointer;
+         font-family:inherit;font-size:13.5px;font-weight:800;background:var(--green);color:#04140a}
+  button.sec{background:rgba(255,255,255,.08);color:var(--text);margin-top:8px}
+  pre{margin-top:14px;padding:13px;background:#060a07;border:1px solid var(--border);border-radius:10px;
+      font-size:11px;color:var(--muted);white-space:pre-wrap;word-break:break-all;display:none}
+  pre.show{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Diagnóstico de conexão</h1>
+  <div class="sub">Descobre em qual camada a conexão está sendo barrada. Leva uns 10 segundos.</div>
+  <div id="testes"></div>
+  <div class="veredito" id="veredito"></div>
+  <button id="btn" onclick="rodar()">Rodar de novo</button>
+  <button class="sec" onclick="copiar()">Copiar relatório</button>
+  <pre id="relatorio"></pre>
+</div>
+
+<script>
+var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+
+// Cada teste isola UMA camada. A combinação dos resultados é o que
+// aponta o culpado — um teste sozinho não distingue rede de CORS.
+var TESTES = [
+  { id:'origem', nome:'Este site responde',
+    desc:'Confirma que sua internet e o servidor do app estão de pé',
+    run: function(){ return fetch(location.pathname+'?p='+Date.now(),{method:'HEAD',cache:'no-store'})
+                       .then(function(r){ return 'HTTP '+r.status; }); } },
+
+  { id:'hostgas', nome:'O host do servidor é alcançável',
+    desc:'Fala com o script.google.com por uma via que NÃO passa por CORS',
+    run: function(){ return semCors(GAS); } },
+
+  { id:'fetchgas', nome:'A chamada real do app funciona',
+    desc:'Exatamente o que o login faz: POST com text/plain',
+    run: function(){ return fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain'},
+                       body:JSON.stringify({action:'login',data:{}})})
+                       .then(function(r){ return r.json(); })
+                       .then(function(j){ return 'respondeu: '+(j.error||j.ok); }); } },
+
+  { id:'google', nome:'Outros serviços do Google carregam',
+    desc:'Diz se o bloqueio é só do script.google.com ou de todo o Google',
+    run: function(){ return semCors('https://www.google.com/favicon.ico'); } },
+
+  { id:'terceiro', nome:'Outros sites externos carregam',
+    desc:'Diz se qualquer domínio de terceiros está sendo barrado',
+    run: function(){ return semCors('https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js'); } }
+];
+
+// mode:'no-cors' é a chave do diagnóstico: a requisição SAI e a resposta
+// volta opaca, sem passar pela política de CORS. Se ela falha, o bloqueio
+// é de REDE (extensão, antivírus, DNS, proxy). Se ela passa e o fetch
+// normal falha, o problema está na camada de CORS — outro culpado, outra
+// solução. Nenhum outro teste separa esses dois casos.
+function semCors(url){
+  return fetch(url, { mode:'no-cors', cache:'no-store' })
+    .then(function(){ return 'alcançável'; });
+}
+
+// <script> e <img> não passam pela política de CORS. Se falharem, o
+// bloqueio é de REDE (extensão, antivírus, DNS), não de CORS.
+
+var resultados={};
+
+function pintar(){
+  document.getElementById('testes').innerHTML = TESTES.map(function(t){
+    var r=resultados[t.id];
+    var cls = !r ? 'rodando' : (r.ok ? 'ok' : 'falhou');
+    var sim = !r ? '◐' : (r.ok ? '✓' : '✕');
+    var cor = !r ? 'var(--muted)' : (r.ok ? 'var(--green)' : 'var(--red)');
+    return '<div class="teste"><div class="ico '+cls+'">'+sim+'</div><div>'+
+      '<div class="t-nome">'+t.nome+'</div><div class="t-desc">'+t.desc+'</div>'+
+      (r ? '<div class="t-res" style="color:'+cor+'">'+r.msg+'</div>' : '')+
+    '</div></div>';
+  }).join('');
+}
+
+async function rodar(){
+  resultados={}; pintar();
+  document.getElementById('veredito').classList.remove('show');
+  document.getElementById('relatorio').classList.remove('show');
+  for (var i=0;i<TESTES.length;i++){
+    var t=TESTES[i];
+    try { var m=await t.run(); resultados[t.id]={ok:true,msg:String(m)}; }
+    catch(e){ resultados[t.id]={ok:false,msg:(e&&e.message)||'falhou'}; }
+    pintar();
+  }
+  concluir();
+}
+
+function concluir(){
+  var r=resultados, v=document.getElementById('veredito');
+  var titulo, texto;
+
+  if (!r.origem.ok) {
+    titulo='Você está sem conexão';
+    texto='Nem este site respondeu. Verifique sua internet e tente de novo.';
+  } else if (r.fetchgas.ok) {
+    titulo='Está tudo funcionando';
+    texto='A conexão com o servidor foi feita com sucesso agora. Se o app deu erro antes, ' +
+          'foi passageiro — tente entrar novamente.';
+  } else if (!r.hostgas.ok && !r.google.ok) {
+    titulo='Algo está bloqueando os serviços do Google';
+    texto='O <b>script.google.com</b> e outros endereços do Google não carregam nem por vias que ' +
+          'não usam CORS. Isso aponta para bloqueio de <b>rede</b>, não do site.<br><br>Suspeitos, ' +
+          'nesta ordem:<ol><li><b>Antivírus com proteção web</b> (Kaspersky, Avast, AVG, Bitdefender) ' +
+          '— desative a inspeção de HTTPS e teste</li><li><b>Extensão de bloqueio</b> — teste em janela ' +
+          'anônima com extensões desativadas</li><li><b>DNS filtrado</b> ou firewall da sua rede/empresa' +
+          '</li></ol>';
+  } else if (!r.hostgas.ok && r.google.ok) {
+    titulo='O script.google.com está sendo bloqueado especificamente';
+    texto='Outros endereços do Google carregam, mas o <b>script.google.com</b> não — nem por vias que ' +
+          'não usam CORS. Alguma lista de bloqueio está mirando esse domínio.<br><br>' +
+          '<ol><li>Abra em <b>janela anônima</b> (Ctrl+Shift+N). Se funcionar, é extensão: desative ' +
+          'uma por vez para achar qual</li><li>Confira listas do uBlock/AdGuard e libere ' +
+          'script.google.com</li><li>Verifique o antivírus</li></ol>';
+  } else if (r.hostgas.ok && !r.fetchgas.ok) {
+    titulo='O domínio carrega, mas a chamada do app é barrada';
+    texto='Este é o caso mais revelador: o <b>script.google.com</b> é alcançável, mas a requisição ' +
+          'do app morre. Quase sempre é uma <b>extensão adicionando cabeçalhos</b> na requisição — ' +
+          'isso obriga o navegador a fazer uma checagem prévia que o servidor do Google não responde.' +
+          '<br><br><ol><li>Teste em <b>janela anônima</b> (Ctrl+Shift+N)</li><li>Se funcionar, ' +
+          'desative as extensões uma a uma — principalmente as de <b>privacidade, VPN, antirrastreio ' +
+          'e gerenciador de senhas</b></li></ol>';
+  } else {
+    titulo='Bloqueio amplo de sites externos';
+    texto='Nem domínios de terceiros carregam. Deve ser antivírus, firewall ou proxy da sua rede.';
+  }
+
+  v.innerHTML='<div class="v-t">'+titulo+'</div><div class="v-s">'+texto+'</div>';
+  v.classList.add('show');
+
+  var linhas=TESTES.map(function(t){
+    return (resultados[t.id].ok?'OK    ':'FALHOU') + '  ' + t.nome + '  ->  ' + resultados[t.id].msg;
+  });
+  document.getElementById('relatorio').textContent =
+    'DIAGNÓSTICO — ' + new Date().toLocaleString('pt-BR') + '\n' +
+    'Origem: ' + location.origin + '\n' +
+    'Navegador: ' + navigator.userAgent + '\n\n' + linhas.join('\n') + '\n\nVeredito: ' + titulo;
+}
+
+function copiar(){
+  var p=document.getElementById('relatorio');
+  p.classList.add('show');
+  try {
+    navigator.clipboard.writeText(p.textContent);
+    var b=event.target; var o=b.textContent;
+    b.textContent='Copiado!'; setTimeout(function(){ b.textContent=o; },1600);
+  } catch(e){}
+}
+
+rodar();
+</script>
+</body>
+</html>
