@@ -458,6 +458,35 @@ html, body {
 </style>
 </head>
 <body>
+<script>
+/* v140: este projeto NAO usa service worker. Se existir um registrado
+   (resquicio de versao antiga ou de instalacao do PWA), ele fica ENTRE o
+   app e a internet e intercepta toda requisicao desta pagina — foi o que
+   derrubou o login com erro de CORS e devolveu 503 num MP3 estatico, num
+   navegador onde o mesmo pedido funcionava fora de /app/. Removemos na
+   entrada. O guarda de sessao impede laco de reload. */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then(function (regs) {
+    if (!regs.length) return;
+    console.warn('[App] service worker inesperado (' + regs.length + '). Removendo.');
+    var jaTentou = false;
+    try { jaTentou = sessionStorage.getItem('sw_limpo') === '1'; } catch (e) {}
+    Promise.all(regs.map(function (r) { return r.unregister(); })).then(function () {
+      if (window.caches && caches.keys) {
+        return caches.keys().then(function (ks) {
+          return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+        });
+      }
+    }).catch(function () {}).then(function () {
+      if (jaTentou) return;   // ja recarregamos uma vez: nao insiste
+      try { sessionStorage.setItem('sw_limpo', '1'); } catch (e) {}
+      location.reload();      // a pagina atual ainda esta sob o SW removido
+    });
+  }).catch(function () {});
+})();
+</script>
+
 
 <!-- Particle canvas -->
 <canvas id="bgCanvas"></canvas>
