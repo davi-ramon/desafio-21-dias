@@ -9256,6 +9256,7 @@ var MURAL = {
   // tocando — antes toda falha era engolida e o Mural ficava mudo sem
   // nenhum rastro no console.
   audio: null, fadeTimer: null, motivo: '', destraveArmado: false,
+  falhou: false, retentou: false,   // v137: recuperação de falha de rede
   mudo: (function () { try { return localStorage.getItem('mu_mudo') === '1'; } catch (e) { return false; } })()
 };
 
@@ -9483,6 +9484,22 @@ function muArmarDestrave() {
   document.addEventListener('keydown', destravar, true);
 }
 
+// v137: falha de rede em arquivo de 6 MB acontece — CDN devolve 503, o
+// wi-fi oscila, o proxy corta. Uma tentativa a mais resolve a esmagadora
+// maioria, e sem ela o aluno fica em silêncio até recarregar a página.
+// Só UMA nova tentativa por entrada no módulo: se o arquivo está mesmo
+// quebrado, insistir só enche o console.
+function muTentarDeNovo() {
+  if (MURAL.retentou) return;
+  MURAL.retentou = true;
+  setTimeout(function () {
+    if (!document.getElementById('muStage')) return;   // já saiu do Mural
+    if (MURAL.mudo) return;
+    console.info('[Mural] tentando carregar a trilha de novo...');
+    muAmbienteIniciar();
+  }, 2500);
+}
+
 function muAmbienteIniciar() {
   var cfg = muCfg();
   MURAL.motivo = '';
@@ -9490,8 +9507,14 @@ function muAmbienteIniciar() {
   if (cfg.musicaAtiva === false) { MURAL.motivo = 'desativada'; muBotaoSom(); return; }
   if (MURAL.mudo)                { MURAL.motivo = 'mudo';       muBotaoSom(); return; }
 
-  if (!MURAL.audio || MURAL.audio.getAttribute('data-src') !== cfg.musicaUrl) {
-    if (MURAL.audio) { try { MURAL.audio.pause(); } catch (e) {} }
+  // v137: `MURAL.falhou` entra na condição de propósito. Antes, um <audio>
+  // que tinha dado erro ficava em cache com o mesmo data-src e era REUSADO
+  // para sempre — um elemento cujo src falhou não se recupera sozinho, então
+  // um soluço momentâneo (foi um 503 de CDN) virava silêncio permanente até
+  // recarregar a página. Agora um elemento queimado é descartado e refeito.
+  if (!MURAL.audio || MURAL.falhou || MURAL.audio.getAttribute('data-src') !== cfg.musicaUrl) {
+    if (MURAL.audio) { try { MURAL.audio.pause(); MURAL.audio.src = ''; } catch (e) {} }
+    MURAL.falhou = false;
     MURAL.audio = new Audio(cfg.musicaUrl);
     MURAL.audio.setAttribute('data-src', cfg.musicaUrl);
     MURAL.audio.loop = true;               // loop contínuo enquanto estiver no Mural
@@ -9509,9 +9532,11 @@ function muAmbienteIniciar() {
         4: 'formato não suportado — a URL provavelmente não aponta para um arquivo de áudio'
       };
       MURAL.motivo = 'erro';
+      MURAL.falhou = true;                 // marca o elemento como queimado
       console.error('[Mural] a trilha não carregou: ' + ((er && cods[er.code]) || 'erro desconhecido') +
                     '\n         URL configurada: ' + cfg.musicaUrl);
       muBotaoSom();
+      muTentarDeNovo();
     });
   }
   var a = MURAL.audio;
@@ -9525,7 +9550,9 @@ function muAmbienteIniciar() {
         muArmarDestrave();
       } else {
         MURAL.motivo = 'erro';
+        MURAL.falhou = true;
         console.error('[Mural] play() falhou:', (err && err.name) || err, (err && err.message) || '');
+        muTentarDeNovo();
       }
       muBotaoSom();
     });
@@ -9563,11 +9590,13 @@ function muBotaoSom() {
   var tocando = MURAL.audio && !MURAL.audio.paused && !MURAL.mudo && MURAL.motivo !== 'erro';
   b.innerHTML = tocando ? MU_ICO_ON : MU_ICO_OFF;
   b.classList.toggle('on', !!tocando);
-  b.classList.toggle('pulsa', MURAL.motivo === 'autoplay');
+  // Pulsa tanto no autoplay bloqueado quanto no erro: nos dois casos o
+  // clique do aluno resolve, e ele precisa de um convite visual.
+  b.classList.toggle('pulsa', MURAL.motivo === 'autoplay' || MURAL.motivo === 'erro');
 
   var titulos = {
     autoplay: 'Toque para ligar a trilha',
-    erro:     'A trilha não pôde ser carregada',
+    erro:     'A trilha não carregou — toque para tentar de novo',
     mudo:     'Ligar trilha ambiente'
   };
   var t = titulos[MURAL.motivo] || (tocando ? 'Desligar trilha ambiente' : 'Ligar trilha ambiente');
@@ -9577,10 +9606,20 @@ function muBotaoSom() {
 }
 
 function muToggleSom() {
+  // v137: em estado de erro o clique TENTA DE NOVO em vez de alternar o
+  // mudo. Antes, quem clicasse no botão depois de uma falha só conseguia
+  // silenciar algo que já estava mudo — e precisava clicar duas vezes
+  // para tentar carregar, sem nenhuma pista disso na tela.
+  if (MURAL.motivo === 'erro' && !MURAL.mudo) {
+    MURAL.retentou = false;                // clique do usuário zera o limite
+    console.info('[Mural] nova tentativa pedida pelo aluno.');
+    muAmbienteIniciar();
+    return;
+  }
   MURAL.mudo = !MURAL.mudo;
   try { localStorage.setItem('mu_mudo', MURAL.mudo ? '1' : '0'); } catch (e) {}
   if (MURAL.mudo) { muAmbienteParar(); MURAL.motivo = 'mudo'; muBotaoSom(); }
-  else            { muAmbienteIniciar(); }
+  else            { MURAL.retentou = false; muAmbienteIniciar(); }
 }
 
 function muAmbienteParar() {
@@ -9733,6 +9772,7 @@ function muStart() {
 }
 
 function muPause() {
+  MURAL.retentou = false;   // v137: cada entrada no Mural ganha nova chance
   if (MURAL.raf) { cancelAnimationFrame(MURAL.raf); MURAL.raf = null; }
   clearTimeout(MURAL.glitchTimer);   // v122: não deixa glitch agendado fora do Mural
   clearInterval(MURAL.parTimer);     // v126: deriva da paralaxe no mobile
