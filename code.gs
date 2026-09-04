@@ -224,7 +224,12 @@ function doPost(e) {
       payload.action === 'verificar2FA'             ||
       payload.action === 'reenviar2FA'              ||
       payload.action === 'solicitarLinkMagicoAdmin' ||
-      payload.action === 'entrarComLinkMagico'
+      payload.action === 'entrarComLinkMagico'      ||
+      // v141 — checkout do trial com cartao: publicas por natureza
+      payload.action === 'enviarCodigoTrial'        ||
+      payload.action === 'verificarCodigoTrial'     ||
+      payload.action === 'validarWhatsappTrial'     ||
+      payload.action === 'criarCheckoutTrialCartao'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

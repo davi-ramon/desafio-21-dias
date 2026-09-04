@@ -253,6 +253,11 @@ function handleRequest(payload) {
     // Trial gratuito (público — sem token)
     case 'registrarTrial':           return registrarTrial_(data);
     case 'salvarLeadIncompleto':     return salvarLeadIncompleto_(data);
+    // v141 — trial COM cartao (roda em paralelo ao trial sem cartao)
+    case 'enviarCodigoTrial':        return enviarCodigoTrial(data);
+    case 'verificarCodigoTrial':     return verificarCodigoTrial(data);
+    case 'validarWhatsappTrial':     return validarWhatsappTrial(data);
+    case 'criarCheckoutTrialCartao': return criarCheckoutTrialCartao(data);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)

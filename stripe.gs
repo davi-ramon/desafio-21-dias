@@ -87,6 +87,8 @@ function processStripeEvent_(raw) {
       case 'customer.subscription.trial_will_end': _stripeOnTrialWillEnd_(obj); break;
       case 'invoice.paid':                      _stripeOnInvoicePaid_(obj); break;
       case 'invoice.payment_failed':            _stripeOnInvoiceFailed_(obj); break;
+      // v141: confirma que o cartao ficou salvo no Customer
+      case 'payment_method.attached':           _stripeOnPmAttached_(obj); break;
       default: /* ignora */ break;
     }
   } catch (e) {
@@ -482,7 +484,8 @@ function criarCheckoutStripe(data) {
   var plan  = String((data && data.plan) || 'monthly');
   var price = STRIPE_PRICES[plan] || STRIPE_PRICES.monthly;
   var trial = parseInt((data && data.trialDays) || 0);
-  if ([7, 14, 21].indexOf(trial) < 0) trial = 0;
+  // v141: 30 dias entrou na spec do trial com cartao
+  if (TC_TRIALS_VALIDOS.indexOf(trial) < 0) trial = 0;
 
   // v101: URLs dinamicas baseadas na origem.
   //   origin 'app'     = SPA (usa STRIPE_SUCCESS_URL com view=assinatura)
