@@ -4555,7 +4555,10 @@ async function renderTrialAuto() {
       '<div id="taTesteRes" style="margin-top:8px"></div>' +
     '</div>' +
 
+    '<div id="taCapiCard"></div>' +
     '<button class="btn btn-primary" onclick="taSalvar(false)">Salvar tudo</button>';
+
+  taRenderCapi();
 
   _processIcons && _processIcons(content);
 }
@@ -4676,6 +4679,92 @@ async function taTestar() {
   box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Enviando&hellip;</div>';
   let r;
   try { r = await rpc('waTestar', { numero: num, template: bv.nome, idioma: bv.idioma, vars: bv.vars, dias: 14 }); }
+  catch (e) { box.innerHTML = '<div style="color:#e2626b;font-size:12px">Falha: ' + escHtml(e.message) + '</div>'; return; }
+  box.innerHTML = (r && r.ok)
+    ? '<div style="color:var(--green);font-size:12px">✓ ' + escHtml(r.message) + '</div>'
+    : '<div style="color:#e2626b;font-size:12px">✕ ' + escHtml((r && r.error) || 'Erro.') + '</div>';
+}
+
+
+// ── Pixel + Conversions API (v144) ──────────────────────────
+async function taRenderCapi() {
+  const box = document.getElementById('taCapiCard');
+  if (!box) return;
+  let r;
+  try { r = await rpc('capiStatus', {}); } catch (e) { return; }
+  if (!r || !r.ok) return;
+  const c = r.data;
+
+  box.innerHTML =
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+        'Pixel e API de Convers&otilde;es da Meta</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+        'Envia os eventos do funil <b>pelo servidor</b>, n&atilde;o pelo navegador. ' +
+        'N&atilde;o &eacute; bloqueado por AdBlock nem por iOS, e usa o mesmo <code>event_id</code> ' +
+        'do Pixel para a Meta n&atilde;o contar duas vezes.' +
+      '</div>' +
+
+      (c.temToken
+        ? '<div class="ta-status ok">✓ Token configurado &middot; Pixel ' + escHtml(c.pixelId) + '</div>'
+        : '<div class="ta-status neutro">Token da CAPI ainda n&atilde;o configurado</div>') +
+
+      '<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:13px 15px;margin-bottom:14px">' +
+        '<div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;' +
+             'color:var(--muted);margin-bottom:9px">Eventos que o sistema envia</div>' +
+        Object.keys(c.eventos).map(function (k) {
+          const destaque = k === 'CompleteRegistration';
+          return '<div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:7px">' +
+            '<code style="font-size:11px;color:' + (destaque ? 'var(--green)' : 'var(--muted)') +
+            ';font-weight:' + (destaque ? '800' : '600') + ';flex-shrink:0">' + escHtml(k) + '</code>' +
+            '<span style="font-size:11.5px;color:var(--muted);line-height:1.5">' +
+            escHtml(c.eventos[k]) + '</span></div>';
+        }).join('') +
+      '</div>' +
+
+      _taSwitch('ta_capi', c.ativo, 'Enviar eventos para a Meta',
+        'Desligue s&oacute; se precisar parar o rastreamento temporariamente') +
+
+      '<div class="form-row" style="margin-top:14px">' +
+        '<div class="form-group"><label class="form-label">Pixel ID</label>' +
+          '<input class="form-control" id="ta_pixel" value="' + escHtml(c.pixelId) + '" placeholder="4212748045603496"></div>' +
+        '<div class="form-group"><label class="form-label">Test Event Code (opcional)</label>' +
+          '<input class="form-control" id="ta_testcode" value="' + escHtml(c.testCode) + '" placeholder="TEST12345"></div>' +
+      '</div>' +
+      '<div class="form-group"><label class="form-label">Token da Conversions API</label>' +
+        '<input class="form-control" id="ta_capitoken" type="password" placeholder="' +
+        (c.temToken ? escHtml(c.tokenMascarado) + ' (deixe vazio para manter)' : 'EAAG...') + '"></div>' +
+      '<div style="font-size:11px;color:var(--muted);margin:-6px 0 14px;line-height:1.6">' +
+        'Events Manager &rarr; seu Pixel &rarr; Configura&ccedil;&otilde;es &rarr; ' +
+        '<b>Gerar token de acesso</b>. Com o Test Event Code preenchido os eventos v&atilde;o para ' +
+        '<b>Eventos de teste</b> em vez da produ&ccedil;&atilde;o &mdash; lembre de limpar depois.' +
+      '</div>' +
+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn btn-ghost btn-sm" onclick="taSalvarCapi()">Salvar Pixel/CAPI</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="taTestarCapi()">Enviar evento de teste</button>' +
+      '</div>' +
+      '<div id="taCapiRes" style="margin-top:9px"></div>' +
+    '</div>';
+}
+
+async function taSalvarCapi() {
+  const cfg = {
+    ativo:    document.getElementById('ta_capi').checked,
+    pixelId:  document.getElementById('ta_pixel').value.trim(),
+    testCode: document.getElementById('ta_testcode').value.trim(),
+    token:    document.getElementById('ta_capitoken').value.trim()
+  };
+  const r = await rpc('capiSalvarConfig', { cfg: cfg });
+  if (r && r.ok) { toast('Pixel/CAPI salvos.', 'success'); taRenderCapi(); }
+  else toast((r && r.error) || 'Erro ao salvar.', 'error');
+}
+
+async function taTestarCapi() {
+  const box = document.getElementById('taCapiRes');
+  box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Enviando&hellip;</div>';
+  let r;
+  try { r = await rpc('capiTestar', {}); }
   catch (e) { box.innerHTML = '<div style="color:#e2626b;font-size:12px">Falha: ' + escHtml(e.message) + '</div>'; return; }
   box.innerHTML = (r && r.ok)
     ? '<div style="color:var(--green);font-size:12px">✓ ' + escHtml(r.message) + '</div>'

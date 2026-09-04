@@ -111,6 +111,15 @@ function _stripeOnCheckout_(session) {
     email = (cus && cus.email) || '';
   }
   _stripeSyncAssinatura_(email, sub, true);
+
+  // v144: assinatura nasceu EM TRIAL = veio do checkout com cartao.
+  // Disparado aqui, e nao no redirect do navegador: a aba pode ser
+  // fechada antes de voltar e a assinatura existe do mesmo jeito.
+  try {
+    if (sub.status === 'trialing' && typeof dispararAutomacoesTrial_ === 'function') {
+      dispararAutomacoesTrial_(email, sub);
+    }
+  } catch (e) { logAction(email, 'TRIAL_AUTO_ERRO', 'stripe', '', e.message); }
 }
 
 function _stripeOnSubSync_(sub)    { _stripeSyncAssinatura_(_stripeEmailDaSub_(sub), sub, false); }

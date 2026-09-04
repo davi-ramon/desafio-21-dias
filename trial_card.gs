@@ -307,6 +307,13 @@ function criarCheckoutTrialCartao(data) {
   });
   if (!r || !r.ok) return r || { ok: false, error: 'Nao consegui abrir o checkout.' };
 
+  // v144: publico qualificado (e-mail verificado + WhatsApp + consentimento)
+  try {
+    capiTrialIniciado_({ email: email, nome: nome, whatsapp: tel.e164, dias: dias,
+                         fbp: data.fbp, fbc: data.fbc, client_ua: data.userAgent,
+                         url: data.returnUrl });
+  } catch (e) {}
+
   logAction(email, 'TRIAL_CARTAO_CHECKOUT', 'checkout', '', dias + ' dias | ' + tel.e164);
   return { ok: true, url: r.url, sessionId: r.sessionId || r.id, dias: dias, whatsapp: tel.e164 };
 }

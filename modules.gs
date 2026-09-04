@@ -263,6 +263,10 @@ function handleRequest(payload) {
     case 'waListarTemplates':        return waListarTemplates(token);
     case 'waSalvarConfig':           return waSalvarConfig(token, data && data.cfg);
     case 'waTestar':                 return waTestar(token, data);
+    // v144 — Pixel + Conversions API da Meta
+    case 'capiStatus':               return capiStatus(token);
+    case 'capiSalvarConfig':         return capiSalvarConfig(token, data && data.cfg);
+    case 'capiTestar':               return capiTestar(token);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)
