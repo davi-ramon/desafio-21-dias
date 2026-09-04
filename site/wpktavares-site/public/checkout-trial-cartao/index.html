@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comece grátis — Desafio 21 Dias</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07090a; --surface:#0f1412; --green:#4caf50; --green-bright:#6dde71;
+  --neon:#7CFF6B; --gold:#f5c842; --cream:#eeeadc; --red:#e84040;
+  --text:#dde8dd; --muted:#6e9070; --border:rgba(76,175,80,.16); --input-bg:#0c110e;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;
+  line-height:1.55;min-height:100vh;padding:22px 16px 60px}
+.wrap{max-width:520px;margin:0 auto}
+
+.topo{text-align:center;margin-bottom:22px}
+.marca{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+.tag{display:inline-block;margin-top:12px;padding:7px 16px;border-radius:100px;font-size:12px;
+  font-weight:600;color:var(--gold);border:1px solid rgba(245,200,66,.35);background:rgba(245,200,66,.07)}
+.preco{font-family:'Bebas Neue',sans-serif;font-size:60px;line-height:.9;color:var(--green-bright);
+  margin-top:14px;letter-spacing:.01em}
+.preco small{font-size:20px;color:var(--text)}
+.de{font-family:'Instrument Serif',serif;font-style:italic;color:var(--muted);
+  text-decoration:line-through;font-size:16px;margin-top:4px}
+.semcartao{margin-top:12px;font-size:12.5px;color:var(--muted)}
+
+.passos{display:flex;gap:6px;margin:24px 0 18px}
+.passo{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.09);transition:background .3s}
+.passo.on{background:var(--green)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px 22px}
+.etapa{display:none}
+.etapa.on{display:block;animation:sobe .35s cubic-bezier(.16,1,.3,1) both}
+@keyframes sobe{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+h2{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.02em;color:var(--cream);margin-bottom:5px}
+.sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+
+label{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:6px}
+.campo{margin-bottom:15px}
+input[type=text],input[type=email],input[type=tel]{width:100%;padding:13px 14px;background:var(--input-bg);
+  border:1px solid var(--border);border-radius:11px;color:var(--text);font-size:15px;font-family:inherit;
+  transition:border-color .18s,box-shadow .18s}
+input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(76,175,80,.15)}
+input::placeholder{color:#3d5347}
+.campo.erro input{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,64,64,.13)}
+.msg-erro{font-size:11.5px;color:var(--red);margin-top:5px;min-height:0}
+.campo.erro .msg-erro{min-height:15px}
+
+.codigo{text-align:center;font-size:28px;font-weight:600;letter-spacing:12px;padding-left:12px}
+
+.btn{width:100%;padding:15px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;
+  font-size:15px;font-weight:600;color:#04140a;background:linear-gradient(135deg,var(--green),#2e7d32);
+  display:flex;align-items:center;justify-content:center;gap:9px;min-height:52px;
+  transition:filter .18s,transform .1s;margin-top:6px}
+.btn:hover:not(:disabled){filter:brightness(1.09)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-txt{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;
+  cursor:pointer;padding:8px;width:100%;margin-top:4px}
+.btn-txt:hover:not(:disabled){color:var(--text)}
+.btn-txt:disabled{opacity:.45;cursor:not-allowed}
+.spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#04140a;
+  border-radius:50%;animation:gira .6s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+
+.termos{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:13px;
+  padding:16px 17px;margin:4px 0 16px;font-size:13px;line-height:1.75}
+.termos b{color:var(--cream)}
+.termos ul{list-style:none;margin-top:9px}
+.termos li{padding-left:19px;position:relative;margin-bottom:6px;color:var(--muted)}
+.termos li::before{content:'';position:absolute;left:5px;top:9px;width:5px;height:5px;
+  border-radius:50%;background:var(--green)}
+
+.aceite{display:flex;gap:11px;align-items:flex-start;cursor:pointer;padding:4px 0 2px}
+.aceite input{margin-top:2px;width:18px;height:18px;accent-color:var(--green);flex-shrink:0;cursor:pointer}
+.aceite span{font-size:12.5px;color:var(--muted);line-height:1.6}
+
+.resumo{display:flex;justify-content:space-between;font-size:13px;padding:9px 0;
+  border-bottom:1px solid rgba(255,255,255,.05)}
+.resumo:last-of-type{border-bottom:none}
+.resumo b{color:var(--cream);font-weight:600}
+
+.aviso{margin-top:14px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+.rodape{margin-top:22px;text-align:center;font-size:11.5px;color:#40564a}
+.ok-check{width:52px;height:52px;margin:0 auto 14px;border-radius:50%;background:rgba(76,175,80,.14);
+  display:flex;align-items:center;justify-content:center}
+@media (prefers-reduced-motion:reduce){.etapa.on{animation:none}.spin{animation-duration:1.4s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topo">
+    <div class="marca">WPK Tavares · Desafio 21 Dias</div>
+    <div class="tag" id="tagDias">Acesso grátis</div>
+    <div class="preco">R$ <span id="preco">17</span><small>,00/mês</small></div>
+    <div class="de">de R$ 60,00</div>
+    <div class="semcartao" id="linhaCartao">Cartão exigido · Você só é cobrado depois do período grátis</div>
+  </div>
+
+  <div class="passos">
+    <div class="passo on" id="p1"></div>
+    <div class="passo" id="p2"></div>
+    <div class="passo" id="p3"></div>
+  </div>
+
+  <div class="card">
+
+    <!-- ETAPA 1 — dados -->
+    <div class="etapa on" id="e1">
+      <h2>Seus dados</h2>
+      <div class="sub">Vamos confirmar seu e-mail antes de liberar o período gratuito.</div>
+
+      <div class="campo" id="cNome">
+        <label for="nome">Nome completo</label>
+        <input type="text" id="nome" autocomplete="name" placeholder="Ex: Ana Paula da Silva" maxlength="80">
+        <div class="msg-erro"></div>
+      </div>
+      <div class="campo" id="cEmail">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" autocomplete="email" placeholder="seu@email.com" spellcheck="false">
+        <div class="msg-erro"></div>
+      </div>
+      <div class="campo" id="cZap">
+        <label for="zap">WhatsApp</label>
+        <input type="tel" id="zap" autocomplete="tel" placeholder="(11) 99999-9999" inputmode="numeric">
+        <div class="msg-erro"></div>
+      </div>
+
+      <button class="btn" id="btn1"><span>Continuar</span></button>
+    </div>
+
+    <!-- ETAPA 2 — código -->
+    <div class="etapa" id="e2">
+      <h2>Confirme seu e-mail</h2>
+      <div class="sub">Enviamos um código de 6 dígitos para <b id="emailEco"></b>. Ele vale por 5 minutos.</div>
+
+      <div class="campo" id="cCod">
+        <label for="cod">Código</label>
+        <input type="text" id="cod" class="codigo" inputmode="numeric" maxlength="6"
+               autocomplete="one-time-code" placeholder="000000">
+        <div class="msg-erro"></div>
+      </div>
+
+      <button class="btn" id="btn2"><span>Confirmar</span></button>
+      <button class="btn-txt" id="reenviar">Reenviar código</button>
+      <button class="btn-txt" id="voltar1">Corrigir meu e-mail</button>
+    </div>
+
+    <!-- ETAPA 3 — consentimento -->
+    <div class="etapa" id="e3">
+      <h2>Como funciona</h2>
+      <div class="sub">Leia antes de continuar. Sem letra miúda.</div>
+
+      <div class="resumo"><span>Período gratuito</span><b id="rDias">—</b></div>
+      <div class="resumo"><span>Cobrança hoje</span><b style="color:var(--green-bright)">R$ 0,00</b></div>
+      <div class="resumo"><span>Primeira cobrança</span><b id="rData">—</b></div>
+      <div class="resumo"><span>Valor a partir de então</span><b>R$ 17,00/mês</b></div>
+
+      <div class="termos" style="margin-top:16px">
+        <b>Ao continuar você concorda que:</b>
+        <ul>
+          <li>o cartão é <b>exigido agora</b>, mas <b>nada é cobrado hoje</b>;</li>
+          <li>ao fim do período gratuito, <b>R$ 17,00</b> serão cobrados automaticamente;</li>
+          <li>a assinatura <b>renova todo mês</b> até você cancelar;</li>
+          <li>você pode <b>cancelar pelo app</b> a qualquer momento, inclusive durante o período grátis, e não será cobrado;</li>
+          <li>avisaremos por e-mail <b>antes</b> da primeira cobrança.</li>
+        </ul>
+      </div>
+
+      <label class="aceite">
+        <input type="checkbox" id="aceite">
+        <span>Li e concordo com o período gratuito e a cobrança automática de R$ 17,00/mês
+              a partir de <b id="rData2">—</b>.</span>
+      </label>
+
+      <button class="btn" id="btn3" disabled><span>Cadastrar cartão e começar</span></button>
+      <div class="aviso">Você vai para o ambiente seguro do Stripe. Não guardamos dados do seu cartão.</div>
+      <button class="btn-txt" id="voltar2">Voltar</button>
+    </div>
+
+    <!-- ETAPA 4 — indo pro Stripe -->
+    <div class="etapa" id="e4">
+      <div style="text-align:center;padding:14px 0">
+        <div class="ok-check">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6dde71"
+               stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <h2>Tudo certo</h2>
+        <div class="sub" style="margin-bottom:0">Abrindo o ambiente seguro para o cartão…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="rodape">Pagamento processado pelo Stripe · WPK Tavares</div>
+</div>
+
+<script>
+var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+var VALIDOS = [7, 14, 21, 30];
+var PRECO = 17;
+
+var params = new URLSearchParams(location.search);
+var dias = parseInt(params.get('dias'), 10);
+if (VALIDOS.indexOf(dias) < 0) dias = 7;
+
+var estado = { email: '', nome: '', zap: '', ticket: '', cooldown: 0 };
+
+// ── Data da primeira cobrança: o que a spec chama de "data estimada".
+// Calculada no cliente só para EXIBIR; quem manda de verdade é o Stripe.
+function dataCobranca() {
+  var d = new Date();
+  d.setDate(d.getDate() + dias);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+document.getElementById('tagDias').textContent = 'Acesso ' + dias + ' dias grátis';
+document.getElementById('rDias').textContent = dias + ' dias';
+document.getElementById('rData').textContent = dataCobranca();
+document.getElementById('rData2').textContent = dataCobranca();
+document.title = dias + ' dias grátis — Desafio 21 Dias';
+
+function el(id) { return document.getElementById(id); }
+function post(action, data) {
+  return fetch(GAS, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: action, data: data || {} })
+  }).then(function (r) { return r.json(); });
+}
+function erro(campo, texto) {
+  var c = el(campo);
+  c.classList.toggle('erro', !!texto);
+  c.querySelector('.msg-erro').textContent = texto || '';
+}
+function limparErros() { ['cNome','cEmail','cZap','cCod'].forEach(function (c) { erro(c, ''); }); }
+function carregando(btn, on, texto) {
+  btn.disabled = on;
+  btn.innerHTML = on
+    ? '<span class="spin"></span><span>' + (texto || 'Aguarde…') + '</span>'
+    : '<span>' + btn.getAttribute('data-txt') + '</span>';
+}
+['btn1','btn2','btn3'].forEach(function (b) {
+  el(b).setAttribute('data-txt', el(b).textContent.trim());
+});
+
+function irPara(n) {
+  ['e1','e2','e3','e4'].forEach(function (e, i) { el(e).classList.toggle('on', i === n - 1); });
+  ['p1','p2','p3'].forEach(function (p, i) { el(p).classList.toggle('on', i < Math.min(n, 3)); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── ETAPA 1 ──────────────────────────────────────────────────
+el('btn1').addEventListener('click', async function () {
+  limparErros();
+  var nome = el('nome').value.trim();
+  var email = el('email').value.trim().toLowerCase();
+  var zap = el('zap').value.trim();
+
+  if (nome.length < 3) { erro('cNome', 'Informe seu nome completo.'); el('nome').focus(); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { erro('cEmail', 'E-mail inválido.'); el('email').focus(); return; }
+  if (!zap) { erro('cZap', 'Informe seu WhatsApp.'); el('zap').focus(); return; }
+
+  carregando(this, true, 'Validando…');
+  try {
+    // Valida o telefone no servidor antes de gastar um envio de e-mail
+    var v = await post('validarWhatsappTrial', { whatsapp: zap });
+    if (!v.ok) { erro('cZap', v.error); el('zap').focus(); return; }
+
+    var r = await post('enviarCodigoTrial', { email: email, nome: nome });
+    if (!r.ok) { erro('cEmail', r.error || 'Não consegui enviar o código.'); return; }
+
+    estado = { email: email, nome: nome, zap: v.e164, ticket: '', cooldown: r.cooldown || 60 };
+    el('emailEco').textContent = email;
+    irPara(2);
+    setTimeout(function () { el('cod').focus(); }, 350);
+    iniciarCooldown();
+  } catch (e) {
+    erro('cEmail', 'Erro de conexão. Tente de novo.');
+  } finally {
+    carregando(this, false);
+  }
+});
+
+// ── ETAPA 2 ──────────────────────────────────────────────────
+el('cod').addEventListener('input', function () {
+  var v = this.value.replace(/\D/g, '').slice(0, 6);
+  if (v !== this.value) this.value = v;
+  erro('cCod', '');
+  if (v.length === 6) el('btn2').click();
+});
+
+el('btn2').addEventListener('click', async function () {
+  var codigo = el('cod').value.replace(/\D/g, '');
+  if (codigo.length !== 6) { erro('cCod', 'Digite os 6 dígitos.'); return; }
+
+  carregando(this, true, 'Conferindo…');
+  try {
+    var r = await post('verificarCodigoTrial', { email: estado.email, codigo: codigo });
+    if (!r.ok) {
+      erro('cCod', r.error || 'Código incorreto.');
+      if (r.expirado) { el('cod').value = ''; }
+      return;
+    }
+    estado.ticket = r.ticket;
+    irPara(3);
+  } catch (e) {
+    erro('cCod', 'Erro de conexão. Tente de novo.');
+  } finally {
+    carregando(this, false);
+  }
+});
+
+var timerCd = null;
+function iniciarCooldown() {
+  var b = el('reenviar');
+  var s = estado.cooldown || 60;
+  clearInterval(timerCd);
+  b.disabled = true;
+  (function tick() {
+    if (s <= 0) { clearInterval(timerCd); b.disabled = false; b.textContent = 'Reenviar código'; return; }
+    b.textContent = 'Reenviar em ' + s + 's';
+    s--;
+  })();
+  timerCd = setInterval(function () {
+    if (s <= 0) { clearInterval(timerCd); el('reenviar').disabled = false; el('reenviar').textContent = 'Reenviar código'; return; }
+    el('reenviar').textContent = 'Reenviar em ' + s + 's';
+    s--;
+  }, 1000);
+}
+
+el('reenviar').addEventListener('click', async function () {
+  this.disabled = true; this.textContent = 'Enviando…';
+  var r = await post('enviarCodigoTrial', { email: estado.email, nome: estado.nome }).catch(function () { return {}; });
+  if (r.ok) { erro('cCod', ''); iniciarCooldown(); }
+  else { this.disabled = false; this.textContent = 'Reenviar código'; erro('cCod', r.error || 'Não consegui reenviar.'); }
+});
+
+el('voltar1').addEventListener('click', function () { clearInterval(timerCd); irPara(1); });
+el('voltar2').addEventListener('click', function () { irPara(2); });
+
+// ── ETAPA 3 ──────────────────────────────────────────────────
+el('aceite').addEventListener('change', function () { el('btn3').disabled = !this.checked; });
+
+el('btn3').addEventListener('click', async function () {
+  if (!el('aceite').checked) return;
+  carregando(this, true, 'Preparando…');
+  try {
+    var r = await post('criarCheckoutTrialCartao', {
+      email: estado.email, nome: estado.nome, whatsapp: estado.zap,
+      dias: dias, ticket: estado.ticket, consentimento: true,
+      origem: 'checkout-trial-cartao', campanha: params.get('utm_campaign') || '',
+      returnUrl: location.origin + location.pathname
+    });
+    if (!r.ok) {
+      carregando(this, false);
+      if (r.precisaVerificar) { irPara(2); erro('cCod', 'Sua confirmação expirou. Peça um código novo.'); return; }
+      alert(r.error || 'Não consegui abrir o checkout. Tente de novo.');
+      return;
+    }
+    irPara(4);
+    setTimeout(function () { location.href = r.url; }, 700);
+  } catch (e) {
+    carregando(this, false);
+    alert('Erro de conexão. Tente de novo.');
+  }
+});
+
+// Enter avança a etapa visível
+document.addEventListener('keydown', function (ev) {
+  if (ev.key !== 'Enter') return;
+  if (el('e1').classList.contains('on')) { ev.preventDefault(); el('btn1').click(); }
+  else if (el('e2').classList.contains('on')) { ev.preventDefault(); el('btn2').click(); }
+});
+
+// Volta do Stripe cancelada
+if (params.get('checkout') === 'cancelado') {
+  setTimeout(function () {
+    alert('Você cancelou antes de cadastrar o cartão. Seu período gratuito continua disponível.');
+  }, 400);
+}
+</script>
+</body>
+</html>
