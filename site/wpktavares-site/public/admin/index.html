@@ -1747,6 +1747,10 @@ button,
       <div class="nav-icon"><i data-lucide="sparkles" class="luc"></i></div>
       <span class="nav-label">Mural dos Sonhos</span>
     </div>
+    <div class="nav-item" data-page="trialauto" id="navTrialAuto" onclick="navigate('trialauto')" title="Automações do Trial">
+      <div class="nav-icon"><i data-lucide="zap" class="luc"></i></div>
+      <span class="nav-label">Automações do Trial</span>
+    </div>
     <div class="nav-item" data-page="notificacoes" id="navNotificacoes" onclick="navigate('notificacoes')" title="Notificações">
       <div class="nav-icon"><i data-lucide="bell" class="luc"></i></div>
       <span class="nav-label">Notificações</span>
@@ -2049,6 +2053,7 @@ function navigate(page) {
     log:            'Log de Atividade',
     audios21:       'Áudios 21 Dias',
     mural:          'Mural dos Sonhos',
+    trialauto:      'Automações do Trial com Cartão',
     notificacoes:   'Notificações para Alunos',
     configuracoes:  'Configurações do Workspace'
   };
@@ -2074,7 +2079,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, notificacoes: renderNotificacoes, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, notificacoes: renderNotificacoes, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -4420,6 +4425,261 @@ async function salvarMuralConfig() {
   const res = await rpc('saveConfig', { config: cfg });
   if (res.ok) toast('Configura&ccedil;&otilde;es do Mural salvas.', 'success');
   else        toast(res.error || 'Erro ao salvar.', 'error');
+}
+
+
+// ══════════════════════════════════════════════════════════
+// AUTOMAÇÕES DO TRIAL COM CARTÃO (v143)
+// ══════════════════════════════════════════════════════════
+var TA = { cfg: null, templates: [] };
+
+// O que o admin pode plugar em cada {{n}} do template
+var TA_FONTES = [
+  ['primeiro_nome', 'Primeiro nome do cliente'],
+  ['nome_completo', 'Nome completo'],
+  ['dias_trial',    'Dias de teste (ex: 14)'],
+  ['data_cobranca', 'Data da 1ª cobrança'],
+  ['valor',         'Valor mensal (17,00)'],
+  ['email',         'E-mail do cliente']
+];
+
+function _taSwitch(id, ligado, titulo, sub) {
+  return '<div class="pf-row" style="display:flex;align-items:center;justify-content:space-between;' +
+    'gap:14px;padding:13px 0;border-bottom:1px solid var(--border)">' +
+    '<div><div style="font-size:13.5px;font-weight:600;color:var(--text)">' + titulo + '</div>' +
+    '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' + sub + '</div></div>' +
+    '<label class="ta-sw"><input type="checkbox" id="' + id + '"' + (ligado ? ' checked' : '') +
+    '><span class="ta-sw-tr"></span></label></div>';
+}
+
+async function renderTrialAuto() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  let res;
+  try { res = await rpc('waStatus', {}); }
+  catch (e) { content.innerHTML = '<div class="card">Erro ao carregar: ' + escHtml(e.message) + '</div>'; return; }
+  if (!res || !res.ok) { content.innerHTML = '<div class="card">' + escHtml((res && res.error) || 'Erro.') + '</div>'; return; }
+
+  TA.cfg = res.data;
+  const c = TA.cfg;
+
+  const statusBox = c.temToken
+    ? (c.conectado
+        ? '<div class="ta-status ok">✓ Conectado &middot; ' + escHtml(c.numero) + '</div>'
+        : '<div class="ta-status erro">✕ Credenciais salvas, mas a Meta recusou: ' +
+          escHtml(c.erroConexao || 'sem detalhe') + '</div>')
+    : '<div class="ta-status neutro">Nenhuma credencial salva ainda</div>';
+
+  content.innerHTML =
+    '<style>' +
+    '.ta-status{padding:11px 14px;border-radius:10px;font-size:12.5px;font-weight:600;margin-bottom:16px}' +
+    '.ta-status.ok{background:rgba(76,175,80,.12);color:var(--green);border:1px solid rgba(76,175,80,.3)}' +
+    '.ta-status.erro{background:rgba(232,64,64,.1);color:#e2626b;border:1px solid rgba(232,64,64,.3)}' +
+    '.ta-status.neutro{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}' +
+    '.ta-sw{position:relative;display:inline-block;width:44px;height:25px;flex-shrink:0}' +
+    '.ta-sw input{opacity:0;width:0;height:0;position:absolute}' +
+    '.ta-sw-tr{position:absolute;inset:0;background:rgba(255,255,255,.14);border-radius:25px;cursor:pointer;transition:background .22s}' +
+    '.ta-sw-tr::before{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .22s}' +
+    '.ta-sw input:checked + .ta-sw-tr{background:var(--green)}' +
+    '.ta-sw input:checked + .ta-sw-tr::before{transform:translateX(19px)}' +
+    '.ta-var{display:flex;align-items:center;gap:9px;margin-bottom:7px}' +
+    '.ta-var-n{width:34px;flex-shrink:0;font-size:11px;font-weight:800;color:var(--green);' +
+      'background:rgba(76,175,80,.12);border-radius:6px;padding:5px 0;text-align:center}' +
+    '.ta-corpo{background:rgba(255,255,255,.04);border-radius:9px;padding:11px 13px;font-size:12px;' +
+      'color:var(--muted);line-height:1.6;margin:9px 0;white-space:pre-wrap}' +
+    '</style>' +
+
+    // ── Credenciais ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Conex&atilde;o com a Meta</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+        'Pegue no <b>Business Manager</b> &rarr; WhatsApp &rarr; Configura&ccedil;&atilde;o da API. ' +
+        'O token precisa ser de um <b>usu&aacute;rio do sistema</b> com a permiss&atilde;o ' +
+        '<code>whatsapp_business_messaging</code>. O token do Meta Ads que j&aacute; existe aqui <b>n&atilde;o serve</b>.' +
+      '</div>' +
+      statusBox +
+      '<div class="form-group"><label class="form-label">Token de acesso permanente</label>' +
+        '<input class="form-control" id="ta_token" type="password" placeholder="' +
+        (c.temToken ? escHtml(c.tokenMascarado) + ' (deixe vazio para manter)' : 'EAAG...') + '"></div>' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label class="form-label">WABA ID</label>' +
+          '<input class="form-control" id="ta_waba" value="' + escHtml(c.wabaId) + '" placeholder="1234567890"></div>' +
+        '<div class="form-group"><label class="form-label">Phone Number ID</label>' +
+          '<input class="form-control" id="ta_phone" value="' + escHtml(c.phoneId) + '" placeholder="0987654321"></div>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="taSalvar(true)">Salvar e testar conex&atilde;o</button>' +
+    '</div>' +
+
+    // ── Automações ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">O que dispara automaticamente</div>' +
+      _taSwitch('ta_otp', c.autoEmailOtp, 'Confirma&ccedil;&atilde;o de e-mail por c&oacute;digo',
+        'C&oacute;digo de 6 d&iacute;gitos que expira em 5 min, antes de liberar o teste') +
+      _taSwitch('ta_mailbv', c.autoEmailBoasVindas, 'E-mail de boas-vindas',
+        'Enviado assim que o cart&atilde;o &eacute; aceito e o teste come&ccedil;a') +
+      _taSwitch('ta_zapbv', c.autoWhatsBoasVindas, 'WhatsApp de boas-vindas',
+        'Dispara o template escolhido abaixo') +
+      _taSwitch('ta_tg', c.autoTelegram, 'Aviso no Telegram',
+        'Notifica&ccedil;&atilde;o interna para voc&ecirc; a cada nova ades&atilde;o') +
+      _taSwitch('ta_lemb', c.autoLembretes, 'Lembretes antes da cobran&ccedil;a',
+        'Avisa o aluno antes de cobrar &mdash; evita cobran&ccedil;a surpresa') +
+      '<div class="form-group" style="margin-top:14px"><label class="form-label">Avisar quantos dias antes</label>' +
+        '<input class="form-control" id="ta_dias" value="' + escHtml(c.lembreteDias) + '" placeholder="3,2,1">' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:4px">Separe por v&iacute;rgula. Ex: 3,2,1</div></div>' +
+    '</div>' +
+
+    // ── Templates ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text)">Templates do WhatsApp</div>' +
+        '<button class="btn btn-ghost btn-sm" onclick="taCarregarTemplates()">Carregar da Meta</button>' +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+        'S&oacute; aparecem templates <b>aprovados</b>. Escolha um e diga o que entra em cada ' +
+        'vari&aacute;vel <code>{{n}}</code>.</div>' +
+      '<div id="taTplBox"><div style="font-size:12px;color:var(--muted)">' +
+        'Clique em <b>Carregar da Meta</b> para listar seus templates.</div></div>' +
+    '</div>' +
+
+    // ── Teste ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Testar no seu n&uacute;mero</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Dispara o template de boas-vindas com dados de exemplo.</div>' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label class="form-label">Seu WhatsApp</label>' +
+          '<input class="form-control" id="ta_teste_num" placeholder="(94) 99123-4567"></div>' +
+        '<div class="form-group"><label class="form-label">&nbsp;</label>' +
+          '<button class="btn btn-primary" style="width:100%" onclick="taTestar()">Enviar teste</button></div>' +
+      '</div>' +
+      '<div id="taTesteRes" style="margin-top:8px"></div>' +
+    '</div>' +
+
+    '<button class="btn btn-primary" onclick="taSalvar(false)">Salvar tudo</button>';
+
+  _processIcons && _processIcons(content);
+}
+
+async function taCarregarTemplates() {
+  const box = document.getElementById('taTplBox');
+  box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Buscando na Meta&hellip;</div>';
+  let r;
+  try { r = await rpc('waListarTemplates', {}); }
+  catch (e) { box.innerHTML = '<div style="color:#e2626b;font-size:12px">Falha: ' + escHtml(e.message) + '</div>'; return; }
+  if (!r || !r.ok) {
+    box.innerHTML = '<div style="color:#e2626b;font-size:12px">' + escHtml((r && r.error) || 'Erro.') + '</div>';
+    return;
+  }
+  TA.templates = r.data || [];
+  if (!TA.templates.length) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Nenhum template aprovado encontrado nesta conta.</div>';
+    return;
+  }
+  box.innerHTML =
+    _taBlocoTemplate('bv', 'Boas-vindas do teste', TA.cfg.tplBoasVindas, TA.cfg.tplBoasVindasVars) +
+    '<div style="height:18px"></div>' +
+    _taBlocoTemplate('lb', 'Lembrete antes da cobran&ccedil;a', TA.cfg.tplLembrete, TA.cfg.tplLembreteVars);
+  taAoTrocarTemplate('bv');
+  taAoTrocarTemplate('lb');
+}
+
+function _taBlocoTemplate(pref, titulo, escolhido, varsJson) {
+  const opts = ['<option value="">— nenhum —</option>'].concat(
+    TA.templates.map(function (t) {
+      const sel = t.nome === escolhido ? ' selected' : '';
+      return '<option value="' + escHtml(t.nome) + '"' + sel + '>' + escHtml(t.nome) +
+             '  ·  ' + escHtml(t.categoria) + '  ·  ' + escHtml(t.idioma) + '</option>';
+    })).join('');
+  return '<div data-tpl="' + pref + '" data-vars="' + escHtml(varsJson || '[]') + '">' +
+    '<div class="form-group"><label class="form-label">' + titulo + '</label>' +
+      '<select class="form-control" id="ta_tpl_' + pref + '" onchange="taAoTrocarTemplate(\'' + pref + '\')">' +
+      opts + '</select></div>' +
+    '<div id="ta_prev_' + pref + '"></div>' +
+    '<div id="ta_vars_' + pref + '"></div>' +
+  '</div>';
+}
+
+function taAoTrocarTemplate(pref) {
+  const sel  = document.getElementById('ta_tpl_' + pref);
+  const prev = document.getElementById('ta_prev_' + pref);
+  const box  = document.getElementById('ta_vars_' + pref);
+  if (!sel || !box) return;
+
+  const t = TA.templates.find(function (x) { return x.nome === sel.value; });
+  if (!t) { prev.innerHTML = ''; box.innerHTML = ''; return; }
+
+  prev.innerHTML = '<div class="ta-corpo">' + escHtml(t.corpo || '(sem corpo)') + '</div>';
+
+  // Mapeamento salvo anteriormente, se existir
+  let salvos = [];
+  try { salvos = JSON.parse(document.querySelector('[data-tpl="' + pref + '"]').getAttribute('data-vars') || '[]'); }
+  catch (e) { salvos = []; }
+
+  if (!t.variaveis) {
+    box.innerHTML = '<div style="font-size:11.5px;color:var(--muted)">Este template não usa variáveis.</div>';
+    return;
+  }
+  let h = '<div style="font-size:11.5px;color:var(--muted);margin-bottom:7px">O que entra em cada variável:</div>';
+  for (let i = 1; i <= t.variaveis; i++) {
+    const atual = salvos[i - 1] || (i === 1 ? 'primeiro_nome' : '');
+    h += '<div class="ta-var"><div class="ta-var-n">{{' + i + '}}</div>' +
+      '<select class="form-control" id="ta_v_' + pref + '_' + i + '">' +
+      TA_FONTES.map(function (f) {
+        return '<option value="' + f[0] + '"' + (f[0] === atual ? ' selected' : '') + '>' + f[1] + '</option>';
+      }).join('') + '</select></div>';
+  }
+  box.innerHTML = h;
+}
+
+function _taColetarVars(pref) {
+  const sel = document.getElementById('ta_tpl_' + pref);
+  if (!sel || !sel.value) return { nome: '', idioma: 'pt_BR', vars: '[]' };
+  const t = TA.templates.find(function (x) { return x.nome === sel.value; }) || {};
+  const arr = [];
+  for (let i = 1; i <= (t.variaveis || 0); i++) {
+    const e = document.getElementById('ta_v_' + pref + '_' + i);
+    arr.push(e ? e.value : '');
+  }
+  return { nome: sel.value, idioma: t.idioma || 'pt_BR', vars: JSON.stringify(arr) };
+}
+
+async function taSalvar(testarConexao) {
+  const bv = _taColetarVars('bv');
+  const lb = _taColetarVars('lb');
+  const cfg = {
+    token:   document.getElementById('ta_token') ? document.getElementById('ta_token').value.trim() : '',
+    wabaId:  document.getElementById('ta_waba').value.trim(),
+    phoneId: document.getElementById('ta_phone').value.trim(),
+    autoEmailOtp:        document.getElementById('ta_otp').checked,
+    autoEmailBoasVindas: document.getElementById('ta_mailbv').checked,
+    autoWhatsBoasVindas: document.getElementById('ta_zapbv').checked,
+    autoTelegram:        document.getElementById('ta_tg').checked,
+    autoLembretes:       document.getElementById('ta_lemb').checked,
+    lembreteDias:        document.getElementById('ta_dias').value.trim()
+  };
+  if (bv.nome) { cfg.tplBoasVindas = bv.nome; cfg.tplBoasVindasLang = bv.idioma; cfg.tplBoasVindasVars = bv.vars; }
+  if (lb.nome) { cfg.tplLembrete   = lb.nome; cfg.tplLembreteLang   = lb.idioma; cfg.tplLembreteVars   = lb.vars; }
+
+  const res = await rpc('waSalvarConfig', { cfg: cfg });
+  if (!res || !res.ok) { toast((res && res.error) || 'Erro ao salvar.', 'error'); return; }
+  toast('Configurações salvas.', 'success');
+  if (testarConexao) renderTrialAuto();
+}
+
+async function taTestar() {
+  const box = document.getElementById('taTesteRes');
+  const num = document.getElementById('ta_teste_num').value.trim();
+  if (!num) { toast('Informe seu WhatsApp.', 'error'); return; }
+  const bv = _taColetarVars('bv');
+  if (!bv.nome) { toast('Escolha o template de boas-vindas primeiro.', 'error'); return; }
+
+  box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Enviando&hellip;</div>';
+  let r;
+  try { r = await rpc('waTestar', { numero: num, template: bv.nome, idioma: bv.idioma, vars: bv.vars, dias: 14 }); }
+  catch (e) { box.innerHTML = '<div style="color:#e2626b;font-size:12px">Falha: ' + escHtml(e.message) + '</div>'; return; }
+  box.innerHTML = (r && r.ok)
+    ? '<div style="color:var(--green);font-size:12px">✓ ' + escHtml(r.message) + '</div>'
+    : '<div style="color:#e2626b;font-size:12px">✕ ' + escHtml((r && r.error) || 'Erro.') + '</div>';
 }
 
 async function renderConfiguracoes() {

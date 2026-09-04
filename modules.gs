@@ -258,6 +258,11 @@ function handleRequest(payload) {
     case 'verificarCodigoTrial':     return verificarCodigoTrial(data);
     case 'validarWhatsappTrial':     return validarWhatsappTrial(data);
     case 'criarCheckoutTrialCartao': return criarCheckoutTrialCartao(data);
+    // v143 — WhatsApp Cloud API + automacoes (admin)
+    case 'waStatus':                 return waStatus(token);
+    case 'waListarTemplates':        return waListarTemplates(token);
+    case 'waSalvarConfig':           return waSalvarConfig(token, data && data.cfg);
+    case 'waTestar':                 return waTestar(token, data);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)
