@@ -58,6 +58,11 @@ function getAtividadeReal(data) {
   var ultimos30 = 0;
   var corte30 = Date.now() - 30 * 86400000;
 
+  // Lote/turma: só conta se estiver realmente configurado e aberto.
+  var lote = _atLoteConfig_();
+  var loteInicio = lote ? lote._inicioMs : 0;
+  var loteVendidas = 0;
+
   try {
     var aba = getSpreadsheet_().getSheetByName(SHEET_COMPRADORES);
     if (aba && aba.getLastRow() > 1) {
@@ -75,6 +80,7 @@ function getAtividadeReal(data) {
 
         totalAlunos++;
         if (quando.getTime() >= corte30) ultimos30++;
+        if (loteInicio && quando.getTime() >= loteInicio) loteVendidas++;
         if (!nome) continue;
 
         eventos.push({
@@ -106,10 +112,120 @@ function getAtividadeReal(data) {
       // é verdade é quantas pessoas começaram no último mês.
       resumo: ultimos30 > 0
         ? ultimos30 + (ultimos30 === 1 ? ' pessoa começou' : ' pessoas começaram') + ' nos últimos 30 dias'
-        : ''
+        : '',
+      lote: _atLoteResultado_(lote, loteVendidas)
     }
   };
 
   try { cache.put(chave, JSON.stringify(out), AT_CACHE_SEG); } catch (e) {}
   return out;
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// LOTE / TURMA — escassez REAL
+// ------------------------------------------------------------
+// O checkout sem cartão calculava "vagas restantes" com
+// TOTAL - (dia da semana * 4). Isso não corresponde a vaga
+// nenhuma: o número desce sozinho mesmo sem ninguém comprar.
+//
+// Aqui a conta é a de verdade: restantes = total do lote menos
+// quem entrou DEPOIS que o lote abriu. Enquanto não houver um
+// lote configurado e aberto, a rota devolve null e a página
+// simplesmente não mostra o bloco.
+// ─────────────────────────────────────────────────────────────
+function _atLoteConfig_() {
+  try {
+    if (String(getConfig_('lote_ativo') || '') !== '1') return null;
+
+    var total = parseInt(getConfig_('lote_total'), 10);
+    if (!total || total < 1) return null;
+
+    var inicioBruto = getConfig_('lote_inicio');
+    if (!inicioBruto) return null;
+    var inicio = new Date(inicioBruto);
+    if (isNaN(inicio.getTime())) return null;
+
+    // Um lote que já venceu não é escassez, é anúncio vencido.
+    var fimBruto = getConfig_('lote_fim');
+    if (fimBruto) {
+      var fim = new Date(fimBruto);
+      if (!isNaN(fim.getTime()) && Date.now() > fim.getTime()) return null;
+    }
+
+    return {
+      nome: String(getConfig_('lote_nome') || 'turma atual'),
+      total: total,
+      _inicioMs: inicio.getTime()
+    };
+  } catch (e) { return null; }
+}
+
+function _atLoteResultado_(lote, vendidas) {
+  if (!lote) return null;
+  var restantes = Math.max(0, lote.total - vendidas);
+  return {
+    nome: lote.nome,
+    total: lote.total,
+    vendidas: vendidas,
+    restantes: restantes,
+    esgotado: restantes === 0,
+    // Ocupação real, sem piso artificial: se o lote acabou de abrir,
+    // a barra fica vazia mesmo.
+    ocupacao: Math.round((vendidas / lote.total) * 100)
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// ROTAS DE ADMIN — configurar o lote pelo painel
+// ─────────────────────────────────────────────────────────────
+function getLoteConfig(token) {
+  var user = getUserByToken(token);
+  if (!user) return { ok: false, error: 'Não autorizado.' };
+  try {
+    return { ok: true, data: {
+      ativo:  String(getConfig_('lote_ativo') || '') === '1',
+      nome:   String(getConfig_('lote_nome') || ''),
+      total:  String(getConfig_('lote_total') || ''),
+      inicio: String(getConfig_('lote_inicio') || ''),
+      fim:    String(getConfig_('lote_fim') || '')
+    } };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+function salvarLoteConfig(token, data) {
+  var user = getUserByToken(token);
+  if (!user) return { ok: false, error: 'Não autorizado.' };
+  var d = data || {};
+
+  var ativo = d.ativo ? '1' : '';
+  if (ativo) {
+    // Só deixa ativar com os dados que tornam o número verdadeiro.
+    var total = parseInt(d.total, 10);
+    if (!total || total < 1) return { ok: false, error: 'Informe o total de vagas do lote.' };
+    if (!d.inicio) return { ok: false, error: 'Informe a data de abertura do lote.' };
+    var ini = new Date(d.inicio);
+    if (isNaN(ini.getTime())) return { ok: false, error: 'Data de abertura inválida.' };
+    if (d.fim) {
+      var f = new Date(d.fim);
+      if (isNaN(f.getTime())) return { ok: false, error: 'Data de encerramento inválida.' };
+      if (f.getTime() <= ini.getTime()) return { ok: false, error: 'O encerramento tem que ser depois da abertura.' };
+    }
+  }
+
+  setConfig_('lote_ativo',  ativo);
+  setConfig_('lote_nome',   String(d.nome || '').slice(0, 60));
+  setConfig_('lote_total',  String(parseInt(d.total, 10) || ''));
+  setConfig_('lote_inicio', String(d.inicio || ''));
+  setConfig_('lote_fim',    String(d.fim || ''));
+
+  // O cache de 5 min guarda o resultado antigo; sem isso a mudança
+  // levaria até 5 minutos para aparecer na página.
+  try {
+    var c = CacheService.getScriptCache();
+    for (var i = 1; i <= 12; i++) c.remove('atv_' + i);
+  } catch (e) {}
+
+  logAction(user.email, 'LOTE_CONFIG', 'checkout', '', ativo ? 'ativo' : 'desativado');
+  return { ok: true, message: ativo ? 'Lote ativo. As vagas já aparecem no checkout.' : 'Lote desativado. O bloco some do checkout.' };
 }

@@ -404,5 +404,127 @@
     }
   };
 
+  // ══════════════════════════════════════════════════════════
+  // LOTE / TURMA — escassez REAL (v152)
+  // ----------------------------------------------------------
+  // O checkout sem cartão derivava "vagas restantes" do dia da
+  // semana: o número caía sozinho sem ninguém comprar. Aqui o
+  // backend devolve total do lote menos quem entrou depois da
+  // abertura. Sem lote configurado, `lote` vem null e o bloco
+  // nem aparece.
+  // ══════════════════════════════════════════════════════════
+  CKConv.lote = {
+    init: function (opcoes) {
+      var o = opcoes || {};
+      var el = o.el || $('ckvLote');
+      if (!el) return Promise.resolve();
+
+      return CKConv.dados(o.endpoint).then(function (d) {
+        var l = d && d.lote;
+        if (!l) { el.style.display = 'none'; return; }
+
+        var t = el.querySelector('.ckv-lote-t');
+        if (l.esgotado) {
+          el.classList.add('esgotado');
+          if (t) t.innerHTML = '<strong>Lote esgotado.</strong> Entre agora para a lista do próximo.';
+        } else {
+          if (t) {
+            t.innerHTML = '<strong>' + l.restantes +
+              (l.restantes === 1 ? ' vaga restante' : ' vagas restantes') + '</strong> ' +
+              esc(l.nome ? ('na ' + l.nome) : 'neste lote');
+          }
+        }
+        var fill = el.querySelector('.ckv-lote-fill');
+        if (fill) setTimeout(function () { fill.style.width = l.ocupacao + '%'; }, 250);
+        el.style.display = 'flex';
+      })['catch'](function () { el.style.display = 'none'; });
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════
+  // BARRA DE ALUNOS — fotos reais das alunas + contagem real
+  // ══════════════════════════════════════════════════════════
+  CKConv.alunos = {
+    init: function (opcoes) {
+      var o = opcoes || {};
+      var el = o.el || $('ckvAlunos');
+      if (!el) return Promise.resolve();
+
+      return CKConv.dados(o.endpoint).then(function (d) {
+        var total = (d && d.totalAlunos) || 0;
+        if (!total) { el.style.display = 'none'; return; }
+
+        // As fotos são das alunas que gravaram depoimento — gente real,
+        // com o rosto já publicado por elas nos vídeos desta página.
+        var fotos = (o.fotos || CKConv.DEPOIMENTOS.map(function (t) { return t.foto; })).slice(0, 7);
+        var restante = Math.max(0, total - fotos.length);
+
+        var pilha = el.querySelector('.ckv-alunos-fotos');
+        if (pilha) {
+          pilha.innerHTML = fotos.map(function (f) {
+            return '<img src="' + esc(f) + '" alt="" loading="lazy">';
+          }).join('') + (restante ? '<div class="ckv-alunos-mais">+' + restante + '</div>' : '');
+        }
+        var txt = el.querySelector('.ckv-alunos-txt');
+        if (txt) {
+          txt.innerHTML = '<strong>' + total + ' alunos</strong> já entraram no Desafio 21 Dias' +
+            (d.ultimos30 ? '<br><span>' + d.ultimos30 + ' nos últimos 30 dias</span>' : '');
+        }
+        el.style.display = 'flex';
+      })['catch'](function () { el.style.display = 'none'; });
+    }
+  };
+
+  // ══════════════════════════════════════════════════════════
+  // EXIT INTENT — uma vez por sessão
+  // ══════════════════════════════════════════════════════════
+  CKConv.exitIntent = {
+    init: function (opcoes) {
+      var o = opcoes || {};
+      var el = o.el || $('ckvExit');
+      if (!el) return;
+
+      var jaMostrou = false;
+      try { jaMostrou = sessionStorage.getItem('ckv_exit') === '1'; } catch (e) {}
+
+      function abrir() {
+        if (jaMostrou) return;
+        if (typeof o.podeAbrir === 'function' && !o.podeAbrir()) return;
+        jaMostrou = true;
+        try { sessionStorage.setItem('ckv_exit', '1'); } catch (e) {}
+        el.classList.add('show');
+      }
+      function fechar() { el.classList.remove('show'); }
+
+      // Desktop: mouse saindo pelo topo (indo para a barra de endereço)
+      document.addEventListener('mouseout', function (e) {
+        if (e.clientY <= 0 && !e.relatedTarget && !e.toElement) abrir();
+      });
+
+      // Mobile: não existe "sair pelo topo". O gatilho é o botão
+      // voltar — empurramos um estado no histórico e interceptamos.
+      if (ehMobile()) {
+        try {
+          history.pushState({ ckv: 1 }, '');
+          window.addEventListener('popstate', function () {
+            if (!jaMostrou) { abrir(); history.pushState({ ckv: 1 }, ''); }
+          });
+        } catch (e) {}
+      }
+
+      var btn = el.querySelector('.ckv-exit-btn');
+      var fec = el.querySelector('.ckv-exit-fechar');
+      if (btn) btn.addEventListener('click', function () {
+        fechar();
+        if (typeof o.aoContinuar === 'function') o.aoContinuar();
+      });
+      if (fec) fec.addEventListener('click', fechar);
+      el.addEventListener('click', function (e) { if (e.target === el) fechar(); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && el.classList.contains('show')) fechar();
+      });
+    }
+  };
+
   raiz.CKConv = CKConv;
 })(window);

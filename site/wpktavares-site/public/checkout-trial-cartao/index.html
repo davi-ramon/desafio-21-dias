@@ -43,9 +43,18 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .preco{font-family:'Bebas Neue',sans-serif;font-size:60px;line-height:.9;color:var(--green-bright);
   margin-top:14px;letter-spacing:.01em}
 .preco small{font-size:20px;color:var(--text)}
-.de{font-family:'Instrument Serif',serif;font-style:italic;color:var(--muted);
+.de{font-family:'Instrument Serif',serif;font-style:italic;color:var(--red);opacity:.85;
   text-decoration:line-through;font-size:16px;margin-top:4px}
-.linha-cartao{margin-top:12px;font-size:12.5px;color:var(--muted)}
+.de b{color:var(--red);font-weight:400}
+.economia{display:inline-block;margin-top:8px;padding:4px 11px;border-radius:100px;
+  font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--neon);
+  background:rgba(124,255,107,.09);border:1px solid rgba(124,255,107,.28)}
+.linha-cartao{margin-top:12px;font-size:12.5px;color:var(--muted);
+  display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center;
+  padding:8px 14px;border-radius:10px;
+  background:rgba(79,168,255,.06);border:1px solid rgba(79,168,255,.2)}
+.linha-cartao svg{color:var(--blue);flex-shrink:0}
+.linha-cartao b{color:var(--text);font-weight:600}
 
 .passos{display:flex;gap:6px;margin:24px 0 18px}
 .passo{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.09);transition:background .3s}
@@ -152,8 +161,12 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
       <div class="marca">WPK Tavares · Desafio 21 Dias</div>
       <div class="tag" id="tagDias">Acesso grátis</div>
       <div class="preco">R$ <span id="preco">17</span><small>,00/mês</small></div>
-      <div class="de">de R$ 60,00</div>
-      <div class="linha-cartao">Cartão exigido · Você só é cobrado depois do período grátis</div>
+      <div class="de">de <b>R$ 60,00</b></div>
+      <div class="economia">Economia de R$ 43,00 por mês</div>
+      <div class="linha-cartao">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <span><b>Cartão exigido</b> · Você só é cobrado depois do período grátis</span>
+      </div>
     </div>
 
     <div class="passos">
@@ -161,6 +174,21 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
       <div class="passo" id="p2"></div>
       <div class="passo" id="p3"></div>
       <div class="passo" id="p4"></div>
+    </div>
+
+    <!-- Lote/turma — só aparece com lote configurado e aberto no painel -->
+    <div class="ckv-lote" id="ckvLote" style="display:none">
+      <svg class="ckv-lote-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <div class="ckv-lote-body">
+        <div class="ckv-lote-t"></div>
+        <div class="ckv-lote-bar"><div class="ckv-lote-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Alunos — fotos das alunas dos depoimentos + contagem real -->
+    <div class="ckv-alunos" id="ckvAlunos" style="display:none">
+      <div class="ckv-alunos-fotos"></div>
+      <div class="ckv-alunos-txt"></div>
     </div>
 
     <!-- Prova social REAL — preenchida pelo backend, escondida se não houver dado -->
@@ -367,8 +395,95 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
       </div>
       <div class="ckv-selo-txt"><strong>Aviso antes de cobrar</strong><span>2 dias antes do fim do teste</span></div>
     </div>
+    <div class="ckv-selo">
+      <div class="ckv-selo-ico verde">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="ckv-selo-txt"><strong>Comunidade ativa</strong><span id="seloAlunos">Alunos de todo o Brasil</span></div>
+    </div>
+  </div>
+
+  <div class="ckv-rodape">
+    <div class="ckv-rodape-topo">
+
+      <div>
+        <div class="ckv-marca">
+          <img src="https://i.imgur.com/bOf9i1R.png" alt="Desafio 21 Dias">
+          <div class="ckv-marca-meta">
+            Desafio 21 Dias
+            <small>Equipe Lapidados · Wagner Tavares — WPK Tavares</small>
+          </div>
+        </div>
+        <div class="ckv-rodape-col-t" style="margin-top:16px">Precisando de ajuda?</div>
+        <div class="ckv-contato">
+          E-mail: <a href="mailto:wpktavares@gmail.com">wpktavares@gmail.com</a><br>
+          WhatsApp: <a href="https://wa.me/559484427988?text=Ol%C3%A1%2C+preciso+de+ajuda+com+o+Desafio+21+Dias" target="_blank" rel="noopener">+55 94 8442-7988</a>
+        </div>
+      </div>
+
+      <div>
+        <div class="ckv-rodape-col-t">Métodos de pagamento</div>
+        <div class="ckv-pagto-caixa">
+          <img src="https://i.imgur.com/LtR8c35.jpeg" alt="Visa, Mastercard, Elo, Amex, Hipercard, Pix" loading="lazy">
+        </div>
+        <div class="ckv-pagto-nota">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Assinatura mensal de R$ 17,00 no cartão
+        </div>
+      </div>
+
+      <div>
+        <div class="ckv-rodape-col-t">Compre com total segurança</div>
+        <div class="ckv-contato" style="margin-bottom:10px">
+          Seus dados são criptografados. O cartão é processado pelo Stripe —
+          nunca salvamos dados de pagamento em nossos servidores.
+        </div>
+        <div class="ckv-selo-seg ssl">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Site Seguro SSL
+        </div>
+        <div class="ckv-selo-seg google">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Google Safe Browsing
+        </div>
+        <div class="ckv-rodape-links" style="margin-top:12px">
+          <a href="https://wpktavares.com.br/politica-de-privacidade/" target="_blank" rel="noopener">Política de Privacidade</a>
+          <a href="https://wpktavares.com.br/termos-de-uso/" target="_blank" rel="noopener">Termos de Uso</a>
+          <a href="https://wpktavares.com.br">wpktavares.com.br</a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="ckv-rodape-linha"></div>
+
+    <div class="ckv-rodape-legal">
+      &copy; <span id="ano">2026</span> WPK Tavares — Equipe Lapidados. Todos os direitos reservados.<br>
+      Os resultados apresentados são individuais e não constituem garantia de resultados futuros.
+      Este produto é um programa de desenvolvimento pessoal.<br>
+      Dúvidas ou reembolso: <a href="mailto:wpktavares@gmail.com">wpktavares@gmail.com</a>
+    </div>
   </div>
 </footer>
+
+<!-- ══════════ EXIT INTENT ══════════ -->
+<div class="ckv-exit" id="ckvExit">
+  <div class="ckv-exit-modal" role="dialog" aria-modal="true">
+    <div class="ckv-exit-ico">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <h2 class="ckv-exit-t">Espere! Seus<br><span id="exitDias">7 dias grátis</span> estão reservados</h2>
+    <p class="ckv-exit-txt">Você está a 1 passo de começar. Leva menos de 1 minuto e
+      <b>nada é cobrado hoje</b>.</p>
+    <div class="ckv-exit-perks">
+      <div class="ckv-exit-perk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <span id="exitPerkDias">7 dias grátis</span>&nbsp;sem pagar nada agora</div>
+      <div class="ckv-exit-perk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Avisamos 2 dias antes da primeira cobrança</div>
+      <div class="ckv-exit-perk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Cancele pelo app em 1 clique, sem falar com ninguém</div>
+    </div>
+    <button class="ckv-exit-btn" type="button">Continuar meu cadastro</button>
+    <button class="ckv-exit-fechar" type="button">Fechar mesmo assim</button>
+  </div>
+</div>
 
 <script src="/assets/checkout-conversao.js"></script>
 <script>
@@ -632,10 +747,34 @@ if (params.get('checkout') === 'cancelado') {
 }
 
 // ── Componentes de conversão compartilhados ──────────────────
+document.getElementById('ano').textContent = new Date().getFullYear();
+el('exitDias').textContent = dias + ' dias grátis';
+el('exitPerkDias').textContent = dias + ' dias grátis,';
+
 CKConv.faq.init('#ckvFaq');
 CKConv.depoimentos.init({});
 CKConv.atividade.init({ endpoint: GAS, coluna: el('ckvCol') });
 CKConv.provaSocial.init({ endpoint: GAS });
+CKConv.lote.init({ endpoint: GAS });
+CKConv.alunos.init({ endpoint: GAS }).then(function () {
+  // Selo do rodapé com o mesmo número real, sem uma segunda requisição
+  return CKConv.dados(GAS).then(function (d) {
+    if (d && d.totalAlunos) {
+      el('seloAlunos').textContent = d.totalAlunos + ' alunos no desafio';
+    }
+  });
+})['catch'](function () {});
+
+// Exit intent: só faz sentido enquanto a pessoa não terminou. Depois da
+// etapa 4 ela já está indo para o Stripe — atrapalhar ali seria perder venda.
+CKConv.exitIntent.init({
+  podeAbrir: function () { return !el('e5').classList.contains('on'); },
+  aoContinuar: function () {
+    var campo = el('e1').classList.contains('on') ? el('nome')
+              : (el('e2').classList.contains('on') ? el('cod') : null);
+    if (campo) campo.focus();
+  }
+});
 </script>
 </body>
 </html>

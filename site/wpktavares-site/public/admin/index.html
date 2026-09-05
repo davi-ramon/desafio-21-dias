@@ -4533,6 +4533,16 @@ async function renderTrialAuto() {
       '</div><div id="taLembRes" style="margin-top:8px"></div>' +
     '</div>' +
 
+    // ── Lote / turma (escassez REAL no checkout) ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Lote de vagas do checkout</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+        'Enquanto estiver <b>desligado</b>, o checkout n&atilde;o mostra vaga nenhuma. ' +
+        'Ligado, ele mostra <b>total do lote menos quem entrou depois da abertura</b> &mdash; ' +
+        'o n&uacute;mero cai quando algu&eacute;m compra de verdade, e s&oacute; nessa hora.</div>' +
+      '<div id="loteBox"><div style="font-size:12px;color:var(--muted)">Carregando…</div></div>' +
+    '</div>' +
+
     // ── Templates ──
     '<div class="card" style="margin-bottom:16px">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">' +
@@ -4563,6 +4573,7 @@ async function renderTrialAuto() {
     '<button class="btn btn-primary" onclick="taSalvar(false)">Salvar tudo</button>';
 
   taRenderCapi();
+  loteCarregar();
 
   _processIcons && _processIcons(content);
 }
@@ -4775,6 +4786,66 @@ async function taTestarCapi() {
     : '<div style="color:#e2626b;font-size:12px">✕ ' + escHtml((r && r.error) || 'Erro.') + '</div>';
 }
 
+
+// ── Lote de vagas ──────────────────────────────────────────
+// A escassez que existia no checkout sem cartao era falsa: o numero
+// caia sozinho conforme o dia da semana. Aqui o total e a data de
+// abertura sao informados por voce, e o restante e calculado com as
+// adesoes reais da planilha.
+async function loteCarregar() {
+  var box = document.getElementById('loteBox');
+  if (!box) return;
+  try {
+    var r = await rpc('getLoteConfig', {});
+    if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
+    var c = r.data || {};
+    box.innerHTML =
+      _taSwitch('lote_ativo', c.ativo, 'Mostrar vagas no checkout',
+        'Desligado, o bloco some da p&aacute;gina') +
+      '<div class="form-row" style="margin-top:14px">' +
+        '<div class="form-group"><label class="form-label">Nome da turma</label>' +
+          '<input class="form-control" id="lote_nome" value="' + escHtml(c.nome || '') + '" placeholder="Turma de Outubro"></div>' +
+        '<div class="form-group"><label class="form-label">Total de vagas do lote</label>' +
+          '<input class="form-control" id="lote_total" value="' + escHtml(c.total || '') + '" placeholder="100" inputmode="numeric"></div>' +
+      '</div>' +
+      '<div class="form-row">' +
+        '<div class="form-group"><label class="form-label">Abertura do lote</label>' +
+          '<input class="form-control" type="date" id="lote_inicio" value="' + escHtml(String(c.inicio || '').slice(0,10)) + '">' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:4px">A contagem come&ccedil;a nesta data</div></div>' +
+        '<div class="form-group"><label class="form-label">Encerramento (opcional)</label>' +
+          '<input class="form-control" type="date" id="lote_fim" value="' + escHtml(String(c.fim || '').slice(0,10)) + '">' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:4px">Passou disso, o bloco some sozinho</div></div>' +
+      '</div>' +
+      '<button class="btn btn-primary btn-sm" onclick="loteSalvar()">Salvar lote</button>' +
+      '<div id="loteRes" style="margin-top:8px"></div>';
+  } catch (e) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--danger)">N&atilde;o consegui carregar. ' +
+      '<button class="btn btn-ghost btn-sm" onclick="loteCarregar()">Tentar de novo</button></div>';
+  }
+}
+
+async function loteSalvar() {
+  var res = document.getElementById('loteRes');
+  var val = function (id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; };
+  var chk = function (id) { var e = document.getElementById(id); return !!(e && e.checked); };
+  res.innerHTML = '<span style="font-size:12px;color:var(--muted)">Salvando…</span>';
+  try {
+    var r = await rpc('salvarLoteConfig', { data: {
+      ativo:  chk('lote_ativo'),
+      nome:   val('lote_nome'),
+      total:  val('lote_total'),
+      inicio: val('lote_inicio'),
+      fim:    val('lote_fim')
+    } });
+    if (!r || !r.ok) {
+      res.innerHTML = '<span style="font-size:12px;color:var(--danger)">' + escHtml((r && r.error) || 'Erro ao salvar') + '</span>';
+      return;
+    }
+    res.innerHTML = '<span style="font-size:12px;color:var(--success)">' + escHtml(r.message || 'Salvo.') + '</span>';
+  } catch (e) {
+    res.innerHTML = '<span style="font-size:12px;color:var(--danger)">Erro de conex&atilde;o.</span>';
+  }
+}
 
 async function taLembretes(acao) {
   const box = document.getElementById("taLembRes");
