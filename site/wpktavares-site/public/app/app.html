@@ -3338,7 +3338,7 @@ function renderPage(page) {
     case 'audios':     renderAudios();     break;
     case 'comunidade': renderComunidade(); break;
     case 'perfil':     renderPerfil();     break;
-    case 'assinatura': renderAssinatura(); break;
+    case 'assinatura': renderBilling(); break;   // v150: tela nova em blocos
     case 'mural':      renderMural();      break;
     case 'hub':        renderHub();        break;
   }
@@ -11393,6 +11393,114 @@ function pmAtualizarMini() {
 
 
 
+
+/* ═══ Billing em blocos (v150) ═══════════════════════════════ */
+.bl-wrap { max-width:760px; margin:0 auto; padding:0 0 40px; }
+.bl-head { display:flex; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+.bl-head h2 { font-size:20px; font-weight:800; color:var(--text); margin:0; }
+.bl-voltar { background:none; border:none; color:var(--muted); font-family:inherit; font-size:13px;
+  cursor:pointer; padding:6px 0; font-weight:600; }
+.bl-voltar:hover { color:var(--text); }
+.bl-aviso { background:rgba(224,168,60,.1); border:1px solid rgba(224,168,60,.3); color:#e0a83c;
+  border-radius:12px; padding:12px 15px; font-size:12.5px; line-height:1.55; margin-bottom:14px; }
+.bl-card { background:rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.07);
+  border-radius:16px; padding:20px; margin-bottom:14px;
+  animation:blIn .4s cubic-bezier(.16,1,.3,1) both; }
+.bl-card:nth-child(2){animation-delay:.04s}
+.bl-card:nth-child(3){animation-delay:.08s}
+.bl-card:nth-child(4){animation-delay:.12s}
+.bl-card:nth-child(5){animation-delay:.16s}
+@keyframes blIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+.bl-card-t { font-size:11px; font-weight:800; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:14px; }
+.bl-destaque { border-color:color-mix(in srgb, var(--c) 34%, transparent);
+  background:linear-gradient(150deg, color-mix(in srgb, var(--c) 10%, transparent), rgba(255,255,255,.03)); }
+@supports not (background: color-mix(in srgb, red 10%, transparent)) {
+  .bl-destaque { border-color:rgba(76,175,80,.3); background:rgba(76,175,80,.06); }
+}
+.bl-topo { display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+  margin-bottom:16px; flex-wrap:wrap; }
+.bl-eyebrow { font-size:10.5px; font-weight:800; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--muted); margin-bottom:5px; }
+.bl-plano { font-size:19px; font-weight:800; color:var(--text); }
+.bl-preco { font-size:15px; color:var(--green); font-weight:700; margin-left:4px; }
+.bl-badge { background:color-mix(in srgb, var(--c) 20%, transparent); color:var(--c);
+  border:1px solid color-mix(in srgb, var(--c) 40%, transparent); font-size:11px; font-weight:800;
+  padding:5px 12px; border-radius:99px; white-space:nowrap; }
+@supports not (color: color-mix(in srgb, red 10%, transparent)) {
+  .bl-badge { background:rgba(255,255,255,.08); color:var(--text); border-color:rgba(255,255,255,.15); }
+}
+.bl-grid { display:grid; gap:0; }
+.bl-row { display:flex; align-items:baseline; justify-content:space-between; gap:14px;
+  padding:10px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+.bl-row:last-child { border-bottom:none; }
+.bl-lbl { font-size:12.5px; color:var(--muted); flex-shrink:0; }
+.bl-val { font-size:13px; color:var(--text); text-align:right; word-break:break-word; }
+.bl-val.forte { font-weight:700; color:var(--green); }
+.bl-benef { display:grid; gap:8px; }
+.bl-b { display:flex; align-items:center; gap:12px; padding:11px 13px; border-radius:12px;
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); opacity:.5; }
+.bl-b.on { opacity:1; border-color:rgba(76,175,80,.2); background:rgba(76,175,80,.06); }
+.bl-b-ico { font-size:17px; flex-shrink:0; width:24px; text-align:center; }
+.bl-b-t { font-size:13px; font-weight:600; color:var(--text); }
+.bl-b-s { font-size:11.5px; color:var(--muted); margin-top:2px; line-height:1.45; }
+.bl-b-tick { margin-left:auto; color:var(--green); font-weight:800; flex-shrink:0; }
+.bl-b:not(.on) .bl-b-tick { color:var(--muted); }
+.bl-provs { display:grid; gap:9px; }
+.bl-prov { display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:14px 15px; border-radius:12px; background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.06); flex-wrap:wrap; }
+.bl-prov.atual { border-color:rgba(76,175,80,.35); background:rgba(76,175,80,.07); }
+.bl-prov-n { font-size:14px; font-weight:700; color:var(--text); }
+.bl-prov-tag { font-size:12px; font-weight:700; color:var(--green); }
+.bl-prov-nota { font-size:11.5px; color:var(--muted); text-align:right; max-width:60%; }
+.bl-acoes { display:grid; gap:9px; }
+.bl-acao { display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%;
+  padding:14px 16px; border-radius:12px; cursor:pointer; font-family:inherit; text-align:left;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+  transition:background .18s, border-color .18s, transform .12s; }
+.bl-acao:hover { background:rgba(255,255,255,.08); transform:translateX(2px); }
+.bl-acao-t { font-size:13.5px; font-weight:700; color:var(--text); }
+.bl-acao-s { font-size:11.5px; color:var(--muted); line-height:1.45; }
+.bl-acao.perigo:hover { border-color:rgba(232,64,64,.4); background:rgba(232,64,64,.08); }
+.bl-acao.perigo .bl-acao-t { color:#e2626b; }
+.bl-acao.ok:hover { border-color:rgba(76,175,80,.4); background:rgba(76,175,80,.1); }
+.bl-acao.ok .bl-acao-t { color:var(--green); }
+.bl-btn { padding:12px 22px; border:none; border-radius:11px; cursor:pointer; font-family:inherit;
+  font-size:13.5px; font-weight:800; color:#04140a; margin-top:14px;
+  background:linear-gradient(135deg,var(--green),#2e7d32); }
+.bl-btn:hover { filter:brightness(1.08); }
+.bl-btn-sm { padding:8px 14px; border:1px solid rgba(76,175,80,.4); border-radius:9px; cursor:pointer;
+  font-family:inherit; font-size:12px; font-weight:700; color:var(--green); background:rgba(76,175,80,.1); }
+.bl-btn-sm:hover { background:rgba(76,175,80,.2); }
+.bl-vazio, .bl-erro { text-align:center; padding:34px 20px; }
+.bl-vazio-ico { font-size:32px; color:var(--green); margin-bottom:10px; }
+.bl-vazio-t, .bl-erro-t { font-size:16px; font-weight:800; color:var(--text); margin-bottom:6px; }
+.bl-vazio-s, .bl-erro-s { font-size:13px; color:var(--muted); line-height:1.6; }
+.bl-rodape { text-align:center; font-size:11.5px; color:var(--muted); margin-top:18px; }
+.bl-sk-t { height:13px; width:38%; border-radius:6px; margin-bottom:16px;
+  background:linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.11),rgba(255,255,255,.05));
+  background-size:200% 100%; animation:blSk 1.4s ease-in-out infinite; }
+.bl-sk-l { height:11px; border-radius:6px; margin-bottom:11px;
+  background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));
+  background-size:200% 100%; animation:blSk 1.4s ease-in-out infinite; }
+@keyframes blSk { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* Mobile: linhas empilhadas e CTAs de largura cheia */
+@media (max-width:640px){
+  .bl-wrap { padding:0 0 90px; }
+  .bl-card { padding:16px 15px; border-radius:14px; }
+  .bl-plano { font-size:17px; }
+  .bl-row { flex-direction:column; align-items:flex-start; gap:2px; padding:9px 0; }
+  .bl-val { text-align:left; }
+  .bl-prov { flex-direction:column; align-items:flex-start; gap:9px; }
+  .bl-prov-nota { text-align:left; max-width:100%; }
+  .bl-btn-sm, .bl-btn { width:100%; }
+}
+@media (prefers-reduced-motion:reduce){
+  .bl-card, .bl-sk-t, .bl-sk-l { animation:none; }
+}
+
 /* ═══ Tela-ponte de billing (v149) ═══════════════════════════ */
 .bridge-ov { position:fixed; inset:0; z-index:100001; display:flex; align-items:center;
   justify-content:center; padding:20px; background:rgba(240,245,241,.96);
@@ -13098,6 +13206,227 @@ function _leitLivrosVisiveis() {
 }
 
 
+
+
+// ════════════════════════════════════════════════════════════
+// BILLING — tela em blocos (v150)
+// ------------------------------------------------------------
+// Um card por assunto: quem é você, o que você assinou, o que
+// isso libera, e o que dá para fazer. A tela antiga misturava
+// tudo num bloco só, e o aluno não achava o botão de cancelar.
+// ════════════════════════════════════════════════════════════
+var BL = { dados: null, carregando: false };
+
+function _blLinha(rotulo, valor, destaque) {
+  if (!valor && valor !== 0) return '';
+  return '<div class="bl-row"><span class="bl-lbl">' + rotulo + '</span>' +
+         '<span class="bl-val' + (destaque ? ' forte' : '') + '">' + escH(String(valor)) + '</span></div>';
+}
+
+function _blCorStatus(s) {
+  var m = { active:'#4caf50', trialing:'#42a5f5', trial:'#42a5f5', past_due:'#e0a83c',
+            unpaid:'#e0a83c', grace:'#e0a83c', grace_final:'#e84040', canceled:'#8a9a8e',
+            cancelled:'#8a9a8e', paused:'#e0a83c', blocked:'#e84040', legacy:'#4caf50' };
+  return m[String(s)] || '#8a9a8e';
+}
+
+async function renderBilling() {
+  var el = document.getElementById('page-assinatura');
+  if (!el) return;
+
+  if (!BL.dados) {
+    el.innerHTML = '<div class="bl-wrap">' + _blSkeleton() + '</div>';
+    try {
+      var r = await rpc('getBillingDetalhe', {});
+      if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
+      BL.dados = r.data;
+    } catch (e) {
+      el.innerHTML =
+        '<div class="bl-wrap"><div class="bl-card bl-erro">' +
+          '<div class="bl-erro-t">Não consegui carregar sua assinatura</div>' +
+          '<div class="bl-erro-s">Isso costuma ser instabilidade momentânea.</div>' +
+          '<button class="bl-btn" onclick="BL.dados=null;renderBilling()">Tentar novamente</button>' +
+        '</div></div>';
+      return;
+    }
+  }
+
+  var d = BL.dados;
+  var a = d.assinatura;
+  var cor = a ? _blCorStatus(a.status) : '#8a9a8e';
+
+  var html = '<div class="bl-wrap">';
+
+  // ── Cabeçalho ──
+  html +=
+    '<div class="bl-head">' +
+      '<button class="bl-voltar" onclick="navigate(\'perfil\')">‹ Perfil</button>' +
+      '<h2>Gerenciar assinatura</h2>' +
+    '</div>';
+
+  (d.avisos || []).forEach(function (av) {
+    html += '<div class="bl-aviso">' + escH(av) + '</div>';
+  });
+
+  // ── Assinatura ──
+  if (a) {
+    html +=
+      '<div class="bl-card bl-destaque" style="--c:' + cor + '">' +
+        '<div class="bl-topo">' +
+          '<div><div class="bl-eyebrow">Sua assinatura</div>' +
+            '<div class="bl-plano">' + escH(a.plano || 'Plano') +
+              (a.preco ? ' <span class="bl-preco">R$ ' + escH(a.preco) + '</span>' : '') + '</div></div>' +
+          '<span class="bl-badge">' + escH(a.statusLabel) + '</span>' +
+        '</div>' +
+        '<div class="bl-grid">' +
+          _blLinha('Periodicidade', a.periodicidade) +
+          _blLinha('Início', a.inicio) +
+          (a.emTrial ? _blLinha('Teste termina em', a.trialFim, true) : '') +
+          _blLinha(a.emTrial ? 'Primeira cobrança' : 'Próxima cobrança', a.proximaCobranca, true) +
+          _blLinha('Forma de pagamento',
+            a.bandeira ? (a.bandeira + ' •••• ' + a.ultimos4) : a.metodo) +
+          _blLinha('Provedor', d.provedor === 'stripe' ? 'Stripe' : (d.provedor === 'cakto' ? 'Cakto' : '—')) +
+        '</div>' +
+      '</div>';
+  } else {
+    html +=
+      '<div class="bl-card bl-vazio">' +
+        '<div class="bl-vazio-ico">✦</div>' +
+        '<div class="bl-vazio-t">Você ainda não tem assinatura ativa</div>' +
+        '<div class="bl-vazio-s">Assine para liberar todos os módulos do Desafio 21 Dias.</div>' +
+        '<button class="bl-btn" onclick="navigate(\'planos\')">Ver planos</button>' +
+      '</div>';
+  }
+
+  // ── Assinante ──
+  html +=
+    '<div class="bl-card">' +
+      '<div class="bl-card-t">Assinante</div>' +
+      '<div class="bl-grid">' +
+        _blLinha('Nome', d.assinante.nome) +
+        _blLinha('E-mail', d.assinante.email) +
+        _blLinha('Cadastro', d.assinante.cadastro) +
+        _blLinha('ID', d.assinante.id) +
+      '</div>' +
+    '</div>';
+
+  // ── Benefícios ──
+  var ativa = a && ['active','trialing','trial','grace','legacy'].indexOf(String(a.status)) >= 0;
+  var beneficios = [
+    ['🧘', 'Meditação guiada', 'Sessões com áudio e duração que você escolhe'],
+    ['📖', 'Sala de leitura', 'Biblioteca completa dentro do app'],
+    ['🏃', 'Exercício físico', 'Registro de treino e metas próprias'],
+    ['🎧', 'Áudios diários', 'Um novo áudio a cada dia do desafio'],
+    ['✦', 'Mural dos Sonhos', 'Suas declarações em movimento'],
+    ['⏱', 'Ferramentas de Foco', 'Pomodoro e Flashcards com repetição espaçada']
+  ];
+  html +=
+    '<div class="bl-card">' +
+      '<div class="bl-card-t">O que seu plano libera</div>' +
+      '<div class="bl-benef">' +
+        beneficios.map(function (b) {
+          return '<div class="bl-b' + (ativa ? ' on' : '') + '">' +
+            '<span class="bl-b-ico">' + b[0] + '</span>' +
+            '<div><div class="bl-b-t">' + b[1] + '</div>' +
+            '<div class="bl-b-s">' + b[2] + '</div></div>' +
+            '<span class="bl-b-tick">' + (ativa ? '✓' : '·') + '</span></div>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+
+  // ── Provedor de pagamento ──
+  html +=
+    '<div class="bl-card">' +
+      '<div class="bl-card-t">Provedor de pagamento</div>' +
+      '<div class="bl-provs">' +
+        (d.provedores || []).map(function (p) {
+          return '<div class="bl-prov' + (p.atual ? ' atual' : '') + '">' +
+            '<div class="bl-prov-n">' + escH(p.nome) + '</div>' +
+            (p.atual
+              ? '<div class="bl-prov-tag">✓ Provedor atual</div>'
+              : (p.migravel
+                  ? '<button class="bl-btn-sm" onclick="billingMigrar()">Migrar para ' + escH(p.nome) + '</button>'
+                  : '<div class="bl-prov-nota">' + escH(p.nota || '—') + '</div>')) +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</div>';
+
+  // ── Ações ──
+  if (a) {
+    html += '<div class="bl-card"><div class="bl-card-t">Ações</div><div class="bl-acoes">';
+    if (d.portalDisponivel) {
+      html += '<button class="bl-acao" onclick="billingPortal()">' +
+        '<span class="bl-acao-t">Atualizar forma de pagamento</span>' +
+        '<span class="bl-acao-s">Trocar cartão, ver faturas e recibos</span></button>';
+    }
+    if (a.cancelaNoFim) {
+      html += '<button class="bl-acao ok" onclick="billingReativar()">' +
+        '<span class="bl-acao-t">Reativar assinatura</span>' +
+        '<span class="bl-acao-s">Desfaz o cancelamento agendado</span></button>';
+    } else if (d.podeCancelarNoApp) {
+      html += '<button class="bl-acao perigo" onclick="billingCancelar()">' +
+        '<span class="bl-acao-t">Cancelar assinatura</span>' +
+        '<span class="bl-acao-s">Você mantém o acesso até o fim do período pago</span></button>';
+    }
+    html += '</div></div>';
+  }
+
+  html += '<div class="bl-rodape">Pagamentos processados por ' +
+          (d.provedor === 'stripe' ? 'Stripe' : 'Cakto') + ' · WPK Tavares</div>';
+  html += '</div>';
+
+  el.innerHTML = html;
+}
+
+function _blSkeleton() {
+  var linha = '<div class="bl-sk-l"></div>';
+  return '<div class="bl-head"><h2>Gerenciar assinatura</h2></div>' +
+    '<div class="bl-card"><div class="bl-sk-t"></div>' + linha + linha + linha + '</div>' +
+    '<div class="bl-card"><div class="bl-sk-t"></div>' + linha + linha + '</div>';
+}
+
+// ── Ações ───────────────────────────────────────────────────
+async function billingCancelar() {
+  var d = BL.dados || {};
+  var ate = (d.assinatura && d.assinatura.proximaCobranca) || '';
+  var ok = await muConfirmar('Cancelar assinatura',
+    'Seu acesso continua até ' + (ate || 'o fim do período já pago') + '. ' +
+    'Depois disso os módulos premium são bloqueados.\n\nVocê pode reativar antes dessa data.',
+    'Sim, cancelar');
+  if (!ok) return;
+
+  toast('Cancelando...', 'info');
+  try {
+    var r = await rpc('billingCancelar', {});
+    if (!r || !r.ok) { toast((r && r.error) || 'Não consegui cancelar.', 'error'); return; }
+    toast(r.message || 'Cancelamento agendado.', 'success');
+    BL.dados = null; renderBilling();
+  } catch (e) { toast('Erro de conexão.', 'error'); }
+}
+
+async function billingReativar() {
+  toast('Reativando...', 'info');
+  try {
+    var r = await rpc('billingReativar', {});
+    if (!r || !r.ok) { toast((r && r.error) || 'Não consegui reativar.', 'error'); return; }
+    toast(r.message || 'Assinatura reativada.', 'success');
+    BL.dados = null; renderBilling();
+  } catch (e) { toast('Erro de conexão.', 'error'); }
+}
+
+async function billingMigrar() {
+  var ok = await muConfirmar('Migrar para o Stripe',
+    'Sua assinatura atual na Cakto precisa ser cancelada por você no portal dela, ' +
+    'para não haver cobrança dobrada.\n\nVamos abrir o checkout do Stripe. ' +
+    'Só depois de confirmar a nova assinatura, cancele a antiga.',
+    'Entendi, continuar');
+  if (!ok) return;
+  billingIr('Preparando sua migração', function () {
+    return rpc('criarCheckoutStripe', { plan: 'monthly', intent: 'migracao', origin: 'custom',
+                                        returnUrl: location.origin + '/app/billing' });
+  });
+}
 
 // ════════════════════════════════════════════════════════════
 // BILLING — rota dedicada e tela-ponte (v149)

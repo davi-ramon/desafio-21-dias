@@ -273,6 +273,10 @@ function handleRequest(payload) {
     case 'adminTrocarEmailAluno':    return adminTrocarEmailAluno(token, data);
     case 'solicitarTrocaEmail':      return solicitarTrocaEmail(token, data);
     case 'confirmarTrocaEmail':      return confirmarTrocaEmail(token, data);
+    // v150 — billing unificado (Stripe + Cakto)
+    case 'getBillingDetalhe':        return getBillingDetalhe(token);
+    case 'billingCancelar':          return billingCancelar(token);
+    case 'billingReativar':          return billingReativar(token);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)
