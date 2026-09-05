@@ -167,6 +167,9 @@ function _stripeOnInvoiceFailed_(inv) {
 
 // ── Sincroniza uma subscription Stripe → aba assinaturas ─────
 function _stripeSyncAssinatura_(email, sub, isNew) {
+  // v147: se a pessoa trocou de e-mail no app, o Stripe segue mandando
+  // o antigo. Sem traduzir, a renovacao dela nao casaria com a linha.
+  try { if (typeof _resolverEmailAtual_ === 'function') email = _resolverEmailAtual_(email); } catch (e) {}
   email = String(email || '').toLowerCase().trim();
   if (!email) return;
 

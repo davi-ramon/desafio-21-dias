@@ -269,6 +269,10 @@ function handleRequest(payload) {
     case 'capiTestar':               return capiTestar(token);
     case 'lembretesAcao':            return lembretesAcao(token, data);
     case 'diagnosticarAluno':        return diagnosticarAluno(token, data);
+    // v147 — troca de e-mail da conta
+    case 'adminTrocarEmailAluno':    return adminTrocarEmailAluno(token, data);
+    case 'solicitarTrocaEmail':      return solicitarTrocaEmail(token, data);
+    case 'confirmarTrocaEmail':      return confirmarTrocaEmail(token, data);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)
