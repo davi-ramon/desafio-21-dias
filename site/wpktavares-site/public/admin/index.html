@@ -4522,11 +4522,15 @@ async function renderTrialAuto() {
         'Dispara o template escolhido abaixo') +
       _taSwitch('ta_tg', c.autoTelegram, 'Aviso no Telegram',
         'Notifica&ccedil;&atilde;o interna para voc&ecirc; a cada nova ades&atilde;o') +
-      _taSwitch('ta_lemb', c.autoLembretes, 'Lembretes antes da cobran&ccedil;a',
-        'Avisa o aluno antes de cobrar &mdash; evita cobran&ccedil;a surpresa') +
-      '<div class="form-group" style="margin-top:14px"><label class="form-label">Avisar quantos dias antes</label>' +
+      _taSwitch('ta_lemb', c.autoLembretes, 'Lembrete antes da cobran&ccedil;a',
+        'Um aviso s&oacute;. Se o aluno n&atilde;o cancelar, a cobran&ccedil;a segue automaticamente') +
+      '<div class="form-group" style="margin-top:14px"><label class="form-label">Quantos dias antes avisar</label>' +
         '<input class="form-control" id="ta_dias" value="' + escHtml(c.lembreteDias) + '" placeholder="3,2,1">' +
-        '<div style="font-size:11px;color:var(--muted);margin-top:4px">Separe por v&iacute;rgula. Ex: 3,2,1</div></div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:4px">Um n&uacute;mero s&oacute;. Padr&atilde;o: 2</div></div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn btn-ghost btn-sm" onclick="taLembretes(&quot;ativar&quot;)">Ativar rotina di&aacute;ria</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="taLembretes(&quot;rodar&quot;)">Rodar agora</button>' +
+      '</div><div id="taLembRes" style="margin-top:8px"></div>' +
     '</div>' +
 
     // ── Templates ──
@@ -4769,6 +4773,19 @@ async function taTestarCapi() {
   box.innerHTML = (r && r.ok)
     ? '<div style="color:var(--green);font-size:12px">✓ ' + escHtml(r.message) + '</div>'
     : '<div style="color:#e2626b;font-size:12px">✕ ' + escHtml((r && r.error) || 'Erro.') + '</div>';
+}
+
+
+async function taLembretes(acao) {
+  const box = document.getElementById("taLembRes");
+  box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Processando&hellip;</div>';
+  let r;
+  try { r = await rpc("lembretesAcao", { acao: acao }); }
+  catch (e) { box.innerHTML = '<div style="color:#e2626b;font-size:12px">Falha: ' + escHtml(e.message) + '</div>'; return; }
+  if (!r || !r.ok) { box.innerHTML = '<div style="color:#e2626b;font-size:12px">' + escHtml((r && r.error) || "Erro.") + '</div>'; return; }
+  const d = r.data;
+  box.innerHTML = '<div style="color:var(--green);font-size:12px">✓ ' +
+    escHtml(r.message || (d ? (d.enviados + " lembrete(s) enviado(s) · " + d.verificadas + " assinatura(s) em teste verificada(s)") : "Pronto")) + '</div>';
 }
 
 async function renderConfiguracoes() {

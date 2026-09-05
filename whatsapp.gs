@@ -143,7 +143,7 @@ function waStatus(token) {
       autoWhatsBoasVindas: _waBool_('auto_whats_boasvindas', false),
       autoTelegram:        _waBool_('auto_telegram', true),
       autoLembretes:       _waBool_('auto_lembretes', true),
-      lembreteDias:        String(_waCfg_('lembrete_dias', '3,2,1')),
+      lembreteDias:        String(_waCfg_('lembrete_dias', '2')),
       // Templates escolhidos
       tplBoasVindas:      String(_waCfg_('wa_tpl_boasvindas')),
       tplBoasVindasLang:  String(_waCfg_('wa_tpl_boasvindas_lang', 'pt_BR')),
@@ -184,7 +184,8 @@ function waSalvarConfig(token, cfg) {
       .filter(function (x) { return !isNaN(x) && x >= 1 && x <= 15; })
       .filter(function (x, i, a) { return a.indexOf(x) === i; })
       .sort(function (a, b) { return b - a; });
-    setConfig_('lembrete_dias', dias.join(',') || '3,2,1');
+    // v145: UM lembrete so — guarda apenas o primeiro valor
+    setConfig_('lembrete_dias', String(dias[0] || 2));
   }
 
   [['tplBoasVindas','wa_tpl_boasvindas'], ['tplBoasVindasLang','wa_tpl_boasvindas_lang'],

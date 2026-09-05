@@ -308,3 +308,138 @@ function capiTestar(token) {
         (String(_taCfg_('capi_test_code')).trim() ? ' (em Eventos de teste)' : ' (produção)') }
     : { ok: false, error: r.error };
 }
+
+// ═════════════════════════════════════════════════════════════
+// RÉGUA DE LEMBRETE — v145
+// UM aviso só, por padrão 2 dias antes do fim do teste. Se o
+// aluno não cancelar, a cobrança segue automaticamente: o
+// lembrete é cortesia e obrigação legal, não pedido de permissão.
+//
+// O "já enviei" fica na METADATA da assinatura no Stripe, não em
+// cache nem planilha: dura o que a assinatura durar e sobrevive a
+// qualquer limpeza nossa. CacheService morre em 6h e não serviria.
+// ═════════════════════════════════════════════════════════════
+function _taDiasLembrete_() {
+  var bruto = String(_taCfg_('lembrete_dias', '2'));
+  var n = parseInt(bruto.split(',')[0], 10);   // só o primeiro: é um lembrete só
+  return (!isNaN(n) && n >= 1 && n <= 15) ? n : 2;
+}
+
+// Roda todo dia por trigger. Varre quem está em trial no Stripe.
+function enviarLembretesTrial() {
+  if (!_taBool_('auto_lembretes', true)) return { ok: true, desligado: true };
+  if (typeof stripeConfigurado_ !== 'function' || !stripeConfigurado_()) {
+    return { ok: false, error: 'Stripe não configurado.' };
+  }
+
+  var alvo = _taDiasLembrete_();
+  var agora = Math.floor(Date.now() / 1000);
+  // Janela do dia-alvo: entre alvo e alvo+1 dias a partir de agora
+  var de  = agora + (alvo - 1) * 86400;
+  var ate = agora + alvo * 86400;
+
+  var resumo = { verificadas: 0, enviados: 0, pulados: 0, erros: 0, alvo: alvo };
+  var starting = '';
+
+  for (var pagina = 0; pagina < 10; pagina++) {   // teto de segurança
+    var q = '/v1/subscriptions?status=trialing&limit=100' +
+            (starting ? '&starting_after=' + encodeURIComponent(starting) : '');
+    var lote = _stripeCall_('get', q);
+    if (!lote || lote._error || !lote.data) break;
+
+    for (var i = 0; i < lote.data.length; i++) {
+      var sub = lote.data[i];
+      resumo.verificadas++;
+      var fim = Number(sub.trial_end || 0);
+      if (!fim || fim < de || fim > ate) { resumo.pulados++; continue; }
+      if (sub.metadata && String(sub.metadata.lembrete_enviado) === '1') { resumo.pulados++; continue; }
+
+      try {
+        var email = _stripeEmailDaSub_(sub);
+        if (!email) { resumo.pulados++; continue; }
+        var ctx = _taContexto_(email, sub);
+        ctx.diasRestantes = alvo;
+
+        if (_taBool_('auto_email_boasvindas', true)) _taEmailLembrete_(ctx);
+        try { waLembreteTrial_(ctx); } catch (e) {}
+
+        // Marca NA ASSINATURA — fonte durável de "já avisei"
+        _stripeCall_('post', '/v1/subscriptions/' + encodeURIComponent(sub.id),
+                     { 'metadata[lembrete_enviado]': '1' });
+
+        logAction(email, 'TRIAL_LEMBRETE', 'trial', sub.id, alvo + ' dias antes');
+        resumo.enviados++;
+      } catch (e) {
+        resumo.erros++;
+        logAction('system', 'TRIAL_LEMBRETE_ERRO', 'trial', sub.id, e.message);
+      }
+    }
+
+    if (!lote.has_more) break;
+    starting = lote.data[lote.data.length - 1].id;
+  }
+
+  logAction('system', 'TRIAL_LEMBRETES_RODOU', 'trial', '', JSON.stringify(resumo));
+  return { ok: true, data: resumo };
+}
+
+// E-mail do lembrete — tom neutro, informativo, sem pressão
+function _taEmailLembrete_(ctx) {
+  var primeiro = String(ctx.nome || '').split(/\s+/)[0] || '';
+  var dias = ctx.diasRestantes || 2;
+  var html =
+  '<div style="margin:0;padding:28px 16px;background:#f4f6f4;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif">' +
+    '<div style="max-width:480px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.07)">' +
+      '<div style="background:linear-gradient(135deg,#4caf50,#2e7d32);padding:24px 26px">' +
+        '<div style="color:rgba(255,255,255,.72);font-size:11px;letter-spacing:2px;text-transform:uppercase">WPK Tavares</div>' +
+        '<div style="color:#fff;font-size:19px;font-weight:800;margin-top:4px">Seu teste termina em ' + dias + ' dias</div>' +
+      '</div>' +
+      '<div style="padding:26px;color:#2c3a30;font-size:14.5px;line-height:1.7">' +
+        (primeiro ? '<p style="margin:0 0 14px">Oi, ' + primeiro + '.</p>' : '') +
+        '<p style="margin:0 0 18px">Passando para avisar antes que aconteca, e nao depois.</p>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:14px">' +
+          '<tr><td style="padding:7px 0;color:#7a8a7e">Data da cobranca</td>' +
+              '<td style="padding:7px 0;text-align:right;font-weight:700">' + (ctx.dataCobranca || '-') + '</td></tr>' +
+          '<tr><td style="padding:7px 0;color:#7a8a7e">Valor</td>' +
+              '<td style="padding:7px 0;text-align:right;font-weight:700">R$ ' + (ctx.valor || 17) + ',00/mes</td></tr>' +
+        '</table>' +
+        '<p style="margin:18px 0 0">Se quiser continuar, <b>nao precisa fazer nada</b>. A cobranca acontece ' +
+        'sozinha no cartao cadastrado e seu acesso segue sem interrupcao.</p>' +
+        '<p style="margin:14px 0 0">Se preferir parar, cancele pelo app antes dessa data e <b>nada sera cobrado</b>.</p>' +
+        '<div style="text-align:center;margin:24px 0 6px">' +
+          '<a href="https://app.wpktavares.com.br" style="display:inline-block;' +
+            'background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;text-decoration:none;' +
+            'padding:13px 30px;border-radius:11px;font-weight:800;font-size:14.5px">Abrir o app</a>' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:16px 26px;border-top:1px solid #eef1ee;color:#8a9a8e;font-size:11.5px">' +
+        'WPK Tavares - Equipe Lapidados' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  _enviarEmailWpk_(ctx.email, 'Seu teste termina em ' + dias + ' dias',
+    'Seu periodo de teste termina em ' + dias + ' dias. Cobranca em ' + (ctx.dataCobranca || '-') +
+    ', R$ ' + (ctx.valor || 17) + ',00/mes. Para continuar nao precisa fazer nada; para parar, cancele pelo app antes.',
+    html);
+  return { ok: true };
+}
+
+// Cria o trigger diário (rodar 1x no editor, ou pelo painel)
+function setupLembretesTrial() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'enviarLembretesTrial') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('enviarLembretesTrial').timeBased().everyDays(1).atHour(9).create();
+  return 'Trigger diário criado (9h).';
+}
+
+// ROTA ADMIN: liga o trigger e/ou roda agora
+function lembretesAcao(token, data) {
+  var user = getUserByToken(token);
+  if (!user || user.role !== 'admin') return { ok: false, error: 'Sem permissão.' };
+  var acao = String((data || {}).acao || '');
+  if (acao === 'ativar') return { ok: true, message: setupLembretesTrial() };
+  if (acao === 'rodar')  return enviarLembretesTrial();
+  return { ok: false, error: 'Ação inválida.' };
+}
