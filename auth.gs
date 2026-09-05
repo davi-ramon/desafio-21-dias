@@ -386,8 +386,16 @@ function sendPasswordReset(email) {
 
   const subject = wsNome + ' — Código de recuperação de senha';
   const html    = _buildResetEmailHtml_(user.name || email, code, wsNome);
+  // v146: era MailApp.sendEmail direto. Isso sai da conta do DONO DO SCRIPT,
+  // sem SPF/DKIM alinhado ao wpktavares.com.br — o Gmail costuma descartar
+  // em silêncio, sem cair nem no spam. Todo o resto do sistema já usava
+  // _enviarEmailWpk_, que tenta o Resend com o domínio verificado primeiro
+  // e só cai em Gmail/MailApp se ele falhar. A recuperação de senha tinha
+  // ficado de fora, e é justamente o e-mail que a pessoa mais precisa receber.
   try {
-    MailApp.sendEmail({ to: email, subject: subject, htmlBody: html });
+    var _envio = _enviarEmailWpk_(email, subject,
+      'Seu codigo de recuperacao e ' + code + '. Ele vale por 5 minutos.', html);
+    logAction(email, 'PASSWORD_RESET_VIA', 'user', '', (_envio && _envio.via) || 'desconhecido');
   } catch(mailErr) {
     return { ok: false, error: 'Erro ao enviar e-mail: ' + mailErr.message };
   }

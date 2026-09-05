@@ -268,6 +268,7 @@ function handleRequest(payload) {
     case 'capiSalvarConfig':         return capiSalvarConfig(token, data && data.cfg);
     case 'capiTestar':               return capiTestar(token);
     case 'lembretesAcao':            return lembretesAcao(token, data);
+    case 'diagnosticarAluno':        return diagnosticarAluno(token, data);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)
