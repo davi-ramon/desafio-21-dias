@@ -258,6 +258,8 @@ function handleRequest(payload) {
     case 'verificarCodigoTrial':     return verificarCodigoTrial(data);
     case 'validarWhatsappTrial':     return validarWhatsappTrial(data);
     case 'criarCheckoutTrialCartao': return criarCheckoutTrialCartao(data);
+    // v151 — prova social com dados reais (publica, sem token)
+    case 'getAtividadeReal':         return getAtividadeReal(data);
     // v143 — WhatsApp Cloud API + automacoes (admin)
     case 'waStatus':                 return waStatus(token);
     case 'waListarTemplates':        return waListarTemplates(token);

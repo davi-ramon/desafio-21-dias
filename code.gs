@@ -229,7 +229,9 @@ function doPost(e) {
       payload.action === 'enviarCodigoTrial'        ||
       payload.action === 'verificarCodigoTrial'     ||
       payload.action === 'validarWhatsappTrial'     ||
-      payload.action === 'criarCheckoutTrialCartao'
+      payload.action === 'criarCheckoutTrialCartao' ||
+      // v151 — atividade real do checkout (leitura publica, sem dado pessoal)
+      payload.action === 'getAtividadeReal'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);
