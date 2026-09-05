@@ -11351,6 +11351,35 @@ function pmAtualizarMini() {
   .pf-termo-merc, .pf-termo-bulbo, .pf-audio-play.tocando, .pf-audio-play.carregando { animation:none; }
 }
 
+
+/* ═══ Troca de e-mail da conta (v148) ════════════════════════ */
+.pf-troca-ov { position:fixed; inset:0; z-index:100000; background:rgba(4,10,7,.78);
+  backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:20px;
+  animation:pfTrIn .22s ease both; }
+@keyframes pfTrIn { from{opacity:0} to{opacity:1} }
+.pf-troca { width:min(400px,100%); background:#0e1a14; border:1px solid rgba(76,175,80,.22);
+  border-radius:18px; padding:26px 24px; box-shadow:0 30px 60px rgba(0,0,0,.55);
+  animation:pfTrSobe .3s cubic-bezier(.16,1,.3,1) both; }
+@keyframes pfTrSobe { from{opacity:0;transform:translateY(14px) scale(.98)} to{opacity:1;transform:none} }
+.pf-troca-t { font-size:17px; font-weight:800; color:var(--text); margin-bottom:8px; }
+.pf-troca-s { font-size:13px; color:var(--muted); line-height:1.65; margin-bottom:18px; }
+.pf-troca-s b { color:var(--text); word-break:break-all; }
+.pf-troca-in { width:100%; padding:13px 14px; background:#0a1410; border:1px solid rgba(255,255,255,.1);
+  border-radius:11px; color:var(--text); font-size:15px; font-family:inherit;
+  transition:border-color .18s, box-shadow .18s; }
+.pf-troca-in:focus { outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(76,175,80,.15); }
+.pf-troca-in::placeholder { color:#3d5347; }
+.pf-troca-cod { text-align:center; font-size:26px; font-weight:700; letter-spacing:11px; padding-left:11px; }
+.pf-troca-err { font-size:12px; color:#e2626b; min-height:17px; margin-top:6px; line-height:1.4; }
+.pf-troca .pf-btn { width:100%; margin-top:6px; }
+.pf-btn-ghost { width:100%; margin-top:8px; padding:11px; border-radius:11px; cursor:pointer;
+  font-family:inherit; font-size:13px; font-weight:600; background:none; border:none; color:var(--muted); }
+.pf-btn-ghost:hover { color:var(--text); }
+.pf-troca-ok { width:52px; height:52px; margin:0 auto 14px; border-radius:50%;
+  background:rgba(76,175,80,.15); color:var(--green); font-size:26px; font-weight:800;
+  display:flex; align-items:center; justify-content:center; }
+@media (prefers-reduced-motion:reduce){ .pf-troca-ov,.pf-troca{animation:none} }
+
 /* ═══ FLASHCARDS — repetição espaçada (v134) ══════════════════ */
 .fc-wrap { display:flex; flex-direction:column; height:100%; padding:14px; gap:12px;
   overflow-y:auto; font-size:13px; }
@@ -12513,10 +12542,15 @@ function renderConfigPrefs(body) {
       '<div class="pf-av-txt">' +
         '<input class="pf-nome" id="pfNome" value="' + muEsc(nome) + '" maxlength="80" ' +
                'placeholder="Seu nome" aria-label="Seu nome">' +
-        '<div class="pf-email" title="O e-mail da compra não pode ser alterado">' +
-          '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">' +
-            '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> ' +
-          muEsc(d.email || '') +
+        // v148: o e-mail deixou de ser intocável. Quem perde o acesso à
+        // caixa antiga ficava trancado fora para sempre — foi o caso que
+        // motivou isto. A troca é confirmada por código no endereço NOVO.
+        '<div class="pf-email">' +
+          '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' +
+            '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg> ' +
+          '<span id="pfEmailAtual">' + muEsc(d.email || '') + '</span>' +
+          '<button type="button" class="pf-linkbtn" id="pfTrocarEmail" ' +
+                  'style="margin-left:6px">trocar</button>' +
         '</div>' +
         (foto ? '<button type="button" class="pf-linkbtn" id="pfFotoRemover" ' +
                 'style="margin-top:5px">Remover foto</button>' : '') +
@@ -12698,6 +12732,9 @@ function _pfLigarEventos(body) {
       if (inpFoto.files && inpFoto.files[0]) _pfEnviarFoto(inpFoto.files[0]);
     });
   }
+  var btnTroca = document.getElementById('pfTrocarEmail');
+  if (btnTroca) btnTroca.addEventListener('click', _pfAbrirTrocaEmail);
+
   var remFoto = document.getElementById('pfFotoRemover');
   if (remFoto) remFoto.addEventListener('click', _pfRemoverFoto);
 
@@ -12979,6 +13016,129 @@ function _leitLivrosVisiveis() {
   if (!ocultos.length) return todos;
   var out = todos.filter(function (l) { return ocultos.indexOf(l.id) < 0; });
   return out.length ? out : todos;
+}
+
+
+// ── Troca de e-mail da conta (v148) ─────────────────────────
+// Duas etapas: informa o novo endereço e confirma com o código
+// que chega NELE. Não pedimos código no e-mail antigo de
+// propósito: quem precisa deste recurso normalmente perdeu
+// justamente o acesso a ele.
+var _pfTroca = { etapa: 1, novo: '' };
+
+function _pfAbrirTrocaEmail() {
+  _pfTroca = { etapa: 1, novo: '' };
+  var ov = document.createElement('div');
+  ov.className = 'pf-troca-ov';
+  ov.id = 'pfTrocaOv';
+  ov.innerHTML = '<div class="pf-troca" id="pfTrocaCard"></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function (ev) { if (ev.target === ov) _pfFecharTroca(); });
+  _pfRenderTroca();
+}
+
+function _pfFecharTroca() {
+  var ov = document.getElementById('pfTrocaOv');
+  if (ov) ov.remove();
+}
+
+function _pfRenderTroca() {
+  var c = document.getElementById('pfTrocaCard');
+  if (!c) return;
+  var atual = (APP.data && APP.data.email) || '';
+
+  if (_pfTroca.etapa === 1) {
+    c.innerHTML =
+      '<div class="pf-troca-t">Trocar e-mail de acesso</div>' +
+      '<div class="pf-troca-s">Hoje você entra com <b>' + muEsc(atual) + '</b>.<br>' +
+      'Informe o novo endereço — vamos mandar um código para ele.</div>' +
+      '<input class="pf-troca-in" id="pfNovoEmail" type="email" autocomplete="email" ' +
+             'spellcheck="false" placeholder="novo@email.com">' +
+      '<div class="pf-troca-err" id="pfTrocaErr"></div>' +
+      '<button class="pf-btn" id="pfTrocaEnviar">Enviar código</button>' +
+      '<button class="pf-btn-ghost" onclick="_pfFecharTroca()">Cancelar</button>';
+    document.getElementById('pfTrocaEnviar').addEventListener('click', _pfEnviarCodigoTroca);
+    setTimeout(function () { var e = document.getElementById('pfNovoEmail'); if (e) e.focus(); }, 60);
+  } else {
+    c.innerHTML =
+      '<div class="pf-troca-t">Confirme o novo e-mail</div>' +
+      '<div class="pf-troca-s">Enviamos um código de 6 dígitos para <b>' +
+        muEsc(_pfTroca.novo) + '</b>. Ele vale por 10 minutos.</div>' +
+      '<input class="pf-troca-in pf-troca-cod" id="pfCodTroca" inputmode="numeric" ' +
+             'maxlength="6" autocomplete="one-time-code" placeholder="000000">' +
+      '<div class="pf-troca-err" id="pfTrocaErr"></div>' +
+      '<button class="pf-btn" id="pfTrocaConfirmar">Confirmar troca</button>' +
+      '<button class="pf-btn-ghost" id="pfTrocaVoltar">Usar outro e-mail</button>';
+    document.getElementById('pfTrocaConfirmar').addEventListener('click', _pfConfirmarTroca);
+    document.getElementById('pfTrocaVoltar').addEventListener('click', function () {
+      _pfTroca.etapa = 1; _pfRenderTroca();
+    });
+    var cod = document.getElementById('pfCodTroca');
+    cod.addEventListener('input', function () {
+      var v = this.value.replace(/\D/g, '').slice(0, 6);
+      if (v !== this.value) this.value = v;
+      if (v.length === 6) document.getElementById('pfTrocaConfirmar').click();
+    });
+    setTimeout(function () { cod.focus(); }, 60);
+  }
+}
+
+function _pfTrocaErro(msg) {
+  var e = document.getElementById('pfTrocaErr');
+  if (e) e.textContent = msg || '';
+}
+
+async function _pfEnviarCodigoTroca() {
+  var campo = document.getElementById('pfNovoEmail');
+  var novo = (campo.value || '').trim().toLowerCase();
+  _pfTrocaErro('');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(novo)) {
+    _pfTrocaErro('Informe um e-mail válido.'); campo.focus(); return;
+  }
+  if (novo === String((APP.data && APP.data.email) || '').toLowerCase()) {
+    _pfTrocaErro('Esse já é o seu e-mail atual.'); return;
+  }
+
+  var btn = document.getElementById('pfTrocaEnviar');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    var r = await rpc('solicitarTrocaEmail', { novoEmail: novo });
+    if (!r || !r.ok) { _pfTrocaErro((r && r.error) || 'Não consegui enviar.'); return; }
+    _pfTroca.novo = novo;
+    _pfTroca.etapa = 2;
+    _pfRenderTroca();
+  } catch (e) {
+    _pfTrocaErro('Erro de conexão. Tente de novo.');
+  } finally {
+    if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = 'Enviar código'; }
+  }
+}
+
+async function _pfConfirmarTroca() {
+  var cod = document.getElementById('pfCodTroca');
+  var codigo = (cod.value || '').replace(/\D/g, '');
+  _pfTrocaErro('');
+  if (codigo.length !== 6) { _pfTrocaErro('Digite os 6 dígitos.'); return; }
+
+  var btn = document.getElementById('pfTrocaConfirmar');
+  btn.disabled = true; btn.textContent = 'Confirmando...';
+  try {
+    var r = await rpc('confirmarTrocaEmail', { codigo: codigo });
+    if (!r || !r.ok) { _pfTrocaErro((r && r.error) || 'Código incorreto.'); return; }
+    // A troca zera o token no servidor: a sessão atual morreu junto.
+    var c = document.getElementById('pfTrocaCard');
+    c.innerHTML =
+      '<div class="pf-troca-ok">✓</div>' +
+      '<div class="pf-troca-t">E-mail trocado</div>' +
+      '<div class="pf-troca-s">A partir de agora você entra com <b>' + muEsc(r.novo) + '</b>.<br>' +
+      'Seu progresso e sua assinatura continuam iguais.<br><br>' +
+      'Precisamos que você entre de novo.</div>' +
+      '<button class="pf-btn" onclick="location.href=\'/app/\'">Entrar de novo</button>';
+  } catch (e) {
+    _pfTrocaErro('Erro de conexão. Tente de novo.');
+  } finally {
+    if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = 'Confirmar troca'; }
+  }
 }
 
 // O drawer do app-enhance.js chama isto se existir
