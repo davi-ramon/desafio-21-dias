@@ -3126,6 +3126,13 @@ window.addEventListener('load', function() {
     var view   = qp.get('view');
     var provider = qp.get('provider') || 'stripe';
 
+    // v149: rota dedicada /app/billing + formato novo de retorno
+    if (location.pathname.indexOf('/app/billing') === 0) APP._billingRoute = true;
+    var st2 = qp.get('status');
+    if (st2 === 'success')   status = 'sucesso';
+    if (st2 === 'cancelled') status = 'cancelado';
+    if (st2) APP._billingRoute = true;
+
     if (status === 'sucesso') {
       APP._stripeReturnStatus = 'sucesso';
       APP._stripeReturnProvider = provider;
@@ -3140,24 +3147,34 @@ window.addEventListener('load', function() {
   } catch(e) {}
 
   // Limpa a URL (remove parametros de retorno)
-  try { history.replaceState({}, '', '/app'); } catch(e) {}
+  // v149: preserva o caminho de billing. Antes zerava tudo para '/app',
+  // o que apagaria a rota dedicada no primeiro segundo de vida dela.
+  try { history.replaceState({}, '', APP._billingRoute ? '/app/billing' : '/app'); } catch(e) {}
 
   const av = APP.userName ? APP.userName[0].toUpperCase() : 'A';
   document.getElementById('avatarEl').textContent = av;
   loadAlunoData();
   loadNotificacoesBackground();
 
-  // v98/v99: se voltou do Stripe, navega para a tela de assinatura e mostra status
-  if (APP._stripeReturnStatus || APP._stripeReturnView) {
+  // v98/v99/v149: retorno do provedor OU entrada direta em /app/billing.
+  // A sessão já foi validada acima (APP.token), então não há novo login.
+  if (APP._stripeReturnStatus || APP._stripeReturnView || APP._billingRoute) {
     setTimeout(function() {
       try { navigate('assinatura'); } catch(e) {}
+
+      // v149: ressincroniza com o backend ANTES de dar o veredito. O
+      // webhook é a fonte de verdade e pode chegar depois do redirect —
+      // sem isso a tela mostraria o estado anterior à compra.
       if (APP._stripeReturnStatus === 'sucesso') {
-        setTimeout(function() {
+        _billingResync(function () {
           var prov = APP._stripeReturnProvider || 'stripe';
-          toast('Pagamento confirmado! Sua assinatura ' + (prov === 'stripe' ? 'Stripe' : 'Cakto') + ' foi ativada.', 'success');
-        }, 1200);
+          toast('Pagamento confirmado! Sua assinatura ' +
+                (prov === 'stripe' ? 'Stripe' : 'Cakto') + ' foi ativada.', 'success');
+        });
       } else if (APP._stripeReturnStatus === 'cancelada') {
-        setTimeout(function() { toast('Checkout cancelado. Voce pode tentar de novo quando quiser.', 'info'); }, 800);
+        setTimeout(function() {
+          toast('Você cancelou antes de concluir. Nada foi alterado na sua assinatura.', 'info');
+        }, 700);
       }
       APP._stripeReturnStatus = null;
       APP._stripeReturnProvider = null;
@@ -3165,6 +3182,29 @@ window.addEventListener('load', function() {
     }, 600);
   }
 });
+
+// v149: recarrega assinatura do servidor e redesenha a tela.
+// Tenta mais de uma vez porque o webhook do provedor pode demorar
+// alguns segundos a chegar depois que o usuário já voltou.
+function _billingResync(aoTerminar, tentativa) {
+  tentativa = tentativa || 1;
+  rpc('getAlunoData', {}).then(function (r) {
+    if (r && r.ok && r.data) {
+      APP.data = r.data;
+      if (r.data.subscription) APP.subscription = r.data.subscription;
+      var ativa = APP.subscription &&
+                  ['active', 'trialing', 'grace'].indexOf(String(APP.subscription.status)) >= 0;
+      if (!ativa && tentativa < 3) {
+        setTimeout(function () { _billingResync(aoTerminar, tentativa + 1); }, 2500);
+        return;
+      }
+    }
+    try { if (APP.page === 'assinatura') renderAssinatura(); } catch (e) {}
+    if (aoTerminar) aoTerminar();
+  }).catch(function () {
+    if (aoTerminar) aoTerminar();
+  });
+}
 
 // ════════════════════════════════════════════════════════════
 // RPC — fetch() para o GAS doPost (sem google.script.run)
@@ -4411,7 +4451,7 @@ function renderPerfil() {
     .premium-card .prem-glow{position:absolute;inset:0;background:radial-gradient(140px 90px at 88% 0%,rgba(76,175,80,.16),transparent 70%);pointer-events:none}
     @keyframes premIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
   </style>
-  <div class="card premium-card" onclick="navigateSub('assinatura')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){navigateSub('assinatura')}">
+  <div class="card premium-card" onclick="abrirBilling()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){abrirBilling()}">
     <div class="prem-glow"></div>
     <div style="display:flex;align-items:center;gap:14px">
       <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#4caf50,#2e6b31);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(76,175,80,.35)">
@@ -4419,7 +4459,7 @@ function renderPerfil() {
       </div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <div style="font-size:15px;font-weight:800;color:var(--text)">Assinatura Premium</div>
+          <div style="font-size:15px;font-weight:800;color:var(--text)">Gerenciar assinatura</div>
           <span style="background:${c2}22;color:${c2};font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap">${l2}</span>
         </div>
         <div style="font-size:12px;color:var(--muted);margin-top:3px">${escH(si)}</div>
@@ -11352,6 +11392,45 @@ function pmAtualizarMini() {
 }
 
 
+
+/* ═══ Tela-ponte de billing (v149) ═══════════════════════════ */
+.bridge-ov { position:fixed; inset:0; z-index:100001; display:flex; align-items:center;
+  justify-content:center; padding:20px; background:rgba(240,245,241,.96);
+  backdrop-filter:blur(6px); animation:brIn .25s ease both; }
+.bridge-ov.saindo { animation:brOut .2s ease forwards; }
+@keyframes brIn { from{opacity:0} to{opacity:1} }
+@keyframes brOut { to{opacity:0} }
+.bridge-card { width:min(360px,100%); background:#fff; border-radius:22px; padding:34px 28px;
+  text-align:center; box-shadow:0 24px 60px rgba(20,50,30,.16);
+  animation:brSobe .4s cubic-bezier(.16,1,.3,1) both; }
+@keyframes brSobe { from{opacity:0;transform:translateY(16px) scale(.97)} to{opacity:1;transform:none} }
+.bridge-logo { width:60px; height:60px; margin:0 auto 18px; border-radius:18px;
+  background:linear-gradient(135deg,#e8f5e9,#c8e6c9); display:flex; align-items:center;
+  justify-content:center; animation:brPulsa 2.2s ease-in-out infinite; }
+@keyframes brPulsa { 0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(76,175,80,.28)}
+  50%{transform:scale(1.05);box-shadow:0 0 0 14px rgba(76,175,80,0)} }
+.bridge-t { font-size:17px; font-weight:800; color:#1b3a24; margin-bottom:7px; }
+.bridge-msg { font-size:13px; color:#5c7a63; min-height:20px; transition:opacity .22s; line-height:1.5; }
+.bridge-bar { height:5px; background:#e3ede5; border-radius:3px; overflow:hidden; margin:20px 0 14px; }
+.bridge-fill { height:100%; width:0%; border-radius:3px;
+  background:linear-gradient(90deg,#66bb6a,#2e7d32); transition:width .35s ease; }
+.bridge-dots { display:flex; gap:6px; justify-content:center; margin-bottom:6px; }
+.bridge-dots span { width:7px; height:7px; border-radius:50%; background:#a5d6a7;
+  animation:brDot 1.3s ease-in-out infinite; }
+.bridge-dots span:nth-child(2){animation-delay:.18s} .bridge-dots span:nth-child(3){animation-delay:.36s}
+@keyframes brDot { 0%,100%{opacity:.35;transform:translateY(0)} 50%{opacity:1;transform:translateY(-4px)} }
+.bridge-cancel { margin-top:14px; background:none; border:none; color:#8aa392; font-family:inherit;
+  font-size:12.5px; cursor:pointer; padding:6px; }
+.bridge-cancel:hover { color:#4a6b52; }
+.bridge-btn { margin-top:16px; width:100%; padding:13px; border:none; border-radius:12px;
+  background:linear-gradient(135deg,#4caf50,#2e7d32); color:#fff; font-family:inherit;
+  font-size:14px; font-weight:800; cursor:pointer; }
+.bridge-btn:hover { filter:brightness(1.07); }
+.bridge-erro-ico { width:56px; height:56px; margin:0 auto 16px; border-radius:50%;
+  background:#fdecea; color:#c62828; font-size:26px; font-weight:800; display:flex;
+  align-items:center; justify-content:center; }
+@media (prefers-reduced-motion:reduce){ .bridge-ov,.bridge-card,.bridge-logo,.bridge-dots span{animation:none} }
+
 /* ═══ Troca de e-mail da conta (v148) ════════════════════════ */
 .pf-troca-ov { position:fixed; inset:0; z-index:100000; background:rgba(4,10,7,.78);
   backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; padding:20px;
@@ -13018,6 +13097,170 @@ function _leitLivrosVisiveis() {
   return out.length ? out : todos;
 }
 
+
+
+// ════════════════════════════════════════════════════════════
+// BILLING — rota dedicada e tela-ponte (v149)
+// ------------------------------------------------------------
+// A SPA roteia por div, não por URL. Para /app/billing existir de
+// verdade há um rewrite no Hosting apontando para app.html, e o
+// boot lê o caminho. Aqui só mantemos a barra de endereços em dia
+// sem recarregar a página — a sessão continua viva.
+// ════════════════════════════════════════════════════════════
+function abrirBilling() {
+  try { history.pushState({ billing: 1 }, '', '/app/billing'); } catch (e) {}
+  APP._billingRoute = true;
+  navigateSub('assinatura');
+}
+
+// Voltar do navegador sai de /app/billing sem recarregar
+window.addEventListener('popstate', function () {
+  var emBilling = /\/app\/billing\/?$/.test(location.pathname);
+  APP._billingRoute = emBilling;
+  if (emBilling) { if (APP.page !== 'assinatura') navigateSub('assinatura'); }
+  else if (APP.page === 'assinatura') { navigate('perfil'); }
+});
+
+// ── Tela-ponte ──────────────────────────────────────────────
+// Operação externa demora 2 a 10s. Sem isto o app fica mudo e a
+// pessoa clica de novo, o que pode gerar segunda sessão de
+// checkout. A ponte trava o clique e explica o que está havendo.
+var BRIDGE = { aberta: false, timer: null, msgTimer: null, cancelada: false };
+
+var BRIDGE_MSGS = [
+  'Preparando seu ambiente seguro...',
+  'Validando sua assinatura...',
+  'Conectando ao provedor de pagamento...',
+  'Estamos quase lá...'
+];
+
+function _bridgeAbrir(titulo) {
+  if (BRIDGE.aberta) return false;          // trava clique duplo
+  BRIDGE.aberta = true;
+  BRIDGE.cancelada = false;
+
+  var ov = document.createElement('div');
+  ov.className = 'bridge-ov';
+  ov.id = 'bridgeOv';
+  ov.setAttribute('role', 'status');
+  ov.setAttribute('aria-live', 'polite');
+  ov.innerHTML =
+    '<div class="bridge-card">' +
+      '<div class="bridge-logo">' +
+        '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" ' +
+             'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+          '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>' +
+      '</div>' +
+      '<div class="bridge-t" id="bridgeT">' + (titulo || 'Abrindo o ambiente seguro') + '</div>' +
+      '<div class="bridge-msg" id="bridgeMsg">' + BRIDGE_MSGS[0] + '</div>' +
+      '<div class="bridge-bar"><div class="bridge-fill" id="bridgeFill"></div></div>' +
+      '<div class="bridge-dots"><span></span><span></span><span></span></div>' +
+      '<button class="bridge-cancel" id="bridgeCancel">Cancelar</button>' +
+    '</div>';
+  document.body.appendChild(ov);
+
+  document.getElementById('bridgeCancel').addEventListener('click', function () {
+    BRIDGE.cancelada = true;
+    _bridgeFechar();
+    toast('Operação cancelada.', 'info');
+  });
+
+  var i = 0;
+  BRIDGE.msgTimer = setInterval(function () {
+    i = (i + 1) % BRIDGE_MSGS.length;
+    var m = document.getElementById('bridgeMsg');
+    if (!m) return;
+    m.style.opacity = '0';
+    setTimeout(function () { m.textContent = BRIDGE_MSGS[i]; m.style.opacity = '1'; }, 220);
+  }, 2200);
+
+  // Barra sobe até 90% e espera: nunca finge que terminou
+  var p = 0;
+  BRIDGE.timer = setInterval(function () {
+    p = Math.min(90, p + (p < 50 ? 4 : 1.5));
+    var f = document.getElementById('bridgeFill');
+    if (f) f.style.width = p + '%';
+  }, 180);
+
+  return true;
+}
+
+function _bridgeFechar() {
+  clearInterval(BRIDGE.timer);
+  clearInterval(BRIDGE.msgTimer);
+  BRIDGE.aberta = false;
+  var ov = document.getElementById('bridgeOv');
+  if (ov) { ov.classList.add('saindo'); setTimeout(function () { ov.remove(); }, 220); }
+}
+
+function _bridgeErro(msg, aoTentarDeNovo) {
+  clearInterval(BRIDGE.timer);
+  clearInterval(BRIDGE.msgTimer);
+  var c = document.querySelector('#bridgeOv .bridge-card');
+  if (!c) { BRIDGE.aberta = false; toast(msg, 'error'); return; }
+  c.innerHTML =
+    '<div class="bridge-erro-ico">!</div>' +
+    '<div class="bridge-t">Não consegui continuar</div>' +
+    '<div class="bridge-msg" style="opacity:1">' + escH(msg || 'Tente novamente em instantes.') + '</div>' +
+    '<button class="bridge-btn" id="bridgeRetry">Tentar novamente</button>' +
+    '<button class="bridge-cancel" id="bridgeVoltar">Voltar para Gerenciar assinatura</button>';
+  document.getElementById('bridgeVoltar').addEventListener('click', function () {
+    _bridgeFechar();
+  });
+  document.getElementById('bridgeRetry').addEventListener('click', function () {
+    _bridgeFechar();
+    setTimeout(function () { if (aoTentarDeNovo) aoTentarDeNovo(); }, 260);
+  });
+  BRIDGE.aberta = false;   // permite nova tentativa
+}
+
+// ── Executor de operação externa ────────────────────────────
+// idle → loading → success | error | timeout. Nunca fica preso:
+// o teto de 20s existe porque uma promessa que não resolve
+// deixaria o aluno olhando para uma barra parada.
+function billingIr(titulo, fn) {
+  if (!_bridgeAbrir(titulo)) return;
+
+  var resolvido = false;
+  var teto = setTimeout(function () {
+    if (resolvido) return;
+    resolvido = true;
+    _bridgeErro('O provedor demorou demais para responder.', function () { billingIr(titulo, fn); });
+  }, 20000);
+
+  Promise.resolve()
+    .then(fn)
+    .then(function (r) {
+      if (resolvido || BRIDGE.cancelada) return;
+      resolvido = true;
+      clearTimeout(teto);
+
+      if (!r || !r.ok || !r.url) {
+        _bridgeErro((r && r.error) || 'Não consegui abrir o provedor.',
+                    function () { billingIr(titulo, fn); });
+        return;
+      }
+      var f = document.getElementById('bridgeFill');
+      if (f) f.style.width = '100%';
+      var m = document.getElementById('bridgeMsg');
+      if (m) m.textContent = 'Redirecionando com segurança...';
+      setTimeout(function () { location.href = r.url; }, 550);
+    })
+    .catch(function (e) {
+      if (resolvido || BRIDGE.cancelada) return;
+      resolvido = true;
+      clearTimeout(teto);
+      console.error('[billing]', e && e.message);
+      _bridgeErro('Falha de conexão com o provedor.', function () { billingIr(titulo, fn); });
+    });
+}
+
+// ── Ações ───────────────────────────────────────────────────
+function billingPortal() {
+  billingIr('Abrindo o portal de pagamento', function () {
+    return rpc('getStripePortal', {});
+  });
+}
 
 // ── Troca de e-mail da conta (v148) ─────────────────────────
 // Duas etapas: informa o novo endereço e confirma com o código

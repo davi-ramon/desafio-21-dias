@@ -20,8 +20,9 @@ var STRIPE_PRICES = {
   yearly:    'price_1TpShqFbaBx75eKpiExujEAS',  // R$177/ano
 };
 var STRIPE_RETURN_URL       = 'https://app.wpktavares.com.br/app?view=assinatura';
-var STRIPE_SUCCESS_URL      = 'https://app.wpktavares.com.br/app?view=assinatura&checkout=sucesso&provider=stripe';
-var STRIPE_CANCEL_URL       = 'https://app.wpktavares.com.br/app?view=assinatura&checkout=cancelado&provider=stripe';
+// v149: retorno vai para a rota dedicada de billing, preservando contexto
+var STRIPE_SUCCESS_URL      = 'https://app.wpktavares.com.br/app/billing?status=success&provider=stripe';
+var STRIPE_CANCEL_URL       = 'https://app.wpktavares.com.br/app/billing?status=cancelled&provider=stripe';
 // v99: URLs para /planos (iniciadas da pagina de planos, nao da SPA)
 var STRIPE_PLANOS_SUCCESS_URL = 'https://wpktavares.com.br/planos?checkout=sucesso&provider=stripe';
 var STRIPE_PLANOS_CANCEL_URL  = 'https://wpktavares.com.br/planos?checkout=cancelado';
