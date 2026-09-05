@@ -4799,29 +4799,71 @@ async function loteCarregar() {
     var r = await rpc('getLoteConfig', {});
     if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
     var c = r.data || {};
+    var mensal = String(c.modo || 'mensal') !== 'fixo';
+
+    // Previa: mostra o que a pagina exibiria AGORA com a config salva,
+    // para o total ser escolhido olhando o numero real.
+    var previa = '';
+    if (c.previa) {
+      previa = '<div style="margin-top:12px;padding:11px 13px;border-radius:9px;' +
+        'background:rgba(255,157,74,.07);border:1px solid rgba(255,157,74,.25)">' +
+        '<div style="font-size:12px;color:var(--text)">No checkout agora: ' +
+          '<b style="color:#ff9d4a">' + c.previa.restantes + ' vagas restantes</b> na ' +
+          escHtml(c.previa.nome) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:2px">' +
+          c.previa.vendidas + ' de ' + c.previa.total + ' preenchidas &middot; barra em ' +
+          c.previa.ocupacao + '%</div></div>';
+    }
+
     box.innerHTML =
       _taSwitch('lote_ativo', c.ativo, 'Mostrar vagas no checkout',
         'Desligado, o bloco some da p&aacute;gina') +
-      '<div class="form-row" style="margin-top:14px">' +
-        '<div class="form-group"><label class="form-label">Nome da turma</label>' +
+
+      '<div class="form-group" style="margin-top:14px">' +
+        '<label class="form-label">Como o lote funciona</label>' +
+        '<select class="form-control" id="lote_modo" onchange="loteTrocarModo()">' +
+          '<option value="mensal"' + (mensal ? ' selected' : '') + '>Mensal &mdash; renova sozinho na virada do m&ecirc;s</option>' +
+          '<option value="fixo"'   + (mensal ? '' : ' selected') + '>Data fixa &mdash; eu escolho abertura e encerramento</option>' +
+        '</select>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:4px">' +
+          'No mensal, a contagem zera no dia 1&ordm; e o nome vira &ldquo;turma de setembro&rdquo;, ' +
+          '&ldquo;turma de outubro&rdquo; e assim por diante. Voc&ecirc; n&atilde;o precisa mexer todo m&ecirc;s.</div>' +
+      '</div>' +
+
+      '<div class="form-group">' +
+        '<label class="form-label">Quantas vagas por lote</label>' +
+        '<input class="form-control" id="lote_total" value="' + escHtml(c.total || '') + '" placeholder="100" inputmode="numeric">' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:4px">' +
+          'As vagas restantes s&atilde;o <b>este n&uacute;mero menos as ades&otilde;es reais</b> do per&iacute;odo.</div>' +
+      '</div>' +
+
+      '<div id="loteFixo" style="display:' + (mensal ? 'none' : 'block') + '">' +
+        '<div class="form-group">' +
+          '<label class="form-label">Nome da turma</label>' +
           '<input class="form-control" id="lote_nome" value="' + escHtml(c.nome || '') + '" placeholder="Turma de Outubro"></div>' +
-        '<div class="form-group"><label class="form-label">Total de vagas do lote</label>' +
-          '<input class="form-control" id="lote_total" value="' + escHtml(c.total || '') + '" placeholder="100" inputmode="numeric"></div>' +
+        '<div class="form-row">' +
+          '<div class="form-group"><label class="form-label">Abertura do lote</label>' +
+            '<input class="form-control" type="date" id="lote_inicio" value="' + escHtml(String(c.inicio || '').slice(0,10)) + '">' +
+            '<div style="font-size:11px;color:var(--muted);margin-top:4px">A contagem come&ccedil;a nesta data</div></div>' +
+          '<div class="form-group"><label class="form-label">Encerramento (opcional)</label>' +
+            '<input class="form-control" type="date" id="lote_fim" value="' + escHtml(String(c.fim || '').slice(0,10)) + '">' +
+            '<div style="font-size:11px;color:var(--muted);margin-top:4px">Passou disso, o bloco some sozinho</div></div>' +
+        '</div>' +
       '</div>' +
-      '<div class="form-row">' +
-        '<div class="form-group"><label class="form-label">Abertura do lote</label>' +
-          '<input class="form-control" type="date" id="lote_inicio" value="' + escHtml(String(c.inicio || '').slice(0,10)) + '">' +
-          '<div style="font-size:11px;color:var(--muted);margin-top:4px">A contagem come&ccedil;a nesta data</div></div>' +
-        '<div class="form-group"><label class="form-label">Encerramento (opcional)</label>' +
-          '<input class="form-control" type="date" id="lote_fim" value="' + escHtml(String(c.fim || '').slice(0,10)) + '">' +
-          '<div style="font-size:11px;color:var(--muted);margin-top:4px">Passou disso, o bloco some sozinho</div></div>' +
-      '</div>' +
-      '<button class="btn btn-primary btn-sm" onclick="loteSalvar()">Salvar lote</button>' +
+
+      previa +
+      '<button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="loteSalvar()">Salvar lote</button>' +
       '<div id="loteRes" style="margin-top:8px"></div>';
   } catch (e) {
     box.innerHTML = '<div style="font-size:12px;color:var(--danger)">N&atilde;o consegui carregar. ' +
       '<button class="btn btn-ghost btn-sm" onclick="loteCarregar()">Tentar de novo</button></div>';
   }
+}
+
+function loteTrocarModo() {
+  var sel = document.getElementById('lote_modo');
+  var box = document.getElementById('loteFixo');
+  if (sel && box) box.style.display = sel.value === 'fixo' ? 'block' : 'none';
 }
 
 async function loteSalvar() {
@@ -4832,6 +4874,7 @@ async function loteSalvar() {
   try {
     var r = await rpc('salvarLoteConfig', { data: {
       ativo:  chk('lote_ativo'),
+      modo:   val('lote_modo') || 'mensal',
       nome:   val('lote_nome'),
       total:  val('lote_total'),
       inicio: val('lote_inicio'),
@@ -4842,6 +4885,7 @@ async function loteSalvar() {
       return;
     }
     res.innerHTML = '<span style="font-size:12px;color:var(--success)">' + escHtml(r.message || 'Salvo.') + '</span>';
+    setTimeout(loteCarregar, 900);
   } catch (e) {
     res.innerHTML = '<span style="font-size:12px;color:var(--danger)">Erro de conex&atilde;o.</span>';
   }

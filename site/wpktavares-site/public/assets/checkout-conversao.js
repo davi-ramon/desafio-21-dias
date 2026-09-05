@@ -424,18 +424,28 @@
         if (!l) { el.style.display = 'none'; return; }
 
         var t = el.querySelector('.ckv-lote-t');
+        var s = el.querySelector('.ckv-lote-s');
+
         if (l.esgotado) {
           el.classList.add('esgotado');
-          if (t) t.innerHTML = '<strong>Lote esgotado.</strong> Entre agora para a lista do próximo.';
+          if (t) t.innerHTML = '<strong>Lote esgotado</strong> — ' +
+            esc(l.nome ? ('a ' + l.nome + ' fechou') : 'este lote fechou');
+          if (s) s.textContent = l.mensal
+            ? 'As próximas vagas abrem na virada do mês.'
+            : 'Fique de olho: avisamos quando o próximo abrir.';
         } else {
           if (t) {
             t.innerHTML = '<strong>' + l.restantes +
               (l.restantes === 1 ? ' vaga restante' : ' vagas restantes') + '</strong> ' +
               esc(l.nome ? ('na ' + l.nome) : 'neste lote');
           }
+          // A sub-linha mostra a conta na cara: quantas das quantas.
+          // É o que torna o número verificável em vez de só alarmante.
+          if (s) s.textContent = l.vendidas + ' de ' + l.total + ' já preenchidas';
         }
+
         var fill = el.querySelector('.ckv-lote-fill');
-        if (fill) setTimeout(function () { fill.style.width = l.ocupacao + '%'; }, 250);
+        if (fill) setTimeout(function () { fill.style.width = Math.max(2, l.ocupacao) + '%'; }, 250);
         el.style.display = 'flex';
       })['catch'](function () { el.style.display = 'none'; });
     }

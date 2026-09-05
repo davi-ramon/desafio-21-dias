@@ -181,14 +181,9 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
       <svg class="ckv-lote-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <div class="ckv-lote-body">
         <div class="ckv-lote-t"></div>
+        <div class="ckv-lote-s"></div>
         <div class="ckv-lote-bar"><div class="ckv-lote-fill"></div></div>
       </div>
-    </div>
-
-    <!-- Alunos — fotos das alunas dos depoimentos + contagem real -->
-    <div class="ckv-alunos" id="ckvAlunos" style="display:none">
-      <div class="ckv-alunos-fotos"></div>
-      <div class="ckv-alunos-txt"></div>
     </div>
 
     <!-- Prova social REAL — preenchida pelo backend, escondida se não houver dado -->
@@ -200,7 +195,7 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card ckv-foco" id="cardForm">
 
       <!-- ETAPA 1 — dados pessoais -->
       <div class="etapa on" id="e1">
@@ -223,7 +218,7 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
           <div class="msg-erro"></div>
         </div>
 
-        <button class="btn" id="btn1"><span>Continuar</span></button>
+        <button class="btn ckv-cta" id="btn1"><span>Continuar</span></button>
       </div>
 
       <!-- ETAPA 2 — validação do e-mail -->
@@ -238,7 +233,7 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
           <div class="msg-erro"></div>
         </div>
 
-        <button class="btn" id="btn2"><span>Confirmar</span></button>
+        <button class="btn ckv-cta" id="btn2"><span>Confirmar</span></button>
         <button class="btn-txt" id="reenviar">Reenviar código</button>
         <button class="btn-txt" id="voltar1">Corrigir meu e-mail</button>
       </div>
@@ -265,7 +260,7 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
           <div class="msg-erro"></div>
         </div>
 
-        <button class="btn" id="btn3"><span>Sim, o número está certo</span></button>
+        <button class="btn ckv-cta" id="btn3"><span>Sim, o número está certo</span></button>
         <button class="btn-txt" id="corrigirZap">Corrigir número</button>
       </div>
 
@@ -296,7 +291,7 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
                 a partir de <b id="rData2">—</b>.</span>
         </label>
 
-        <button class="btn" id="btn4" disabled><span>Cadastrar cartão e começar</span></button>
+        <button class="btn ckv-cta" id="btn4" disabled><span>Cadastrar cartão e começar</span></button>
         <div class="aviso">Você vai para o ambiente seguro do Stripe. Não guardamos dados do seu cartão.</div>
         <button class="btn-txt" id="voltar2">Voltar</button>
       </div>
@@ -313,6 +308,12 @@ footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
         </div>
       </div>
 
+    </div>
+
+    <!-- Alunos — logo abaixo do formulário, fechando o bloco de decisão -->
+    <div class="ckv-alunos abaixo" id="ckvAlunos" style="display:none">
+      <div class="ckv-alunos-fotos"></div>
+      <div class="ckv-alunos-txt"></div>
     </div>
 
     <!-- FAQ — respostas próprias desta modalidade (com cartão) -->
@@ -527,6 +528,8 @@ function erro(campo, texto) {
 function limparErros() { ['cNome','cEmail','cZap','cZap2','cCod'].forEach(function (c) { erro(c, ''); }); }
 function carregando(btn, on, texto) {
   btn.disabled = on;
+  // .ckv-cta fica no elemento, não no conteúdo — trocar o innerHTML não
+  // derruba o pulso. O CSS já para a animação enquanto está disabled.
   btn.innerHTML = on
     ? '<span class="spin"></span><span>' + (texto || 'Aguarde…') + '</span>'
     : '<span>' + btn.getAttribute('data-txt') + '</span>';

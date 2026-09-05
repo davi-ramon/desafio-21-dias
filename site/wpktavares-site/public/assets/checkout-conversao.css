@@ -358,6 +358,7 @@
 .ckv-lote-body{flex:1;min-width:0}
 .ckv-lote-t{font-size:12px;color:var(--text,#dde8dd);line-height:1.35}
 .ckv-lote-t strong{color:var(--orange,#ff9d4a);font-weight:700}
+.ckv-lote-s{font-size:10.5px;color:var(--muted,#6e9070);margin-top:2px}
 .ckv-lote.esgotado .ckv-lote-t strong{color:var(--red,#e84040)}
 .ckv-lote-bar{height:5px;border-radius:4px;background:rgba(255,255,255,0.07);margin-top:6px;overflow:hidden}
 .ckv-lote-fill{
@@ -497,3 +498,70 @@
   .ckv-alunos{padding:11px 13px;gap:10px}
   .ckv-alunos-txt{font-size:11.5px}
 }
+
+/* ══════════════════════════════════
+   FOCO NO FORMULÁRIO (v153)
+   O card onde a pessoa digita os dados respira um verde suave,
+   para o olho voltar pra lá depois de passear pelos depoimentos
+   e pelo rodapé.
+══════════════════════════════════ */
+.ckv-foco{
+  position:relative;
+  animation:ckvRespira 4.5s ease-in-out infinite;
+}
+@keyframes ckvRespira{
+  0%,100%{
+    box-shadow:0 0 0 1px rgba(76,175,80,.18),
+               0 0 26px rgba(76,175,80,.10),
+               0 18px 44px rgba(0,0,0,.34);
+  }
+  50%{
+    box-shadow:0 0 0 1px rgba(109,222,113,.38),
+               0 0 46px rgba(109,222,113,.22),
+               0 18px 44px rgba(0,0,0,.34);
+  }
+}
+/* Enquanto a pessoa está digitando, o brilho sai da frente:
+   já conseguimos a atenção, agora ele só atrapalharia. */
+.ckv-foco:focus-within{animation:none;
+  box-shadow:0 0 0 1px rgba(109,222,113,.34),0 0 34px rgba(109,222,113,.14),
+             0 18px 44px rgba(0,0,0,.34);}
+
+/* ══════════════════════════════════
+   CTA — pulso lento + reflexo passando
+══════════════════════════════════ */
+.ckv-cta{position:relative;overflow:hidden;isolation:isolate;
+  animation:ckvPulso 5s ease-in-out infinite;}
+@keyframes ckvPulso{
+  0%,86%,100%{transform:scale(1);   box-shadow:0 4px 18px rgba(76,175,80,.24)}
+  91%        {transform:scale(1.018);box-shadow:0 6px 30px rgba(109,222,113,.46)}
+  95%        {transform:scale(.997); box-shadow:0 4px 22px rgba(76,175,80,.3)}
+}
+/* Reflexo: a faixa cruza o botão junto com o pico do pulso */
+.ckv-cta::after{
+  content:'';position:absolute;top:0;left:-140%;
+  width:60%;height:100%;z-index:-1;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);
+  transform:skewX(-18deg);
+  animation:ckvReflexo 5s ease-in-out infinite;
+}
+@keyframes ckvReflexo{
+  0%,84%,100%{left:-140%}
+  95%        {left:190%}
+}
+.ckv-cta:hover:not(:disabled){animation-play-state:paused;transform:translateY(-1px)}
+.ckv-cta:hover:not(:disabled)::after{animation-play-state:paused}
+.ckv-cta:active:not(:disabled){transform:translateY(1px) scale(.995)}
+/* Desabilitado ou carregando não pulsa: seria prometer um clique
+   que ainda não funciona. */
+.ckv-cta:disabled{animation:none}
+.ckv-cta:disabled::after{animation:none;left:-140%}
+
+@media (prefers-reduced-motion:reduce){
+  .ckv-foco,.ckv-cta,.ckv-cta::after{animation:none}
+  .ckv-foco{box-shadow:0 0 0 1px rgba(109,222,113,.3),0 0 30px rgba(109,222,113,.14)}
+}
+
+/* Barra de alunos no rodapé do formulário: fica mais discreta que
+   quando estava no topo, para não competir com o CTA logo acima. */
+.ckv-alunos.abaixo{margin:16px 0 4px}

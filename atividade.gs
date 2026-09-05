@@ -134,6 +134,20 @@ function getAtividadeReal(data) {
 // lote configurado e aberto, a rota devolve null e a página
 // simplesmente não mostra o bloco.
 // ─────────────────────────────────────────────────────────────
+var AT_MESES = ['janeiro','fevereiro','março','abril','maio','junho',
+                'julho','agosto','setembro','outubro','novembro','dezembro'];
+
+// Primeiro instante do mês corrente no fuso de São Paulo. Sem isso o
+// corte cairia em UTC e, entre 21h e 0h, a virada do mês aconteceria
+// um dia antes para quem está no Brasil.
+function _atInicioDoMes_() {
+  var agora = new Date();
+  var ano = parseInt(Utilities.formatDate(agora, 'America/Sao_Paulo', 'yyyy'), 10);
+  var mes = parseInt(Utilities.formatDate(agora, 'America/Sao_Paulo', 'MM'), 10);
+  var iso = Utilities.formatString('%04d-%02d-01T00:00:00-03:00', ano, mes);
+  return { ms: new Date(iso).getTime(), mes: mes, ano: ano };
+}
+
 function _atLoteConfig_() {
   try {
     if (String(getConfig_('lote_ativo') || '') !== '1') return null;
@@ -141,6 +155,21 @@ function _atLoteConfig_() {
     var total = parseInt(getConfig_('lote_total'), 10);
     if (!total || total < 1) return null;
 
+    // ── Modo mensal: o lote se renova sozinho na virada do mês.
+    // O cliente abre de 50 a 100 vagas por mês; sem isso ele teria que
+    // reconfigurar a data toda virada, e um lote esquecido apareceria
+    // "esgotado" para sempre.
+    if (String(getConfig_('lote_modo') || '') === 'mensal') {
+      var m = _atInicioDoMes_();
+      return {
+        nome: 'turma de ' + AT_MESES[m.mes - 1],
+        total: total,
+        mensal: true,
+        _inicioMs: m.ms
+      };
+    }
+
+    // ── Modo data fixa
     var inicioBruto = getConfig_('lote_inicio');
     if (!inicioBruto) return null;
     var inicio = new Date(inicioBruto);
@@ -156,6 +185,7 @@ function _atLoteConfig_() {
     return {
       nome: String(getConfig_('lote_nome') || 'turma atual'),
       total: total,
+      mensal: false,
       _inicioMs: inicio.getTime()
     };
   } catch (e) { return null; }
@@ -170,6 +200,7 @@ function _atLoteResultado_(lote, vendidas) {
     vendidas: vendidas,
     restantes: restantes,
     esgotado: restantes === 0,
+    mensal: !!lote.mensal,
     // Ocupação real, sem piso artificial: se o lote acabou de abrir,
     // a barra fica vazia mesmo.
     ocupacao: Math.round((vendidas / lote.total) * 100)
@@ -183,12 +214,22 @@ function getLoteConfig(token) {
   var user = getUserByToken(token);
   if (!user) return { ok: false, error: 'Não autorizado.' };
   try {
+    // Prévia do que a página mostraria agora — o cliente decide o
+    // total olhando o número real, não no escuro.
+    var previa = null;
+    try {
+      var at = getAtividadeReal({ limite: 1 });
+      previa = at && at.data ? at.data.lote : null;
+    } catch (e) {}
+
     return { ok: true, data: {
       ativo:  String(getConfig_('lote_ativo') || '') === '1',
+      modo:   String(getConfig_('lote_modo') || 'mensal'),
       nome:   String(getConfig_('lote_nome') || ''),
       total:  String(getConfig_('lote_total') || ''),
       inicio: String(getConfig_('lote_inicio') || ''),
-      fim:    String(getConfig_('lote_fim') || '')
+      fim:    String(getConfig_('lote_fim') || ''),
+      previa: previa
     } };
   } catch (e) { return { ok: false, error: e.message }; }
 }
@@ -199,21 +240,27 @@ function salvarLoteConfig(token, data) {
   var d = data || {};
 
   var ativo = d.ativo ? '1' : '';
+  var modo  = String(d.modo || 'mensal') === 'fixo' ? 'fixo' : 'mensal';
+
   if (ativo) {
     // Só deixa ativar com os dados que tornam o número verdadeiro.
     var total = parseInt(d.total, 10);
-    if (!total || total < 1) return { ok: false, error: 'Informe o total de vagas do lote.' };
-    if (!d.inicio) return { ok: false, error: 'Informe a data de abertura do lote.' };
-    var ini = new Date(d.inicio);
-    if (isNaN(ini.getTime())) return { ok: false, error: 'Data de abertura inválida.' };
-    if (d.fim) {
-      var f = new Date(d.fim);
-      if (isNaN(f.getTime())) return { ok: false, error: 'Data de encerramento inválida.' };
-      if (f.getTime() <= ini.getTime()) return { ok: false, error: 'O encerramento tem que ser depois da abertura.' };
+    if (!total || total < 1) return { ok: false, error: 'Informe quantas vagas o lote tem.' };
+
+    if (modo === 'fixo') {
+      if (!d.inicio) return { ok: false, error: 'Informe a data de abertura do lote.' };
+      var ini = new Date(d.inicio);
+      if (isNaN(ini.getTime())) return { ok: false, error: 'Data de abertura inválida.' };
+      if (d.fim) {
+        var f = new Date(d.fim);
+        if (isNaN(f.getTime())) return { ok: false, error: 'Data de encerramento inválida.' };
+        if (f.getTime() <= ini.getTime()) return { ok: false, error: 'O encerramento tem que ser depois da abertura.' };
+      }
     }
   }
 
   setConfig_('lote_ativo',  ativo);
+  setConfig_('lote_modo',   modo);
   setConfig_('lote_nome',   String(d.nome || '').slice(0, 60));
   setConfig_('lote_total',  String(parseInt(d.total, 10) || ''));
   setConfig_('lote_inicio', String(d.inicio || ''));
