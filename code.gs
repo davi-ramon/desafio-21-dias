@@ -231,7 +231,10 @@ function doPost(e) {
       payload.action === 'validarWhatsappTrial'     ||
       payload.action === 'criarCheckoutTrialCartao' ||
       // v151 — atividade real do checkout (leitura publica, sem dado pessoal)
-      payload.action === 'getAtividadeReal'
+      payload.action === 'getAtividadeReal'         ||
+      // v154 — a pagina de obrigado consulta antes de existir sessao;
+      // quem manda e o session_id validado na API do Stripe
+      payload.action === 'statusTrialCartao'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

@@ -121,6 +121,18 @@ function _stripeOnCheckout_(session) {
       dispararAutomacoesTrial_(email, sub);
     }
   } catch (e) { logAction(email, 'TRIAL_AUTO_ERRO', 'stripe', '', e.message); }
+
+  // v154: fecha o lead e carimba a assinatura como provisionada, para a
+  // pagina /obrigado nao refazer o trabalho (e nao reenviar e-mail).
+  try {
+    if (typeof _tpMarcarLeadConvertido_ === 'function') {
+      _tpMarcarLeadConvertido_(email, _tpDiasDoTrial_(sub));
+    }
+    _stripeCall_('post', '/v1/subscriptions/' + encodeURIComponent(sub.id),
+                 { 'metadata[provisionado]': '1',
+                   'metadata[provisionado_em]': new Date().toISOString() });
+    logAction(email, 'PROVISIONING_COMPLETE', 'webhook', sub.id, 'via checkout.session.completed');
+  } catch (e) { logAction(email, 'PROV_MARCA_ERRO', 'stripe', '', e.message); }
 }
 
 function _stripeOnSubSync_(sub)    { _stripeSyncAssinatura_(_stripeEmailDaSub_(sub), sub, false); }
@@ -546,7 +558,16 @@ function criarCheckoutStripe(data) {
     'billing_address_collection': 'auto',
   };
   if (data && data.email) params['customer_email'] = String(data.email);
-  if (trial > 0) params['subscription_data[trial_period_days]'] = String(trial);
+  if (trial > 0) {
+    params['subscription_data[trial_period_days]'] = String(trial);
+
+    // v154 (spec secao 9): trial exige cartao. Sem fixar aqui, o Stripe
+    // oferece os metodos do dashboard — inclusive boleto, que nao serve
+    // para debito recorrente e voltava para /obrigado como se estivesse
+    // aprovado, quando o boleto sequer tinha sido pago.
+    params['payment_method_types[0]'] = 'card';
+    params['subscription_data[trial_settings][end_behavior][missing_payment_method]'] = 'cancel';
+  }
 
   // v99: metadata para o webhook saber o que fazer (origem + intent)
   if (data && data.email) {
@@ -555,6 +576,18 @@ function criarCheckoutStripe(data) {
   params['metadata[origin]'] = origin;
   params['metadata[intent]'] = intent;
   params['metadata[plan]']   = plan;
+
+  // v154: a metadata da SESSAO morre com ela. O provisionamento acontece
+  // sobre a ASSINATURA, entao os dados precisam estar la — e o periodo do
+  // trial vira dado auditavel, nao suposicao.
+  if (data && data.email)    params['subscription_data[metadata][email]']    = String(data.email);
+  if (data && data.nome)     params['subscription_data[metadata][nome]']     = String(data.nome);
+  if (data && data.whatsapp) params['subscription_data[metadata][whatsapp]'] = String(data.whatsapp);
+  if (data && data.campanha) params['subscription_data[metadata][campanha]'] = String(data.campanha);
+  if (trial > 0)             params['subscription_data[metadata][trial_dias]'] = String(trial);
+  params['subscription_data[metadata][origem]'] =
+    String((data && data.origemCheckout) || origin);
+  params['subscription_data[metadata][plan]'] = plan;
 
   var resp = _stripeCall_('post', '/v1/checkout/sessions', params);
   if (resp._error) return { ok: false, error: resp.message || 'Erro ao abrir checkout.' };

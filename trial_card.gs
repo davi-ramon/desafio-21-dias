@@ -293,7 +293,11 @@ function criarCheckoutTrialCartao(data) {
   // Guarda o lead antes do Stripe: se a pessoa abandonar o cartão,
   // ainda temos nome, e-mail e WhatsApp para recuperar.
   try {
+    // v154: `dias` faltava aqui. salvarLeadIncompleto_ faz
+    // `parseInt(data.dias) || 7`, entao TODO trial com cartao era gravado
+    // como OfertaDias=7 — mesmo com a origem dizendo 'trial-cartao-14d'.
     salvarLeadIncompleto_({ nome: nome, email: email, whatsapp: tel.e164,
+                            dias: dias, estagio: 'cartao_iniciado',
                             origem: 'trial-cartao-' + dias + 'd' });
   } catch (e) {}
 
@@ -303,6 +307,12 @@ function criarCheckoutTrialCartao(data) {
     email: email,
     intent: 'new',
     origin: 'custom',
+    // v154: viajam junto para a metadata da assinatura. Sem isso o
+    // webhook so tem o e-mail, e nao sabe nem o periodo contratado.
+    nome: nome,
+    whatsapp: tel.e164,
+    campanha: data.campanha || '',
+    origemCheckout: data.origem || 'checkout-trial-cartao',
     returnUrl: String(data.returnUrl || 'https://wpktavares.com.br/checkout-trial/')
   });
   if (!r || !r.ok) return r || { ok: false, error: 'Nao consegui abrir o checkout.' };

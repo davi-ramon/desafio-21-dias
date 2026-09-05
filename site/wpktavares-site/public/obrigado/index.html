@@ -47,6 +47,15 @@ h1 span{color:var(--green-bright);display:block}
 .btn-ghost:hover:not(:disabled){border-color:var(--green);background:rgba(76,175,80,.06)}
 .btn-ghost:disabled{opacity:.5;cursor:default}
 
+/* v154 — resumo do trial: o que foi cobrado hoje (nada) e o que vem depois */
+.tresumo{background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+  padding:4px 18px;margin-bottom:26px;text-align:left}
+.tlinha{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:13.5px;color:var(--muted)}
+.tlinha:last-child{border-bottom:none}
+.tlinha b{color:var(--cream);font-weight:600;text-align:right}
+.tlinha b.zero{color:var(--green-bright)}
+.badge.trial{background:rgba(79,168,255,.12);border-color:rgba(79,168,255,.32);color:#8ec8ff}
 .notice{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-size:12px;color:var(--muted);line-height:1.7;text-align:left;margin-bottom:30px}
 .notice strong{color:var(--cream)}
 
@@ -64,17 +73,28 @@ footer a{color:var(--green);text-decoration:none}
   <!-- ── Confirmando ── -->
   <section id="loading">
     <div class="spinner"></div>
-    <p class="sub" id="loadingMsg">Confirmando seu pagamento…</p>
+    <p class="sub" id="loadingMsg">Confirmando seu cadastro…</p>
   </section>
 
   <!-- ── Confirmado ── -->
   <section id="ok" hidden>
     <div class="confetti">🏆</div>
     <img src="https://i.imgur.com/bOf9i1R.png" alt="WPK Tavares" class="logo">
-    <div class="badge">Assinatura confirmada</div>
+    <div class="badge" id="okBadge">Assinatura confirmada</div>
 
     <h1 id="titulo">Parabéns!<br><span>Você começou<br>algo grande.</span></h1>
     <p class="sub" id="subtitulo">Sua assinatura do <strong>Desafio 21 Dias</strong> está ativa.</p>
+
+    <!-- Resumo do trial — preenchido só quando a assinatura está em teste -->
+    <div class="tresumo" id="trialResumo" hidden>
+      <div class="tlinha"><span>Período de teste</span><b id="trDias">—</b></div>
+      <div class="tlinha"><span>Cobrado hoje</span><b class="zero">R$ 0,00</b></div>
+      <div class="tlinha"><span>Primeira cobrança</span><b id="trData">—</b></div>
+      <div class="tlinha"><span>Valor a partir de então</span><b id="trValor">—</b></div>
+      <div class="tlinha"><span>Cancelamento</span><b>Pelo app, quando quiser</b></div>
+    </div>
+
+    <a href="https://app.wpktavares.com.br" class="btn-primary" id="btnApp" hidden>Acessar o App →</a>
 
     <!-- Comprador novo: precisa criar senha -->
     <div id="blocoNovo" hidden>
@@ -131,9 +151,9 @@ footer a{color:var(--green);text-decoration:none}
   <!-- ── Processando (webhook ainda não chegou) ── -->
   <section id="pendente" hidden>
     <div class="confetti">✅</div>
-    <div class="badge">Pagamento aprovado</div>
+    <div class="badge" id="pendBadge">Cadastro confirmado</div>
     <h1>Tudo certo!<br><span>Preparando<br>seu acesso.</span></h1>
-    <p class="sub">Seu pagamento foi confirmado. Estamos criando seu acesso — isso leva alguns segundos.<br>
+    <p class="sub" id="pendSub">Estamos criando seu acesso — isso leva alguns segundos.<br>
        Em instantes você recebe um e-mail com o link para criar sua senha.</p>
     <div class="notice">
       <strong>Pode fechar esta página com tranquilidade.</strong><br>
@@ -187,61 +207,126 @@ footer a{color:var(--green);text-decoration:none}
 
   var emailComprador = '';
   var tentativas = 0;
-  var MAX = 8;   // ~24s de espera pelo webhook
+  var MAX = 10;              // ~30s antes de assumir que o webhook nao vem
+  var redirTimer = null;
+
+  function moeda(v) {
+    return 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');
+  }
+
+  // Um trial NAO e um pagamento. Enquanto nao houver cobranca, nada nesta
+  // pagina pode dizer "pagamento aprovado" — no dia do cadastro o valor
+  // cobrado e zero.
+  function pintarTrial(res) {
+    var t = res.trial || {};
+    var dias = t.dias || 0;
+    var nome = (res.nome || '').split(' ')[0];
+
+    document.getElementById('okBadge').textContent = 'Teste iniciado';
+    document.getElementById('okBadge').className = 'badge trial';
+    $('titulo').innerHTML = nome
+      ? 'Tudo certo, ' + nome + '!<br><span>Seu teste de<br>' + dias + ' dias começou.</span>'
+      : 'Tudo certo!<br><span>Seu teste de<br>' + dias + ' dias começou.</span>';
+    $('subtitulo').innerHTML =
+      'Seu cartão foi cadastrado com segurança e <strong>nenhuma cobrança foi feita hoje</strong>.';
+
+    $('trDias').textContent  = dias + ' dias';
+    $('trData').textContent  = t.primeiraCobranca || '—';
+    $('trValor').textContent = moeda(t.valor) + '/mês';
+    $('trialResumo').hidden  = false;
+  }
+
+  function pintarCompra(res) {
+    var nome = (res.nome || '').split(' ')[0];
+    document.getElementById('okBadge').textContent = 'Assinatura confirmada';
+    document.getElementById('okBadge').className = 'badge';
+    if (nome) $('titulo').innerHTML = 'Parabéns, ' + nome + '!<br><span>Você começou<br>algo grande.</span>';
+    $('subtitulo').innerHTML = 'Sua assinatura do <strong>Desafio 21 Dias</strong> está ativa.';
+    $('trialResumo').hidden = true;
+  }
+
+  // Redireciona sozinho depois de 5 min — mas so quando o acesso ja existe.
+  // Mandar para o app antes disso seria jogar a pessoa numa tela de login
+  // que ainda nao aceita a senha dela.
+  function agendarRedirect() {
+    if (redirTimer) return;
+    redirTimer = setTimeout(function () {
+      location.href = 'https://app.wpktavares.com.br';
+    }, 5 * 60 * 1000);
+  }
 
   function consultar() {
     tentativas++;
-    rpc('confirmarCheckoutStripe', { sessionId: sessionId }).then(function (res) {
+    rpc('statusTrialCartao', { sessionId: sessionId }).then(function (res) {
       if (!res || !res.ok) {
         $('erroMsg').textContent = (res && res.error) ||
-          'Não conseguimos confirmar esta compra automaticamente.';
-        show('erro');
-        return;
-      }
-
-      if (!res.pago) {
-        $('erroMsg').textContent = 'Ainda não recebemos a confirmação do pagamento. Se você concluiu o checkout, aguarde alguns minutos.';
+          'Não conseguimos confirmar este cadastro automaticamente.';
         show('erro');
         return;
       }
 
       emailComprador = res.email || '';
+      var ehTrial = res.tipo === 'trial';
 
-      // Comprador novo com link de senha pendente
-      if (res.precisaCriarSenha) {
-        if (res.nome) {
-          $('titulo').innerHTML = 'Parabéns,<br><span>' + res.nome.split(' ')[0] + '!</span>';
+      // Boleto pendente e sessao incompleta caem aqui: nunca dizemos
+      // aprovado antes da confirmacao real.
+      if (res.estado === 'validando') {
+        if (tentativas < MAX) {
+          show('loading');
+          $('loadingMsg').textContent = res.mensagem || 'Confirmando seu cadastro…';
+          setTimeout(consultar, 3000);
+        } else {
+          $('erroMsg').textContent = res.mensagem ||
+            'Ainda não recebemos a confirmação. Se você concluiu o checkout, aguarde alguns minutos.';
+          show('erro');
         }
-        $('emailDest').textContent = emailComprador || 'seu e-mail';
-        $('blocoNovo').hidden = false;
-        $('blocoExistente').hidden = true;
-        show('ok');
         return;
       }
 
-      // Já tinha conta
-      if (res.prontoNoApp) {
-        if (res.nome) {
-          $('titulo').innerHTML = 'Bem-vindo<br><span>de volta, ' + res.nome.split(' ')[0] + '!</span>';
-        }
-        $('subtitulo').innerHTML = 'Sua assinatura do <strong>Desafio 21 Dias</strong> está ativa.';
-        $('blocoNovo').hidden = true;
-        $('blocoExistente').hidden = false;
-        show('ok');
+      if (res.estado === 'erro') {
+        $('erroMsg').textContent = res.error || 'Não conseguimos confirmar este cadastro.';
+        show('erro');
         return;
       }
 
-      // Pago, mas o webhook ainda não criou o acesso → tenta de novo
+      if (res.estado === 'pronto') {
+        if (ehTrial) pintarTrial(res); else pintarCompra(res);
+
+        if (res.precisaCriarSenha) {
+          $('emailDest').textContent = emailComprador || 'seu e-mail';
+          $('blocoNovo').hidden = false;
+          $('blocoExistente').hidden = true;
+          $('btnApp').hidden = false;
+        } else {
+          $('blocoNovo').hidden = true;
+          $('blocoExistente').hidden = false;
+          $('btnApp').hidden = true;
+        }
+        show('ok');
+        agendarRedirect();
+        return;
+      }
+
+      // provisionando
       if (tentativas < MAX) {
         show('loading');
-        $('loadingMsg').textContent = 'Pagamento aprovado! Preparando seu acesso…';
+        $('loadingMsg').textContent = ehTrial
+          ? 'Teste liberado! Preparando seu acesso…'
+          : 'Tudo certo! Preparando seu acesso…';
         setTimeout(consultar, 3000);
       } else {
+        if (ehTrial) {
+          $('pendBadge').textContent = 'Teste iniciado';
+          $('pendBadge').className = 'badge trial';
+          $('pendSub').innerHTML =
+            'Seu teste começou e <strong>nada foi cobrado hoje</strong>. ' +
+            'Estamos criando seu acesso.<br>Em instantes você recebe um e-mail com o link para criar sua senha.';
+        }
         show('pendente');
       }
     }).catch(function () {
       if (tentativas < MAX) { setTimeout(consultar, 3000); return; }
-      $('erroMsg').textContent = 'Tivemos um problema de conexão ao confirmar sua compra. Seu pagamento está seguro — chama a gente no WhatsApp.';
+      $('erroMsg').textContent = 'Tivemos um problema de conexão ao confirmar. Seu cadastro está seguro — chama a gente no WhatsApp.';
       show('erro');
     });
   }

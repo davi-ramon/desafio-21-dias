@@ -260,6 +260,9 @@ function handleRequest(payload) {
     case 'criarCheckoutTrialCartao': return criarCheckoutTrialCartao(data);
     // v151 — prova social com dados reais (publica, sem token)
     case 'getAtividadeReal':         return getAtividadeReal(data);
+    // v154 — pos-checkout do trial com cartao
+    case 'statusTrialCartao':        return statusTrialCartao(data);
+    case 'diagTrialCartao':          return diagTrialCartao(token, data);
     case 'getLoteConfig':            return getLoteConfig(token);
     case 'salvarLoteConfig':         return salvarLoteConfig(token, data);
     // v143 — WhatsApp Cloud API + automacoes (admin)
