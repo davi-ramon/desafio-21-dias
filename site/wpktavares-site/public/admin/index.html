@@ -1747,6 +1747,10 @@ button,
       <div class="nav-icon"><i data-lucide="sparkles" class="luc"></i></div>
       <span class="nav-label">Mural dos Sonhos</span>
     </div>
+    <div class="nav-item" data-page="indicacoes" id="navIndicacoes" onclick="navigate('indicacoes')" title="Indicações e NPS">
+      <span class="nav-icon"><i data-lucide="share-2" class="luc"></i></span>
+      <span class="nav-label">Indicações e NPS</span>
+    </div>
     <div class="nav-item" data-page="trialauto" id="navTrialAuto" onclick="navigate('trialauto')" title="Automações do Trial">
       <div class="nav-icon"><i data-lucide="zap" class="luc"></i></div>
       <span class="nav-label">Automações do Trial</span>
@@ -2053,6 +2057,7 @@ function navigate(page) {
     log:            'Log de Atividade',
     audios21:       'Áudios 21 Dias',
     mural:          'Mural dos Sonhos',
+    indicacoes:     'Indicações e Satisfação',
     trialauto:      'Automações do Trial com Cartão',
     notificacoes:   'Notificações para Alunos',
     configuracoes:  'Configurações do Workspace'
@@ -2079,7 +2084,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, notificacoes: renderNotificacoes, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, notificacoes: renderNotificacoes, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -4600,6 +4605,158 @@ function _taSwitch(id, ligado, titulo, sub) {
     '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' + sub + '</div></div>' +
     '<label class="ta-sw"><input type="checkbox" id="' + id + '"' + (ligado ? ' checked' : '') +
     '><span class="ta-sw-tr"></span></label></div>';
+}
+
+// ── Indicações e NPS ────────────────────────────────────────
+async function renderIndicacoesAdmin() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  let ind = null, nps = null;
+  try {
+    const [a, b] = await Promise.all([
+      rpc('getIndicacoesAdmin', {}),
+      rpc('getPesquisaAdmin', {})
+    ]);
+    ind = (a && a.ok) ? a.data : null;
+    nps = (b && b.ok) ? b.data : null;
+  } catch (e) {}
+
+  if (!ind && !nps) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-title">Não consegui carregar</div>' +
+      '<div class="empty-sub">Tente novamente em instantes.</div></div>';
+    return;
+  }
+
+  var t = (ind && ind.total) || { cliques: 0, cadastros: 0, assinaturas: 0, indicadores: 0 };
+  var taxa = t.cliques ? Math.round((t.cadastros / t.cliques) * 100) : 0;
+
+  var html =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">' +
+      _metricCard('<i data-lucide="mouse-pointer-click" class="luc"></i>', t.cliques, 'Cliques', 'em links de alunos') +
+      _metricCard('<i data-lucide="user-plus" class="luc"></i>', t.cadastros, 'Testes iniciados', taxa + '% dos cliques') +
+      _metricCard('<i data-lucide="badge-check" class="luc"></i>', t.assinaturas, 'Viraram assinantes', '') +
+      _metricCard('<i data-lucide="users" class="luc"></i>', t.indicadores, 'Alunos indicando', 'com ao menos 1 clique') +
+    '</div>';
+
+  // ── NPS ──
+  if (nps && nps.total) {
+    var cor = nps.nps >= 50 ? 'var(--success)' : (nps.nps >= 0 ? '#e0a83c' : 'var(--danger)');
+    var barra = function (rot, qtd, c) {
+      var pct = nps.total ? Math.round((qtd / nps.total) * 100) : 0;
+      return '<div style="margin-bottom:9px">' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px">' +
+          '<span>' + rot + '</span><span>' + qtd + ' (' + pct + '%)</span></div>' +
+        '<div style="height:7px;border-radius:4px;background:rgba(255,255,255,.06);overflow:hidden">' +
+          '<div style="height:100%;width:' + pct + '%;background:' + c + ';border-radius:4px"></div></div></div>';
+    };
+    html += '<div class="card" style="margin-bottom:16px">' +
+      '<div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:16px">' +
+        '<div><div style="font-size:34px;font-weight:800;color:' + cor + ';line-height:1">' +
+          nps.nps + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:3px">NPS</div></div>' +
+        '<div style="font-size:12.5px;color:var(--muted);line-height:1.6">' +
+          'Nota média <b style="color:var(--text)">' + nps.media + '</b> · ' +
+          nps.total + ' resposta' + (nps.total === 1 ? '' : 's') + '<br>' +
+          'Promotores menos detratores, em pontos percentuais.</div>' +
+      '</div>' +
+      barra('Promotores (9-10)', nps.promotores, 'var(--success)') +
+      barra('Neutros (7-8)', nps.neutros, '#e0a83c') +
+      barra('Detratores (0-6)', nps.detratores, 'var(--danger)') +
+    '</div>';
+
+    // O que pedem
+    var mel = (nps.porPergunta && nps.porPergunta.melhorar) || {};
+    var chaves = Object.keys(mel).sort(function (a, b) { return mel[b] - mel[a]; });
+    if (chaves.length) {
+      html += '<div class="card" style="margin-bottom:16px">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">O que os alunos pedem</div>' +
+        chaves.map(function (k) {
+          return '<div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0;' +
+            'border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:var(--text)">' +
+            escHtml(k) + '</span><b style="color:var(--muted)">' + mel[k] + '</b></div>';
+        }).join('') + '</div>';
+    }
+
+    // Comentários
+    var comAlgo = (nps.recentes || []).filter(function (r) { return r.comentario; });
+    if (comAlgo.length) {
+      html += '<div class="card" style="margin-bottom:16px">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">O que escreveram</div>' +
+        comAlgo.slice(0, 12).map(function (r) {
+          var c = r.nota >= 9 ? 'var(--success)' : (r.nota >= 7 ? '#e0a83c' : 'var(--danger)');
+          return '<div style="padding:11px 0;border-bottom:1px solid rgba(255,255,255,.05)">' +
+            '<div style="display:flex;align-items:center;gap:9px;margin-bottom:5px">' +
+              '<span style="background:' + c + '22;color:' + c + ';font-size:11px;font-weight:800;' +
+                'padding:2px 8px;border-radius:99px">' + r.nota + '/10</span>' +
+              '<span style="font-size:12.5px;color:var(--text)">' + escHtml(r.nome || 'Aluno') + '</span>' +
+              '<span style="font-size:11px;color:var(--muted);margin-left:auto">' + escHtml(r.quando) + '</span>' +
+            '</div>' +
+            '<div style="font-size:12.5px;color:var(--muted);line-height:1.6">' +
+              escHtml(r.comentario) + '</div></div>';
+        }).join('') + '</div>';
+    }
+  } else {
+    html += '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Pesquisa de satisfação</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);line-height:1.6">' +
+        'Nenhuma resposta ainda. Ela aparece para o aluno depois de <b>7 dias</b> de conta, ' +
+        'uma vez por sessão, e some de vez quando respondida.</div></div>';
+  }
+
+  // ── Configuração dos links de presente ──
+  var dp = (ind && ind.diasPermitidos) || [7, 14];
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+      'Períodos que o aluno pode presentear</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">' +
+      'É produto de graça: cada dia aqui é acesso que sai sem cobrança. ' +
+      'Hoje liberado: <b>' + dp.join(', ') + ' dias</b>.</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">' +
+      '<div class="form-group" style="flex:1;min-width:180px;margin:0">' +
+        '<input class="form-control" id="indDias" value="' + escHtml(dp.join(',')) + '" placeholder="7,14"></div>' +
+      '<button class="btn btn-primary btn-sm" onclick="indSalvarConfig()">Salvar</button>' +
+    '</div><div id="indCfgRes" style="margin-top:8px"></div></div>';
+
+  // ── Ranking ──
+  var lista = (ind && ind.lista) || [];
+  html += '<div class="card">' +
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px">Quem mais indica</div>';
+  if (!lista.length) {
+    html += '<div style="font-size:12.5px;color:var(--muted)">Nenhuma indicação ainda.</div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+      '<tr style="text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em">' +
+        '<th style="padding:8px 6px">Aluno</th><th style="padding:8px 6px">Código</th>' +
+        '<th style="padding:8px 6px">Cliques</th><th style="padding:8px 6px">Testes</th>' +
+        '<th style="padding:8px 6px">Assinaram</th></tr>' +
+      lista.map(function (x) {
+        return '<tr style="border-top:1px solid rgba(255,255,255,.05)">' +
+          '<td style="padding:9px 6px;color:var(--text)">' + escHtml(x.nome || x.email) + '</td>' +
+          '<td style="padding:9px 6px;color:var(--muted)"><code>' + escHtml(x.codigo) + '</code></td>' +
+          '<td style="padding:9px 6px">' + x.cliques + '</td>' +
+          '<td style="padding:9px 6px;color:#4fa8ff">' + x.cadastros + '</td>' +
+          '<td style="padding:9px 6px;color:var(--success);font-weight:700">' + x.assinaturas + '</td></tr>';
+      }).join('') + '</table></div>';
+  }
+  html += '</div>';
+
+  content.innerHTML = html;
+  _processIcons && _processIcons(content);
+}
+
+async function indSalvarConfig() {
+  var el = document.getElementById('indDias');
+  var res = document.getElementById('indCfgRes');
+  res.innerHTML = '<span style="font-size:12px;color:var(--muted)">Salvando…</span>';
+  try {
+    var r = await rpc('salvarIndicacaoConfig', { data: { dias: (el && el.value) || '' } });
+    res.innerHTML = (r && r.ok)
+      ? '<span style="font-size:12px;color:var(--success)">' + escHtml(r.message) + '</span>'
+      : '<span style="font-size:12px;color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>';
+  } catch (e) {
+    res.innerHTML = '<span style="font-size:12px;color:var(--danger)">Erro de conex&atilde;o.</span>';
+  }
 }
 
 async function renderTrialAuto() {

@@ -2956,6 +2956,66 @@ input[type=range].adm-slider::-webkit-slider-thumb {
   </div>
 
   <!-- ── ASSINATURA (sub-tela do Perfil) ──────────────────── -->
+  <!-- ── PESQUISA DE SATISFAÇÃO (v160) ─────────────────────
+       Folha que sobe de baixo, como as do iOS. Nunca cobre a tela
+       inteira: a pessoa precisa ver que o app continua ali atrás
+       e que dá para sair. -->
+  <style>
+    .pq-fundo{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.62);
+      backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+      opacity:0;pointer-events:none;transition:opacity .3s ease}
+    .pq-fundo.on{opacity:1;pointer-events:auto}
+    .pq-folha{position:fixed;left:0;right:0;bottom:0;z-index:9999;
+      background:var(--surface,#0f1412);border-top:1px solid rgba(76,175,80,.28);
+      border-radius:22px 22px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+      box-shadow:0 -18px 60px rgba(0,0,0,.6);
+      transform:translateY(105%);transition:transform .42s cubic-bezier(.16,1,.3,1);
+      max-height:88vh;overflow-y:auto}
+    .pq-folha.on{transform:translateY(0)}
+    @media(min-width:760px){
+      .pq-folha{left:50%;right:auto;bottom:24px;width:440px;margin-left:-220px;
+        border-radius:20px;border:1px solid rgba(76,175,80,.28)}
+      .pq-folha:not(.on){transform:translateY(130%)}
+    }
+    .pq-alca{width:38px;height:4px;border-radius:99px;background:rgba(255,255,255,.16);
+      margin:0 auto 16px}
+    .pq-x{position:absolute;top:14px;right:14px;background:none;border:none;
+      color:var(--muted);font-size:22px;line-height:1;cursor:pointer;padding:4px 8px}
+    .pq-t{font-size:17px;font-weight:800;color:var(--text);margin-bottom:6px;padding-right:26px}
+    .pq-s{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+    .pq-notas{display:grid;grid-template-columns:repeat(11,1fr);gap:5px;margin-bottom:8px}
+    .pq-nota{aspect-ratio:1;border-radius:9px;border:1px solid var(--border);
+      background:rgba(255,255,255,.04);color:var(--text);font-family:inherit;
+      font-size:13px;font-weight:700;cursor:pointer;transition:transform .12s,background .18s}
+    .pq-nota:hover{background:rgba(76,175,80,.16);transform:translateY(-2px)}
+    .pq-nota.sel{background:var(--green);color:#04140a;border-color:var(--green)}
+    .pq-legenda{display:flex;justify-content:space-between;font-size:10.5px;
+      color:var(--muted);margin-bottom:20px}
+    .pq-op{display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:7px;
+      border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,.03);
+      color:var(--text);font-family:inherit;font-size:13.5px;cursor:pointer;transition:background .18s}
+    .pq-op:hover{background:rgba(76,175,80,.09)}
+    .pq-op.sel{background:rgba(76,175,80,.16);border-color:var(--green);font-weight:600}
+    .pq-txt{width:100%;padding:12px 14px;border-radius:11px;border:1px solid var(--border);
+      background:var(--surface2,rgba(255,255,255,.03));color:var(--text);font-family:inherit;
+      font-size:13.5px;resize:vertical;min-height:74px}
+    .pq-btn{width:100%;padding:14px;border:none;border-radius:12px;margin-top:14px;
+      background:linear-gradient(135deg,var(--green),#2e7d32);color:#04140a;
+      font-family:inherit;font-size:14.5px;font-weight:700;cursor:pointer}
+    .pq-btn:disabled{opacity:.45;cursor:not-allowed}
+    .pq-depois{width:100%;background:none;border:none;color:var(--muted);
+      font-family:inherit;font-size:12.5px;cursor:pointer;padding:11px;margin-top:4px}
+    .pq-passo{font-size:11px;color:var(--muted);letter-spacing:.1em;
+      text-transform:uppercase;font-weight:700;margin-bottom:9px}
+    @media (prefers-reduced-motion:reduce){.pq-folha,.pq-fundo{transition:none}}
+  </style>
+  <div class="pq-fundo" id="pqFundo" onclick="pqAdiar()"></div>
+  <div class="pq-folha" id="pqFolha" role="dialog" aria-modal="true" aria-labelledby="pqTitulo">
+    <div class="pq-alca"></div>
+    <button class="pq-x" onclick="pqAdiar()" aria-label="Fechar">&times;</button>
+    <div id="pqCorpo"></div>
+  </div>
+
   <div class="page" id="page-indicar">
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
@@ -3280,6 +3340,10 @@ async function loadAlunoData(silent) {
     // meditação e a leitura já nascem com a duração escolhida.
     try { _prefsSincronizar(); _pfAplicar(); } catch (e) { console.warn('[Prefs]', e); }
     _renderSubBanner();
+
+    // v160: pesquisa de satisfação. Chamada aqui porque só faz sentido
+    // com os dados já carregados — e ela mesma decide se aparece.
+    try { if (typeof pqIniciar === 'function') pqIniciar(); } catch (e) {}
 
     // Se for admin e ainda não escolheu o painel → mostrar seletor
     if (r.data.role === 'admin') {
@@ -13493,6 +13557,147 @@ function _blSkeleton() {
 }
 
 // ── Ações ───────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// PESQUISA DE SATISFAÇÃO (v160)
+// ------------------------------------------------------------
+// Só depois de 7 dias, uma vez por sessão, e some de vez quando
+// respondida. Fechar no X vale como "agora não" — ninguém é
+// perseguido por não querer responder.
+// ════════════════════════════════════════════════════════════
+var PQ = { dados: null, passo: 0, resp: {}, aberta: false };
+
+async function pqIniciar() {
+  if (PQ.aberta || APP._pqVista) return;
+  APP._pqVista = true;                       // uma vez por sessão
+  try {
+    var r = await rpc('getPesquisaStatus', {});
+    if (!r || !r.ok || !r.mostrar) return;
+    PQ.dados = r; PQ.passo = 0; PQ.resp = {};
+    // Deixa a pessoa respirar: abrir no primeiro segundo de uso
+    // parece cobrança, não pergunta.
+    setTimeout(pqAbrir, 2500);
+  } catch (e) {}
+}
+
+function pqAbrir() {
+  PQ.aberta = true;
+  pqRender();
+  document.getElementById('pqFundo').classList.add('on');
+  document.getElementById('pqFolha').classList.add('on');
+}
+
+function pqFechar() {
+  PQ.aberta = false;
+  document.getElementById('pqFundo').classList.remove('on');
+  document.getElementById('pqFolha').classList.remove('on');
+}
+
+async function pqAdiar() {
+  pqFechar();
+  try { await rpc('adiarPesquisa', {}); } catch (e) {}
+}
+
+function pqRender() {
+  var el = document.getElementById('pqCorpo');
+  if (!el) return;
+  var d = PQ.dados || {};
+  var perguntas = d.perguntas || [];
+
+  // Passo 0 — a nota
+  if (PQ.passo === 0) {
+    var notas = '';
+    for (var i = 0; i <= 10; i++) {
+      notas += '<button class="pq-nota' + (PQ.resp.nota === i ? ' sel' : '') +
+        '" onclick="pqNota(' + i + ')">' + i + '</button>';
+    }
+    el.innerHTML =
+      '<div class="pq-passo">1 de ' + (perguntas.length + 1) + '</div>' +
+      '<div class="pq-t" id="pqTitulo">' + (d.nome ? escH(d.nome) + ', o' : 'O') +
+        ' quanto você recomendaria o Desafio 21 Dias?</div>' +
+      '<div class="pq-s">Sua resposta ajuda a decidir o que vem depois. Leva 30 segundos.</div>' +
+      '<div class="pq-notas">' + notas + '</div>' +
+      '<div class="pq-legenda"><span>Não recomendaria</span><span>Recomendaria muito</span></div>' +
+      '<button class="pq-depois" onclick="pqAdiar()">Agora não</button>';
+    return;
+  }
+
+  // Passos 1..N — múltipla escolha
+  if (PQ.passo <= perguntas.length) {
+    var q = perguntas[PQ.passo - 1];
+    el.innerHTML =
+      '<div class="pq-passo">' + (PQ.passo + 1) + ' de ' + (perguntas.length + 1) + '</div>' +
+      '<div class="pq-t" id="pqTitulo">' + escH(q.titulo) + '</div>' +
+      '<div style="margin-top:14px">' +
+        q.opcoes.map(function (o) {
+          var sel = PQ.resp[q.id] === o;
+          return '<button class="pq-op' + (sel ? ' sel' : '') + '" onclick="pqOpcao(\'' +
+            q.id + '\',this)" data-v="' + escH(o) + '">' + escH(o) + '</button>';
+        }).join('') +
+      '</div>' +
+      (PQ.passo === perguntas.length
+        ? '<div style="margin-top:14px"><div class="pq-s" style="margin-bottom:8px">' +
+          'Quer contar mais alguma coisa? (opcional)</div>' +
+          '<textarea class="pq-txt" id="pqComentario" placeholder="Escreva aqui…"></textarea></div>'
+        : '') +
+      '<button class="pq-btn" id="pqAvancar" onclick="pqAvancar()"' +
+        (PQ.resp[q.id] ? '' : ' disabled') + '>' +
+        (PQ.passo === perguntas.length ? 'Enviar' : 'Continuar') + '</button>' +
+      '<button class="pq-depois" onclick="pqAdiar()">Pular</button>';
+    return;
+  }
+
+  // Fim
+  var fim = PQ.fim || {};
+  el.innerHTML =
+    '<div style="text-align:center;padding:6px 0 2px">' +
+      '<div style="width:52px;height:52px;margin:0 auto 14px;border-radius:50%;' +
+        'background:rgba(76,175,80,.15);display:flex;align-items:center;justify-content:center">' +
+        '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6dde71" ' +
+        'stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>' +
+      '</div>' +
+      '<div class="pq-t" style="padding:0" id="pqTitulo">Obrigado!</div>' +
+      '<div class="pq-s">' + escH(fim.mensagem || 'Sua resposta foi registrada.') + '</div>' +
+    '</div>' +
+    (fim.convidarIndicar
+      ? '<button class="pq-btn" onclick="pqFechar();navigate(\'indicar\')">Indicar para um amigo</button>' +
+        '<button class="pq-depois" onclick="pqFechar()">Fechar</button>'
+      : '<button class="pq-btn" onclick="pqFechar()">Fechar</button>');
+}
+
+function pqNota(n) {
+  PQ.resp.nota = n;
+  pqRender();
+  setTimeout(function () { PQ.passo = 1; pqRender(); }, 260);   // deixa ver a seleção
+}
+
+function pqOpcao(id, btn) {
+  PQ.resp[id] = btn.getAttribute('data-v');
+  var pai = btn.parentNode;
+  Array.prototype.forEach.call(pai.querySelectorAll('.pq-op'), function (b) { b.classList.remove('sel'); });
+  btn.classList.add('sel');
+  var av = document.getElementById('pqAvancar');
+  if (av) av.disabled = false;
+}
+
+async function pqAvancar() {
+  var perguntas = (PQ.dados && PQ.dados.perguntas) || [];
+  if (PQ.passo < perguntas.length) { PQ.passo++; pqRender(); return; }
+
+  var c = document.getElementById('pqComentario');
+  if (c) PQ.resp.comentario = c.value.trim();
+
+  var btn = document.getElementById('pqAvancar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  try {
+    var r = await rpc('salvarPesquisa', { data: PQ.resp });
+    PQ.fim = (r && r.ok) ? r : { mensagem: 'Sua resposta foi registrada.' };
+  } catch (e) {
+    PQ.fim = { mensagem: 'Sua resposta foi registrada.' };
+  }
+  PQ.passo = perguntas.length + 1;
+  pqRender();
+}
+
 // ════════════════════════════════════════════════════════════
 // INDICAÇÕES — compartilhar e acompanhar (v159)
 // ------------------------------------------------------------

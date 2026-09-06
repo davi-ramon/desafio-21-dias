@@ -299,6 +299,11 @@ function handleRequest(payload) {
     case 'gerarLinkIndicacao':       return gerarLinkIndicacao(token, data);
     case 'getIndicacoesAdmin':       return getIndicacoesAdmin(token);
     case 'salvarIndicacaoConfig':    return salvarIndicacaoConfig(token, data);
+    // v160 — pesquisa de satisfacao
+    case 'getPesquisaStatus':        return getPesquisaStatus(token);
+    case 'salvarPesquisa':           return salvarPesquisa(token, data);
+    case 'adiarPesquisa':            return adiarPesquisa(token);
+    case 'getPesquisaAdmin':         return getPesquisaAdmin(token);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)
