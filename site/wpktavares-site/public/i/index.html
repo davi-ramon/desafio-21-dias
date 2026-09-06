@@ -48,7 +48,10 @@ a{color:var(--green-bright)}
   var dias = parseInt(qp.get('dias'), 10);
   if ([7, 14, 21, 30].indexOf(dias) < 0) dias = 7;
 
-  var destino = '/checkout-trial-cartao/?dias=' + dias + (ref ? '&ref=' + encodeURIComponent(ref) : '');
+  // c=1 diz ao checkout que o clique JA foi contado aqui. Sem isso as duas
+  // paginas contariam a mesma visita, e o painel do aluno mostraria o dobro.
+  var destino = '/checkout-trial-cartao/?dias=' + dias +
+                (ref ? '&ref=' + encodeURIComponent(ref) + '&c=1' : '');
   document.getElementById('manual').href = destino;
 
   // Guarda a indicação: se a pessoa não comprar hoje e voltar depois

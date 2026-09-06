@@ -520,7 +520,7 @@ var REF = (function () {
 
 // Conta o clique só quando o código veio na URL agora (evita contar
 // de novo a cada F5 de quem já estava com o código guardado).
-if (params.get('ref')) {
+if (params.get('ref') && params.get('c') !== '1') {
   var _sid = '';
   try {
     _sid = sessionStorage.getItem('d21_sid') || '';

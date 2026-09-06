@@ -13689,7 +13689,7 @@ async function pqAvancar() {
   var btn = document.getElementById('pqAvancar');
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
   try {
-    var r = await rpc('salvarPesquisa', { data: PQ.resp });
+    var r = await rpc('salvarPesquisa', PQ.resp);
     PQ.fim = (r && r.ok) ? r : { mensagem: 'Sua resposta foi registrada.' };
   } catch (e) {
     PQ.fim = { mensagem: 'Sua resposta foi registrada.' };
@@ -13763,10 +13763,8 @@ async function renderIndicacoes() {
   // Números
   html += '<div class="bl-card">' +
     '<div class="bl-card-t">Como está indo</div>' +
-    '<div style="display:flex;gap:9px;flex-wrap:wrap">' +
-      _indNum(m.cliques || 0,     'cliques no link', 'var(--text)') +
-      _indNum(m.cadastros || 0,   'começaram o teste', '#4fa8ff') +
-      _indNum(m.assinaturas || 0, 'viraram assinantes', 'var(--green)') +
+    '<div id="indNumeros" style="display:flex;gap:9px;flex-wrap:wrap">' +
+      _indBlocoNumeros(m) +
     '</div>' +
     (!d.recompensaAtiva
       ? '<div style="margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6">' +
@@ -13792,12 +13790,27 @@ async function renderIndicacoes() {
 
   // Quem entrou
   html += '<div class="bl-card">' +
-    '<div class="bl-card-t">Quem entrou pelo seu link</div>';
-  if (!(d.pessoas || []).length) {
-    html += '<div style="font-size:13px;color:var(--muted);line-height:1.6">' +
+    '<div class="bl-card-t">Quem entrou pelo seu link</div>' +
+    '<div id="indPessoas">' + _indBlocoPessoas(d.pessoas) + '</div>' +
+  '</div></div>';
+
+  el.innerHTML = html;
+  indAutoAtualizar();
+}
+
+function _indBlocoNumeros(m) {
+  m = m || {};
+  return _indNum(m.cliques || 0,     'cliques no link',    'var(--text)') +
+         _indNum(m.cadastros || 0,   'começaram o teste',  '#4fa8ff') +
+         _indNum(m.assinaturas || 0, 'viraram assinantes', 'var(--green)');
+}
+
+function _indBlocoPessoas(pessoas) {
+  if (!(pessoas || []).length) {
+    return '<div style="font-size:13px;color:var(--muted);line-height:1.6">' +
       'Ninguém ainda. Assim que alguém entrar pelo seu link, aparece aqui.</div>';
-  } else {
-    html += '<div class="bl-benef">' + d.pessoas.map(function (p) {
+  }
+  return '<div class="bl-benef">' + pessoas.map(function (p) {
       var assinou = p.estagio === 'assinou';
       return '<div class="bl-b on">' +
         '<span class="bl-b-ico">' + (assinou ? '★' : '·') + '</span>' +
@@ -13805,13 +13818,49 @@ async function renderIndicacoes() {
         '<div class="bl-b-s">' + (assinou ? 'Assinou' : 'Em período de teste') +
           (p.quando ? ' · ' + escH(p.quando) : '') + '</div></div>' +
         '<span class="bl-b-tick">' + (assinou ? '✓' : '') + '</span></div>';
-    }).join('') + '</div>';
-    html += '<div style="margin-top:12px;font-size:11.5px;color:var(--muted);line-height:1.55">' +
+    }).join('') + '</div>' +
+    '<div style="margin-top:12px;font-size:11.5px;color:var(--muted);line-height:1.55">' +
       'Mostramos só o primeiro nome — o contato de quem entrou não é compartilhado.</div>';
-  }
-  html += '</div></div>';
+}
 
-  el.innerHTML = html;
+// ── Atualização ao vivo ─────────────────────────────────────
+// Quem acabou de mandar o link fica olhando a tela esperando o número
+// mexer. Atualiza sozinho a cada minuto e assim que a aba volta ao foco
+// — e troca SÓ os números e a lista, para não apagar o link de presente
+// que a pessoa acabou de gerar.
+function indAutoAtualizar() {
+  if (APP._indTimer) return;
+
+  var ativo = function () {
+    var el = document.getElementById('page-indicar');
+    return el && el.classList.contains('active') && !document.hidden;
+  };
+
+  APP._indTimer = setInterval(function () {
+    if (ativo()) indAtualizarNumeros();
+  }, 60000);
+
+  document.addEventListener('visibilitychange', function () {
+    if (ativo()) indAtualizarNumeros();
+  });
+}
+
+async function indAtualizarNumeros() {
+  if (APP._indBuscando) return;
+  APP._indBuscando = true;
+  try {
+    var r = await rpc('getMinhasIndicacoes', {});
+    if (!r || !r.ok) return;
+    IND.dados = r.data;
+
+    var n = document.getElementById('indNumeros');
+    if (n) n.innerHTML = _indBlocoNumeros(r.data.metricas);
+    var p = document.getElementById('indPessoas');
+    if (p) p.innerHTML = _indBlocoPessoas(r.data.pessoas);
+  } catch (e) {
+  } finally {
+    APP._indBuscando = false;
+  }
 }
 
 function indTexto(link) {
@@ -13853,7 +13902,10 @@ async function indLinkTrial(dias) {
   var box = document.getElementById('indTrialRes');
   if (box) box.innerHTML = '<span style="font-size:12px;color:var(--muted)">Gerando…</span>';
   try {
-    var r = await rpc('gerarLinkIndicacao', { data: { dias: dias } });
+    // O rpc daqui já monta { action, token, data }. Passar { data: ... }
+    // criava data.data e o servidor lia undefined — era isso que fazia o
+    // botão de 7 e 14 dias responder "período não disponível".
+    var r = await rpc('gerarLinkIndicacao', { dias: dias });
     if (!r || !r.ok) {
       if (box) box.innerHTML = '<span style="font-size:12px;color:#e2626b">' +
         escH((r && r.error) || 'Não consegui gerar.') + '</span>';
