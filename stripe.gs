@@ -219,6 +219,12 @@ function _stripeSyncAssinatura_(email, sub, isNew) {
   if (appStatus === AS.TRIAL) {
     upd.trial_end = trialEnd || nextBill;
     upd.trial_rem = _calcTrialRemaining_(upd.trial_end);
+    // v155: a coluna existe e o upsert aceita, mas o caminho Stripe nunca
+    // preenchia. Sem ela, qualquer leitura posterior (reenvio do e-mail de
+    // acesso, relatorio) nao sabe o tamanho do teste contratado.
+    if (sub.trial_start) upd.trial_start = new Date(sub.trial_start * 1000).toISOString();
+    var _d = (typeof _tpDiasDoTrial_ === 'function') ? _tpDiasDoTrial_(sub) : 0;
+    if (_d > 0) upd.trial_days = _d;
   }
   if (appStatus === AS.ACTIVE) { upd.failed_at = ''; upd.grace_day = 0; upd.blocked_at = ''; }
 
@@ -250,7 +256,18 @@ function _stripeSyncAssinatura_(email, sub, isNew) {
 
   if (isNew) {
     try {
-      var criouLogin = _garantirLoginAluno_(email);
+      // v155: se a assinatura nasceu em teste, o e-mail precisa dizer isso —
+      // "assinatura confirmada" para quem nao pagou nada gera duvida.
+      var ctxTrial = null;
+      if (appStatus === AS.TRIAL) {
+        ctxTrial = {
+          dias: (typeof _tpDiasDoTrial_ === 'function') ? _tpDiasDoTrial_(sub) : 0,
+          primeiraCobranca: (typeof _tpDataBR_ === 'function')
+            ? _tpDataBR_(sub.trial_end || sub.current_period_end) : '',
+          valor: amount || 17
+        };
+      }
+      var criouLogin = _garantirLoginAluno_(email, ctxTrial);
       // v106: quem JA tinha conta nao recebia comunicacao nenhuma ao assinar.
       // Agora recebe confirmacao — sem tocar na senha dele.
       if (!criouLogin && typeof _enviarConfirmacaoAssinatura_ === 'function') {

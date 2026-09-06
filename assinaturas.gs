@@ -194,7 +194,7 @@ function _onPurchaseApproved_(email, d, sub) {
  * Se não existir, cria com senha provisória e envia e-mail de boas-vindas.
  * Retorna true se criou um novo login, false se já existia.
  */
-function _garantirLoginAluno_(email) {
+function _garantirLoginAluno_(email, trial) {
   var ss    = getSpreadsheet_();
   var users = ss.getSheetByName(SHEET_USERS);
   if (!users) return false;
@@ -232,7 +232,8 @@ function _garantirLoginAluno_(email) {
   try {
     var wsNome = 'WPK Tavares';
     try { wsNome = getWorkspaceConfig().nome || wsNome; } catch(e) {}
-    _enviarBoasVindasComLink_(emailNorm, nome || emailNorm, wsNome);
+    // v155: com contexto de trial o e-mail sai com o resumo do teste
+    _enviarBoasVindasComLink_(emailNorm, nome || emailNorm, wsNome, trial);
   } catch(e) {
     logAction('system', 'ASSIN_EMAIL_ACESSO_ERRO', 'user', emailNorm, e.message);
     // Fallback: senha provisoria pelo caminho legado, pra nao deixar o

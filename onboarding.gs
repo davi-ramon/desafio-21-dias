@@ -143,24 +143,56 @@ function definirSenhaComToken(token, novaSenha) {
 // ─────────────────────────────────────────────────────────────
 // E-MAIL 1 — comprador NOVO: "crie sua senha"
 // ─────────────────────────────────────────────────────────────
-function _enviarBoasVindasComLink_(email, nome, wsNome) {
+function _enviarBoasVindasComLink_(email, nome, wsNome, trial) {
   wsNome = wsNome || 'WPK Tavares';
-  var link    = _linkDefinirSenha_(email, ONB_TOKEN_HORAS);
-  var subject = wsNome + ' — Bem-vindo! Crie sua senha de acesso 🔓';
-  var texto   = 'Sua assinatura do Desafio 21 Dias esta confirmada.\n\n' +
-                'Crie sua senha de acesso: ' + link +
-                '\n\nO link vale por ' + ONB_TOKEN_HORAS + ' horas.';
-  var html    = _buildOnbEmailHtml_({
-    icone:    '🔓',
-    titulo:   'Tudo certo, ' + _onbPrimeiroNome_(nome) + '!',
-    corpo:    'Sua assinatura do <strong>Desafio 21 Dias</strong> está confirmada. ' +
-              'Falta só um passo: criar sua senha de acesso.',
-    btnTexto: 'Criar minha senha →',
-    btnLink:  link,
-    nota:     'O link é pessoal e vale por ' + ONB_TOKEN_HORAS + ' horas.<br>' +
-              'Se não foi você quem assinou, ignore este e-mail com segurança.',
-    wsNome:   wsNome
+  var link  = _linkDefinirSenha_(email, ONB_TOKEN_HORAS);
+  var prim  = _onbPrimeiroNome_(nome);
+  var ehTrial = !!(trial && trial.dias);
+
+  // Sem emoji: fora do BMP, viravam "??????" no assunto e no corpo.
+  var subject = ehTrial
+    ? 'Seu teste de ' + trial.dias + ' dias começou — crie sua senha de acesso'
+    : 'Bem-vindo ao Desafio 21 Dias — crie sua senha de acesso';
+  subject = emAssuntoLimpo_(subject);
+
+  var texto = (ehTrial
+      ? 'Seu teste de ' + trial.dias + ' dias do Desafio 21 Dias começou. Nenhuma cobrança foi feita hoje.'
+      : 'Sua assinatura do Desafio 21 Dias está confirmada.') +
+    '\n\nCrie sua senha de acesso: ' + link +
+    '\n\nO link vale por ' + ONB_TOKEN_HORAS + ' horas.';
+
+  var corpo = ehTrial
+    ? 'Seu cartão foi cadastrado com segurança e <strong>nenhuma cobrança foi feita hoje</strong>. ' +
+      'Falta só um passo para começar: criar sua senha de acesso.'
+    : 'Sua assinatura do <strong>Desafio 21 Dias</strong> está confirmada. ' +
+      'Falta só um passo: criar sua senha de acesso.';
+
+  // Resumo do teste dentro do proprio e-mail: a pessoa nao precisa
+  // voltar na pagina para lembrar quando e quanto vai pagar.
+  if (ehTrial) {
+    corpo += emCaixaResumo_('Seu teste',
+      emLinhaResumo_('Período gratuito', trial.dias + ' dias') +
+      emLinhaResumo_('Cobrado hoje', 'R$ 0,00', true) +
+      (trial.primeiraCobranca ? emLinhaResumo_('Primeira cobrança', trial.primeiraCobranca) : '') +
+      emLinhaResumo_('Valor a partir de então', 'R$ ' + Number(trial.valor || 17).toFixed(2).replace('.', ',') + '/mês') +
+      emLinhaResumo_('Cancelamento', 'Pelo app, quando quiser'));
+  }
+
+  var html = emMontarEmail_({
+    preheader: ehTrial
+      ? 'Nada foi cobrado hoje. Crie sua senha e comece agora.'
+      : 'Falta um passo: criar sua senha de acesso.',
+    titulo:    'Tudo certo, ' + prim + '!',
+    subtitulo: ehTrial ? 'Seu teste de ' + trial.dias + ' dias já está valendo.' : '',
+    corpoHtml: corpo,
+    btnTexto:  'Criar minha senha',
+    btnLink:   link,
+    nota:      'O link é pessoal e vale por ' + ONB_TOKEN_HORAS + ' horas. ' +
+               'Se não foi você quem se cadastrou, ignore este e-mail com segurança.',
+    motivo:    'Você recebeu este e-mail porque acabou de criar uma conta no Desafio 21 Dias.',
+    email:     email
   });
+
   _onbEnviar_(email, subject, texto, html);
 }
 
@@ -171,7 +203,7 @@ function _enviarBoasVindasComLink_(email, nome, wsNome) {
 function _enviarConfirmacaoAssinatura_(email, nome, plano, wsNome) {
   wsNome = wsNome || 'WPK Tavares';
   var nomePlano = _onbNomePlano_(plano);
-  var subject   = wsNome + ' — Assinatura confirmada ✅';
+  var subject   = emAssuntoLimpo_('Sua assinatura do Desafio 21 Dias está ativa');
   var texto     = 'Sua assinatura do Desafio 21 Dias (' + nomePlano + ') esta ativa.\n' +
                   'Acesse: ' + ONB_URL_APP;
   var html      = _buildOnbEmailHtml_({
@@ -263,8 +295,27 @@ function reenviarLinkAcesso(email) {
     if (u) {
       var wsNome = 'WPK Tavares';
       try { wsNome = getWorkspaceConfig().nome || wsNome; } catch (e) {}
-      _enviarBoasVindasComLink_(email, u.name || '', wsNome);
-      logAction(email, 'REENVIO_LINK_ACESSO', 'user', email, '');
+
+      // v155: quem esta em teste precisa receber o e-mail DE TESTE.
+      // Mandar "assinatura confirmada" para quem nao pagou nada gera
+      // duvida de cobranca justo em quem ja esta inseguro.
+      var trial = null;
+      try {
+        var lin = _getAssinaturaRow_(email);
+        if (lin && String(lin[_ASS_.APP_STATUS] || '') === AS.TRIAL) {
+          var fim = lin[_ASS_.TRIAL_END];
+          trial = {
+            dias: Number(lin[_ASS_.TRIAL_DAYS]) || 0,
+            primeiraCobranca: fim
+              ? Utilities.formatDate(new Date(fim), 'America/Sao_Paulo', 'dd/MM/yyyy') : '',
+            valor: Number(lin[_ASS_.AMOUNT]) || 17
+          };
+          if (!trial.dias) trial = null;
+        }
+      } catch (e) {}
+
+      _enviarBoasVindasComLink_(email, u.name || '', wsNome, trial);
+      logAction(email, 'REENVIO_LINK_ACESSO', 'user', email, trial ? 'trial' : 'assinatura');
     }
   } catch (e) {
     logAction('system', 'REENVIO_LINK_ERRO', 'user', email, e.message);

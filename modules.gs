@@ -262,6 +262,7 @@ function handleRequest(payload) {
     case 'getAtividadeReal':         return getAtividadeReal(data);
     // v154 — pos-checkout do trial com cartao
     case 'statusTrialCartao':        return statusTrialCartao(data);
+    case 'preferenciasEmail':        return preferenciasEmail(data);
     case 'diagTrialCartao':          return diagTrialCartao(token, data);
     case 'getLoteConfig':            return getLoteConfig(token);
     case 'salvarLoteConfig':         return salvarLoteConfig(token, data);
