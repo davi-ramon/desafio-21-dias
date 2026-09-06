@@ -6,13 +6,17 @@
 <title>Vagas Reabertas — Desafio 21 Dias</title>
 <meta name="description" content="As vagas do Desafio 21 Dias foram reabertas por tempo limitado. Se você já é aluno, solicite acesso à nova plataforma. Se ainda não é, garanta sua vaga.">
 
-<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#07090a">
 
 <!-- Open Graph -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Vagas Reabertas — Desafio 21 Dias">
 <meta property="og:description" content="Acesso liberado por tempo limitado. Alunos antigos e novas vagas disponíveis até 07/05/2026.">
-<meta property="og:image" content="https://i.imgur.com/Xe5iaZ1.gif">
+<meta property="og:image" content="https://wpktavares.com.br/icons/og-image.jpg">
 
 <!-- Pixel Meta -->
 <script>
@@ -395,9 +399,10 @@ footer a { color: var(--green); text-decoration: none; }
       <strong>❌ Compra não encontrada</strong><br>
       Não encontramos uma compra vinculada a este e-mail.<br>
       Para participar da reabertura, você precisa garantir sua vaga.
-      <a id="btnCheckout" href="https://pay.cakto.com.br/a4po2eu_659401" class="btn-primary" style="margin-top:16px;display:block" target="_blank" onclick="fbq('track','InitiateCheckout',{value:60,currency:'BRL'})">
+      <a id="btnCheckout" href="/planos/" class="btn-primary" style="margin-top:16px;display:block"
+         onclick="fbq('track','InitiateCheckout',{value:60,currency:'BRL'})">
         Garantir minha vaga agora →
-        <span class="btn-sub-label">R$60 · Garantia de 7 dias</span>
+        <span class="btn-sub-label">Ver novos planos a partir de R$17/mes</span>
       </a>
     </div>
 
@@ -410,8 +415,8 @@ footer a { color: var(--green); text-decoration: none; }
 
     <div class="divider"><span>ou</span></div>
 
-    <a href="https://pay.cakto.com.br/a4po2eu_659401"
-       class="btn-ghost" target="_blank"
+    <a href="/planos/"
+       class="btn-ghost"
        onclick="fbq('track','InitiateCheckout',{value:60,currency:'BRL'})">
       Ainda não sou aluno — quero garantir minha vaga
     </a>
@@ -569,10 +574,7 @@ function verificarAcesso() {
         document.getElementById('resultExisting').classList.add('show');
       }
     } else if (res.status === 'not_found') {
-      // Atualiza link do checkout se veio do backend
-      if (res.checkout_url) {
-        document.getElementById('btnCheckout').href = res.checkout_url;
-      }
+      // v100: nao usamos mais checkout_url do Cakto. Btn ja aponta pra /planos/.
       document.getElementById('resultNotFound').classList.add('show');
     } else {
       document.getElementById('errorMsg').textContent = res.error || 'Erro inesperado. Tente novamente.';

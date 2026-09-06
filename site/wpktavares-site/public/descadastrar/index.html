@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preferências de e-mail — Desafio 21 Dias</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050706; --surface:#0f1412; --surface2:#0b100d; --green:#4caf50;
+  --green-bright:#6dde71; --cream:#eeeadc; --text:#dde8dd; --muted:#6e9070;
+  --border:rgba(76,175,80,.16); --red:#e84040;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px 16px}
+.card{max-width:480px;width:100%;background:var(--surface);
+  border:1px solid var(--border);border-radius:20px;padding:38px 32px;text-align:center;
+  box-shadow:0 22px 70px rgba(0,0,0,.55)}
+.logo{width:52px;height:52px;border-radius:14px;margin:0 auto 20px;display:block}
+h1{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:.02em;
+  color:var(--cream);margin-bottom:10px;line-height:1.1}
+p{font-size:14.5px;color:var(--muted);line-height:1.7;margin-bottom:20px}
+.email{color:var(--green-bright);font-weight:600;word-break:break-all}
+.aviso{background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+  padding:15px 17px;font-size:12.5px;color:var(--muted);line-height:1.7;text-align:left;margin-bottom:22px}
+.aviso b{color:var(--cream)}
+.btn{width:100%;padding:15px;border:none;border-radius:12px;cursor:pointer;
+  font-family:inherit;font-size:14.5px;font-weight:700;margin-bottom:10px;
+  transition:filter .18s,transform .1s}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-sair{background:transparent;border:1px solid rgba(232,64,64,.4);color:#e2626b}
+.btn-sair:hover:not(:disabled){background:rgba(232,64,64,.09)}
+.btn-voltar{background:linear-gradient(135deg,var(--green),#2e7d32);color:#04140a}
+.btn-voltar:hover:not(:disabled){filter:brightness(1.08)}
+.link{display:inline-block;margin-top:8px;font-size:13px;color:var(--muted);text-decoration:none}
+.link:hover{color:var(--green-bright)}
+.msg{font-size:13.5px;line-height:1.65;padding:13px 15px;border-radius:11px;margin-bottom:18px;display:none}
+.msg.ok{display:block;background:rgba(76,175,80,.09);border:1px solid rgba(76,175,80,.3);color:var(--green-bright)}
+.msg.err{display:block;background:rgba(232,64,64,.08);border:1px solid rgba(232,64,64,.3);color:#e2626b}
+.campo{margin-bottom:16px;text-align:left}
+label{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+input{width:100%;padding:13px 14px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:11px;color:var(--text);font-size:15px;font-family:inherit}
+input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(76,175,80,.15)}
+footer{margin-top:24px;font-size:11.5px;color:#3f5343;line-height:1.8}
+footer a{color:#5c7360;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <img src="https://i.imgur.com/bOf9i1R.png" alt="WPK Tavares" class="logo">
+  <h1 id="titulo">Preferências de e-mail</h1>
+  <p id="sub">Escolha o que você quer receber da gente.</p>
+
+  <div class="msg" id="msg"></div>
+
+  <!-- Sem e-mail no link: pergunta qual é -->
+  <div id="pedirEmail" hidden>
+    <div class="campo">
+      <label for="email">Seu e-mail</label>
+      <input type="email" id="email" placeholder="seu@email.com" spellcheck="false" autocomplete="email">
+    </div>
+    <button class="btn btn-voltar" id="btnBuscar">Continuar</button>
+  </div>
+
+  <!-- Estado normal -->
+  <div id="painel" hidden>
+    <p>Preferências de <span class="email" id="emailEco"></span></p>
+
+    <div class="aviso">
+      <b>Isso não cancela sua assinatura.</b><br>
+      E-mails de <b>acesso, senha e cobrança</b> continuam chegando — sem eles você
+      ficaria sem entrar no app e sem saber o que foi cobrado. O que para são os
+      lembretes e as novidades.
+    </div>
+
+    <button class="btn btn-sair" id="btnSair">Não quero mais receber novidades</button>
+    <button class="btn btn-voltar" id="btnVoltar" hidden>Quero voltar a receber</button>
+    <a class="link" href="https://app.wpktavares.com.br">Ir para o app</a>
+  </div>
+
+  <footer>
+    Para cancelar a assinatura, use <a href="https://app.wpktavares.com.br/app/billing">Gerenciar assinatura</a> no app.<br>
+    © <span id="ano">2026</span> WPK Tavares — Equipe Lapidados
+  </footer>
+</div>
+
+<script>
+(function () {
+  var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+  var $ = function (id) { return document.getElementById(id); };
+  $('ano').textContent = new Date().getFullYear();
+
+  var email = (new URLSearchParams(location.search).get('e') || '').trim().toLowerCase();
+
+  function rpc(acao) {
+    return fetch(GAS, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'preferenciasEmail', data: { email: email, acao: acao } })
+    }).then(function (r) { return r.json(); });
+  }
+
+  function msg(texto, tipo) {
+    var m = $('msg');
+    m.textContent = texto;
+    m.className = 'msg ' + (tipo || 'ok');
+  }
+
+  function pintar(aceitaMarketing) {
+    $('emailEco').textContent = email;
+    $('painel').hidden = false;
+    $('pedirEmail').hidden = true;
+    $('btnSair').hidden = !aceitaMarketing;
+    $('btnVoltar').hidden = aceitaMarketing;
+    $('sub').textContent = aceitaMarketing
+      ? 'Escolha o que você quer receber da gente.'
+      : 'Você não está recebendo nossas novidades.';
+  }
+
+  function carregar() {
+    rpc('consultar').then(function (r) {
+      if (!r || !r.ok) { msg(r && r.error || 'Não consegui carregar suas preferências.', 'err'); return; }
+      pintar(r.marketing);
+    }).catch(function () { msg('Erro de conexão. Tente de novo.', 'err'); });
+  }
+
+  if (!email) {
+    $('pedirEmail').hidden = false;
+    $('btnBuscar').addEventListener('click', function () {
+      var v = $('email').value.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) { msg('Digite um e-mail válido.', 'err'); return; }
+      email = v;
+      carregar();
+    });
+  } else {
+    carregar();
+  }
+
+  $('btnSair').addEventListener('click', function () {
+    this.disabled = true; this.textContent = 'Salvando…';
+    rpc('cancelar').then(function (r) {
+      if (!r || !r.ok) { msg((r && r.error) || 'Não consegui salvar.', 'err'); return; }
+      msg('Pronto. Você não receberá mais lembretes nem novidades.', 'ok');
+      pintar(false);
+    }).catch(function () { msg('Erro de conexão. Tente de novo.', 'err'); })
+      .then(function () { $('btnSair').disabled = false; $('btnSair').textContent = 'Não quero mais receber novidades'; });
+  });
+
+  $('btnVoltar').addEventListener('click', function () {
+    this.disabled = true; this.textContent = 'Salvando…';
+    rpc('reativar').then(function (r) {
+      if (!r || !r.ok) { msg((r && r.error) || 'Não consegui salvar.', 'err'); return; }
+      msg('Feito. Você voltou a receber nossas novidades.', 'ok');
+      pintar(true);
+    }).catch(function () { msg('Erro de conexão. Tente de novo.', 'err'); })
+      .then(function () { $('btnVoltar').disabled = false; $('btnVoltar').textContent = 'Quero voltar a receber'; });
+  });
+})();
+</script>
+</body>
+</html>

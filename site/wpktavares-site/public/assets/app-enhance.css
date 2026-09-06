@@ -1,0 +1,363 @@
+/* ============================================================
+   app-enhance.css — Fase 1 (UX premium) — Desafio 21 Dias
+   Camada aditiva: NÃO altera regras existentes, só refina.
+   Carregado DEPOIS do <style> inline (vence por ordem).
+   ============================================================ */
+
+/* ── Tilt 3D: preparar cards (perspectiva + transform suave) ── */
+.card, .audio-card, .hero, .msg-dinamica {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+/* glare do vanilla-tilt discreto — NUNCA captura clique (fix item 1) */
+.js-tilt-glare, .js-tilt-glare-inner { border-radius: inherit; pointer-events: none !important; }
+
+/* press feedback ao clicar (escala 0.98) */
+@media (hover:hover) {
+  .card:active, .audio-card:active, .msg-dinamica:active { transform: scale(0.985); }
+}
+
+/* respeita quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .card, .audio-card, .hero, .msg-dinamica { transform: none !important; }
+}
+
+/* ════════════════════════════════════════
+   TOAST global (feedback visual)
+   ════════════════════════════════════════ */
+#appToastWrap {
+  position: fixed; z-index: 99999;
+  top: 14px; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; gap: 8px;
+  width: max-content; max-width: 92vw;
+  pointer-events: none;
+}
+.app-toast {
+  display: flex; align-items: center; gap: 10px;
+  background: #141c18;
+  border: 1px solid rgba(76,175,80,0.25);
+  border-left: 3px solid var(--green, #4caf50);
+  border-radius: 12px;
+  padding: 11px 16px;
+  color: #dde8dd; font-size: 14px; font-weight: 500;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.5);
+  transform: translateY(-18px); opacity: 0;
+  transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s ease;
+  pointer-events: auto;
+}
+.app-toast.show { transform: translateY(0); opacity: 1; }
+.app-toast .at-ico { font-size: 16px; flex-shrink: 0; }
+.app-toast.t-success { border-left-color: #4caf50; }
+.app-toast.t-success .at-ico { color: #6dde71; }
+.app-toast.t-info    { border-left-color: #4fa8ff; }
+.app-toast.t-info .at-ico { color: #4fa8ff; }
+.app-toast.t-warning { border-left-color: #f5c842; }
+.app-toast.t-warning .at-ico { color: #f5c842; }
+.app-toast.t-error   { border-left-color: #e84040; }
+.app-toast.t-error .at-ico { color: #ff7070; }
+
+/* ════════════════════════════════════════
+   DESKTOP (>=1024px) — itens 3 e 4
+   Refinamentos conservadores, sem reestruturar o grid existente
+   ════════════════════════════════════════ */
+@media (min-width: 1024px) {
+
+  /* Item 3 — cards mais "blocados"/equilibrados na home */
+  .home-grid .card.ga-pilares { min-height: 300px; }
+  .home-grid .ga-msg { min-height: 150px; }
+  .home-grid .ga-audio { min-height: 150px; }
+  .home-grid .card, .home-grid .audio-card, .home-grid .msg-dinamica {
+    border-radius: 18px;
+  }
+  /* pilares em grade 2x2 mais quadrada (já existe base ga-pilares) */
+  .home-grid .ga-pilares .pilar-list {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+  .home-grid .ga-pilares .pilar-item { min-height: 132px; }
+
+  /* Item 4 — card de áudio maior, estilo Spotify/Audible */
+  #page-audios .audio-card { padding: 18px; border-radius: 18px; }
+  #page-audios .audio-cover {
+    width: 64px; height: 64px; border-radius: 12px; object-fit: cover;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+  #page-audios .audio-icon-wrap { width: 64px; height: 64px; font-size: 30px; border-radius: 12px; }
+  #page-audios .audio-title { font-size: 16px; }
+  #page-audios .audio-header { gap: 14px; align-items: center; }
+  /* hover de destaque na lista de áudios */
+  #page-audios .audio-card { transition: border-color .2s, box-shadow .2s, transform .2s; }
+  #page-audios .audio-card:hover {
+    border-color: rgba(76,175,80,0.35);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   FASE 2 — Notification Center, Sidebar expansível, Configurações
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Notification ticker (header) — substitui a faixa azul ── */
+#subBanner { display: none !important; }   /* lógica mantida, faixa oculta; ticker assume */
+.sb-brand { display: none; }                /* mobile: oculto (só aparece na sidebar desktop) */
+
+/* v108: o texto da marca saiu do topbar — o ticker assume o espaço e
+   ganha destaque, já que é ali que chega progresso, alerta e sistema. */
+.notif-ticker {
+  flex: 1; min-width: 0; margin: 0 16px;
+  height: 44px; display: flex; align-items: center;
+  background: linear-gradient(180deg, rgba(76,175,80,.07), rgba(255,255,255,.02));
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--green);
+  border-radius: 12px; padding: 0 16px;
+  overflow: hidden; cursor: default;
+  box-shadow: 0 2px 18px rgba(76,175,80,.07), inset 0 1px 0 rgba(255,255,255,.03);
+  transition: border-color .3s, background .3s, box-shadow .3s;
+}
+.notif-ticker:hover { box-shadow: 0 4px 24px rgba(76,175,80,.13); }
+.notif-ticker.t-info    { border-left-color: #4fa8ff; }
+.notif-ticker.t-success { border-left-color: #4caf50; }
+.notif-ticker.t-warning { border-left-color: #f5c842; }
+.notif-ticker.t-urgent  { border-left-color: #e84040; }
+.notif-ticker-item {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13.5px; font-weight: 500; color: var(--text); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; width: 100%;
+  opacity: 0; transform: translateY(8px);
+  transition: opacity .4s ease, transform .4s ease;
+}
+.notif-ticker-item.show { opacity: 1; transform: translateY(0); }
+.notif-ticker-ico { flex-shrink: 0; font-size: 14px; }
+.notif-ticker-txt { overflow: hidden; text-overflow: ellipsis; }
+.notif-ticker-txt b { color: var(--green-bright, #6dde71); font-weight: 700; }
+@media (max-width: 1023px) {
+  .notif-ticker { height: 40px; margin: 0 10px; font-size: 12.5px; }
+}
+
+/* ── Sidebar expansível (desktop) ── */
+@media (min-width: 1024px) {
+  .bottom-nav {
+    width: 76px !important;
+    overflow: hidden; z-index: 95;
+    transition: width .3s ease, box-shadow .3s ease;
+  }
+  .bottom-nav:hover {
+    width: 248px !important;
+    box-shadow: 10px 0 40px rgba(0,0,0,0.45);
+  }
+  /* logo textual original (raio) oculto — brand com ícone "21" via JS */
+  .bottom-nav::before { display: none !important; }
+  /* marca (ícone 21) injetada no topo da sidebar */
+  .sb-brand {
+    display: flex; align-items: center; gap: 10px;
+    height: 72px; padding: 0 18px;
+    border-bottom: 1px solid var(--border); margin-bottom: 12px;
+    overflow: hidden; white-space: nowrap;
+  }
+  .sb-brand img { width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0; }
+  .sb-brand span { font-size: 15px; font-weight: 800; color: var(--text); opacity: 0; transition: opacity .2s; }
+  .bottom-nav:hover .sb-brand span { opacity: 1; }
+  .bottom-nav:not(:hover) .sb-brand { padding: 0; justify-content: center; }
+
+  /* labels: somem recolhidos (display none evita empurrar o ícone), aparecem no hover */
+  .bottom-nav .nav-btn span { display: none; white-space: nowrap; }
+  .bottom-nav:hover .nav-btn span { display: inline; }
+  .bottom-nav:not(:hover) .nav-btn { justify-content: center; padding-left: 0; padding-right: 0; }
+  /* ícones sempre visíveis quando recolhida */
+  .bottom-nav .nav-btn svg { flex-shrink: 0; }
+  /* conteúdo acompanha a largura RECOLHIDA — sidebar expande como overlay */
+  .topbar { left: 76px !important; }
+  .main-scroll { margin-left: 76px !important; }
+
+  /* botão Configurações no rodapé da sidebar */
+  .nav-btn.nav-config { margin-top: auto; margin-bottom: 16px; }
+}
+/* botão config escondido no mobile (acesso via Perfil futuramente) */
+@media (max-width: 1023px) { .nav-btn.nav-config { display: none; } }
+
+/* ── Drawer de Configurações ── */
+.cfg-overlay {
+  position: fixed; inset: 0; z-index: 100000;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+  opacity: 0; visibility: hidden; transition: opacity .3s, visibility .3s;
+}
+.cfg-overlay.show { opacity: 1; visibility: visible; }
+.cfg-drawer {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 420px; max-width: 92vw;
+  background: var(--surface, #0f1412);
+  border-left: 1px solid var(--border);
+  box-shadow: -20px 0 60px rgba(0,0,0,0.6);
+  transform: translateX(100%); transition: transform .35s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column; overflow-y: auto;
+}
+.cfg-overlay.show .cfg-drawer { transform: translateX(0); }
+.cfg-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 22px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface, #0f1412); z-index: 2;
+}
+.cfg-head h2 { font-size: 18px; font-weight: 800; color: var(--text); }
+.cfg-close { background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; line-height: 1; }
+.cfg-close:hover { color: var(--text); }
+.cfg-body { padding: 18px 22px 30px; }
+.cfg-sec { margin-bottom: 26px; }
+.cfg-sec-title { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.cfg-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 13px 14px; background: var(--surface2, #141c18);
+  border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px;
+}
+.cfg-row-label { font-size: 14px; color: var(--text); }
+.cfg-row-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.cfg-val { font-size: 13px; color: var(--muted); }
+.cfg-soon { font-size: 10px; color: var(--muted); background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 100px; }
+/* toggle switch */
+.cfg-switch { position: relative; width: 44px; height: 25px; flex-shrink: 0; cursor: pointer; }
+.cfg-switch input { opacity: 0; width: 0; height: 0; }
+.cfg-slider { position: absolute; inset: 0; background: #2a352c; border-radius: 25px; transition: .25s; }
+.cfg-slider::before { content: ''; position: absolute; height: 19px; width: 19px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .25s; }
+.cfg-switch input:checked + .cfg-slider { background: var(--green, #4caf50); }
+.cfg-switch input:checked + .cfg-slider::before { transform: translateX(19px); }
+
+/* ── Mini player flutuante (desktop) — fix item 2 ── */
+@media (min-width: 1024px) {
+  .mini-player.active {
+    left: auto !important; right: 24px; bottom: 24px !important; top: auto;
+    width: 380px; max-width: calc(100vw - 120px);
+    border: 1px solid var(--border2); border-top: 1px solid var(--border2);
+    border-radius: 16px; padding: 12px 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+    cursor: grab;
+    animation: none !important; transform: none !important;
+  }
+  .mini-player.active.mp-dragging { cursor: grabbing; transition: none !important; box-shadow: 0 26px 64px rgba(0,0,0,0.75); }
+  /* não arrastar ao clicar nos controles */
+  .mini-player .mini-btn, .mini-player button, .mini-player [onclick] { cursor: pointer; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   LEITURA — redesign desktop (não afeta mobile)
+   ════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+
+  /* ── 1. Galeria/biblioteca: vários livros por linha ── */
+  .leit-library-body { padding: 30px 48px 60px; }
+  .leit-library-heading { font-size: 26px; }
+  .leit-library-sub { font-size: 15px; margin-bottom: 26px; }
+  .leit-book-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 24px 22px;
+    max-width: 1180px; margin: 0 auto;
+    perspective: 1400px;
+  }
+  .leit-book-card {
+    border-radius: 12px;
+    transition: box-shadow .35s, opacity .3s, filter .3s, border-color .2s;
+    will-change: transform;            /* tilt 3D seguindo o mouse via JS (initBookTilt) */
+  }
+  /* vizinhos recuam só por opacity/filter (sem transform — não briga com o tilt) */
+  .leit-book-grid:hover .leit-book-card:not(:hover) { opacity: .5; filter: brightness(.7); }
+  .leit-book-card:hover { box-shadow: 0 36px 70px rgba(0,0,0,.65); z-index: 6; border-color: var(--accent, #6dde71); }
+
+  /* ── livro ABRINDO: a capa gira como tampa e revela as páginas ── */
+  .leit-book-cover-wrap { perspective: 900px; overflow: visible; }
+  .leit-book-cover-img, .leit-book-cover-fallback {
+    transition: transform .5s cubic-bezier(.22,.61,.36,1), box-shadow .5s;
+    transform-origin: left center; backface-visibility: hidden; z-index: 3;
+  }
+  .leit-book-card:hover .leit-book-cover-img,
+  .leit-book-card:hover .leit-book-cover-fallback {
+    transform: rotateY(-32deg);
+    box-shadow: 14px 6px 34px rgba(0,0,0,.5);
+  }
+  /* páginas (miolo) atrás da capa, reveladas ao abrir */
+  .leit-book-cover-wrap::before {
+    content: ''; position: absolute; top: 5%; bottom: 5%; left: 4%; right: 6%;
+    z-index: 1; border-radius: 2px;
+    background:
+      repeating-linear-gradient(0deg, rgba(0,0,0,.07) 0 1px, transparent 1px 8px),
+      linear-gradient(90deg, #e9e6db, #f6f4ee 18%);
+    box-shadow: inset 2px 0 6px rgba(0,0,0,.15);
+    opacity: 0; transition: opacity .35s ease .12s;
+  }
+  .leit-book-card:hover .leit-book-cover-wrap::before { opacity: 1; }
+  .leit-book-info { padding: 12px 12px 10px; }
+  .leit-book-title { font-size: 13px; }
+  .leit-book-author { font-size: 11px; }
+
+  /* ── 3 & 4. "Você escolheu" / preparação: 2 colunas ── */
+  .leit-onboard {
+    display: grid !important;
+    grid-template-columns: 220px minmax(0, 460px);
+    grid-template-areas: "media title" "media booktitle" "media body" "media footer";
+    column-gap: 48px; row-gap: 14px;
+    align-content: center; justify-content: center;
+    text-align: left !important; padding: 40px;
+  }
+  .leit-onboard-cover, .leit-onboard-cover-fallback {
+    grid-area: media; width: 220px !important; height: 330px !important;
+    align-self: center; border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+  }
+  .leit-onboard-emoji, .leit-onboard-timer-emoji {
+    grid-area: media; align-self: center; justify-self: center; font-size: 120px !important;
+  }
+  .leit-onboard-title { grid-area: title; align-self: end; font-size: 30px !important; }
+  .leit-onboard-book-title { grid-area: booktitle; font-size: 19px !important; }
+  .leit-onboard-body { grid-area: body; max-width: none !important; font-size: 15px !important; }
+  .leit-onboard-footer { grid-area: footer; align-self: start; max-width: 360px !important; margin-top: 10px; }
+  /* bg blur da capa atrás (suave) */
+  .leit-onboard-bg { opacity: .5; }
+  /* CTA verde padrão Desafio 21 Dias */
+  .leit-onboard .leit-btn-primary { background: var(--green, #4caf50) !important; color: #fff !important; }
+
+  /* ── 5. Leitor: 1 controle por lateral (botão nativo), aparece perto da borda.
+     As .leit-tap-zone seguem invisíveis (área de clique). SEM setas próprias. */
+  .leit-epub-nav {
+    opacity: 0; transition: opacity .25s ease, filter .15s ease, box-shadow .2s;
+    background: rgba(255,255,255,.72); backdrop-filter: blur(6px);
+    color: rgba(0,0,0,.55); box-shadow: 0 6px 20px rgba(0,0,0,.25); z-index: 15;
+  }
+  .leit-epub-nav.near { opacity: 1; }
+  .leit-epub-nav:hover { filter: brightness(1.12); box-shadow: 0 8px 26px rgba(0,0,0,.35); }
+  .leit-page-info { font-size: 12px; padding: 6px 10px; }
+
+  /* ── 6. Hover nos botões da experiência ── */
+  .leit-btn-primary, .leit-btn-secondary, .leit-back-btn, .leit-complete-btn {
+    transition: transform .15s ease, box-shadow .2s ease, opacity .15s, background .2s;
+  }
+  .leit-btn-primary:hover  { transform: translateY(-2px) scale(1.02); box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .leit-btn-secondary:hover { transform: translateY(-2px); border-color: var(--accent, #6dde71); color: var(--text); }
+  .leit-back-btn:hover { transform: translateX(-2px) scale(1.05); }
+}
+
+/* ── Transição cinematográfica ao abrir o livro (desktop) ── */
+.leit-enter-overlay {
+  position: fixed; inset: 0; z-index: 999999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.62); perspective: 1700px; pointer-events: none;
+}
+.leit-enter-book { position: relative; transform-style: preserve-3d; }
+.leit-enter-cover {
+  position: absolute; inset: 0; background-size: cover; background-position: center;
+  border-radius: 7px; box-shadow: 0 36px 90px rgba(0,0,0,.75);
+  transform-origin: left center; backface-visibility: hidden; z-index: 2;
+}
+.leit-enter-pages {
+  position: absolute; inset: 0; border-radius: 7px; z-index: 1;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 1px, transparent 1px 9px),
+    linear-gradient(90deg, #e7e3d8, #f8f6f0 16%);
+  box-shadow: inset 3px 0 10px rgba(0,0,0,.16);
+}
+
+/* bg fullscreen da capa (blur + zoom lento) — global; injetado via JS só no desktop */
+.leit-ob-cover-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover; background-position: center;
+  filter: blur(30px) brightness(.38); transform: scale(1.12);
+  animation: leit-bg-zoom 20s ease-in-out infinite; pointer-events: none;
+}
+@keyframes leit-bg-zoom { 0%,100% { transform: scale(1.12); } 50% { transform: scale(1.28); } }
+.leit-onboard { position: relative; }
+.leit-onboard > *:not(.leit-ob-cover-bg) { position: relative; z-index: 1; }

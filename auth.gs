@@ -2,28 +2,192 @@
 // Auth.gs — Authentication & Session Management
 // ============================================================
 
-function hashPassword(password) {
+// ── Hashing de senha COM SALT (v2) + verificação retrocompatível ──
+// Formato novo:  "s2$" + salt(32 hex) + "$" + sha256hex(salt + senha)
+// Legado:        64 chars hex = SHA-256(senha) sem salt (migra no 1º login).
+
+function _sha256Hex_(str) {
   const bytes = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    password
-  );
+    Utilities.DigestAlgorithm.SHA_256, String(str), Utilities.Charset.UTF_8);
   return bytes.map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+}
+
+function _hashLegado_(password) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(password));
+  return bytes.map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+}
+
+function _gerarSalt_() {
+  return (Utilities.getUuid() + Utilities.getUuid()).replace(/-/g, '').substring(0, 32);
+}
+
+function _timingEq_(a, b) {
+  a = String(a); b = String(b);
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= (a.charCodeAt(i) ^ b.charCodeAt(i));
+  return diff === 0;
+}
+
+// Produz hash SALGADO. Usado em TODOS os pontos que gravam senha.
+function hashPassword(password) {
+  const salt = _gerarSalt_();
+  return 's2$' + salt + '$' + _sha256Hex_(salt + String(password));
+}
+
+// Verifica senha contra o hash armazenado (novo OU legado).
+// Retorna { ok, legado } — legado=true => recomenda re-hash com salt.
+function verificarSenha_(password, stored) {
+  stored = String(stored || '');
+  if (stored.indexOf('s2$') === 0) {
+    const parts = stored.split('$');            // ['s2', salt, hash]
+    if (parts.length !== 3) return { ok: false, legado: false };
+    return { ok: _timingEq_(_sha256Hex_(parts[1] + String(password)), parts[2]), legado: false };
+  }
+  return { ok: _timingEq_(_hashLegado_(password), stored), legado: true };
+}
+
+// ── Rate limit de login (v128) ──────────────────────────────────
+// O Apps Script não enxerga o IP do cliente, então a janela é por
+// e-mail. Isso significa que um atacante consegue trancar um admin
+// específico por 15 min — trade-off aceitável para um painel com
+// meia dúzia de contas, e muito melhor do que força bruta livre.
+const LOGIN_MAX_TENTATIVAS = 5;
+const LOGIN_JANELA_SEG     = 15 * 60;
+
+function _rlChave_(email) {
+  return 'lgnf_' + _sha256Hex_(String(email || '').toLowerCase().trim()).substring(0, 32);
+}
+
+function _rlEstado_(email) {
+  try {
+    const raw = CacheService.getScriptCache().get(_rlChave_(email));
+    if (!raw) return { n: 0, ate: 0 };
+    const o = JSON.parse(raw);
+    return { n: Number(o.n) || 0, ate: Number(o.ate) || 0 };
+  } catch (e) { return { n: 0, ate: 0 }; }
+}
+
+// Retorna 0 se liberado, ou os segundos que ainda faltam para destravar.
+function _rlBloqueado_(email) {
+  const st = _rlEstado_(email);
+  if (st.n < LOGIN_MAX_TENTATIVAS) return 0;
+  const restam = Math.ceil((st.ate - Date.now()) / 1000);
+  return restam > 0 ? restam : 0;
+}
+
+function _rlFalha_(email) {
+  try {
+    const st  = _rlEstado_(email);
+    const n   = st.n + 1;
+    const ate = n >= LOGIN_MAX_TENTATIVAS ? Date.now() + LOGIN_JANELA_SEG * 1000 : (st.ate || 0);
+    CacheService.getScriptCache().put(
+      _rlChave_(email), JSON.stringify({ n: n, ate: ate }), LOGIN_JANELA_SEG);
+    if (n === LOGIN_MAX_TENTATIVAS) {
+      try { logAction(email, 'LOGIN_BLOQUEADO', 'auth', '', n + ' tentativas seguidas'); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
+function _rlLimpar_(email) {
+  try { CacheService.getScriptCache().remove(_rlChave_(email)); } catch (e) {}
+}
+
+// Destrava manualmente um e-mail preso no rate limit (rodar no editor).
+function destravarLogin(email) {
+  _rlLimpar_(email);
+  return 'Login destravado para: ' + email;
 }
 
 function login(email, password) {
   try {
+    // v102: normaliza email antes da busca (corrigia casos como
+    // "maria@x.com " com espaco ou "MARIA@X.COM" com caps lock).
+    // Tambem remove espacos da senha (clientes colam senha com espaco).
+    var emailNorm = String(email || '').toLowerCase().trim();
+    var pwdNorm   = String(password || '').trim();
+    if (!emailNorm || !pwdNorm) return { ok: false, error: 'E-mail ou senha inválidos.' };
+
+    // Freio de força bruta ANTES de tocar na planilha
+    const espera = _rlBloqueado_(emailNorm);
+    if (espera > 0) {
+      return {
+        ok: false,
+        bloqueado: true,
+        espera: espera,
+        error: 'Muitas tentativas seguidas. Tente novamente em ' +
+               (espera > 60 ? Math.ceil(espera / 60) + ' minutos.' : espera + ' segundos.')
+      };
+    }
+
     const sheet = getSheet(SHEET_USERS);
     const users = sheetToObjects(sheet);
-    const user  = users.find(u => u.email === email && u.active);
-    if (!user) return { ok: false, error: 'Usuário não encontrado ou inativo.' };
+    // Compara email normalizado (dados antigos podem estar com caps/espaco)
+    const user = users.find(function(u) {
+      return String(u.email || '').toLowerCase().trim() === emailNorm && u.active;
+    });
 
-    const hash = hashPassword(password);
-    if (user.password_hash !== hash) return { ok: false, error: 'Senha incorreta.' };
+    // Mensagem genérica: não revela se o e-mail existe (anti-enumeração)
+    const GENERICO = { ok: false, error: 'E-mail ou senha inválidos.' };
+    if (!user) {
+      _rlFalha_(emailNorm);
+      // v102: log temporário pra debugar casos de "nao encontrou"
+      try { logAction(emailNorm, 'LOGIN_FAIL_USER', 'auth', '', 'email nao encontrado'); } catch (e) {}
+      return GENERICO;
+    }
+
+    const chk = verificarSenha_(pwdNorm, user.password_hash);
+    if (!chk.ok) {
+      _rlFalha_(emailNorm);
+      try { logAction(emailNorm, 'LOGIN_FAIL_PWD', 'auth', user.id || '', 'hash mismatch'); } catch (e) {}
+      return GENERICO;
+    }
+
+    // Upgrade transparente: hash legado (sem salt) → re-grava salgado
+    if (chk.legado) {
+      try {
+        const data     = sheet.getDataRange().getValues();
+        const headers  = data[0];
+        const emailCol = headers.indexOf('email');
+        const hashCol  = headers.indexOf('password_hash') + 1;
+        for (let i = 1; i < data.length; i++) {
+          // v128: comparação normalizada — igual ao updateUserToken. Cru,
+          // o upgrade de hash silenciosamente nunca acontecia.
+          if (String(data[i][emailCol] || '').toLowerCase().trim() === emailNorm) {
+            sheet.getRange(i + 1, hashCol).setValue(hashPassword(pwdNorm));
+            break;
+          }
+        }
+      } catch (_up) {}
+    }
+
+    // v130: segundo fator. A senha está certa, mas quem tem 2FA ligado
+    // ainda não recebe token — recebe um desafio e um código por e-mail.
+    if (typeof _twofaAtivo_ === 'function' && _twofaAtivo_(user)) {
+      _rlLimpar_(emailNorm);   // a senha estava certa; não penaliza
+      const desafio = _2faCriarDesafio_(user);
+      if (!desafio) {
+        return { ok: false, error: 'Não consegui enviar seu código de acesso. Tente de novo em instantes.' };
+      }
+      return {
+        ok: false,
+        need2fa: true,
+        desafio: desafio,
+        email: (typeof _maskEmail_ === 'function') ? _maskEmail_(user.email) : ''
+      };
+    }
 
     // Generate session token
     const token = generateId();
-    updateUserToken(sheet, users, email, token);
-    logAction(email, 'LOGIN', 'session', '', '');
+    // v127: passa o e-mail NORMALIZADO — o mesmo critério usado na busca
+    const gravou = updateUserToken(sheet, users, emailNorm, token);
+    if (!gravou) {
+      // Falha silenciosa aqui deixava o usuário logar e cair em
+      // "Não autorizado" na chamada seguinte. Melhor falhar na cara.
+      return { ok: false, error: 'Não foi possível iniciar a sessão. Tente novamente.' };
+    }
+    _rlLimpar_(emailNorm);   // acertou: zera o contador de tentativas
+    logAction(emailNorm, 'LOGIN', 'session', '', '');
 
     return {
       ok: true,
@@ -33,6 +197,69 @@ function login(email, password) {
   } catch (err) {
     return { ok: false, error: err.message };
   }
+}
+
+// v102: endpoint de debug pra investigar problemas de login.
+// Retorna se o email existe, se ativo, e se a senha bate (sem expor a senha).
+// Davi pode usar pra investigar o caso "Maria pagou mas nao loga".
+// Chamar via:  { action: 'debugLogin', data: { email, password } }
+function debugLogin(token, email, password) {
+  if (!_isAdmin(token)) return { ok: false, error: 'Sem permissao.' };
+  try {
+    var emailNorm = String(email || '').toLowerCase().trim();
+    var sheet = getSheet(SHEET_USERS);
+    var users = sheetToObjects(sheet);
+    // 1) busca exata
+    var userExact = users.find(function(u) { return String(u.email) === email; });
+    // 2) busca normalizada
+    var userNorm = users.find(function(u) {
+      return String(u.email || '').toLowerCase().trim() === emailNorm;
+    });
+    var chkExact = userExact ? verificarSenha_(password, userExact.password_hash) : null;
+    var chkNorm  = userNorm  ? verificarSenha_(password, userNorm.password_hash)  : null;
+    return {
+      ok: true,
+      email: email,
+      normalized: emailNorm,
+      user_exact:  userExact ? { id: userExact.id, email: userExact.email, active: userExact.active, role: userExact.role, hash_prefix: String(userExact.password_hash).slice(0, 15) } : null,
+      user_norm:   userNorm  ? { id: userNorm.id,  email: userNorm.email,  active: userNorm.active,  role: userNorm.role,  hash_prefix: String(userNorm.password_hash).slice(0, 15) } : null,
+      pwd_check_exact: chkExact ? chkExact.ok : 'no_user',
+      pwd_check_norm:  chkNorm  ? chkNorm.ok  : 'no_user',
+      recommendation: !userNorm ? 'USER_NOT_FOUND' :
+                       !userNorm.active ? 'USER_INACTIVE' :
+                       chkNorm && !chkNorm.ok ? 'PWD_MISMATCH' :
+                       chkNorm && chkNorm.ok ? 'LOGIN_SHOULD_WORK' : 'CHECK_MANUALLY'
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+// v102: endpoint PUBLICO (sem auth) que so diz se o usuario existe.
+// Usado pra debugar "pagou mas nao consegue acessar" sem expor dados sensiveis.
+// Retorna apenas: existe? ativo? (NUNCA retorna hash, nome ou qualquer dado pessoal)
+function userExistsPublic(email) {
+  try {
+    var emailNorm = String(email || '').toLowerCase().trim();
+    if (!emailNorm) return { ok: false, error: 'Email invalido.' };
+    var sheet = getSheet(SHEET_USERS);
+    var users = sheetToObjects(sheet);
+    var user = users.find(function(u) {
+      return String(u.email || '').toLowerCase().trim() === emailNorm;
+    });
+    if (!user) {
+      // v102: log pra auditoria
+      try { logAction(emailNorm, 'USER_EXISTS_CHECK', 'auth', '', 'not_found'); } catch(e){}
+      return { ok: true, exists: false, normalized: emailNorm };
+    }
+    try { logAction(emailNorm, 'USER_EXISTS_CHECK', 'auth', user.id || '', 'found'); } catch(e){}
+    return {
+      ok: true,
+      exists: true,
+      active: !!user.active,
+      role: user.role,
+      created_at: user.created_at || '',
+      normalized: emailNorm
+    };
+  } catch (e) { return { ok: false, error: e.message }; }
 }
 
 function logout(token) {
@@ -53,16 +280,26 @@ function getUserByToken(token) {
   return users.find(u => u.token === token && u.active) || null;
 }
 
+// v127: comparação NORMALIZADA. O login() encontra o usuário com
+// toLowerCase().trim() desde a v102, mas esta função ainda comparava o
+// e-mail cru — então, se o cadastro tivesse caps ou espaço diferente do
+// que foi digitado, o login "funcionava" e o token NUNCA era gravado.
+// Toda chamada seguinte caía em "Não autorizado" e derrubava a sessão.
+// Retorna true se gravou, para o chamador poder reagir.
 function updateUserToken(sheet, users, email, token) {
+  const alvo = String(email || '').toLowerCase().trim();
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const tokenCol = headers.indexOf('token') + 1;
+  const emailCol = headers.indexOf('email');
   for (let i = 1; i < data.length; i++) {
-    if (data[i][headers.indexOf('email')] === email) {
+    if (String(data[i][emailCol] || '').toLowerCase().trim() === alvo) {
       sheet.getRange(i + 1, tokenCol).setValue(token);
-      break;
+      return true;
     }
   }
+  logAction('system', 'TOKEN_NAO_GRAVADO', 'auth', alvo, 'linha do usuario nao encontrada');
+  return false;
 }
 
 // ── User CRUD ────────────────────────────────────────────────
@@ -121,10 +358,16 @@ function updateUser(token, userId, updates) {
 function sendPasswordReset(email) {
   if (!email) return { ok: false, error: 'E-mail obrigatório.' };
 
+  // v130: comparação normalizada — antes usava o e-mail cru e quem
+  // tivesse caps/espaço no cadastro nunca recebia o código de reset.
+  const alvoReset = String(email).toLowerCase().trim();
   const sheet = getSheet(SHEET_USERS);
   const users = sheetToObjects(sheet);
-  const user  = users.find(u => u.email === email && u.active);
-  if (!user) return { ok: false, error: 'E-mail não encontrado.' };
+  const user  = users.find(u => String(u.email || '').toLowerCase().trim() === alvoReset && u.active);
+  // Não revela se o e-mail existe (anti-enumeração): finge sucesso e não envia nada.
+  if (!user) return { ok: true };
+  // Freio: no máximo 3 pedidos de código por e-mail a cada 15 min
+  if (typeof _freioOk_ === 'function' && !_freioOk_('rst', alvoReset, 3, 15 * 60)) return { ok: true };
 
   // Código de 6 dígitos + expiração de 5 minutos
   const code    = String(Math.floor(100000 + Math.random() * 900000));
@@ -143,8 +386,16 @@ function sendPasswordReset(email) {
 
   const subject = wsNome + ' — Código de recuperação de senha';
   const html    = _buildResetEmailHtml_(user.name || email, code, wsNome);
+  // v146: era MailApp.sendEmail direto. Isso sai da conta do DONO DO SCRIPT,
+  // sem SPF/DKIM alinhado ao wpktavares.com.br — o Gmail costuma descartar
+  // em silêncio, sem cair nem no spam. Todo o resto do sistema já usava
+  // _enviarEmailWpk_, que tenta o Resend com o domínio verificado primeiro
+  // e só cai em Gmail/MailApp se ele falhar. A recuperação de senha tinha
+  // ficado de fora, e é justamente o e-mail que a pessoa mais precisa receber.
   try {
-    MailApp.sendEmail({ to: email, subject: subject, htmlBody: html });
+    var _envio = _enviarEmailWpk_(email, subject,
+      'Seu codigo de recuperacao e ' + code + '. Ele vale por 5 minutos.', html);
+    logAction(email, 'PASSWORD_RESET_VIA', 'user', '', (_envio && _envio.via) || 'desconhecido');
   } catch(mailErr) {
     return { ok: false, error: 'Erro ao enviar e-mail: ' + mailErr.message };
   }

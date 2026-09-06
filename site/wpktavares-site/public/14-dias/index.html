@@ -8,20 +8,23 @@
 <link rel="canonical" href="https://wpktavares.com.br/14-dias/">
 
 <!-- ══ FAVICON ══ -->
-<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
-<link rel="shortcut icon" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#07090a">
 
 <!-- ══ OPEN GRAPH / SOCIAL PREVIEW ══ -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Desafio 21 Dias – 14 Dias Grátis, Depois R$17/mês">
 <meta property="og:description" content="14 dias para testar tudo gratuitamente. App, biblioteca, Bia IA, sala ao vivo. Depois R$17/mês. Cancele quando quiser.">
-<meta property="og:image" content="https://i.imgur.com/Xe5iaZ1.gif">
+<meta property="og:image" content="https://wpktavares.com.br/icons/og-image.jpg">
 <meta property="og:url" content="https://wpktavares.com.br/14-dias/">
 <meta property="og:site_name" content="WPK Tavares – Desafio 21 Dias">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Desafio 21 Dias – 14 Dias Grátis">
 <meta name="twitter:description" content="14 dias grátis para testar a plataforma completa. Depois R$17/mês. Cancele quando quiser.">
-<meta name="twitter:image" content="https://i.imgur.com/Xe5iaZ1.gif">
+<meta name="twitter:image" content="https://wpktavares.com.br/icons/og-image.jpg">
 
 <!-- ══ META PIXEL ══ -->
 <script>
@@ -46,8 +49,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 
-<!-- ══ WISTIA ══ -->
-<script src="https://fast.wistia.com/assets/external/E-v1.js" async></script>
+<!-- ══ VSL PLAYER ══ -->
+<link rel="stylesheet" href="/assets/vsl-player.css">
 
 <style>
   :root {
@@ -191,7 +194,7 @@
   <h1 class="hero-title">Construa uma<br><span class="accent">Disciplina<br>Inabalável</span> em 21 Dias</h1>
   <p class="hero-sub">Mesmo que você seja totalmente indisciplinado hoje.<br>Assista o vídeo abaixo.</p>
   <div class="vsl-wrap" id="vsl-wrapper">
-    <div class="wistia_embed wistia_async_fvf0f1zx46 videoFoam=true"></div>
+    <div class="vsl-player" data-vsl-src="https://i.imgur.com/8r7AKRu.mp4"></div>
   </div>
   <p class="vsl-note">▲ Assista até o final — os detalhes da oferta estão no vídeo</p>
 </section>
@@ -289,15 +292,13 @@
 
       <!-- SUBSTITUA PELA URL DO CAKTO COM CUPOM DE 14 DIAS GRÁTIS (ex: GRATIS14) -->
       <a
-        href="https://wpktavares.com.br/checkout/?trial=14"
+        href="/checkout-trial/?dias=14"
         class="cta-btn cta-pulse"
         id="cta-main"
-        target="_blank"
-        rel="noopener"
         onclick="fbq('track', 'InitiateCheckout', {content_name: 'Desafio 21 Dias – 14 dias grátis', value: 0.00, currency: 'BRL'})"
       >
         COMEÇAR MEUS 14 DIAS GRÁTIS
-        <span class="cta-sub">Acesso imediato · Sem cobrança nos primeiros 14 dias</span>
+        <span class="cta-sub">Acesso imediato · Sem cartão · Sem cobrança</span>
       </a>
 
       <div class="guarantee">
@@ -323,15 +324,13 @@
   <div class="cta2-inner">
     <!-- SUBSTITUA PELA URL DO CAKTO COM CUPOM DE 14 DIAS GRÁTIS -->
     <a
-      href="https://wpktavares.com.br/checkout/?trial=14"
+      href="/checkout-trial/?dias=14"
       class="cta-btn"
       id="cta-bottom"
-      target="_blank"
-      rel="noopener"
       onclick="fbq('track', 'InitiateCheckout', {content_name: 'Desafio 21 Dias – 14 dias grátis', value: 0.00, currency: 'BRL'})"
     >
       SIM, QUERO COMEÇAR GRÁTIS AGORA
-      <span class="cta-sub">14 dias grátis · Depois R$17/mês · Cancele quando quiser · Acesso imediato</span>
+      <span class="cta-sub">14 dias grátis · Sem cartão · Acesso imediato</span>
     </a>
     <p class="cta2-help">Dúvidas? Fale com a equipe no <a href="https://wa.me/+559484427988" id="link-whatsapp" target="_blank" rel="noopener">WhatsApp</a></p>
   </div>
@@ -385,5 +384,8 @@
   if (waLink) waLink.addEventListener('click', function() { fbq('trackCustom', 'WhatsAppClick'); });
 })();
 </script>
+
+<!-- VSL PLAYER -->
+<script src="/assets/vsl-player.js" defer></script>
 </body>
 </html>

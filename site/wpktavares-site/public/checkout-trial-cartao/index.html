@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comece grátis — Desafio 21 Dias</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600&display=swap" rel="stylesheet">
+<!-- Componentes de conversão compartilhados com /checkout-trial/ (v151) -->
+<link rel="stylesheet" href="/assets/checkout-conversao.css">
+<style>
+:root{
+  --bg:#07090a; --surface:#0f1412; --surface2:#0c110e; --green:#4caf50; --green-bright:#6dde71;
+  --neon:#7CFF6B; --gold:#f5c842; --cream:#eeeadc; --red:#e84040;
+  --text:#dde8dd; --muted:#6e9070; --border:rgba(76,175,80,.16); --input-bg:#0c110e;
+  /* usados pelos componentes compartilhados */
+  --blue:#4fa8ff; --border2:rgba(76,175,80,.25); --glow:0 0 48px rgba(76,175,80,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;
+  line-height:1.55;min-height:100vh}
+
+/* ══ GRID DE 3 COLUNAS — mesma estrutura do checkout sem cartão ══ */
+.main{
+  display:grid;
+  grid-template-columns:1fr;
+  max-width:1500px;margin:0 auto;
+  padding:22px 16px 40px;
+  gap:0;
+}
+@media (min-width:1100px){
+  .main{grid-template-columns:290px minmax(0,1fr) 320px;gap:18px;align-items:start}
+}
+.checkout-col{max-width:520px;width:100%;margin:0 auto}
+
+.topo{text-align:center;margin-bottom:22px}
+.marca{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+.tag{display:inline-block;margin-top:12px;padding:7px 16px;border-radius:100px;font-size:12px;
+  font-weight:600;color:var(--gold);border:1px solid rgba(245,200,66,.35);background:rgba(245,200,66,.07)}
+.preco{font-family:'Bebas Neue',sans-serif;font-size:60px;line-height:.9;color:var(--green-bright);
+  margin-top:14px;letter-spacing:.01em}
+.preco small{font-size:20px;color:var(--text)}
+.de{font-family:'Instrument Serif',serif;font-style:italic;color:var(--red);opacity:.85;
+  text-decoration:line-through;font-size:16px;margin-top:4px}
+.de b{color:var(--red);font-weight:400}
+.economia{display:inline-block;margin-top:8px;padding:4px 11px;border-radius:100px;
+  font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--neon);
+  background:rgba(124,255,107,.09);border:1px solid rgba(124,255,107,.28)}
+.linha-cartao{margin-top:12px;font-size:12.5px;color:var(--muted);
+  display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:center;
+  padding:8px 14px;border-radius:10px;
+  background:rgba(79,168,255,.06);border:1px solid rgba(79,168,255,.2)}
+.linha-cartao svg{color:var(--blue);flex-shrink:0}
+.linha-cartao b{color:var(--text);font-weight:600}
+
+.passos{display:flex;gap:6px;margin:24px 0 18px}
+.passo{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.09);transition:background .3s}
+.passo.on{background:var(--green)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px 22px}
+.etapa{display:none}
+.etapa.on{display:block;animation:sobe .35s cubic-bezier(.16,1,.3,1) both}
+@keyframes sobe{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+h2{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.02em;color:var(--cream);margin-bottom:5px}
+.sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+
+label{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:6px}
+.campo{margin-bottom:15px}
+input[type=text],input[type=email],input[type=tel]{width:100%;padding:13px 14px;background:var(--input-bg);
+  border:1px solid var(--border);border-radius:11px;color:var(--text);font-size:15px;font-family:inherit;
+  transition:border-color .18s,box-shadow .18s}
+input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(76,175,80,.15)}
+input::placeholder{color:#3d5347}
+.campo.erro input{border-color:var(--red);box-shadow:0 0 0 3px rgba(232,64,64,.13)}
+.msg-erro{font-size:11.5px;color:var(--red);margin-top:5px;min-height:0}
+.campo.erro .msg-erro{min-height:15px}
+
+.codigo{text-align:center;font-size:28px;font-weight:600;letter-spacing:12px;padding-left:12px}
+
+.btn{width:100%;padding:15px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;
+  font-size:15px;font-weight:600;color:#04140a;background:linear-gradient(135deg,var(--green),#2e7d32);
+  display:flex;align-items:center;justify-content:center;gap:9px;min-height:52px;
+  transition:filter .18s,transform .1s;margin-top:6px}
+.btn:hover:not(:disabled){filter:brightness(1.09)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-txt{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;
+  cursor:pointer;padding:8px;width:100%;margin-top:4px}
+.btn-txt:hover:not(:disabled){color:var(--text)}
+.btn-txt:disabled{opacity:.45;cursor:not-allowed}
+.spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#04140a;
+  border-radius:50%;animation:gira .6s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+
+.termos{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:13px;
+  padding:16px 17px;margin:4px 0 16px;font-size:13px;line-height:1.75}
+.termos b{color:var(--cream)}
+.termos ul{list-style:none;margin-top:9px}
+.termos li{padding-left:19px;position:relative;margin-bottom:6px;color:var(--muted)}
+.termos li::before{content:'';position:absolute;left:5px;top:9px;width:5px;height:5px;
+  border-radius:50%;background:var(--green)}
+
+.aceite{display:flex;gap:11px;align-items:flex-start;cursor:pointer;padding:4px 0 2px}
+.aceite input{margin-top:2px;width:18px;height:18px;accent-color:var(--green);flex-shrink:0;cursor:pointer}
+.aceite span{font-size:12.5px;color:var(--muted);line-height:1.6}
+
+.resumo{display:flex;justify-content:space-between;font-size:13px;padding:9px 0;
+  border-bottom:1px solid rgba(255,255,255,.05)}
+.resumo:last-of-type{border-bottom:none}
+.resumo b{color:var(--cream);font-weight:600}
+
+/* Confirmação do WhatsApp (etapa 3) */
+.zap-box{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.03);
+  border:1px solid var(--border);border-radius:13px;padding:16px 17px;margin-bottom:16px}
+.zap-ico{width:40px;height:40px;border-radius:11px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;background:rgba(76,175,80,.12);border:1px solid rgba(76,175,80,.3);color:var(--green-bright)}
+.zap-num{font-size:19px;font-weight:600;color:var(--cream);letter-spacing:.01em;word-break:break-all}
+.zap-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:2px}
+
+.aviso{margin-top:14px;font-size:12px;color:var(--muted);text-align:center;line-height:1.6}
+.rodape{margin-top:22px;text-align:center;font-size:11.5px;color:#40564a}
+.ok-check{width:52px;height:52px;margin:0 auto 14px;border-radius:50%;background:rgba(76,175,80,.14);
+  display:flex;align-items:center;justify-content:center}
+
+footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
+@media (prefers-reduced-motion:reduce){.etapa.on{animation:none}.spin{animation-duration:1.4s}}
+</style>
+</head>
+<body>
+
+<!-- Toast de atividade (mobile) — preenchido só com evento real -->
+<div class="ckv-toast" id="ckvToast">
+  <div class="ckv-toast-av"></div>
+  <div class="ckv-toast-body">
+    <div class="ckv-toast-app"><img src="https://i.imgur.com/bOf9i1R.png" alt=""> Desafio 21 Dias</div>
+    <div class="ckv-toast-t"></div>
+    <div class="ckv-toast-e"></div>
+    <div class="ckv-toast-q"></div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ESQUERDA — atividade real -->
+  <aside class="ckv-feed-col" id="ckvCol">
+    <div class="ckv-feed-label">
+      <div class="ckv-live-dot"></div>
+      Últimas entradas
+    </div>
+    <div class="ckv-feed" id="ckvFeed"></div>
+  </aside>
+
+  <!-- CENTRO — checkout -->
+  <section class="checkout-col">
+
+    <div class="topo">
+      <div class="marca">WPK Tavares · Desafio 21 Dias</div>
+      <div class="tag" id="tagDias">Acesso grátis</div>
+      <div class="preco">R$ <span id="preco">17</span><small>,00/mês</small></div>
+      <div class="de">de <b>R$ 60,00</b></div>
+      <div class="economia">Economia de R$ 43,00 por mês</div>
+      <div class="linha-cartao">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <span><b>Cartão exigido</b> · Você só é cobrado depois do período grátis</span>
+      </div>
+    </div>
+
+    <div class="passos">
+      <div class="passo on" id="p1"></div>
+      <div class="passo" id="p2"></div>
+      <div class="passo" id="p3"></div>
+      <div class="passo" id="p4"></div>
+    </div>
+
+    <!-- Lote/turma — só aparece com lote configurado e aberto no painel -->
+    <div class="ckv-lote" id="ckvLote" style="display:none">
+      <svg class="ckv-lote-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <div class="ckv-lote-body">
+        <div class="ckv-lote-t"></div>
+        <div class="ckv-lote-s"></div>
+        <div class="ckv-lote-bar"><div class="ckv-lote-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Prova social REAL — preenchida pelo backend, escondida se não houver dado -->
+    <div class="ckv-prova" id="ckvProva" style="display:none">
+      <svg class="ckv-prova-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <div class="ckv-prova-body">
+        <div class="ckv-prova-t"></div>
+        <div class="ckv-prova-s"></div>
+      </div>
+    </div>
+
+    <div class="card ckv-foco" id="cardForm">
+
+      <!-- ETAPA 1 — dados pessoais -->
+      <div class="etapa on" id="e1">
+        <h2>Seus dados</h2>
+        <div class="sub">Vamos confirmar seu e-mail e seu WhatsApp antes de liberar o período gratuito.</div>
+
+        <div class="campo" id="cNome">
+          <label for="nome">Nome completo</label>
+          <input type="text" id="nome" autocomplete="name" placeholder="Ex: Ana Paula da Silva" maxlength="80">
+          <div class="msg-erro"></div>
+        </div>
+        <div class="campo" id="cEmail">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" autocomplete="email" placeholder="seu@email.com" spellcheck="false">
+          <div class="msg-erro"></div>
+        </div>
+        <div class="campo" id="cZap">
+          <label for="zap">WhatsApp</label>
+          <input type="tel" id="zap" autocomplete="tel" placeholder="(11) 99999-9999" inputmode="numeric">
+          <div class="msg-erro"></div>
+        </div>
+
+        <button class="btn ckv-cta" id="btn1"><span>Continuar</span></button>
+      </div>
+
+      <!-- ETAPA 2 — validação do e-mail -->
+      <div class="etapa" id="e2">
+        <h2>Confirme seu e-mail</h2>
+        <div class="sub">Enviamos um código de 6 dígitos para <b id="emailEco"></b>. Ele vale por 5 minutos.</div>
+
+        <div class="campo" id="cCod">
+          <label for="cod">Código</label>
+          <input type="text" id="cod" class="codigo" inputmode="numeric" maxlength="6"
+                 autocomplete="one-time-code" placeholder="000000">
+          <div class="msg-erro"></div>
+        </div>
+
+        <button class="btn ckv-cta" id="btn2"><span>Confirmar</span></button>
+        <button class="btn-txt" id="reenviar">Reenviar código</button>
+        <button class="btn-txt" id="voltar1">Corrigir meu e-mail</button>
+      </div>
+
+      <!-- ETAPA 3 — confirmação do WhatsApp -->
+      <div class="etapa" id="e3">
+        <h2>Confirme seu WhatsApp</h2>
+        <div class="sub">É por aqui que enviaremos o acesso e o aviso antes da primeira cobrança.
+          Confira se o número está certo.</div>
+
+        <div class="zap-box">
+          <div class="zap-ico">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15.46v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 1.12 2.76 2 2 0 0 1 3.11.58h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.41a16 16 0 0 0 6 6l1.19-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7a2 2 0 0 1 1.8 2.07z"/></svg>
+          </div>
+          <div>
+            <div class="zap-lbl">Número informado</div>
+            <div class="zap-num" id="zapEco">—</div>
+          </div>
+        </div>
+
+        <div class="campo" id="cZap2" style="display:none">
+          <label for="zap2">Corrigir WhatsApp</label>
+          <input type="tel" id="zap2" autocomplete="tel" placeholder="(11) 99999-9999" inputmode="numeric">
+          <div class="msg-erro"></div>
+        </div>
+
+        <button class="btn ckv-cta" id="btn3"><span>Sim, o número está certo</span></button>
+        <button class="btn-txt" id="corrigirZap">Corrigir número</button>
+      </div>
+
+      <!-- ETAPA 4 — consentimento e ida ao Stripe -->
+      <div class="etapa" id="e4">
+        <h2>Como funciona</h2>
+        <div class="sub">Leia antes de continuar. Sem letra miúda.</div>
+
+        <div class="resumo"><span>Período gratuito</span><b id="rDias">—</b></div>
+        <div class="resumo"><span>Cobrança hoje</span><b style="color:var(--green-bright)">R$ 0,00</b></div>
+        <div class="resumo"><span>Primeira cobrança</span><b id="rData">—</b></div>
+        <div class="resumo"><span>Valor a partir de então</span><b>R$ 17,00/mês</b></div>
+
+        <div class="termos" style="margin-top:16px">
+          <b>Ao continuar você concorda que:</b>
+          <ul>
+            <li>o cartão é <b>exigido agora</b>, mas <b>nada é cobrado hoje</b>;</li>
+            <li>ao fim do período gratuito, <b>R$ 17,00</b> serão cobrados automaticamente;</li>
+            <li>a assinatura <b>renova todo mês</b> até você cancelar;</li>
+            <li>você pode <b>cancelar pelo app</b> a qualquer momento, inclusive durante o período grátis, e não será cobrado;</li>
+            <li>avisaremos <b>2 dias antes</b> da primeira cobrança.</li>
+          </ul>
+        </div>
+
+        <label class="aceite">
+          <input type="checkbox" id="aceite">
+          <span>Li e concordo com o período gratuito e a cobrança automática de R$ 17,00/mês
+                a partir de <b id="rData2">—</b>.</span>
+        </label>
+
+        <button class="btn ckv-cta" id="btn4" disabled><span>Cadastrar cartão e começar</span></button>
+        <div class="aviso">Você vai para o ambiente seguro do Stripe. Não guardamos dados do seu cartão.</div>
+        <button class="btn-txt" id="voltar2">Voltar</button>
+      </div>
+
+      <!-- FINAL — indo pro Stripe -->
+      <div class="etapa" id="e5">
+        <div style="text-align:center;padding:14px 0">
+          <div class="ok-check">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#6dde71"
+                 stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          <h2>Tudo certo</h2>
+          <div class="sub" style="margin-bottom:0">Abrindo o ambiente seguro para o cartão…</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Alunos — logo abaixo do formulário, fechando o bloco de decisão -->
+    <div class="ckv-alunos abaixo" id="ckvAlunos" style="display:none">
+      <div class="ckv-alunos-fotos"></div>
+      <div class="ckv-alunos-txt"></div>
+    </div>
+
+    <!-- FAQ — respostas próprias desta modalidade (com cartão) -->
+    <div class="ckv-faq" id="ckvFaq">
+      <div class="ckv-faq-titulo">Perguntas frequentes</div>
+      <div class="ckv-faq-item">
+        <button class="ckv-faq-q" type="button">Vou ser cobrado hoje?
+          <svg class="ckv-faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="ckv-faq-a">Não. O cartão é cadastrado agora para garantir sua vaga, mas a cobrança de R$ 17,00 só acontece quando o período gratuito termina.</div>
+      </div>
+      <div class="ckv-faq-item">
+        <button class="ckv-faq-q" type="button">Por que preciso cadastrar o cartão?
+          <svg class="ckv-faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="ckv-faq-a">Para que seu acesso continue sem interrupção quando o teste acabar. Se você cancelar antes do fim do período, nada é cobrado.</div>
+      </div>
+      <div class="ckv-faq-item">
+        <button class="ckv-faq-q" type="button">Como eu cancelo?
+          <svg class="ckv-faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="ckv-faq-a">Pelo próprio app, em Perfil → Gerenciar assinatura. Sem fidelidade e sem precisar falar com ninguém. Cancelando durante o teste, você não paga nada.</div>
+      </div>
+      <div class="ckv-faq-item">
+        <button class="ckv-faq-q" type="button">Vocês avisam antes de cobrar?
+          <svg class="ckv-faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="ckv-faq-a">Sim. Enviamos um aviso 2 dias antes do fim do período gratuito, com a data e o valor da primeira cobrança.</div>
+      </div>
+      <div class="ckv-faq-item">
+        <button class="ckv-faq-q" type="button">Meus dados de cartão ficam com vocês?
+          <svg class="ckv-faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="ckv-faq-a">Não. O cadastro acontece dentro do ambiente do Stripe, que processa o pagamento. Nós nunca vemos nem guardamos o número do seu cartão.</div>
+      </div>
+      <div class="ckv-faq-item">
+        <button class="ckv-faq-q" type="button">Quando recebo meu acesso?
+          <svg class="ckv-faq-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="ckv-faq-a">Na hora. Assim que o cartão é confirmado, enviamos suas credenciais por e-mail e você já entra no app.</div>
+      </div>
+    </div>
+
+    <div class="rodape">Pagamento processado pelo Stripe · WPK Tavares</div>
+  </section>
+
+  <!-- DIREITA — depoimentos reais em vídeo -->
+  <aside class="ckv-dep-col">
+    <div class="ckv-dep-head">
+      <div class="ckv-dep-label"><div class="ckv-live-dot"></div> Depoimentos Reais</div>
+      <div class="ckv-dep-sub">Histórias de quem já fez</div>
+    </div>
+    <div class="ckv-cf">
+      <div class="ckv-cf-stage" id="ckvCfStage"></div>
+    </div>
+    <div class="ckv-cf-ctrl">
+      <button class="ckv-cf-seta" id="ckvCfPrev" type="button" aria-label="Anterior">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="ckv-cf-dots" id="ckvCfDots"></div>
+      <button class="ckv-cf-seta" id="ckvCfNext" type="button" aria-label="Próximo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+</div>
+
+<footer>
+  <div class="ckv-selos">
+    <div class="ckv-selo">
+      <div class="ckv-selo-ico verde">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div class="ckv-selo-txt"><strong>Pagamento seguro</strong><span>Processado pelo Stripe</span></div>
+    </div>
+    <div class="ckv-selo">
+      <div class="ckv-selo-ico azul">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="ckv-selo-txt"><strong>Cancele quando quiser</strong><span>Pelo app, em 1 clique</span></div>
+    </div>
+    <div class="ckv-selo">
+      <div class="ckv-selo-ico ouro">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="ckv-selo-txt"><strong>Aviso antes de cobrar</strong><span>2 dias antes do fim do teste</span></div>
+    </div>
+    <div class="ckv-selo">
+      <div class="ckv-selo-ico verde">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="ckv-selo-txt"><strong>Comunidade ativa</strong><span id="seloAlunos">Alunos de todo o Brasil</span></div>
+    </div>
+  </div>
+
+  <div class="ckv-rodape">
+    <div class="ckv-rodape-topo">
+
+      <div>
+        <div class="ckv-marca">
+          <img src="https://i.imgur.com/bOf9i1R.png" alt="Desafio 21 Dias">
+          <div class="ckv-marca-meta">
+            Desafio 21 Dias
+            <small>Equipe Lapidados · Wagner Tavares — WPK Tavares</small>
+          </div>
+        </div>
+        <div class="ckv-rodape-col-t" style="margin-top:16px">Precisando de ajuda?</div>
+        <div class="ckv-contato">
+          E-mail: <a href="mailto:wpktavares@gmail.com">wpktavares@gmail.com</a><br>
+          WhatsApp: <a href="https://wa.me/559484427988?text=Ol%C3%A1%2C+preciso+de+ajuda+com+o+Desafio+21+Dias" target="_blank" rel="noopener">+55 94 8442-7988</a>
+        </div>
+      </div>
+
+      <div>
+        <div class="ckv-rodape-col-t">Métodos de pagamento</div>
+        <div class="ckv-pagto-caixa">
+          <img src="https://i.imgur.com/LtR8c35.jpeg" alt="Visa, Mastercard, Elo, Amex, Hipercard, Pix" loading="lazy">
+        </div>
+        <div class="ckv-pagto-nota">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          Assinatura mensal de R$ 17,00 no cartão
+        </div>
+      </div>
+
+      <div>
+        <div class="ckv-rodape-col-t">Compre com total segurança</div>
+        <div class="ckv-contato" style="margin-bottom:10px">
+          Seus dados são criptografados. O cartão é processado pelo Stripe —
+          nunca salvamos dados de pagamento em nossos servidores.
+        </div>
+        <div class="ckv-selo-seg ssl">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Site Seguro SSL
+        </div>
+        <div class="ckv-selo-seg google">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Google Safe Browsing
+        </div>
+        <div class="ckv-rodape-links" style="margin-top:12px">
+          <a href="https://wpktavares.com.br/politica-de-privacidade/" target="_blank" rel="noopener">Política de Privacidade</a>
+          <a href="https://wpktavares.com.br/termos-de-uso/" target="_blank" rel="noopener">Termos de Uso</a>
+          <a href="https://wpktavares.com.br">wpktavares.com.br</a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="ckv-rodape-linha"></div>
+
+    <div class="ckv-rodape-legal">
+      &copy; <span id="ano">2026</span> WPK Tavares — Equipe Lapidados. Todos os direitos reservados.<br>
+      Os resultados apresentados são individuais e não constituem garantia de resultados futuros.
+      Este produto é um programa de desenvolvimento pessoal.<br>
+      Dúvidas ou reembolso: <a href="mailto:wpktavares@gmail.com">wpktavares@gmail.com</a>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════ EXIT INTENT ══════════ -->
+<div class="ckv-exit" id="ckvExit">
+  <div class="ckv-exit-modal" role="dialog" aria-modal="true">
+    <div class="ckv-exit-ico">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <h2 class="ckv-exit-t">Espere! Seus<br><span id="exitDias">7 dias grátis</span> estão reservados</h2>
+    <p class="ckv-exit-txt">Você está a 1 passo de começar. Leva menos de 1 minuto e
+      <b>nada é cobrado hoje</b>.</p>
+    <div class="ckv-exit-perks">
+      <div class="ckv-exit-perk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> <span id="exitPerkDias">7 dias grátis</span>&nbsp;sem pagar nada agora</div>
+      <div class="ckv-exit-perk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Avisamos 2 dias antes da primeira cobrança</div>
+      <div class="ckv-exit-perk"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Cancele pelo app em 1 clique, sem falar com ninguém</div>
+    </div>
+    <button class="ckv-exit-btn" type="button">Continuar meu cadastro</button>
+    <button class="ckv-exit-fechar" type="button">Fechar mesmo assim</button>
+  </div>
+</div>
+
+<script src="/assets/checkout-conversao.js"></script>
+<script>
+var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+var VALIDOS = [7, 14, 21, 30];
+var PRECO = 17;
+
+var params = new URLSearchParams(location.search);
+var dias = parseInt(params.get('dias'), 10);
+if (VALIDOS.indexOf(dias) < 0) dias = 7;
+
+var estado = { email: '', nome: '', zap: '', ticket: '', cooldown: 0 };
+
+// ── Indicação (v159) ─────────────────────────────────────────
+// O código pode chegar pela URL ou já estar guardado de uma visita
+// anterior: quem clicou no link do amigo hoje e só voltou a comprar
+// amanhã continua creditando quem indicou.
+var REF = (function () {
+  var r = (params.get('ref') || '').toUpperCase().trim();
+  try {
+    if (r) {
+      localStorage.setItem('d21_ref', r);
+      localStorage.setItem('d21_ref_em', String(Date.now()));
+    } else {
+      var guardado = localStorage.getItem('d21_ref') || '';
+      var quando = parseInt(localStorage.getItem('d21_ref_em'), 10) || 0;
+      // Vale por 30 dias. Depois disso não é mais a mesma intenção.
+      if (guardado && Date.now() - quando < 30 * 86400000) r = guardado;
+    }
+  } catch (e) {}
+  return r;
+})();
+
+// Conta o clique só quando o código veio na URL agora (evita contar
+// de novo a cada F5 de quem já estava com o código guardado).
+if (params.get('ref') && params.get('c') !== '1') {
+  var _sid = '';
+  try {
+    _sid = sessionStorage.getItem('d21_sid') || '';
+    if (!_sid) { _sid = String(Date.now()) + Math.random().toString(36).slice(2, 8); sessionStorage.setItem('d21_sid', _sid); }
+  } catch (e) { _sid = String(Date.now()); }
+  fetch(GAS, { method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'registrarCliqueIndicacao',
+      data: { ref: REF, dias: dias, sid: _sid, origem: 'checkout-cartao' } })
+  })['catch'](function () {});
+}
+
+// ── Data da primeira cobrança: o que a spec chama de "data estimada".
+// Calculada no cliente só para EXIBIR; quem manda de verdade é o Stripe.
+function dataCobranca() {
+  var d = new Date();
+  d.setDate(d.getDate() + dias);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+document.getElementById('tagDias').textContent = 'Acesso ' + dias + ' dias grátis';
+document.getElementById('rDias').textContent = dias + ' dias';
+document.getElementById('rData').textContent = dataCobranca();
+document.getElementById('rData2').textContent = dataCobranca();
+document.title = dias + ' dias grátis — Desafio 21 Dias';
+
+function el(id) { return document.getElementById(id); }
+function post(action, data) {
+  return fetch(GAS, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: action, data: data || {} })
+  }).then(function (r) { return r.json(); });
+}
+function erro(campo, texto) {
+  var c = el(campo);
+  c.classList.toggle('erro', !!texto);
+  c.querySelector('.msg-erro').textContent = texto || '';
+}
+function limparErros() { ['cNome','cEmail','cZap','cZap2','cCod'].forEach(function (c) { erro(c, ''); }); }
+function carregando(btn, on, texto) {
+  btn.disabled = on;
+  // .ckv-cta fica no elemento, não no conteúdo — trocar o innerHTML não
+  // derruba o pulso. O CSS já para a animação enquanto está disabled.
+  btn.innerHTML = on
+    ? '<span class="spin"></span><span>' + (texto || 'Aguarde…') + '</span>'
+    : '<span>' + btn.getAttribute('data-txt') + '</span>';
+}
+['btn1','btn2','btn3','btn4'].forEach(function (b) {
+  el(b).setAttribute('data-txt', el(b).textContent.trim());
+});
+
+// 5 painéis, 4 marcadores: o quinto é a tela de saída para o Stripe.
+function irPara(n) {
+  ['e1','e2','e3','e4','e5'].forEach(function (e, i) { el(e).classList.toggle('on', i === n - 1); });
+  ['p1','p2','p3','p4'].forEach(function (p, i) { el(p).classList.toggle('on', i < Math.min(n, 4)); });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Mostra o número já normalizado em E.164 num formato legível
+function formatarZap(e164) {
+  var d = String(e164 || '').replace(/\D/g, '');
+  if (d.length === 13 && d.indexOf('55') === 0) {
+    return '+55 (' + d.slice(2, 4) + ') ' + d.slice(4, 9) + '-' + d.slice(9);
+  }
+  if (d.length === 12 && d.indexOf('55') === 0) {
+    return '+55 (' + d.slice(2, 4) + ') ' + d.slice(4, 8) + '-' + d.slice(8);
+  }
+  return e164 || '—';
+}
+
+// Máscara enquanto digita
+function mascaraZap(input) {
+  input.addEventListener('input', function () {
+    var v = this.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 7)      this.value = '(' + v.slice(0, 2) + ') ' + v.slice(2, 7) + '-' + v.slice(7);
+    else if (v.length > 2) this.value = '(' + v.slice(0, 2) + ') ' + v.slice(2);
+    else                   this.value = v;
+  });
+}
+mascaraZap(el('zap'));
+mascaraZap(el('zap2'));
+
+// ── ETAPA 1 — dados pessoais ─────────────────────────────────
+el('btn1').addEventListener('click', async function () {
+  limparErros();
+  var nome = el('nome').value.trim();
+  var email = el('email').value.trim().toLowerCase();
+  var zap = el('zap').value.trim();
+
+  if (nome.length < 3) { erro('cNome', 'Informe seu nome completo.'); el('nome').focus(); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { erro('cEmail', 'E-mail inválido.'); el('email').focus(); return; }
+  if (!zap) { erro('cZap', 'Informe seu WhatsApp.'); el('zap').focus(); return; }
+
+  carregando(this, true, 'Validando…');
+  try {
+    // Valida o telefone no servidor antes de gastar um envio de e-mail
+    var v = await post('validarWhatsappTrial', { whatsapp: zap });
+    if (!v.ok) { erro('cZap', v.error); el('zap').focus(); return; }
+
+    var r = await post('enviarCodigoTrial', { email: email, nome: nome });
+    if (!r.ok) { erro('cEmail', r.error || 'Não consegui enviar o código.'); return; }
+
+    estado = { email: email, nome: nome, zap: v.e164, ticket: '', cooldown: r.cooldown || 60 };
+    el('emailEco').textContent = email;
+    irPara(2);
+    setTimeout(function () { el('cod').focus(); }, 350);
+    iniciarCooldown();
+  } catch (e) {
+    erro('cEmail', 'Erro de conexão. Tente de novo.');
+  } finally {
+    carregando(this, false);
+  }
+});
+
+// ── ETAPA 2 — validação do e-mail ────────────────────────────
+el('cod').addEventListener('input', function () {
+  var v = this.value.replace(/\D/g, '').slice(0, 6);
+  if (v !== this.value) this.value = v;
+  erro('cCod', '');
+  if (v.length === 6) el('btn2').click();
+});
+
+el('btn2').addEventListener('click', async function () {
+  var codigo = el('cod').value.replace(/\D/g, '');
+  if (codigo.length !== 6) { erro('cCod', 'Digite os 6 dígitos.'); return; }
+
+  carregando(this, true, 'Conferindo…');
+  try {
+    var r = await post('verificarCodigoTrial', { email: estado.email, codigo: codigo });
+    if (!r.ok) {
+      erro('cCod', r.error || 'Código incorreto.');
+      if (r.expirado) { el('cod').value = ''; }
+      return;
+    }
+    estado.ticket = r.ticket;
+    el('zapEco').textContent = formatarZap(estado.zap);
+    irPara(3);
+  } catch (e) {
+    erro('cCod', 'Erro de conexão. Tente de novo.');
+  } finally {
+    carregando(this, false);
+  }
+});
+
+var timerCd = null;
+function iniciarCooldown() {
+  var b = el('reenviar');
+  var s = estado.cooldown || 60;
+  clearInterval(timerCd);
+  b.disabled = true;
+  (function tick() {
+    if (s <= 0) { clearInterval(timerCd); b.disabled = false; b.textContent = 'Reenviar código'; return; }
+    b.textContent = 'Reenviar em ' + s + 's';
+    s--;
+  })();
+  timerCd = setInterval(function () {
+    if (s <= 0) { clearInterval(timerCd); el('reenviar').disabled = false; el('reenviar').textContent = 'Reenviar código'; return; }
+    el('reenviar').textContent = 'Reenviar em ' + s + 's';
+    s--;
+  }, 1000);
+}
+
+el('reenviar').addEventListener('click', async function () {
+  this.disabled = true; this.textContent = 'Enviando…';
+  var r = await post('enviarCodigoTrial', { email: estado.email, nome: estado.nome }).catch(function () { return {}; });
+  if (r.ok) { erro('cCod', ''); iniciarCooldown(); }
+  else { this.disabled = false; this.textContent = 'Reenviar código'; erro('cCod', r.error || 'Não consegui reenviar.'); }
+});
+
+el('voltar1').addEventListener('click', function () { clearInterval(timerCd); irPara(1); });
+el('voltar2').addEventListener('click', function () { irPara(3); });
+
+// ── ETAPA 3 — confirmação do WhatsApp ────────────────────────
+// Confirmação, não OTP: o disparo por WhatsApp depende de um template
+// de autenticação aprovado na Meta, que ainda não existe na conta.
+el('corrigirZap').addEventListener('click', function () {
+  var campo = el('cZap2');
+  var visivel = campo.style.display !== 'none';
+  campo.style.display = visivel ? 'none' : 'block';
+  this.textContent = visivel ? 'Corrigir número' : 'Cancelar correção';
+  if (!visivel) {
+    el('zap2').value = '';
+    el('btn3').setAttribute('data-txt', 'Confirmar novo número');
+    el('btn3').innerHTML = '<span>Confirmar novo número</span>';
+    setTimeout(function () { el('zap2').focus(); }, 60);
+  } else {
+    erro('cZap2', '');
+    el('btn3').setAttribute('data-txt', 'Sim, o número está certo');
+    el('btn3').innerHTML = '<span>Sim, o número está certo</span>';
+  }
+});
+
+el('btn3').addEventListener('click', async function () {
+  var editando = el('cZap2').style.display !== 'none';
+
+  if (!editando) { irPara(4); return; }
+
+  var novo = el('zap2').value.trim();
+  if (!novo) { erro('cZap2', 'Informe o número.'); el('zap2').focus(); return; }
+
+  carregando(this, true, 'Validando…');
+  try {
+    var v = await post('validarWhatsappTrial', { whatsapp: novo });
+    if (!v.ok) { erro('cZap2', v.error); el('zap2').focus(); return; }
+    estado.zap = v.e164;
+    el('zapEco').textContent = formatarZap(v.e164);
+    erro('cZap2', '');
+    el('cZap2').style.display = 'none';
+    el('corrigirZap').textContent = 'Corrigir número';
+    this.setAttribute('data-txt', 'Sim, o número está certo');
+    irPara(4);
+  } catch (e) {
+    erro('cZap2', 'Erro de conexão. Tente de novo.');
+  } finally {
+    carregando(this, false);
+  }
+});
+
+// ── ETAPA 4 — consentimento e ida ao Stripe ──────────────────
+el('aceite').addEventListener('change', function () { el('btn4').disabled = !this.checked; });
+
+el('btn4').addEventListener('click', async function () {
+  if (!el('aceite').checked) return;
+  carregando(this, true, 'Preparando…');
+  try {
+    var r = await post('criarCheckoutTrialCartao', {
+      email: estado.email, nome: estado.nome, whatsapp: estado.zap,
+      dias: dias, ticket: estado.ticket, consentimento: true,
+      origem: 'checkout-trial-cartao', campanha: params.get('utm_campaign') || '',
+      ref: REF,
+      returnUrl: location.origin + location.pathname
+    });
+    if (!r.ok) {
+      carregando(this, false);
+      if (r.precisaVerificar) { irPara(2); erro('cCod', 'Sua confirmação expirou. Peça um código novo.'); return; }
+      CKConv.modal.avisar('Não consegui abrir o checkout',
+        r.error || 'Tente de novo em alguns segundos.');
+      return;
+    }
+    irPara(5);
+    setTimeout(function () { location.href = r.url; }, 700);
+  } catch (e) {
+    carregando(this, false);
+    CKConv.modal.avisar('Erro de conexão', 'Não consegui falar com o servidor. Tente de novo.');
+  }
+});
+
+// Enter avança a etapa visível
+document.addEventListener('keydown', function (ev) {
+  if (ev.key !== 'Enter') return;
+  if (el('e1').classList.contains('on')) { ev.preventDefault(); el('btn1').click(); }
+  else if (el('e2').classList.contains('on')) { ev.preventDefault(); el('btn2').click(); }
+  else if (el('e3').classList.contains('on')) { ev.preventDefault(); el('btn3').click(); }
+});
+
+// Volta do Stripe cancelada
+if (params.get('checkout') === 'cancelado') {
+  setTimeout(function () {
+    CKConv.modal.avisar('Cadastro não concluído',
+      'Você voltou antes de cadastrar o cartão. Seu período gratuito continua disponível — é só continuar de onde parou.');
+  }, 400);
+}
+
+// ── Componentes de conversão compartilhados ──────────────────
+document.getElementById('ano').textContent = new Date().getFullYear();
+el('exitDias').textContent = dias + ' dias grátis';
+el('exitPerkDias').textContent = dias + ' dias grátis,';
+
+CKConv.faq.init('#ckvFaq');
+CKConv.depoimentos.init({});
+CKConv.atividade.init({ endpoint: GAS, coluna: el('ckvCol') });
+CKConv.provaSocial.init({ endpoint: GAS });
+CKConv.lote.init({ endpoint: GAS });
+CKConv.alunos.init({ endpoint: GAS }).then(function () {
+  // Selo do rodapé com o mesmo número real, sem uma segunda requisição
+  return CKConv.dados(GAS).then(function (d) {
+    if (d && d.totalAlunos) {
+      el('seloAlunos').textContent = d.totalAlunos + ' alunos no desafio';
+    }
+  });
+})['catch'](function () {});
+
+// Exit intent: só faz sentido enquanto a pessoa não terminou. Depois da
+// etapa 4 ela já está indo para o Stripe — atrapalhar ali seria perder venda.
+CKConv.exitIntent.init({
+  podeAbrir: function () { return !el('e5').classList.contains('on'); },
+  aoContinuar: function () {
+    var campo = el('e1').classList.contains('on') ? el('nome')
+              : (el('e2').classList.contains('on') ? el('cod') : null);
+    if (campo) campo.focus();
+  }
+});
+</script>
+</body>
+</html>

@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Redirecionando para o Pagamento — Desafio 21 Dias</title>
-<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#07090a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -50,24 +54,24 @@ h1 span{color:var(--green-bright);display:block}
     <div class="msg-text" id="msgText">Preparando seu checkout...</div>
   </div>
 
-  <a href="https://pay.cakto.com.br/a4po2eu_659401" class="btn" id="btnManual" target="_self">
-    Ir para o pagamento agora →
+  <a href="/planos/" class="btn" id="btnManual">
+    Escolher novo plano →
   </a>
 
-  <div class="seguro">🔒 Ambiente 100% seguro · Cakto Payments</div>
+  <div class="seguro">🔒 Ambiente 100% seguro · Stripe</div>
 </div>
 
 <script>
-const CHECKOUT = 'https://pay.cakto.com.br/a4po2eu_659401';
-const TOTAL    = 7;
+// v100: redireciona para /planos (checkout legado R$60 descontinuado — novos
+// planos via Stripe: Mensal R$17, Trimestral R$47, Anual R$177)
+const CHECKOUT_LEGADO_DESCONTINUADO = true;
+const TOTAL    = 5;
 const MSGS     = [
-  'Preparando seu checkout...',
+  'Atualizando opções de pagamento...',
   'Verificando disponibilidade de vagas...',
-  'Conectando ao ambiente seguro...',
-  'Carregando sua oferta exclusiva...',
-  'Quase lá — não feche a página...',
-  'Redirecionando você agora...',
-  'Abrindo página de pagamento...'
+  'Plano legado R$60 descontinuado...',
+  'Novos planos via Stripe disponíveis...',
+  'Quase lá — abrindo planos atualizados...'
 ];
 
 const ring   = document.getElementById('ringFg');
@@ -91,7 +95,8 @@ function update() {
   if (seconds <= 3) btn.classList.add('visible');
 
   if (seconds === 0) {
-    window.location.href = CHECKOUT;
+    // v100: redireciona para /planos (Stripe). Plano legado R$60 descontinuado.
+    window.location.href = '/planos/';
     return;
   }
   seconds--;

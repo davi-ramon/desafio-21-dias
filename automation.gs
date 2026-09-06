@@ -29,7 +29,9 @@ const COL_COMP = {
 };
 
 const GPTMAKER_BOT_ID_DEFAULT = '3EC71D3CE79690D58F1406248698ACFB';
-const GPTMAKER_TOKEN_DEFAULT  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJncHRtYWtlciIsImlkIjoiM0Q3RENEM0QzREZCQjExOUJDOTY1QTI5RDcwQzBFQTciLCJ0ZW5hbnQiOiIzRDdEQ0QzRDNERkJCMTE5QkM5NjVBMjlENzBDMEVBNyIsInV1aWQiOiIzY2E3ODczYi1kYjZiLTRlMDAtOTdlZi0zYTU4NTJmYTJiMzgifQ.WikjQZv0EkQiBpkYpPUiy34FxFi9borCXqvUdJa72hE';
+// Token removido do fonte (segurança). Vive no config sheet — getConfig_('gptmaker_token').
+// Se precisar reconfigurar, grave lá ou via setupGptmakerToken('<token>'). NUNCA hardcodar.
+const GPTMAKER_TOKEN_DEFAULT  = '';
 const COMPRADOR_META_HEADERS = [
   'ModoExecucao',
   'TesteIniciadoEm',
@@ -39,7 +41,8 @@ const COMPRADOR_META_HEADERS = [
   'GptChannelId',
   'GptWorkspaceId',
   'GptEndpoint',
-  'UltimaMensagemAt'
+  'UltimaMensagemAt',
+  'Preferencias'      // v132 — JSON de personalização da experiência
 ];
 
 // ── Defaults de configuração ─────────────────────────────────
