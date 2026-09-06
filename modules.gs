@@ -304,6 +304,7 @@ function handleRequest(payload) {
     case 'salvarPesquisa':           return salvarPesquisa(token, data);
     case 'adiarPesquisa':            return adiarPesquisa(token);
     case 'getPesquisaAdmin':         return getPesquisaAdmin(token);
+    case 'salvarPesquisaConfig':     return salvarPesquisaConfig(token, data);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)
