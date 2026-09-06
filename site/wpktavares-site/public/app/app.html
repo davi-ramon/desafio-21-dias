@@ -11454,6 +11454,23 @@ function pmAtualizarMini() {
 .bl-prov-n { font-size:14px; font-weight:700; color:var(--text); }
 .bl-prov-tag { font-size:12px; font-weight:700; color:var(--green); }
 .bl-prov-nota { font-size:11.5px; color:var(--muted); text-align:right; max-width:60%; }
+/* v156 — sincronização com o provedor */
+.bl-sync-alerta { display:flex; align-items:flex-start; gap:11px; padding:14px 16px; border-radius:13px;
+  background:rgba(224,168,60,.09); border:1px solid rgba(224,168,60,.32); margin-bottom:14px; }
+.bl-sync-alerta .ico { font-size:17px; line-height:1.2; flex-shrink:0; }
+.bl-sync-alerta-t { font-size:13.5px; font-weight:700; color:#e0a83c; margin-bottom:3px; }
+.bl-sync-alerta-s { font-size:12.5px; color:var(--muted); line-height:1.55; }
+.bl-sync-res { border-radius:13px; padding:15px 17px; margin-bottom:14px;
+  animation:blIn .35s cubic-bezier(.16,1,.3,1) both; }
+.bl-sync-res.ok  { background:rgba(76,175,80,.09);  border:1px solid rgba(76,175,80,.34); }
+.bl-sync-res.att { background:rgba(224,168,60,.09); border:1px solid rgba(224,168,60,.32); }
+.bl-sync-res-t { font-size:14px; font-weight:800; margin-bottom:5px; }
+.bl-sync-res.ok  .bl-sync-res-t { color:var(--green); }
+.bl-sync-res.att .bl-sync-res-t { color:#e0a83c; }
+.bl-sync-res-s { font-size:12.5px; color:var(--muted); line-height:1.6; }
+.bl-sync-passos { list-style:none; margin:11px 0 0; padding:0; display:grid; gap:5px; }
+.bl-sync-passos li { font-size:11.5px; color:var(--muted); padding-left:16px; position:relative; line-height:1.5; }
+.bl-sync-passos li::before { content:'\2713'; position:absolute; left:0; color:var(--green); font-weight:700; }
 .bl-acoes { display:grid; gap:9px; }
 .bl-acao { display:flex; flex-direction:column; align-items:flex-start; gap:3px; width:100%;
   padding:14px 16px; border-radius:12px; cursor:pointer; font-family:inherit; text-align:left;
@@ -13215,7 +13232,7 @@ function _leitLivrosVisiveis() {
 // isso libera, e o que dá para fazer. A tela antiga misturava
 // tudo num bloco só, e o aluno não achava o botão de cancelar.
 // ════════════════════════════════════════════════════════════
-var BL = { dados: null, carregando: false };
+var BL = { dados: null, carregando: false, sync: null, divergente: false };
 
 function _blLinha(rotulo, valor, destaque) {
   if (!valor && valor !== 0) return '';
@@ -13240,6 +13257,7 @@ async function renderBilling() {
       var r = await rpc('getBillingDetalhe', {});
       if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
       BL.dados = r.data;
+      BL.divergente = !!r.data.divergente;
     } catch (e) {
       el.innerHTML =
         '<div class="bl-wrap"><div class="bl-card bl-erro">' +
@@ -13353,8 +13371,42 @@ async function renderBilling() {
     '</div>';
 
   // ── Ações ──
+  html += '<div class="bl-card"><div class="bl-card-t">Ações</div>';
+
+  // Se o provedor diz que está válida mas o app bloqueou, a pessoa está
+  // vendo "Ativa" aqui e "Bloqueada" no perfil. Em vez de deixar ela
+  // descobrir sozinha, apontamos a divergência e o caminho.
+  if (BL.divergente) {
+    html += '<div class="bl-sync-alerta">' +
+      '<span class="ico">!</span><div>' +
+        '<div class="bl-sync-alerta-t">Seu acesso está travado mesmo com a assinatura em dia</div>' +
+        '<div class="bl-sync-alerta-s">Isso acontece quando a confirmação do pagamento não chega ' +
+          'até o app. Toque em <b>Sincronizar com o provedor</b> aqui embaixo que a gente corrige na hora.</div>' +
+      '</div></div>';
+  }
+
+  if (BL.sync) {
+    html += '<div class="bl-sync-res ' + (BL.sync.liberado ? 'ok' : 'att') + '">' +
+      '<div class="bl-sync-res-t">' + escH(BL.sync.titulo || '') + '</div>' +
+      '<div class="bl-sync-res-s">' + escH(BL.sync.mensagem || '') + '</div>' +
+      ((BL.sync.passos && BL.sync.passos.length)
+        ? '<ul class="bl-sync-passos">' + BL.sync.passos.map(function (p) {
+            return '<li>' + escH(p) + '</li>'; }).join('') + '</ul>'
+        : '') +
+    '</div>';
+  }
+
+  html += '<div class="bl-acoes">';
+
+  // Sincronizar existe SEMPRE, inclusive sem assinatura na planilha —
+  // é justamente quem não tem linha que mais precisa dele.
+  html += '<button class="bl-acao" id="blBtnSync" onclick="billingSincronizar()">' +
+    '<span class="bl-acao-t">Sincronizar com o provedor</span>' +
+    '<span class="bl-acao-s">Consulta ' +
+      (d.provedor === 'cakto' ? 'a Cakto' : 'o Stripe') +
+      ', confere seu pagamento e corrige seu acesso</span></button>';
+
   if (a) {
-    html += '<div class="bl-card"><div class="bl-card-t">Ações</div><div class="bl-acoes">';
     if (d.portalDisponivel) {
       html += '<button class="bl-acao" onclick="billingPortal()">' +
         '<span class="bl-acao-t">Atualizar forma de pagamento</span>' +
@@ -13369,8 +13421,8 @@ async function renderBilling() {
         '<span class="bl-acao-t">Cancelar assinatura</span>' +
         '<span class="bl-acao-s">Você mantém o acesso até o fim do período pago</span></button>';
     }
-    html += '</div></div>';
   }
+  html += '</div></div>';
 
   html += '<div class="bl-rodape">Pagamentos processados por ' +
           (d.provedor === 'stripe' ? 'Stripe' : 'Cakto') + ' · WPK Tavares</div>';
@@ -13387,6 +13439,48 @@ function _blSkeleton() {
 }
 
 // ── Ações ───────────────────────────────────────────────────
+// ── Sincronização com o provedor ────────────────────────────
+// O caso real: a tela mostrava "Ativa" (lida ao vivo do Stripe) e o
+// Perfil mostrava "Bloqueada" (lido da planilha). O pagamento estava
+// certo; o que não chegou foi a confirmação. Este botão pergunta ao
+// provedor qual é a verdade e reescreve o nosso registro com ela.
+async function billingSincronizar() {
+  var btn = document.getElementById('blBtnSync');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="bl-acao-t">Consultando o provedor…</span>' +
+                    '<span class="bl-acao-s">Isso leva alguns segundos</span>';
+  }
+  try {
+    var r = await rpc('billingSincronizar', {});
+    if (!r || !r.ok) {
+      toast((r && r.error) || 'Não consegui sincronizar agora.', 'error');
+      BL.sync = null;
+      return;
+    }
+    BL.sync = r;
+    toast(r.liberado ? (r.mudou ? 'Acesso liberado!' : 'Tudo em dia.')
+                     : 'Sincronizado — ainda há pendência.',
+          r.liberado ? 'success' : 'info');
+
+    // Recarrega os dados da assinatura, mas preserva o resultado na tela
+    var res = BL.sync;
+    BL.dados = null;
+    await renderBilling();
+    BL.sync = res;
+    await renderBilling();
+
+    // O acesso mudou: o resto do app precisa saber (pilares, áudios…)
+    if (r.mudou && r.liberado) {
+      try { if (typeof carregarDados === 'function') await carregarDados(); } catch (e) {}
+    }
+  } catch (e) {
+    toast('Erro de conexão.', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 async function billingCancelar() {
   var d = BL.dados || {};
   var ate = (d.assinatura && d.assinatura.proximaCobranca) || '';

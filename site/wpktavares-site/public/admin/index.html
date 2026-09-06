@@ -4055,6 +4055,53 @@ async function confirmarTesteComprador() {
 // ══════════════════════════════════════════════════════════
 // COMPRADORES / ALUNOS
 // ══════════════════════════════════════════════════════════
+async function adminSyncAssinatura() {
+  var el  = document.getElementById('syncEmail');
+  var res = document.getElementById('syncRes');
+  var email = (el && el.value || '').trim().toLowerCase();
+  if (!email) { res.innerHTML = '<span style="font-size:12px;color:var(--danger)">Informe o e-mail.</span>'; return; }
+
+  res.innerHTML = '<span style="font-size:12px;color:var(--muted)">Consultando o provedor&hellip;</span>';
+  try {
+    var r = await rpc('adminSincronizarAssinatura', { data: { email: email } });
+    if (!r || !r.ok) {
+      res.innerHTML = '<span style="font-size:12px;color:var(--danger)">' +
+        escHtml((r && r.error) || 'Falhou.') + '</span>';
+      return;
+    }
+    var d = r;
+    if (!d.encontrado) {
+      res.innerHTML =
+        '<div style="padding:12px 14px;border-radius:10px;background:rgba(224,168,60,.1);' +
+        'border:1px solid rgba(224,168,60,.3);font-size:12.5px;color:#e0a83c;line-height:1.6">' +
+          escHtml(d.mensagem) + '<br>' +
+          '<span style="color:var(--muted)">E-mails testados: ' +
+          escHtml((d.emailsTestados || []).join(', ')) + '</span></div>';
+      return;
+    }
+
+    var destravou = d.acessoAgora && !d.acessoAntes;
+    var cor = destravou ? 'rgba(76,175,80,.1)' : 'rgba(255,255,255,.04)';
+    var bor = destravou ? 'rgba(76,175,80,.34)' : 'rgba(255,255,255,.1)';
+    res.innerHTML =
+      '<div style="padding:12px 14px;border-radius:10px;background:' + cor + ';border:1px solid ' + bor + ';' +
+      'font-size:12.5px;line-height:1.8;color:var(--text)">' +
+        '<b style="color:' + (destravou ? 'var(--success)' : 'var(--text)') + '">' +
+          (destravou ? 'Acesso liberado' : 'Sincronizado') + '</b><br>' +
+        'Status no Stripe: <b>' + escHtml(d.statusStripe) + '</b><br>' +
+        'Status no app: ' + escHtml(d.statusAntes || '(vazio)') + ' &rarr; <b>' + escHtml(d.statusAgora) + '</b><br>' +
+        'Acesso: ' + (d.acessoAntes ? 'liberado' : 'bloqueado') + ' &rarr; <b>' +
+          (d.acessoAgora ? 'liberado' : 'bloqueado') + '</b><br>' +
+        (d.emailUsadoNoStripe !== d.email
+          ? '<span style="color:var(--muted)">Assinatura estava no e-mail antigo: ' +
+            escHtml(d.emailUsadoNoStripe) + '</span><br>' : '') +
+        '<span style="color:var(--muted)">Assinatura: ' + escHtml(d.subId) + '</span>' +
+      '</div>';
+  } catch (e) {
+    res.innerHTML = '<span style="font-size:12px;color:var(--danger)">Erro de conex&atilde;o.</span>';
+  }
+}
+
 async function renderCompradores() {
   try {
     const res = await rpc('getCompradoresAdmin', {});
@@ -4074,6 +4121,28 @@ async function renderCompradores() {
     const progMedio = lista.length ? Math.round(lista.reduce((s,c) => s + (c.progresso||0), 0) / lista.length) : 0;
 
     var html =
+      // ── Suporte: religar assinatura ──────────────────────────
+      // Caso real: aluna pagou (Stripe, 01/09), a tela de billing mostrava
+      // "Ativa" — porque le a Stripe ao vivo — e o app mostrava "Bloqueada",
+      // porque le a planilha, que o webhook nunca atualizou. Isso resolve
+      // sem precisar abrir planilha nem Stripe.
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+          'Aluno pagou mas est&aacute; bloqueado?</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+          'Consulta o provedor (Stripe/Cakto), inclusive pelos e-mails antigos de quem trocou ' +
+          'de e-mail, e reescreve nosso registro com o que o provedor responder. ' +
+          '<b>N&atilde;o libera quem o provedor n&atilde;o confirma.</b></div>' +
+        '<div class="form-row">' +
+          '<div class="form-group"><label class="form-label">E-mail do aluno</label>' +
+            '<input class="form-control" id="syncEmail" placeholder="aluno@email.com"></div>' +
+          '<div class="form-group"><label class="form-label">&nbsp;</label>' +
+            '<button class="btn btn-primary" style="width:100%" onclick="adminSyncAssinatura()">' +
+            'Sincronizar assinatura</button></div>' +
+        '</div>' +
+        '<div id="syncRes" style="margin-top:6px"></div>' +
+      '</div>' +
+
       '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">' +
         _metricCard('<i data-lucide="graduation-cap" class="luc"></i>', lista.length, 'Total de Alunos', '') +
         _metricCard('<i data-lucide="check-circle-2" class="luc"></i>', ativos, 'Em Andamento', 'ativos no desafio') +

@@ -285,6 +285,9 @@ function handleRequest(payload) {
     case 'getBillingDetalhe':        return getBillingDetalhe(token);
     case 'billingCancelar':          return billingCancelar(token);
     case 'billingReativar':          return billingReativar(token);
+    // v156 — botao Sincronizar da tela de assinatura
+    case 'billingSincronizar':      return billingSincronizar(token);
+    case 'adminSincronizarAssinatura': return adminSincronizarAssinatura(token, data);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)

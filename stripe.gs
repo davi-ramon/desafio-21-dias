@@ -475,10 +475,33 @@ function getStripePortal(token) {
 
   var row   = _getAssinaturaRow_(user.email);
   var subId = row ? String(row[_ASS_.SUB_ID] || '') : '';
-  if (!/^sub_/.test(subId)) return { ok: false, error: 'Nenhuma assinatura Stripe ativa encontrada.' };
+  var sub   = null;
 
-  var sub = _stripeCall_('get', '/v1/subscriptions/' + encodeURIComponent(subId));
-  if (sub._error) return { ok: false, error: 'Não foi possível abrir o portal agora. Tente novamente.' };
+  if (/^sub_/.test(subId)) {
+    sub = _stripeCall_('get', '/v1/subscriptions/' + encodeURIComponent(subId));
+    if (sub && sub._error) sub = null;
+  }
+
+  // v156: a planilha pode estar desatualizada (webhook que nao chegou) ou
+  // ainda guardar o id antigo da Cakto. Antes disso, quem tinha assinatura
+  // Stripe viva recebia "Nenhuma assinatura encontrada" — que e falso.
+  // Aqui perguntamos ao provedor, inclusive pelos e-mails antigos.
+  if (!sub) {
+    try {
+      var emails = (typeof _bsEmailsPossiveis_ === 'function')
+        ? _bsEmailsPossiveis_(user.email) : [String(user.email || '').toLowerCase().trim()];
+      var achado = (typeof _bsAcharStripe_ === 'function') ? _bsAcharStripe_(emails) : null;
+      if (achado) {
+        sub = achado.sub;
+        // Aproveita para consertar a linha, ja que descobrimos a verdade
+        try { _stripeSyncAssinatura_(String(user.email || '').toLowerCase().trim(), sub, false); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  if (!sub || !sub.customer) {
+    return { ok: false, error: 'Nenhuma assinatura Stripe ativa encontrada.' };
+  }
 
   var sess = _stripeCall_('post', '/v1/billing_portal/sessions', {
     customer: sub.customer, return_url: STRIPE_SUCCESS_URL, locale: 'pt-BR',
