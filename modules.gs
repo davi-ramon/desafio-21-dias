@@ -288,6 +288,11 @@ function handleRequest(payload) {
     // v156 — botao Sincronizar da tela de assinatura
     case 'billingSincronizar':      return billingSincronizar(token);
     case 'adminSincronizarAssinatura': return adminSincronizarAssinatura(token, data);
+    // v158 — eventos do Stripe por PULL (o webhook nao funciona no Apps Script)
+    case 'stripePollStatus':        return stripePollStatus(token);
+    case 'stripePollAtivar':        return stripePollAtivar(token);
+    case 'stripePollRodarAgora':    return stripePollRodarAgora(token);
+    case 'stripeRecuperarEventos':  return stripeRecuperarEventos(token, data);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)

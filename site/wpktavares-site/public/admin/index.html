@@ -4055,6 +4055,75 @@ async function confirmarTesteComprador() {
 // ══════════════════════════════════════════════════════════
 // COMPRADORES / ALUNOS
 // ══════════════════════════════════════════════════════════
+async function pollCarregar() {
+  var box = document.getElementById('pollBox');
+  if (!box) return;
+  try {
+    var r = await rpc('stripePollStatus', {});
+    if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
+    var d = r.data || {};
+    var cor = d.ativo ? 'var(--success)' : '#e0a83c';
+    box.innerHTML =
+      '<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px;font-size:13px">' +
+        '<span style="width:9px;height:9px;border-radius:50%;background:' + cor + '"></span>' +
+        '<b style="color:' + cor + '">' + (d.ativo ? 'Rotina ativa (a cada 5 min)' : 'Rotina desligada') + '</b>' +
+        (d.ultimoEvento ? '<span style="color:var(--muted)">&middot; &uacute;ltimo evento: ' +
+          escHtml(d.ultimoEvento) + '</span>' : '') +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        (d.ativo ? '' : '<button class="btn btn-primary btn-sm" onclick="pollAtivar()">Ativar rotina</button>') +
+        '<button class="btn btn-ghost btn-sm" onclick="pollRodar()">Buscar agora</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="pollRecuperar()">Recuperar 15 dias perdidos</button>' +
+      '</div>' +
+      '<div id="pollRes" style="margin-top:10px"></div>';
+  } catch (e) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--danger)">N&atilde;o consegui carregar. ' +
+      '<button class="btn btn-ghost btn-sm" onclick="pollCarregar()">Tentar de novo</button></div>';
+  }
+}
+
+function _pollMsg(txt, cor) {
+  var el = document.getElementById('pollRes');
+  if (el) el.innerHTML = '<span style="font-size:12px;color:' + (cor || 'var(--muted)') + '">' + txt + '</span>';
+}
+
+async function pollAtivar() {
+  _pollMsg('Ativando&hellip;');
+  try {
+    var r = await rpc('stripePollAtivar', {});
+    if (!r || !r.ok) { _pollMsg(escHtml((r && r.error) || 'Falhou.'), 'var(--danger)'); return; }
+    _pollMsg(escHtml(r.message), 'var(--success)');
+    setTimeout(pollCarregar, 900);
+  } catch (e) { _pollMsg('Erro de conex&atilde;o.', 'var(--danger)'); }
+}
+
+function _pollResumo(d) {
+  var tipos = Object.keys(d.tipos || {}).map(function (k) {
+    return k + ' (' + d.tipos[k] + ')'; }).join(', ');
+  return 'Encontrados ' + d.total + ' &middot; <b>tratados ' + d.tratados + '</b> &middot; ' +
+         'repetidos ' + d.repetidos + ' &middot; erros ' + d.erros +
+         (tipos ? '<br><span style="color:var(--muted)">' + escHtml(tipos) + '</span>' : '');
+}
+
+async function pollRodar() {
+  _pollMsg('Buscando no Stripe&hellip;');
+  try {
+    var r = await rpc('stripePollRodarAgora', {});
+    if (!r || !r.ok) { _pollMsg(escHtml((r && r.error) || 'Falhou.'), 'var(--danger)'); return; }
+    _pollMsg(_pollResumo(r.data || {}), 'var(--text)');
+    setTimeout(pollCarregar, 1500);
+  } catch (e) { _pollMsg('Erro de conex&atilde;o.', 'var(--danger)'); }
+}
+
+async function pollRecuperar() {
+  _pollMsg('Reprocessando os &uacute;ltimos 15 dias&hellip; isso pode levar at&eacute; um minuto.');
+  try {
+    var r = await rpc('stripeRecuperarEventos', { data: { dias: 15 } });
+    if (!r || !r.ok) { _pollMsg(escHtml((r && r.error) || 'Falhou.'), 'var(--danger)'); return; }
+    _pollMsg(_pollResumo(r.data || {}), 'var(--text)');
+  } catch (e) { _pollMsg('Erro de conex&atilde;o.', 'var(--danger)'); }
+}
+
 async function adminSyncAssinatura() {
   var el  = document.getElementById('syncEmail');
   var res = document.getElementById('syncRes');
@@ -4109,6 +4178,7 @@ async function renderCompradores() {
 
     const lista = res.data || [];
     const content = document.getElementById('content');
+    setTimeout(pollCarregar, 60);
 
     if (!lista.length) {
       content.innerHTML = '<div class="empty-state"><div class="empty-icon"><i data-lucide="graduation-cap" class="luc"></i></div><div class="empty-title">Nenhum aluno ainda</div><div class="empty-sub">Os alunos aparecerão aqui após a primeira compra via Cakto.</div></div>';
@@ -4121,6 +4191,17 @@ async function renderCompradores() {
     const progMedio = lista.length ? Math.round(lista.reduce((s,c) => s + (c.progresso||0), 0) / lista.length) : 0;
 
     var html =
+      // ── Motor de eventos do Stripe ───────────────────────────
+      '<div class="card" style="margin-bottom:20px">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+          'Eventos do Stripe</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+          'O webhook do Stripe <b>n&atilde;o funciona</b> com Apps Script: a URL /exec responde 302 e o ' +
+          'Stripe n&atilde;o segue redirect &mdash; foi por isso que ele desativou o endpoint sozinho em 24/08. ' +
+          'Em vez de esperar o Stripe empurrar, o app <b>busca</b> os eventos a cada 5 minutos.</div>' +
+        '<div id="pollBox"><div style="font-size:12px;color:var(--muted)">Carregando&hellip;</div></div>' +
+      '</div>' +
+
       // ── Suporte: religar assinatura ──────────────────────────
       // Caso real: aluna pagou (Stripe, 01/09), a tela de billing mostrava
       // "Ativa" — porque le a Stripe ao vivo — e o app mostrava "Bloqueada",

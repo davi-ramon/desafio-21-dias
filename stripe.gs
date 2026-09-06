@@ -73,29 +73,14 @@ function processStripeEvent_(raw) {
     try { if (typeof tgEnviarErro_ === 'function') tgEnviarErro_('Stripe webhook', '🚨 Evento não verificado (' + eventId + ')'); } catch (_t) {}
     return _stripeResp_({ ok: false, error: 'unauthorized' });
   }
-  // Dedup (Stripe reenvia em falha)
-  if (_dedupWebhook_(ev.type, ev.id)) return _stripeResp_({ ok: true, dedup: true });
-
-  var obj = (ev.data && ev.data.object) || {};
-  try {
-    switch (ev.type) {
-      case 'checkout.session.completed':        _stripeOnCheckout_(obj); break;
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-      case 'customer.subscription.resumed':     _stripeOnSubSync_(obj); break;
-      case 'customer.subscription.deleted':     _stripeOnSubDeleted_(obj); break;
-      case 'customer.subscription.paused':      _stripeOnSubPaused_(obj); break;
-      case 'customer.subscription.trial_will_end': _stripeOnTrialWillEnd_(obj); break;
-      case 'invoice.paid':                      _stripeOnInvoicePaid_(obj); break;
-      case 'invoice.payment_failed':            _stripeOnInvoiceFailed_(obj); break;
-      // v141: confirma que o cartao ficou salvo no Customer
-      case 'payment_method.attached':           _stripeOnPmAttached_(obj); break;
-      default: /* ignora */ break;
-    }
-  } catch (e) {
-    logAction('system', 'STRIPE_EVENT_ERRO', 'webhook', ev.type, e.message);
-    try { if (typeof tgEnviarErro_ === 'function') tgEnviarErro_('Stripe ' + ev.type, e.message); } catch (_t) {}
-  }
+  // v158: o despacho vive em stripe_poll.gs e e compartilhado com a rotina
+  // que BUSCA os eventos. Duas copias do switch acabariam divergindo — e foi
+  // divergencia entre duas leituras que criou o problema da Apolyana.
+  //
+  // Obs: este caminho hoje e teorico. A URL /exec do Apps Script responde 302
+  // e o Stripe nao segue redirect, entao ele desativou o endpoint sozinho.
+  // Fica aqui por seguranca, caso um dia haja um relay na frente.
+  _stripeDespacharEvento_(ev);
   return _stripeResp_({ ok: true, type: ev.type });
 }
 
