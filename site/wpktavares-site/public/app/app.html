@@ -2956,6 +2956,10 @@ input[type=range].adm-slider::-webkit-slider-thumb {
   </div>
 
   <!-- ── ASSINATURA (sub-tela do Perfil) ──────────────────── -->
+  <div class="page" id="page-indicar">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+
   <div class="page" id="page-assinatura">
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
@@ -3339,6 +3343,7 @@ function renderPage(page) {
     case 'comunidade': renderComunidade(); break;
     case 'perfil':     renderPerfil();     break;
     case 'assinatura': renderBilling(); break;   // v150: tela nova em blocos
+    case 'indicar':    renderIndicacoes(); break; // v159: compartilhar e acompanhar
     case 'mural':      renderMural();      break;
     case 'hub':        renderHub();        break;
   }
@@ -4454,6 +4459,21 @@ function renderPerfil() {
     .premium-card .prem-glow{position:absolute;inset:0;background:radial-gradient(140px 90px at 88% 0%,rgba(76,175,80,.16),transparent 70%);pointer-events:none}
     @keyframes premIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
   </style>
+  <div class="card" onclick="navigate('indicar')" role="button" tabindex="0"
+       onkeydown="if(event.key==='Enter'){navigate('indicar')}"
+       style="cursor:pointer;margin-bottom:12px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,#4fa8ff,#2f6fb8);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(79,168,255,.3)">
+        <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:800;color:var(--text)">Indicar amigos</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">Seu link e quem já entrou por ele</div>
+      </div>
+      <span style="color:var(--muted);font-size:20px">›</span>
+    </div>
+  </div>
+
   <div class="card premium-card" onclick="abrirBilling()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'){abrirBilling()}">
     <div class="prem-glow"></div>
     <div style="display:flex;align-items:center;gap:14px">
@@ -13473,6 +13493,193 @@ function _blSkeleton() {
 }
 
 // ── Ações ───────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// INDICAÇÕES — compartilhar e acompanhar (v159)
+// ------------------------------------------------------------
+// Ainda NÃO existe recompensa, e a tela diz isso na cara. Prometer
+// benefício que não existe queima a confiança justo em quem estava
+// disposto a divulgar de graça.
+// ════════════════════════════════════════════════════════════
+var IND = { dados: null };
+
+function _indNum(n, rotulo, cor) {
+  return '<div style="flex:1;min-width:92px;background:var(--surface2,rgba(255,255,255,.03));' +
+    'border:1px solid var(--border);border-radius:14px;padding:14px 12px;text-align:center">' +
+    '<div style="font-size:24px;font-weight:800;color:' + cor + ';line-height:1">' + n + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:5px">' + rotulo + '</div></div>';
+}
+
+async function renderIndicacoes() {
+  var el = document.getElementById('page-indicar');
+  if (!el) return;
+
+  if (!IND.dados) {
+    el.innerHTML = '<div class="bl-wrap"><div class="bl-head"><h2>Indicar amigos</h2></div>' +
+      '<div class="bl-card"><div class="bl-sk-t"></div><div class="bl-sk-l"></div>' +
+      '<div class="bl-sk-l"></div></div></div>';
+    try {
+      var r = await rpc('getMinhasIndicacoes', {});
+      if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
+      IND.dados = r.data;
+    } catch (e) {
+      el.innerHTML = '<div class="bl-wrap"><div class="bl-card bl-erro">' +
+        '<div class="bl-erro-t">Não consegui carregar</div>' +
+        '<div class="bl-erro-s">Tente de novo em instantes.</div>' +
+        '<button class="bl-btn" onclick="IND.dados=null;renderIndicacoes()">Tentar novamente</button>' +
+        '</div></div>';
+      return;
+    }
+  }
+
+  var d = IND.dados;
+  var m = d.metricas || {};
+  var link = d.linkPadrao;
+
+  var html = '<div class="bl-wrap">' +
+    '<div class="bl-head">' +
+      '<button class="bl-voltar" onclick="navigate(\'perfil\')">‹ Perfil</button>' +
+      '<h2>Indicar amigos</h2>' +
+    '</div>';
+
+  // Link
+  html += '<div class="bl-card bl-destaque" style="--c:#4fa8ff">' +
+    '<div class="bl-eyebrow">Seu link</div>' +
+    '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 14px">' +
+      '<code id="indLink" style="flex:1;min-width:180px;font-size:13.5px;color:var(--text);' +
+        'background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;' +
+        'padding:11px 13px;word-break:break-all">' + escH(link) + '</code>' +
+    '</div>' +
+    '<button class="bl-btn" style="margin-top:0" onclick="indCompartilhar()">Compartilhar no WhatsApp</button>' +
+    '<button class="bl-acao" style="margin-top:9px" onclick="indCopiar()">' +
+      '<span class="bl-acao-t" id="indCopiarTxt">Copiar link</span>' +
+      '<span class="bl-acao-s">Cole onde quiser: Instagram, e-mail, grupo</span></button>' +
+  '</div>';
+
+  // Números
+  html += '<div class="bl-card">' +
+    '<div class="bl-card-t">Como está indo</div>' +
+    '<div style="display:flex;gap:9px;flex-wrap:wrap">' +
+      _indNum(m.cliques || 0,     'cliques no link', 'var(--text)') +
+      _indNum(m.cadastros || 0,   'começaram o teste', '#4fa8ff') +
+      _indNum(m.assinaturas || 0, 'viraram assinantes', 'var(--green)') +
+    '</div>' +
+    (!d.recompensaAtiva
+      ? '<div style="margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6">' +
+        'Por enquanto indicar não dá recompensa — é só o prazer de levar alguém junto. ' +
+        'Quando o programa de indicação começar, <b>tudo que você já acumulou aqui conta</b>.</div>'
+      : '') +
+  '</div>';
+
+  // Links de teste
+  if ((d.diasPermitidos || []).length) {
+    html += '<div class="bl-card">' +
+      '<div class="bl-card-t">Presentear um período de teste</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:13px">' +
+        'Gere um link com mais dias grátis para quem você convidar.</div>' +
+      '<div style="display:flex;gap:9px;flex-wrap:wrap">' +
+        d.diasPermitidos.map(function (n) {
+          return '<button class="bl-btn-sm" onclick="indLinkTrial(' + n + ')">' + n + ' dias</button>';
+        }).join('') +
+      '</div>' +
+      '<div id="indTrialRes" style="margin-top:12px"></div>' +
+    '</div>';
+  }
+
+  // Quem entrou
+  html += '<div class="bl-card">' +
+    '<div class="bl-card-t">Quem entrou pelo seu link</div>';
+  if (!(d.pessoas || []).length) {
+    html += '<div style="font-size:13px;color:var(--muted);line-height:1.6">' +
+      'Ninguém ainda. Assim que alguém entrar pelo seu link, aparece aqui.</div>';
+  } else {
+    html += '<div class="bl-benef">' + d.pessoas.map(function (p) {
+      var assinou = p.estagio === 'assinou';
+      return '<div class="bl-b on">' +
+        '<span class="bl-b-ico">' + (assinou ? '★' : '·') + '</span>' +
+        '<div><div class="bl-b-t">' + escH(p.nome) + '</div>' +
+        '<div class="bl-b-s">' + (assinou ? 'Assinou' : 'Em período de teste') +
+          (p.quando ? ' · ' + escH(p.quando) : '') + '</div></div>' +
+        '<span class="bl-b-tick">' + (assinou ? '✓' : '') + '</span></div>';
+    }).join('') + '</div>';
+    html += '<div style="margin-top:12px;font-size:11.5px;color:var(--muted);line-height:1.55">' +
+      'Mostramos só o primeiro nome — o contato de quem entrou não é compartilhado.</div>';
+  }
+  html += '</div></div>';
+
+  el.innerHTML = html;
+}
+
+function indTexto(link) {
+  return 'Tô fazendo o Desafio 21 Dias e tá mudando minha rotina. ' +
+         'Dá uma olhada, tem período grátis: ' + link;
+}
+
+function indCompartilhar() {
+  var link = (IND.dados && IND.dados.linkPadrao) || '';
+  var txt = indTexto(link);
+  if (navigator.share) {
+    navigator.share({ title: 'Desafio 21 Dias', text: txt }).catch(function () {});
+    return;
+  }
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+
+async function indCopiar() {
+  var link = (IND.dados && IND.dados.linkPadrao) || '';
+  try {
+    await navigator.clipboard.writeText(link);
+  } catch (e) {
+    // Safari antigo e WebView bloqueiam a área de transferência: seleciona
+    // o texto para a pessoa copiar na mão em vez de só falhar calado.
+    var el = document.getElementById('indLink');
+    if (el) {
+      var r = document.createRange(); r.selectNodeContents(el);
+      var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    }
+    toast('Selecionei o link — copie com Ctrl+C', 'info');
+    return;
+  }
+  var t = document.getElementById('indCopiarTxt');
+  if (t) { t.textContent = 'Link copiado'; setTimeout(function () { t.textContent = 'Copiar link'; }, 2200); }
+  toast('Link copiado!', 'success');
+}
+
+async function indLinkTrial(dias) {
+  var box = document.getElementById('indTrialRes');
+  if (box) box.innerHTML = '<span style="font-size:12px;color:var(--muted)">Gerando…</span>';
+  try {
+    var r = await rpc('gerarLinkIndicacao', { data: { dias: dias } });
+    if (!r || !r.ok) {
+      if (box) box.innerHTML = '<span style="font-size:12px;color:#e2626b">' +
+        escH((r && r.error) || 'Não consegui gerar.') + '</span>';
+      return;
+    }
+    var l = r.data.link;
+    if (box) {
+      box.innerHTML =
+        '<code style="display:block;font-size:12.5px;color:var(--text);background:rgba(255,255,255,.05);' +
+          'border:1px solid var(--border);border-radius:10px;padding:11px 13px;word-break:break-all">' +
+          escH(l) + '</code>' +
+        '<button class="bl-btn" style="margin-top:10px" onclick="indCompartilharTrial(' + dias + ')">' +
+          'Enviar convite de ' + dias + ' dias</button>';
+    }
+    IND['_trial' + dias] = r.data;
+  } catch (e) {
+    if (box) box.innerHTML = '<span style="font-size:12px;color:#e2626b">Erro de conexão.</span>';
+  }
+}
+
+function indCompartilharTrial(dias) {
+  var d = IND['_trial' + dias];
+  if (!d) return;
+  var txt = d.texto + ' ' + d.link;
+  if (navigator.share) {
+    navigator.share({ title: 'Desafio 21 Dias', text: txt }).catch(function () {});
+    return;
+  }
+  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+
 // ── Sincronização com o provedor ────────────────────────────
 // O caso real: a tela mostrava "Ativa" (lida ao vivo do Stripe) e o
 // Perfil mostrava "Bloqueada" (lido da planilha). O pagamento estava

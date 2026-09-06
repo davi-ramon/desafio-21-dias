@@ -1344,6 +1344,25 @@ footer{
 'use strict';
 
 /* ── CONFIG ── */
+// ── Indicação (v159) ─────────────────────────────────────────
+// Vale por 30 dias: quem clicou no link do amigo hoje e voltou a
+// se cadastrar depois continua creditando quem indicou.
+var D21_REF = (function () {
+  var qp = new URLSearchParams(location.search);
+  var r = (qp.get('ref') || '').toUpperCase().trim();
+  try {
+    if (r) {
+      localStorage.setItem('d21_ref', r);
+      localStorage.setItem('d21_ref_em', String(Date.now()));
+    } else {
+      var g = localStorage.getItem('d21_ref') || '';
+      var q = parseInt(localStorage.getItem('d21_ref_em'), 10) || 0;
+      if (g && Date.now() - q < 30 * 86400000) r = g;
+    }
+  } catch (e) {}
+  return r;
+})();
+
 var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
 
 /* ── DIAS PARAM ── */
@@ -1778,6 +1797,7 @@ window.handleSubmit = function(){
       nome:nome, email:email, whatsapp:whatsapp, dias:dias,
       event_id:eventId, fbp:fbp, fbc:fbc,
       client_ua:navigator.userAgent,
+      ref: D21_REF,
       origem: window.location.href
     }})
   })

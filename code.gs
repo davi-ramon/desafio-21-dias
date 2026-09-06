@@ -236,7 +236,9 @@ function doPost(e) {
       // quem manda e o session_id validado na API do Stripe
       payload.action === 'statusTrialCartao'        ||
       // v155 — rodape do e-mail: quem clica ainda nao tem sessao
-      payload.action === 'preferenciasEmail'
+      payload.action === 'preferenciasEmail'        ||
+      // v159 — clique no link de indicacao: acontece antes de qualquer cadastro
+      payload.action === 'registrarCliqueIndicacao'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

@@ -134,6 +134,11 @@ function registrarTrial_(data) {
     }
   }
 
+  // v159: indicacao tambem vale no trial sem cartao
+  try {
+    if (data.ref) indRegistrarConversao_(data.ref, email, nome, 'cadastro', dias, 'trial-sem-cartao');
+  } catch (e) {}
+
   var now      = new Date();
   var trialFim = new Date(now.getTime() + dias * 86400000).toISOString();
   var orderId  = 'TRIAL-' + dias + 'D-' + Date.now();

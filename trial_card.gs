@@ -301,6 +301,15 @@ function criarCheckoutTrialCartao(data) {
                             origem: 'trial-cartao-' + dias + 'd' });
   } catch (e) {}
 
+  // v159: indicacao. Registrada AQUI, antes do Stripe: se a pessoa
+  // desistir no cartao, quem indicou ainda ve que levou alguem ate o fim
+  // do formulario — e o dado nao depende de a assinatura existir.
+  try {
+    if (data.ref) {
+      indRegistrarConversao_(data.ref, email, nome, 'cadastro', dias, 'checkout-cartao');
+    }
+  } catch (e) {}
+
   var r = criarCheckoutStripe({
     plan: 'monthly',
     trialDays: dias,
@@ -312,6 +321,7 @@ function criarCheckoutTrialCartao(data) {
     nome: nome,
     whatsapp: tel.e164,
     campanha: data.campanha || '',
+    ref: String(data.ref || ''),
     origemCheckout: data.origem || 'checkout-trial-cartao',
     returnUrl: String(data.returnUrl || 'https://wpktavares.com.br/checkout-trial/')
   });

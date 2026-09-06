@@ -53,6 +53,11 @@
         "//": "Rota dedicada de billing. A SPA vive em /app/app.html e roteia por div, nao por URL — sem este rewrite o Hosting devolveria 404 em /app/billing.",
         "source": "/app/billing",
         "destination": "/app/app.html"
+      },
+      {
+        "//": "Link curto de indicacao: /i/CODIGO. Sem isto o Hosting devolveria 404, porque nao existe arquivo por codigo.",
+        "source": "/i/**",
+        "destination": "/i/index.html"
       }
     ]
   }

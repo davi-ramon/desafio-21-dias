@@ -498,6 +498,40 @@ if (VALIDOS.indexOf(dias) < 0) dias = 7;
 
 var estado = { email: '', nome: '', zap: '', ticket: '', cooldown: 0 };
 
+// ── Indicação (v159) ─────────────────────────────────────────
+// O código pode chegar pela URL ou já estar guardado de uma visita
+// anterior: quem clicou no link do amigo hoje e só voltou a comprar
+// amanhã continua creditando quem indicou.
+var REF = (function () {
+  var r = (params.get('ref') || '').toUpperCase().trim();
+  try {
+    if (r) {
+      localStorage.setItem('d21_ref', r);
+      localStorage.setItem('d21_ref_em', String(Date.now()));
+    } else {
+      var guardado = localStorage.getItem('d21_ref') || '';
+      var quando = parseInt(localStorage.getItem('d21_ref_em'), 10) || 0;
+      // Vale por 30 dias. Depois disso não é mais a mesma intenção.
+      if (guardado && Date.now() - quando < 30 * 86400000) r = guardado;
+    }
+  } catch (e) {}
+  return r;
+})();
+
+// Conta o clique só quando o código veio na URL agora (evita contar
+// de novo a cada F5 de quem já estava com o código guardado).
+if (params.get('ref')) {
+  var _sid = '';
+  try {
+    _sid = sessionStorage.getItem('d21_sid') || '';
+    if (!_sid) { _sid = String(Date.now()) + Math.random().toString(36).slice(2, 8); sessionStorage.setItem('d21_sid', _sid); }
+  } catch (e) { _sid = String(Date.now()); }
+  fetch(GAS, { method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'registrarCliqueIndicacao',
+      data: { ref: REF, dias: dias, sid: _sid, origem: 'checkout-cartao' } })
+  })['catch'](function () {});
+}
+
 // ── Data da primeira cobrança: o que a spec chama de "data estimada".
 // Calculada no cliente só para EXIBIR; quem manda de verdade é o Stripe.
 function dataCobranca() {
@@ -716,6 +750,7 @@ el('btn4').addEventListener('click', async function () {
       email: estado.email, nome: estado.nome, whatsapp: estado.zap,
       dias: dias, ticket: estado.ticket, consentimento: true,
       origem: 'checkout-trial-cartao', campanha: params.get('utm_campaign') || '',
+      ref: REF,
       returnUrl: location.origin + location.pathname
     });
     if (!r.ok) {

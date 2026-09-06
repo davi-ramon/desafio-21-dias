@@ -293,6 +293,12 @@ function handleRequest(payload) {
     case 'stripePollAtivar':        return stripePollAtivar(token);
     case 'stripePollRodarAgora':    return stripePollRodarAgora(token);
     case 'stripeRecuperarEventos':  return stripeRecuperarEventos(token, data);
+    // v159 — compartilhamento e rastreio
+    case 'registrarCliqueIndicacao': return registrarCliqueIndicacao(data);
+    case 'getMinhasIndicacoes':      return getMinhasIndicacoes(token);
+    case 'gerarLinkIndicacao':       return gerarLinkIndicacao(token, data);
+    case 'getIndicacoesAdmin':       return getIndicacoesAdmin(token);
+    case 'salvarIndicacaoConfig':    return salvarIndicacaoConfig(token, data);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)

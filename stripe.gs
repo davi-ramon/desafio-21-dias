@@ -267,6 +267,13 @@ function _stripeSyncAssinatura_(email, sub, isNew) {
         _enviarConfirmacaoAssinatura_(email, nomeAtual, plan);
       }
     } catch (e) { logAction('system', 'STRIPE_LOGIN_ERRO', 'assinatura', email, e.message); }
+    // v159: virou pagante — fecha o ciclo de quem indicou
+    try {
+      if (appStatus === AS.ACTIVE && typeof indMarcarAssinatura_ === 'function') {
+        indMarcarAssinatura_(email, 'stripe ' + (plan || ''));
+      }
+    } catch (e) {}
+
     if (appStatus === AS.TRIAL) _stripeNotif_('🎁 NOVO TRIAL (' + (plan || '') + ')\n' + email);
     else                        _stripeNotif_('🎉 NOVA ASSINATURA (' + (plan || '') + ')\n' + email + '  ·  R$ ' + (amount || '0'));
     // Meta CAPI — evento de compra server-side
@@ -609,6 +616,7 @@ function criarCheckoutStripe(data) {
   if (data && data.nome)     params['subscription_data[metadata][nome]']     = String(data.nome);
   if (data && data.whatsapp) params['subscription_data[metadata][whatsapp]'] = String(data.whatsapp);
   if (data && data.campanha) params['subscription_data[metadata][campanha]'] = String(data.campanha);
+  if (data && data.ref)      params['subscription_data[metadata][ref]']      = String(data.ref);
   if (trial > 0)             params['subscription_data[metadata][trial_dias]'] = String(trial);
   params['subscription_data[metadata][origem]'] =
     String((data && data.origemCheckout) || origin);
