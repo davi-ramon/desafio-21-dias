@@ -276,3 +276,26 @@ function adminSincronizarAssinatura(token, data) {
     acessoAgora: _bsTemAcesso_(email)
   };
 }
+
+
+// ─────────────────────────────────────────────────────────────
+// DETECÇÃO DE DIVERGÊNCIA — usada pelo app inteiro
+// ------------------------------------------------------------
+// Só consulta o provedor para quem está sendo BLOQUEADO. Rodar
+// isso no boot de todo mundo custaria uma chamada à Stripe por
+// carregamento de app, para uma pergunta que só interessa a
+// quem está travado.
+// ─────────────────────────────────────────────────────────────
+function bsDivergencia_(email, statusApp) {
+  var fora = { divergente: false, statusProvedor: '', subId: '' };
+  var travado = [AS.BLOCKED, AS.CANCELLED, AS.PAUSED].indexOf(String(statusApp)) >= 0;
+  if (!travado) return fora;
+
+  try {
+    var achado = _bsAcharStripe_(_bsEmailsPossiveis_(email));
+    if (!achado) return fora;
+    var st = _stripeMapStatus_(achado.sub.status);
+    if ([AS.TRIAL, AS.ACTIVE, AS.GRACE, AS.GRACE_FINAL].indexOf(st) < 0) return fora;
+    return { divergente: true, statusProvedor: achado.sub.status, subId: achado.sub.id };
+  } catch (e) { return fora; }
+}

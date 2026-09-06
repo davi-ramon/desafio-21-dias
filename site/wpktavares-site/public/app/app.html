@@ -3356,7 +3356,10 @@ function _renderSubBanner() {
   el.style.display = 'block';
   el.className = typeClass[sub.banner.type] || 'sub-warning';
   el.textContent = sub.banner.msg;
-  el.onclick = function() { navigate('perfil'); };
+  el.onclick = function() {
+    // Divergência tem um destino próprio: a tela onde está o botão que resolve.
+    navigate(APP.subscription && APP.subscription.divergente ? 'assinatura' : 'perfil');
+  };
 }
 
 function _checkPremium_() {
@@ -5385,7 +5388,8 @@ function renderNotifList() {
   const listEl = document.getElementById('notifList');
   if (!listEl) return;
   const notifs = APP.notificacoes;
-  if (!notifs || !notifs.length) {
+  var temAviso = !!(APP.subscription && APP.subscription.divergente);
+  if ((!notifs || !notifs.length) && !temAviso) {
     listEl.innerHTML =
       '<div style="text-align:center;padding:52px 16px">' +
         '<div style="font-size:36px;margin-bottom:12px">🔔</div>' +
@@ -5395,6 +5399,27 @@ function renderNotifList() {
     return;
   }
   var html = '';
+
+  // v157: a notificação que explica o bloqueio indevido é montada aqui, a
+  // partir do estado da assinatura — não vem da planilha. Ela precisa
+  // aparecer no instante em que o problema existe, e sumir no instante em
+  // que ele deixa de existir.
+  if (APP.subscription && APP.subscription.divergente) {
+    html +=
+      '<div class="notif-item unread" onclick="navigate(\'assinatura\')" style="cursor:pointer">' +
+        '<div class="notif-item-hdr">' +
+          '<div class="notif-dot"></div>' +
+          '<span class="notif-tipo-pill notif-tipo-alerta">Ação necessária</span>' +
+        '</div>' +
+        '<div class="notif-item-titulo">Seu pagamento não chegou até o app</div>' +
+        '<div class="notif-item-msg">Encontramos sua assinatura em dia no provedor, mas o app ' +
+          'ainda está bloqueando seu acesso. Toque aqui para abrir <b>Gerenciar assinatura</b> e ' +
+          'use o botão <b>Sincronizar com o provedor</b> — isso libera meditação, leitura e áudios ' +
+          'na hora.</div>' +
+        '<div class="notif-item-date">agora</div>' +
+      '</div>';
+  }
+
   notifs.forEach(function(n) {
     var tipo = n.tipo || 'info';
     var tipoLabel = tipo === 'success' ? 'Novidade' : tipo === 'alerta' ? 'Alerta' : 'Info';
@@ -5429,6 +5454,7 @@ function updateBellBadge() {
   var badge = document.getElementById('bellBadge');
   if (!badge) return;
   var unread = (APP.notificacoes || []).filter(function(n) { return !n.lida; }).length;
+  if (APP.subscription && APP.subscription.divergente) unread++;
   badge.style.display = unread > 0 ? 'block' : 'none';
 }
 
@@ -13376,7 +13402,12 @@ async function renderBilling() {
   // Se o provedor diz que está válida mas o app bloqueou, a pessoa está
   // vendo "Ativa" aqui e "Bloqueada" no perfil. Em vez de deixar ela
   // descobrir sozinha, apontamos a divergência e o caminho.
-  if (BL.divergente) {
+  // Se a sincronização acabou de resolver, o aviso não pode continuar na
+  // tela dizendo que está travado — era o que acontecia antes: a pessoa via
+  // "acesso liberado" e "acesso travado" ao mesmo tempo.
+  var travadoAgora = BL.divergente && !(BL.sync && BL.sync.liberado);
+
+  if (travadoAgora) {
     html += '<div class="bl-sync-alerta">' +
       '<span class="ico">!</span><div>' +
         '<div class="bl-sync-alerta-t">Seu acesso está travado mesmo com a assinatura em dia</div>' +
@@ -13398,13 +13429,16 @@ async function renderBilling() {
 
   html += '<div class="bl-acoes">';
 
-  // Sincronizar existe SEMPRE, inclusive sem assinatura na planilha —
-  // é justamente quem não tem linha que mais precisa dele.
-  html += '<button class="bl-acao" id="blBtnSync" onclick="billingSincronizar()">' +
-    '<span class="bl-acao-t">Sincronizar com o provedor</span>' +
-    '<span class="bl-acao-s">Consulta ' +
-      (d.provedor === 'cakto' ? 'a Cakto' : 'o Stripe') +
-      ', confere seu pagamento e corrige seu acesso</span></button>';
+  // O botão só aparece quando o sistema detectou contradição, ou quando não
+  // há assinatura registrada (aí ele é a única saída). Para quem está com
+  // tudo certo, oferecer "sincronizar" só assusta.
+  if (travadoAgora || !a) {
+    html += '<button class="bl-acao" id="blBtnSync" onclick="billingSincronizar()">' +
+      '<span class="bl-acao-t">Sincronizar com o provedor</span>' +
+      '<span class="bl-acao-s">Consulta ' +
+        (d.provedor === 'cakto' ? 'a Cakto' : 'o Stripe') +
+        ', confere seu pagamento e corrige seu acesso</span></button>';
+  }
 
   if (a) {
     if (d.portalDisponivel) {
@@ -13463,9 +13497,16 @@ async function billingSincronizar() {
                      : 'Sincronizado — ainda há pendência.',
           r.liberado ? 'success' : 'info');
 
-    // Recarrega os dados da assinatura, mas preserva o resultado na tela
+    // O estado global manda no banner vermelho do topo e no bloqueio dos
+    // módulos. Sem atualizar isso, a pessoa continuava vendo "seu método de
+    // pagamento apresentou falha" depois de já ter sido liberada.
+    try { await _refreshSubscriptionState(); } catch (e) {}
+    APP._avisoSyncMostrado = false;
+
+    // Recarrega os dados da assinatura preservando o resultado na tela
     var res = BL.sync;
     BL.dados = null;
+    BL.sync = null;
     await renderBilling();
     BL.sync = res;
     await renderBilling();
@@ -13473,6 +13514,7 @@ async function billingSincronizar() {
     // O acesso mudou: o resto do app precisa saber (pilares, áudios…)
     if (r.mudou && r.liberado) {
       try { if (typeof carregarDados === 'function') await carregarDados(); } catch (e) {}
+      try { if (typeof loadNotificacoes === 'function') loadNotificacoes(); } catch (e) {}
     }
   } catch (e) {
     toast('Erro de conexão.', 'error');

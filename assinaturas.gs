@@ -407,8 +407,25 @@ function checkAcessoPremium_(email) {
   // Banner para exibição no app
   var banner = _buildBanner_(status, trialRem, parseInt(row[_ASS_.GRACE_DAY] || 0));
 
+  // v157: quem está travado pode estar travado por ENGANO — a confirmação do
+  // provedor não chegou. Nesse caso o app não pode ficar acusando falha de
+  // pagamento a quem pagou; ele avisa o que houve e diz o que fazer.
+  var div = { divergente: false };
+  try {
+    if (typeof bsDivergencia_ === 'function') div = bsDivergencia_(email, status);
+  } catch (e) {}
+  if (div.divergente) {
+    banner = {
+      type: 'yellow',
+      msg:  'Encontramos seu pagamento no provedor, mas ele não chegou até o app. ' +
+            'Toque aqui, abra Gerenciar assinatura e use "Sincronizar com o provedor".'
+    };
+  }
+
   return {
     allowed:        allowed,
+    divergente:     !!div.divergente,
+    statusProvedor: div.statusProvedor || '',
     status:         status,
     plan:           String(row[_ASS_.PLAN]        || ''),
     trialDays:      parseInt(row[_ASS_.TRIAL_DAYS] || 0),

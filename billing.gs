@@ -145,15 +145,16 @@ function getBillingDetalhe(token) {
   // v156: a tela le a Stripe ao vivo; o resto do app le a planilha.
   // Quando os dois discordam, quem paga fica vendo "Ativa" aqui e
   // "Bloqueada" no perfil, sem entender nada. Detectamos e avisamos.
+  // v157: a MESMA regra que o app inteiro usa, para as duas telas nunca
+  // discordarem entre si — foi exatamente esse tipo de divergencia que
+  // originou o problema.
   try {
-    var vivaNoProvedor = !!(out.assinatura &&
-      [AS.TRIAL, AS.ACTIVE, AS.GRACE, AS.GRACE_FINAL]
-        .indexOf(_stripeMapStatus_(out.assinatura.status)) >= 0);
-    var temAcessoNoApp = (typeof _bsTemAcesso_ === 'function') ? _bsTemAcesso_(email) : true;
     var statusPlanilha = linha ? String(linha[_ASS_.APP_STATUS] || '') : '';
-    out.divergente = vivaNoProvedor && (!temAcessoNoApp ||
-      [AS.BLOCKED, AS.CANCELLED, AS.PAUSED].indexOf(statusPlanilha) >= 0);
+    var dv = (typeof bsDivergencia_ === 'function')
+      ? bsDivergencia_(email, statusPlanilha) : { divergente: false };
+    out.divergente = !!dv.divergente;
     out.statusNoApp = statusPlanilha;
+    out.temAcessoNoApp = (typeof _bsTemAcesso_ === 'function') ? _bsTemAcesso_(email) : true;
   } catch (e) { out.divergente = false; }
 
   // Provedores disponíveis, para a seção de migração
