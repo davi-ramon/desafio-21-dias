@@ -33,6 +33,12 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 }
 @media (min-width:1100px){
   .main{grid-template-columns:290px minmax(0,1fr) 320px;gap:18px;align-items:start}
+  /* Cada bloco na SUA coluna. Sem isto, esconder a coluna de atividade
+     empurrava o checkout para a faixa de 290px e os depoimentos para o
+     meio — era o desalinhamento que aparecia depois de alguns segundos. */
+  .ckv-feed-col{grid-column:1}
+  .checkout-col{grid-column:2}
+  .ckv-dep-col {grid-column:3}
 }
 .checkout-col{max-width:520px;width:100%;margin:0 auto}
 

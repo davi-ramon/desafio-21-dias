@@ -37,18 +37,42 @@
   var ICO_CARRINHO = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ckv-ico"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
   var ICO_ESTRELA  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ckv-ico"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
 
+  // O navegador cria o AudioContext em estado "suspended" e so libera
+  // depois de um gesto do usuario. A versao anterior criava um contexto
+  // NOVO a cada notificacao, sempre suspenso — por isso nenhum som saia.
+  // Agora ha um so, destravado no primeiro clique/toque/tecla da pessoa.
+  var _ctx = null, _audioLiberado = false;
+
+  function _pegarCtx() {
+    if (_ctx) return _ctx;
+    try { _ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { _ctx = null; }
+    return _ctx;
+  }
+
+  function _liberarAudio() {
+    var c = _pegarCtx();
+    if (!c) return;
+    if (c.state === 'suspended') { try { c.resume(); } catch (e) {} }
+    _audioLiberado = true;
+  }
+
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
+    document.addEventListener(ev, _liberarAudio, { once: true, passive: true });
+  });
+
   function som() {
     if (reduzMovimento()) return;
+    var c = _pegarCtx();
+    if (!c || !_audioLiberado || c.state !== 'running') return;   // sem gesto, sem som
     try {
-      var ctx = new (window.AudioContext || window.webkitAudioContext)();
-      var osc = ctx.createOscillator(), g = ctx.createGain();
-      osc.connect(g); g.connect(ctx.destination);
+      var osc = c.createOscillator(), g = c.createGain();
+      osc.connect(g); g.connect(c.destination);
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
-      g.gain.setValueAtTime(0.12, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.35);
+      osc.frequency.setValueAtTime(880, c.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(660, c.currentTime + 0.12);
+      g.gain.setValueAtTime(0.11, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.35);
+      osc.start(c.currentTime); osc.stop(c.currentTime + 0.35);
     } catch (e) {}
   }
 
@@ -117,11 +141,14 @@
     // Percorre os eventos reais em ritmo pausado. Cada cartão carrega o
     // horário verdadeiro do próprio evento ("ontem", "há 3 dias"), então
     // nada aqui sugere que a compra está acontecendo neste instante.
+    // A primeira demora era a resposta do Apps Script, nao o timer: a fila
+    // so comeca quando os dados chegam. Por isso a primeira sai quase junto
+    // com a resposta, e as seguintes num ritmo mais curto.
     function rodar() {
       if (!eventos.length) return;
       mostrar(eventos[idx % eventos.length]);
       idx++;
-      setTimeout(rodar, 22000 + Math.random() * 10000);
+      setTimeout(rodar, 13000 + Math.random() * 8000);
     }
 
     function init(opcoes) {
@@ -138,7 +165,7 @@
           if (col) col.style.display = 'none';
           return d;
         }
-        setTimeout(rodar, 2500);
+        setTimeout(rodar, 1200);
         return d;
       })['catch'](function () {
         var col = cfg.coluna || (cfg.feed && cfg.feed.closest('.ckv-feed-col'));
@@ -311,6 +338,38 @@
         if (Math.abs(dx) > 40) { dx < 0 ? proximo(true) : anterior(true); }
         tX = null;
       });
+
+      // Arrastar com o mouse. No desktop so havia as setas — quem estava
+      // acostumado a deslizar no celular ficava tentando e nada acontecia.
+      // O limiar de 40px separa arrastar de clicar: abaixo disso o clique
+      // continua valendo para ligar o som do video.
+      var mX = null, arrastou = false;
+      palco.style.cursor = 'grab';
+
+      palco.addEventListener('mousedown', function (e) {
+        if (e.button !== 0) return;
+        mX = e.clientX; arrastou = false;
+        palco.style.cursor = 'grabbing';
+        e.preventDefault();            // impede o arrasto nativo do <video>
+      });
+
+      window.addEventListener('mousemove', function (e) {
+        if (mX === null) return;
+        if (Math.abs(e.clientX - mX) > 8) arrastou = true;
+      });
+
+      window.addEventListener('mouseup', function (e) {
+        if (mX === null) return;
+        var dx = e.clientX - mX;
+        mX = null;
+        palco.style.cursor = 'grab';
+        if (Math.abs(dx) > 40) { dx < 0 ? proximo(true) : anterior(true); }
+      });
+
+      // Um arrasto nao pode disparar o clique do card no final do gesto.
+      palco.addEventListener('click', function (e) {
+        if (arrastou) { e.stopPropagation(); e.preventDefault(); arrastou = false; }
+      }, true);
 
       render();
       iniciarTimer();

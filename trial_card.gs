@@ -310,6 +310,28 @@ function criarCheckoutTrialCartao(data) {
     }
   } catch (e) {}
 
+  // v163: avisa que ALGUEM ENTROU no checkout, nao so quem terminou.
+  // Sem isto, quem preenche tudo e desiste na tela do cartao some sem
+  // deixar sinal — foi o caso do lead de 08/09, que ficou parado em
+  // 'cartao_iniciado' e por isso nunca gerou notificacao de trial.
+  // Um envio por pessoa a cada hora: recarregar a pagina nao vira spam.
+  try {
+    var _kAviso = 'tgck_' + _tcHash_(email).slice(0, 24);
+    var _cAviso = _tcCache_();
+    if (!_cAviso.get(_kAviso)) {
+      _cAviso.put(_kAviso, '1', 3600);
+      if (typeof tgEnviar_ === 'function') {
+        tgEnviar_('🟡 <b>Checkout com cartao iniciado</b>\n' +
+                  'Nome: ' + nome + '\n' +
+                  'E-mail: ' + email + '\n' +
+                  'WhatsApp: +' + String(tel.e164).replace(/\D/g, '') + '\n' +
+                  'Teste de ' + dias + ' dias\n' +
+                  '<i>Ainda NAO cadastrou o cartao. Se nao vier o aviso de ' +
+                  'Novo Trial em seguida, a pessoa desistiu nesta etapa.</i>');
+      }
+    }
+  } catch (e) {}
+
   var r = criarCheckoutStripe({
     plan: 'monthly',
     trialDays: dias,
