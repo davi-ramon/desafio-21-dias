@@ -139,6 +139,16 @@ function registrarTrial_(data) {
     if (data.ref) indRegistrarConversao_(data.ref, email, nome, 'cadastro', dias, 'trial-sem-cartao');
   } catch (e) {}
 
+  // v164: lead no CRM
+  try {
+    crmRegistrarLeadTrial_({
+      nome: nome, email: email, whatsapp: whatsapp, dias: dias,
+      estagio: 'cadastrado', origem: 'trial-sem-cartao',
+      ref: data.ref || '', convertido: 'nao',
+      evento: 'Cadastro no teste gratis (' + dias + ' dias)'
+    });
+  } catch (e) {}
+
   var now      = new Date();
   var trialFim = new Date(now.getTime() + dias * 86400000).toISOString();
   var orderId  = 'TRIAL-' + dias + 'D-' + Date.now();

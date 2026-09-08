@@ -310,6 +310,18 @@ function criarCheckoutTrialCartao(data) {
     }
   } catch (e) {}
 
+  // v164: o lead entra no CRM na hora. Quem confirmou e-mail por codigo,
+  // informou o WhatsApp e aceitou os termos e o melhor lead do funil —
+  // ficar so numa aba de planilha era desperdicio.
+  try {
+    crmRegistrarLeadTrial_({
+      nome: nome, email: email, whatsapp: tel.e164, dias: dias,
+      estagio: 'cartao_iniciado', origem: 'trial-cartao',
+      campanha: data.campanha || '', ref: data.ref || '', convertido: 'nao',
+      evento: 'Checkout com cartao iniciado (' + dias + ' dias)'
+    });
+  } catch (e) {}
+
   // v163: avisa que ALGUEM ENTROU no checkout, nao so quem terminou.
   // Sem isto, quem preenche tudo e desiste na tela do cartao some sem
   // deixar sinal — foi o caso do lead de 08/09, que ficou parado em

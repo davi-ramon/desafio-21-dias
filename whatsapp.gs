@@ -150,7 +150,10 @@ function waStatus(token) {
       tplBoasVindasVars:  String(_waCfg_('wa_tpl_boasvindas_vars', '[]')),
       tplLembrete:        String(_waCfg_('wa_tpl_lembrete')),
       tplLembreteLang:    String(_waCfg_('wa_tpl_lembrete_lang', 'pt_BR')),
-      tplLembreteVars:    String(_waCfg_('wa_tpl_lembrete_vars', '[]'))
+      tplLembreteVars:    String(_waCfg_('wa_tpl_lembrete_vars', '[]')),
+      tplRecuperacao:     String(_waCfg_('wa_tpl_recuperacao')),
+      tplRecuperacaoLang: String(_waCfg_('wa_tpl_recuperacao_lang', 'pt_BR')),
+      tplRecuperacaoVars: String(_waCfg_('wa_tpl_recuperacao_vars', '[]'))
     }
   };
 }
@@ -190,7 +193,9 @@ function waSalvarConfig(token, cfg) {
 
   [['tplBoasVindas','wa_tpl_boasvindas'], ['tplBoasVindasLang','wa_tpl_boasvindas_lang'],
    ['tplBoasVindasVars','wa_tpl_boasvindas_vars'], ['tplLembrete','wa_tpl_lembrete'],
-   ['tplLembreteLang','wa_tpl_lembrete_lang'], ['tplLembreteVars','wa_tpl_lembrete_vars']
+   ['tplLembreteLang','wa_tpl_lembrete_lang'], ['tplLembreteVars','wa_tpl_lembrete_vars'],
+   ['tplRecuperacao','wa_tpl_recuperacao'], ['tplRecuperacaoLang','wa_tpl_recuperacao_lang'],
+   ['tplRecuperacaoVars','wa_tpl_recuperacao_vars']
   ].forEach(function (p) {
     if (cfg[p[0]] !== undefined) setConfig_(p[1], String(cfg[p[0]]));
   });
@@ -266,6 +271,20 @@ function waBoasVindasTrial_(ctx) {
     _waCfg_('wa_tpl_boasvindas'),
     _waCfg_('wa_tpl_boasvindas_lang', 'pt_BR'),
     _waParams_(_waCfg_('wa_tpl_boasvindas_vars', '[]'), ctx)
+  );
+}
+
+// Recuperação de quem parou na tela do cartão. Template separado de
+// propósito: a mensagem de quem JÁ começou o teste não serve para quem
+// não começou — e a Meta avalia cada template pelo texto dele.
+function waRecuperarCheckout_(ctx) {
+  var tpl = _waCfg_('wa_tpl_recuperacao');
+  if (!tpl) return { ok: false, error: 'template de recuperacao nao escolhido' };
+  return _waEnviarTemplate_(
+    ctx.whatsapp,
+    tpl,
+    _waCfg_('wa_tpl_recuperacao_lang', 'pt_BR'),
+    _waParams_(_waCfg_('wa_tpl_recuperacao_vars', '[]'), ctx)
   );
 }
 

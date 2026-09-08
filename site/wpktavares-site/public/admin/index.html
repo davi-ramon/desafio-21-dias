@@ -4889,6 +4889,32 @@ async function renderTrialAuto() {
       '</div><div id="taLembRes" style="margin-top:8px"></div>' +
     '</div>' +
 
+    // ── Recuperação de checkout abandonado ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+        'Recuperar quem parou na tela do cart&atilde;o</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+        'Quem chega at&eacute; ali <b>j&aacute; confirmou o e-mail por c&oacute;digo, informou o WhatsApp e ' +
+        'aceitou os termos</b> &mdash; &eacute; o melhor lead do funil. O disparo abre a janela de ' +
+        'conversa para o Wagner falar com a pessoa.<br>' +
+        'N&atilde;o sai na hora de prop&oacute;sito: quem v&ecirc; a tela do cart&atilde;o fechar e o celular apitar ' +
+        'no mesmo segundo sente vigil&acirc;ncia. E boa parte volta sozinha em minutos.</div>' +
+      '<div id="recupBox"><div style="font-size:12px;color:var(--muted)">Carregando&hellip;</div></div>' +
+    '</div>' +
+
+    // ── Leads no CRM ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+        'Leads do teste no CRM</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+        'Todo cadastro novo j&aacute; entra sozinho. Este bot&atilde;o traz o <b>hist&oacute;rico</b> que ficou ' +
+        'para tr&aacute;s. Rodar de novo n&atilde;o duplica: casa por e-mail e, na falta dele, por telefone.<br>' +
+        'Quem parou no cart&atilde;o entra como <b>Qualificado</b>; quem s&oacute; se cadastrou, como ' +
+        '<b>Interessado</b>; quem converteu, como <b>Fechado</b>.</div>' +
+      '<button class="btn btn-primary btn-sm" onclick="crmSincronizar()">Sincronizar leads agora</button>' +
+      '<div id="crmSyncRes" style="margin-top:10px"></div>' +
+    '</div>' +
+
     // ── Lote / turma (escassez REAL no checkout) ──
     '<div class="card" style="margin-bottom:16px">' +
       '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Lote de vagas do checkout</div>' +
@@ -4930,6 +4956,7 @@ async function renderTrialAuto() {
 
   taRenderCapi();
   loteCarregar();
+  recupCarregar();
 
   _processIcons && _processIcons(content);
 }
@@ -4952,9 +4979,13 @@ async function taCarregarTemplates() {
   box.innerHTML =
     _taBlocoTemplate('bv', 'Boas-vindas do teste', TA.cfg.tplBoasVindas, TA.cfg.tplBoasVindasVars) +
     '<div style="height:18px"></div>' +
-    _taBlocoTemplate('lb', 'Lembrete antes da cobran&ccedil;a', TA.cfg.tplLembrete, TA.cfg.tplLembreteVars);
+    _taBlocoTemplate('lb', 'Lembrete antes da cobran&ccedil;a', TA.cfg.tplLembrete, TA.cfg.tplLembreteVars) +
+    '<div style="height:18px"></div>' +
+    _taBlocoTemplate('rc', 'Recupera&ccedil;&atilde;o &mdash; parou na tela do cart&atilde;o',
+                     TA.cfg.tplRecuperacao, TA.cfg.tplRecuperacaoVars);
   taAoTrocarTemplate('bv');
   taAoTrocarTemplate('lb');
+  taAoTrocarTemplate('rc');
 }
 
 function _taBlocoTemplate(pref, titulo, escolhido, varsJson) {
@@ -5142,6 +5173,106 @@ async function taTestarCapi() {
     : '<div style="color:#e2626b;font-size:12px">✕ ' + escHtml((r && r.error) || 'Erro.') + '</div>';
 }
 
+
+// ── Recuperação de checkout abandonado ─────────────────────
+async function recupCarregar() {
+  var box = document.getElementById('recupBox');
+  if (!box) return;
+  try {
+    var r = await rpc('getRecuperacaoStatus', {});
+    if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
+    var c = r.data || {};
+    var semTpl = !c.template;
+    box.innerHTML =
+      _taSwitch('recup_ativo', c.ativo, 'Disparar WhatsApp de recupera&ccedil;&atilde;o',
+        'Roda a cada 15 minutos e envia uma vez por pessoa') +
+      (semTpl
+        ? '<div style="margin-top:12px;padding:11px 13px;border-radius:9px;background:rgba(224,168,60,.1);' +
+          'border:1px solid rgba(224,168,60,.3);font-size:12.5px;color:#e0a83c;line-height:1.6">' +
+          'Escolha antes o template <b>Recupera&ccedil;&atilde;o</b> na se&ccedil;&atilde;o de templates abaixo. ' +
+          'Sem ele o disparo n&atilde;o acontece.</div>'
+        : '<div style="margin-top:10px;font-size:12px;color:var(--muted)">Template: <b>' +
+          escHtml(c.template) + '</b></div>') +
+      '<div class="form-row" style="margin-top:14px">' +
+        '<div class="form-group"><label class="form-label">Esperar antes de falar</label>' +
+          '<input class="form-control" id="recup_espera" value="' + escHtml(c.esperaMin) + '" inputmode="numeric">' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:4px">minutos ap&oacute;s o abandono</div></div>' +
+        '<div class="form-group"><label class="form-label">Desistir depois de</label>' +
+          '<input class="form-control" id="recup_limite" value="' + escHtml(c.limiteHoras) + '" inputmode="numeric">' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:4px">horas &mdash; passou disso, esfriou</div></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn btn-primary btn-sm" onclick="recupSalvar()">Salvar</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="recupRodar()">Rodar agora</button>' +
+      '</div>' +
+      '<div id="recupRes" style="margin-top:9px"></div>';
+  } catch (e) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--danger)">N&atilde;o consegui carregar. ' +
+      '<button class="btn btn-ghost btn-sm" onclick="recupCarregar()">Tentar de novo</button></div>';
+  }
+}
+
+async function recupSalvar() {
+  var res = document.getElementById('recupRes');
+  var chk = document.getElementById('recup_ativo');
+  var esp = document.getElementById('recup_espera');
+  var lim = document.getElementById('recup_limite');
+  res.innerHTML = '<span style="font-size:12px;color:var(--muted)">Salvando&hellip;</span>';
+  try {
+    var r = await rpc('salvarRecuperacaoConfig', { data: {
+      ativo: !!(chk && chk.checked),
+      esperaMin: esp ? parseInt(esp.value, 10) : 45,
+      limiteHoras: lim ? parseInt(lim.value, 10) : 48
+    } });
+    res.innerHTML = (r && r.ok)
+      ? '<span style="font-size:12px;color:var(--success)">' + escHtml(r.message) + '</span>'
+      : '<span style="font-size:12px;color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>';
+    setTimeout(recupCarregar, 900);
+  } catch (e) {
+    res.innerHTML = '<span style="font-size:12px;color:var(--danger)">Erro de conex&atilde;o.</span>';
+  }
+}
+
+async function recupRodar() {
+  var res = document.getElementById('recupRes');
+  res.innerHTML = '<span style="font-size:12px;color:var(--muted)">Procurando abandonos&hellip;</span>';
+  try {
+    var r = await rpc('rodarRecuperacaoAgora', {});
+    if (!r || !r.ok) {
+      res.innerHTML = '<span style="font-size:12px;color:var(--danger)">' +
+        escHtml((r && r.error) || 'Falhou.') + '</span>';
+      return;
+    }
+    var d = r.data || {};
+    res.innerHTML = '<span style="font-size:12px;color:var(--text)">Candidatos ' + d.candidatos +
+      ' &middot; <b>enviados ' + d.enviados + '</b> &middot; pulados ' + d.pulados +
+      ' &middot; falhas ' + d.falhas + '</span>';
+  } catch (e) {
+    res.innerHTML = '<span style="font-size:12px;color:var(--danger)">Erro de conex&atilde;o.</span>';
+  }
+}
+
+async function crmSincronizar() {
+  var res = document.getElementById('crmSyncRes');
+  res.innerHTML = '<span style="font-size:12px;color:var(--muted)">Sincronizando&hellip; pode levar at&eacute; um minuto.</span>';
+  try {
+    var r = await rpc('sincronizarLeadsCRM', {});
+    if (!r || !r.ok) {
+      res.innerHTML = '<span style="font-size:12px;color:var(--danger)">' +
+        escHtml((r && r.error) || 'Falhou.') + '</span>';
+      return;
+    }
+    var d = r.data || {};
+    res.innerHTML =
+      '<div style="padding:11px 13px;border-radius:9px;background:rgba(76,175,80,.09);' +
+      'border:1px solid rgba(76,175,80,.3);font-size:12.5px;color:var(--text);line-height:1.7">' +
+        'Lidos <b>' + d.lidos + '</b> &middot; criados <b>' + d.criados + '</b> &middot; ' +
+        'atualizados ' + d.atualizados + ' &middot; sem identificador ' + d.ignorados +
+        '<br><span style="color:var(--muted)">Veja em <b>Pipeline</b>, no menu.</span></div>';
+  } catch (e) {
+    res.innerHTML = '<span style="font-size:12px;color:var(--danger)">Erro de conex&atilde;o.</span>';
+  }
+}
 
 // ── Lote de vagas ──────────────────────────────────────────
 // A escassez que existia no checkout sem cartao era falsa: o numero

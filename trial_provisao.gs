@@ -95,6 +95,19 @@ function _provisionarSub_(email, sub, origem) {
       _tpLog_(email, 'SHEETS_TRIAL_LEAD_OK', '');
     } catch (e) { _tpLog_(email, 'SHEETS_TRIAL_LEAD_ERRO', e.message); }
 
+    // v164: o card do CRM acompanha — o lead virou cliente
+    try {
+      if (typeof crmRegistrarLeadTrial_ === 'function') {
+        var _m = (sub.metadata || {});
+        crmRegistrarLeadTrial_({
+          nome: String(_m.nome || ''), email: email, whatsapp: String(_m.whatsapp || ''),
+          dias: _tpDiasDoTrial_(sub), estagio: 'cartao_confirmado', origem: 'trial-cartao',
+          campanha: String(_m.campanha || ''), ref: String(_m.ref || ''), convertido: 'sim',
+          evento: ehTrial ? 'Teste iniciado com cartao' : 'Assinatura confirmada'
+        });
+      }
+    } catch (e) {}
+
     // 3) automações do trial (e-mail de boas-vindas do trial,
     //    WhatsApp, Telegram e CAPI). Só para assinatura em teste.
     if (ehTrial) {

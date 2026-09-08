@@ -305,6 +305,11 @@ function handleRequest(payload) {
     case 'adiarPesquisa':            return adiarPesquisa(token);
     case 'getPesquisaAdmin':         return getPesquisaAdmin(token);
     case 'salvarPesquisaConfig':     return salvarPesquisaConfig(token, data);
+    // v164 — leads do trial no CRM + recuperacao por WhatsApp
+    case 'sincronizarLeadsCRM':      return sincronizarLeadsCRM(token);
+    case 'getRecuperacaoStatus':     return getRecuperacaoStatus(token);
+    case 'salvarRecuperacaoConfig':  return salvarRecuperacaoConfig(token, data);
+    case 'rodarRecuperacaoAgora':    return rodarRecuperacaoAgora(token);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)
