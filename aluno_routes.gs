@@ -121,6 +121,75 @@ function _calcProgresso_(row, pilaresJson) {
   };
 }
 
+// ── Gamificação: pontos cumulativos, sequência e patente ─────
+// Tudo calculado a partir do pilaresJson — nada de coluna nova para
+// dessincronizar. Recontar é barato e sempre bate com a verdade.
+const GAM_PTS = { pilar: 10, checkin: 25, diaPerfeito: 15 };
+
+// 5 patentes na ordem da hierarquia do Exército. O corte é por dias
+// concluídos: consistência real, não tempo de cadastro.
+const GAM_PATENTES = [
+  { nivel: 1, nome: 'Recruta',  min: 0,   insignia: '▴'    },
+  { nivel: 2, nome: 'Soldado',  min: 7,   insignia: '▴▴'   },
+  { nivel: 3, nome: 'Cabo',     min: 21,  insignia: '▴▴▴'  },
+  { nivel: 4, nome: 'Sargento', min: 50,  insignia: '★'    },
+  { nivel: 5, nome: 'Tenente',  min: 100, insignia: '★★'   }
+];
+
+function _calcGamificacao_(pilaresJson, stats) {
+  let pontos = 0, diasPerfeitos = 0, totalCheckins = 0;
+  const diasComCheckin = {};
+
+  Object.keys(pilaresJson || {}).forEach(function (k) {
+    if (!/^\d+$/.test(k)) return;                 // ignora _inicioCiclo
+    const d = pilaresJson[k] || {};
+    const marcados = PILARES_PADRAO
+      .filter(function (p) { return p !== 'checkin' && d[p] === true; }).length;
+
+    pontos += marcados * GAM_PTS.pilar;
+
+    if (d['checkin'] === true) {
+      pontos += GAM_PTS.checkin;
+      totalCheckins++;
+      diasComCheckin[parseInt(k)] = true;
+      if (marcados === 4) { pontos += GAM_PTS.diaPerfeito; diasPerfeitos++; }
+    }
+  });
+
+  // Sequência atual: dias seguidos com check-in, contando de trás pra frente
+  const numeros = Object.keys(diasComCheckin).map(Number);
+  const maiorDia = numeros.length ? Math.max.apply(null, numeros) : 0;
+  let sequencia = 0;
+  for (let d = maiorDia; d >= 1; d--) {
+    if (!diasComCheckin[d]) break;
+    sequencia++;
+  }
+
+  const base = (stats && stats.diasConcluidos) || 0;
+  let patente = GAM_PATENTES[0];
+  for (let i = 0; i < GAM_PATENTES.length; i++) {
+    if (base >= GAM_PATENTES[i].min) patente = GAM_PATENTES[i];
+  }
+  const proxima = GAM_PATENTES.find(function (p) { return p.min > base; }) || null;
+
+  return {
+    pontos:        pontos,
+    diasPerfeitos: diasPerfeitos,
+    totalCheckins: totalCheckins,
+    sequencia:     sequencia,
+    patente:       patente.nome,
+    insignia:      patente.insignia,
+    nivel:         patente.nivel,
+    totalNiveis:   GAM_PATENTES.length,
+    proxima:       proxima ? proxima.nome : null,
+    faltamDias:    proxima ? (proxima.min - base) : 0,
+    // progresso dentro da patente atual, para a barra
+    progressoNivel: proxima
+      ? Math.min(100, Math.round(((base - patente.min) / (proxima.min - patente.min)) * 100))
+      : 100
+  };
+}
+
 // ══════════════════════════════════════════════════════════════
 // _getAdminAlunoData_ — dados simulados para admin no painel aluno
 // Admin não tem registro em compradores; retorna dados de preview.
@@ -163,6 +232,10 @@ function _getAdminAlunoData_(user) {
       progresso:       0,
       ultimoCheckin:   '',
       concluido:       false,
+      gamificacao:     { pontos: 0, diasPerfeitos: 0, totalCheckins: 0, sequencia: 0,
+                         patente: 'Recruta', insignia: '▴', nivel: 1, totalNiveis: 5,
+                         proxima: 'Soldado', faltamDias: 7, progressoNivel: 0 },
+      preferencias:    _prefsPadrao_(),   // admin em preview: padrões
       pilaresHoje:     {},
       pilaresJson:     {},
       ebookUrl,
@@ -279,6 +352,10 @@ function getAlunoData(token) {
       // concluido: verdadeiro quando completou 21 dias reais de pilares
       // O frontend usa localStorage para mostrar o modal só 1 vez
       concluido:     stats.diasConcluidos >= 21,
+      gamificacao:   _calcGamificacao_(pilaresJson, stats),
+      // v132: vem no boot pra meditação/leitura/áudio já abrirem
+      // personalizados, sem uma segunda ida ao servidor.
+      preferencias:  _prefsLer_(row, headers),
       pilaresHoje,
       pilaresJson,
       ebookUrl,
@@ -328,6 +405,57 @@ function marcarPilar(token, pilar, valor) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// saveMedProgress — auto-save do timer de meditação (1x/min)
+// Salva elapsed_seconds na própria aba de pilares como metadado leve.
+// Quando aluno volta, basta ler esse valor de volta.
+// ══════════════════════════════════════════════════════════════
+function saveMedProgress(token, elapsedSeconds, totalSeconds) {
+  const _user = getUserByToken(token);
+  if (!_user) return { ok: false, error: 'Não autorizado.' };
+  if (_user.role === 'admin') return { ok: true }; // não persiste em modo preview
+
+  const aluno = getAlunoByToken_(token);
+  if (!aluno) return { ok: false, error: 'Não autorizado.' };
+
+  const secs = Math.max(0, Math.min(parseInt(elapsedSeconds) || 0, parseInt(totalSeconds) || 900));
+  try {
+    CacheService.getScriptCache().put('med_progress_' + aluno.user.email, JSON.stringify({
+      elapsed: secs,
+      total: parseInt(totalSeconds) || 900,
+      savedAt: Date.now()
+    }), 21600); // 6h TTL
+    return { ok: true, saved: secs };
+  } catch (e) {
+    return { ok: false, error: 'Falha ao salvar progresso.' };
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// getMedProgress — recupera último progresso salvo da meditação
+// ══════════════════════════════════════════════════════════════
+function getMedProgress(token) {
+  const _user = getUserByToken(token);
+  if (!_user) return { ok: false, error: 'Não autorizado.' };
+  if (_user.role === 'admin') return { ok: true, progress: null };
+
+  const aluno = getAlunoByToken_(token);
+  if (!aluno) return { ok: false, error: 'Não autorizado.' };
+
+  try {
+    const raw = CacheService.getScriptCache().get('med_progress_' + aluno.user.email);
+    if (!raw) return { ok: true, progress: null };
+    const data = JSON.parse(raw);
+    // Se salvou há mais de 12h, considera expirado
+    if (Date.now() - (data.savedAt || 0) > 12 * 3600 * 1000) {
+      return { ok: true, progress: null };
+    }
+    return { ok: true, progress: data };
+  } catch (e) {
+    return { ok: true, progress: null };
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 // registrarCheckinWeb — check-in do dia via web app
 // Valida janela horária (04:00–07:59 BR) e mínimo 3/4 pilares
 // ══════════════════════════════════════════════════════════════
@@ -347,10 +475,9 @@ function registrarCheckinWeb(token) {
   const diaInfo = _calcDiaAtualFromInicio_(pilaresJson, row);
   const dia     = diaInfo.dia;
 
-  // Verifica se o desafio já foi concluído
-  if (row[COL_COMP.ATIVO] === false && String(row[COL_COMP.DIA_CONC] || '') !== '') {
-    return { ok: false, error: 'Desafio já concluído.' };
-  }
+  // v120: NÃO bloqueia mais quem passou dos 21 dias. Concluir o ciclo é
+  // um marco, não um fim — quem continua executando merece continuar
+  // sendo reconhecido. O bloqueio antigo era o oposto do produto.
 
   // ── Valida mínimo de 3 pilares concluídos ───────────────────
   // Nota: janela horária removida — check-in disponível 24h por dia
@@ -366,9 +493,13 @@ function registrarCheckinWeb(token) {
   if (!pilaresJson[String(dia)]) pilaresJson[String(dia)] = {};
   pilaresJson[String(dia)]['checkin'] = true;
 
-  // Marca coluna D{dia} = 'SIM' (compatibilidade com automação WhatsApp)
-  const colDia = COL_COMP.D1 + (dia - 1);
-  aba.getRange(rowIndex, colDia + 1).setValue('SIM');
+  // Marca coluna D{dia} = 'SIM' (compatibilidade com automação WhatsApp).
+  // SÓ até D21: existem apenas 21 colunas. Sem esta guarda, o dia 83
+  // escrevia na coluna 99 e criava colunas fantasma na planilha.
+  if (dia >= 1 && dia <= 21) {
+    const colDia = COL_COMP.D1 + (dia - 1);
+    aba.getRange(rowIndex, colDia + 1).setValue('SIM');
+  }
   aba.getRange(rowIndex, COL_COMP.ULT_CHECK + 1).setValue(nowISO());
 
   // Sincroniza DIA_ATUAL (para automação WA e relatórios admin)
@@ -377,9 +508,10 @@ function registrarCheckinWeb(token) {
   // Salva JSON atualizado
   _savePilaresJson_(aba, rowIndex, headers, pilaresJson);
 
-  // Encerra desafio se for o último dia
-  if (dia === 21) {
-    aba.getRange(rowIndex, COL_COMP.ATIVO    + 1).setValue(false);
+  // Marca o MARCO dos 21 dias — sem desativar o aluno.
+  // Antes isso setava Ativo=false, que além de travar o check-in é a
+  // mesma coluna que o controle de assinatura usa para liberar acesso.
+  if (dia >= 21 && String(row[COL_COMP.DIA_CONC] || '') === '') {
     aba.getRange(rowIndex, COL_COMP.DIA_CONC + 1).setValue(nowISO());
   }
 

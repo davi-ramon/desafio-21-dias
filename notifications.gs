@@ -7,9 +7,57 @@ const SHEET_NOTIFICACOES = 'notificacoes';
 function initNotificacoesSheet_() {
   var sheet = getSheet(SHEET_NOTIFICACOES);
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['id', 'titulo', 'mensagem', 'tipo', 'criada_em', 'ativo', 'lidos_json']);
-    sheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#6c47ff').setFontColor('#ffffff');
+    sheet.appendRow(['id', 'titulo', 'mensagem', 'tipo', 'criada_em', 'ativo', 'lidos_json', 'destinatario']);
+    sheet.getRange(1, 1, 1, 8).setFontWeight('bold').setBackground('#6c47ff').setFontColor('#ffffff');
+    return;
   }
+  // v108: migração — a aba nasceu sem destinatário, então TODA notificação
+  // era broadcast global. Era por isso que "seu trial vence amanhã" aparecia
+  // para todos os alunos. Coluna vazia = broadcast (retrocompatível).
+  try {
+    var headers = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0]
+                    .map(function (h) { return String(h); });
+    if (headers.indexOf('destinatario') === -1) {
+      var col = headers.length + 1;
+      sheet.getRange(1, col).setValue('destinatario')
+        .setFontWeight('bold').setBackground('#6c47ff').setFontColor('#ffffff');
+    }
+  } catch (e) {}
+}
+
+// Cria notificação. destinatario vazio/ausente = todos (broadcast).
+function _notifCriar_(titulo, mensagem, tipo, destinatario) {
+  initNotificacoesSheet_();
+  var sheet   = getSheet(SHEET_NOTIFICACOES);
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+                  .map(function (h) { return String(h); });
+  var id  = generateId();
+  var val = {
+    id: id, titulo: titulo, mensagem: mensagem,
+    tipo: tipo || 'info', criada_em: nowISO(), ativo: true, lidos_json: '[]',
+    destinatario: String(destinatario || '').toLowerCase().trim()
+  };
+  var linha = headers.map(function (h) { return (val[h] !== undefined) ? val[h] : ''; });
+  sheet.appendRow(linha);
+  return id;
+}
+
+// Já existe notificação com este título para este destinatário nos
+// últimos N dias? Evita o mesmo aviso pingando dia após dia.
+function _notifJaEnviada_(destinatario, titulo, dias) {
+  try {
+    initNotificacoesSheet_();
+    var rows  = sheetToObjects(getSheet(SHEET_NOTIFICACOES));
+    var alvo  = String(destinatario || '').toLowerCase().trim();
+    var corte = Date.now() - (parseInt(dias || 3) * 86400000);
+    for (var i = rows.length - 1; i >= 0; i--) {
+      var r = rows[i];
+      if (String(r.destinatario || '').toLowerCase().trim() !== alvo) continue;
+      if (String(r.titulo || '') !== String(titulo)) continue;
+      if (new Date(r.criada_em).getTime() >= corte) return true;
+    }
+  } catch (e) {}
+  return false;
 }
 
 // ── Admin: criar / enviar notificação ────────────────────────
@@ -30,6 +78,37 @@ function sendNotification(token, data) {
   return { ok: true, id: id };
 }
 
+// ─────────────────────────────────────────────────────────────
+// v108: LIMPEZA — desativa os avisos de trial que foram criados como
+// broadcast global (sem destinatário) e por isso apareciam para todos
+// os alunos, inclusive quem já pagou. Rode UMA VEZ no editor GAS.
+// Não apaga linha: só marca ativo=false, o histórico fica auditável.
+// ─────────────────────────────────────────────────────────────
+function limparNotificacoesTrialOrfas() {
+  initNotificacoesSheet_();
+  var sheet   = getSheet(SHEET_NOTIFICACOES);
+  var data    = sheet.getDataRange().getValues();
+  var headers = data[0].map(function (h) { return String(h); });
+  var iTitulo = headers.indexOf('titulo');
+  var iAtivo  = headers.indexOf('ativo');
+  var iDest   = headers.indexOf('destinatario');
+  if (iTitulo < 0 || iAtivo < 0) return { ok: false, error: 'Estrutura inesperada.' };
+
+  var desativadas = 0;
+  for (var i = 1; i < data.length; i++) {
+    var titulo = String(data[i][iTitulo] || '');
+    var dest   = (iDest >= 0) ? String(data[i][iDest] || '').trim() : '';
+    var ativo  = data[i][iAtivo] === true || String(data[i][iAtivo]).toLowerCase() === 'true';
+    if (!ativo) continue;
+    if (dest) continue;                                   // já é pessoal, preserva
+    if (titulo.indexOf('trial vence') === -1) continue;    // só os avisos de trial
+    sheet.getRange(i + 1, iAtivo + 1).setValue(false);
+    desativadas++;
+  }
+  Logger.log('Notificações de trial órfãs desativadas: ' + desativadas);
+  return { ok: true, desativadas: desativadas };
+}
+
 // ── Aluno: listar notificações ativas (com campo lida) ───────
 function getNotificacoes(token) {
   var user = getUserByToken(token);
@@ -38,11 +117,16 @@ function getNotificacoes(token) {
   initNotificacoesSheet_();
   var rows = sheetToObjects(getSheet(SHEET_NOTIFICACOES));
 
+  var meuEmail = String(user.email || '').toLowerCase().trim();
   var result = [];
   for (var i = rows.length - 1; i >= 0; i--) {
     var r = rows[i];
     var ativo = r.ativo === true || String(r.ativo).toLowerCase() === 'true';
     if (!ativo) continue;
+    // v108: notificação com destinatário é PESSOAL — só o dono vê.
+    // Vazio = broadcast (comportamento antigo, preservado).
+    var dest = String(r.destinatario || '').toLowerCase().trim();
+    if (dest && dest !== meuEmail) continue;
     var lidos = [];
     try { lidos = JSON.parse(String(r.lidos_json || '[]')); } catch(e) {}
     result.push({

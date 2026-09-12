@@ -5,6 +5,60 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "//": "Sem regra, o Firebase serve tudo que nao e index.html com max-age=3600. Como o app e app.html, cada deploy demorava ate 1h para chegar no aluno. no-cache nao desliga o cache: o navegador so revalida e recebe 304 quando nada mudou.",
+        "source": "**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "//": "CSS/JS acompanham o release e sao pequenos — mesma politica.",
+        "source": "/assets/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
+        "//": "Icones e imagens quase nunca mudam: cache longo de verdade.",
+        "source": "**/*.@(png|jpg|jpeg|gif|svg|webp|ico|woff|woff2)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=604800"
+          }
+        ]
+      },
+      {
+        "//": "Trilhas de audio: arquivos grandes que nunca mudam. Fica fora de /assets de proposito, pra nao herdar o no-cache de la e obrigar o aluno a revalidar 6 MB a cada entrada no Mural.",
+        "source": "/media/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "//": "Rota dedicada de billing. A SPA vive em /app/app.html e roteia por div, nao por URL — sem este rewrite o Hosting devolveria 404 em /app/billing.",
+        "source": "/app/billing",
+        "destination": "/app/app.html"
+      },
+      {
+        "//": "Link curto de indicacao: /i/CODIGO. Sem isto o Hosting devolveria 404, porque nao existe arquivo por codigo.",
+        "source": "/i/**",
+        "destination": "/i/index.html"
+      }
     ]
   }
 }

@@ -1,26 +1,34 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script>
+/* Roteamento por host — app.wpktavares.com.br abre o APP (login), nunca a VSL.
+   Roda antes de qualquer render pra não piscar. wpktavares.com.br fica na VSL. */
+(function(){try{if(location.hostname==='app.wpktavares.com.br'&&!/^\/app(\/|$)/.test(location.pathname)){location.replace('/app/'+location.search+location.hash);}}catch(e){}})();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Desafio 21 Dias – Construa uma Disciplina Inabalável</title>
 <meta name="description" content="Uma plataforma completa de transformação: app exclusivo, biblioteca digital, 21 áudios motivacionais, assistente IA Bia 24h, sala de leitura ao vivo e especialistas. Por R$17/mês.">
 
 <!-- ══ FAVICON ══ -->
-<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
-<link rel="shortcut icon" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#07090a">
 
 <!-- ══ OPEN GRAPH / SOCIAL PREVIEW ══ -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Desafio 21 Dias – Construa uma Disciplina Inabalável">
 <meta property="og:description" content="Não é motivação. É um sistema guiado com suporte real: e-book, grupo, sala de leitura, áudios e especialistas. Garantia de 7 dias.">
-<meta property="og:image" content="https://i.imgur.com/Xe5iaZ1.gif">
+<meta property="og:image" content="https://wpktavares.com.br/icons/og-image.jpg">
 <meta property="og:url" content="https://wpktavares.com.br/">
 <meta property="og:site_name" content="WPK Tavares – Desafio 21 Dias">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Desafio 21 Dias – Construa uma Disciplina Inabalável">
 <meta name="twitter:description" content="Plataforma completa de transformação: app, biblioteca digital, áudios, Bia IA 24h, sala ao vivo. Por R$17/mês. Cancele quando quiser.">
-<meta name="twitter:image" content="https://i.imgur.com/Xe5iaZ1.gif">
+<meta name="twitter:image" content="https://wpktavares.com.br/icons/og-image.jpg">
 
 <!-- ══ META PIXEL ══ -->
 <script>
@@ -47,7 +55,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 
 <!-- ══ WISTIA ══ -->
-<script src="https://fast.wistia.com/assets/external/E-v1.js" async></script>
+<link rel="stylesheet" href="/assets/vsl-player.css">
 
 <style>
   :root {
@@ -730,7 +738,7 @@
   </p>
 
   <div class="vsl-wrap" id="vsl-wrapper">
-    <div class="wistia_embed wistia_async_fvf0f1zx46 videoFoam=true"></div>
+    <div class="vsl-player" data-vsl-src="https://i.imgur.com/8r7AKRu.mp4"></div>
   </div>
   <p class="vsl-note">▲ Assista até o final — os detalhes da oferta estão no vídeo</p>
 </section>
@@ -1001,12 +1009,10 @@
       <p class="price-install">ou <strong>R$47/trimestre</strong> · ou <strong>R$177/ano</strong></p>
 
       <a
-        href="https://wpktavares.com.br/checkout/"
+        href="#"
         class="cta-btn cta-pulse"
         id="cta-main"
-        target="_blank"
-        rel="noopener"
-        onclick="fbq('track', 'InitiateCheckout', {content_name: 'Desafio 21 Dias', value: 17.00, currency: 'BRL'})"
+        onclick="assinarStripe(event, 'monthly', 'Desafio 21 Dias – Mensal', 17); fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias',value:17.00,currency:'BRL'}); return false;"
       >
         QUERO COMEÇAR AGORA
         <span class="cta-sub">Acesso imediato · Cancele quando quiser</span>
@@ -1037,12 +1043,10 @@
 <section class="cta2">
   <div class="cta2-inner">
     <a
-      href="https://wpktavares.com.br/checkout/"
+      href="#"
       class="cta-btn"
       id="cta-bottom"
-      target="_blank"
-      rel="noopener"
-      onclick="fbq('track', 'InitiateCheckout', {content_name: 'Desafio 21 Dias', value: 17.00, currency: 'BRL'})"
+      onclick="assinarStripe(event, 'monthly', 'Desafio 21 Dias – Mensal', 17); fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias',value:17.00,currency:'BRL'}); return false;"
     >
       SIM, QUERO TRANSFORMAR MEUS HÁBITOS
       <span class="cta-sub">R$17/mês · Cancele quando quiser · Garantia de 7 dias · Acesso imediato</span>
@@ -1079,6 +1083,15 @@
 
     <div class="footer-divider"></div>
 
+    <!-- v122: acesso discreto pra quem já é aluno. Fica no rodapé de
+         propósito, para não competir com o CTA de venda da página. -->
+    <div style="text-align:center;margin-bottom:14px;font-size:13px;color:rgba(255,255,255,.42)">
+      Já possui acesso ao Desafio 21 Dias?
+      <a href="https://app.wpktavares.com.br/app/"
+         style="color:rgba(76,175,80,.85);text-decoration:underline;text-underline-offset:3px;font-weight:600">
+        Faça login</a>.
+    </div>
+
     <div class="footer-copy">
       <p>© 2026 WPK Tavares — Equipe Lapidados. Todos os direitos reservados.</p>
     </div>
@@ -1101,9 +1114,28 @@
 
 <!-- ══ BIA TAVARES FLOATING CHAT ══ -->
 <script async src="https://app.gptmaker.ai/widget/3F1938DD10A59326402E82B09423B9E2/float.js"></script>
+<script src="/assets/vsl-player.js" defer></script>
 
 <!-- ══ SCRIPTS + TRACKING COMPLETO ══ -->
 <script>
+
+// v101: handler de retorno do Stripe (cada landing volta para ELA MESMA)
+try {
+  var qp = new URLSearchParams(location.search);
+  var st = qp.get("checkout");
+  if (st === "sucesso" || st === "cancelado") {
+    history.replaceState({}, "", location.pathname);
+    setTimeout(function() {
+      var txt = st === "sucesso" ? "Pagamento confirmado. Bem-vindo ao Desafio 21 Dias." : "Checkout cancelado. Pode tentar de novo quando quiser.";
+      var el = document.createElement("div");
+      el.style.cssText = "position:fixed;top:24px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;padding:14px 22px;border-radius:14px;font-size:14px;font-weight:700;box-shadow:0 10px 30px rgba(76,175,80,0.35);z-index:99999;animation:landToast 0.3s ease";
+      el.textContent = txt;
+      document.body.appendChild(el);
+      setTimeout(function() { el.remove(); }, 5000);
+    }, 600);
+  }
+} catch (e) {}
+
 (function() {
   'use strict';
 
@@ -1155,42 +1187,7 @@
     });
   }, { passive: true });
 
-  /* ─────────────────────────────────────
-     4. VSL WISTIA — play / 25% / 50% / 75% / concluído
-     A API Wistia só fica disponível após o script carregar.
-     Usamos _wq para garantir que o bind ocorre após o player estar pronto.
-  ───────────────────────────────────── */
-  window._wq = window._wq || [];
-  window._wq.push({
-    id: 'fvf0f1zx46',
-    onReady: function(video) {
-      var vslFired = {};
-
-      video.bind('play', function() {
-        if (!vslFired.play) {
-          vslFired.play = true;
-          fbq('trackCustom', 'VSLPlay');
-        }
-      });
-
-      video.bind('percentwatchedchanged', function(pct) {
-        [0.25, 0.50, 0.75, 1.0].forEach(function(m) {
-          var key = 'p' + Math.round(m * 100);
-          if (!vslFired[key] && pct >= m) {
-            vslFired[key] = true;
-            fbq('trackCustom', 'VSLWatched', { percent: Math.round(m * 100) });
-          }
-        });
-      });
-
-      video.bind('end', function() {
-        if (!vslFired.end) {
-          vslFired.end = true;
-          fbq('trackCustom', 'VSLCompleted');
-        }
-      });
-    }
-  });
+  /* VSL: tracking agora no /assets/vsl-player.js (VSL_STARTED / 25 / 50 / 75 / 95 / COMPLETED) */
 
   /* ─────────────────────────────────────
      5. BOTÕES CTA — qual foi clicado
@@ -1242,6 +1239,57 @@
   });
   biaMO.observe(document.body, { childList: true, subtree: true });
 
+})();
+
+// v100: Stripe checkout inline (substitui Cakto nos CTAs da landing)
+(function() {
+  var GAS_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+  function getToken() {
+    try {
+      return JSON.parse(sessionStorage.getItem('crm_token_admin') || 'null')
+        || JSON.parse(sessionStorage.getItem('app_token') || 'null')
+        || '';
+    } catch (e) { return ''; }
+  }
+  window.assinarStripe = function(ev, plan, planName, value) {
+    try { if (ev && ev.preventDefault) ev.preventDefault(); } catch (e) {}
+
+    var ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+    ov.innerHTML =
+      '<div style="background:#0e1a14;border:1px solid rgba(76,175,80,0.32);border-radius:22px;padding:28px 32px;max-width:380px;width:100%;box-shadow:0 30px 60px rgba(0,0,0,0.6);text-align:center;color:#dde8dd">' +
+        '<div style="width:34px;height:34px;border:3px solid rgba(76,175,80,0.16);border-top-color:#4caf50;border-radius:50%;animation:assSpin 1s linear infinite;margin:0 auto 14px"></div>' +
+        '<div style="font-weight:800;margin-bottom:6px">Abrindo checkout Stripe...</div>' +
+        '<div style="font-size:12px;color:#7a8f80">Voce sera redirecionado em instantes.</div>' +
+        '<div id="assErrMsg" style="margin-top:14px;font-size:12px;color:#ef5350;display:none"></div>' +
+      '</div>' +
+      '<style>@keyframes assSpin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(ov);
+    var errEl = ov.querySelector('#assErrMsg');
+
+    fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      body: JSON.stringify({ action: 'criarCheckoutStripe', token: getToken(), data: { plan: plan, origin: 'custom', intent: 'new', returnUrl: location.href.split('#')[0] } }),
+      redirect: 'follow'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (!res || !res.ok || !res.url) {
+        var msg = (res && res.error) || 'Erro ao abrir checkout.';
+        if (/nao configurado|indispon/i.test(msg)) msg = 'Stripe ainda nao configurado. Fale com o suporte.';
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+        setTimeout(function() { try { ov.remove(); } catch (e) {} }, 4500);
+        return;
+      }
+      try { window.location.href = res.url; }
+      catch (e) { var w = window.open(res.url, '_blank'); }
+    })
+    .catch(function(err) {
+      if (errEl) { errEl.textContent = 'Falha de conexao: ' + (err && err.message ? err.message : err); errEl.style.display = 'block'; }
+      setTimeout(function() { try { ov.remove(); } catch (e) {} }, 5000);
+    });
+  };
 })();
 </script>
 

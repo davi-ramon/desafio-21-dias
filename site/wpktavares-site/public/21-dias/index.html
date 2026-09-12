@@ -8,20 +8,23 @@
 <link rel="canonical" href="https://wpktavares.com.br/21-dias/">
 
 <!-- ══ FAVICON ══ -->
-<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
-<link rel="shortcut icon" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#07090a">
 
 <!-- ══ OPEN GRAPH ══ -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Desafio 21 Dias – Complete o Desafio Inteiro de Graça">
 <meta property="og:description" content="21 dias grátis para completar o desafio inteiro. App, biblioteca, Bia IA, sala ao vivo. Depois R$17/mês se quiser continuar.">
-<meta property="og:image" content="https://i.imgur.com/Xe5iaZ1.gif">
+<meta property="og:image" content="https://wpktavares.com.br/icons/og-image.jpg">
 <meta property="og:url" content="https://wpktavares.com.br/21-dias/">
 <meta property="og:site_name" content="WPK Tavares – Desafio 21 Dias">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Desafio 21 Dias – 21 Dias Grátis">
 <meta name="twitter:description" content="21 dias grátis para provar para você mesmo. Depois R$17/mês se quiser continuar.">
-<meta name="twitter:image" content="https://i.imgur.com/Xe5iaZ1.gif">
+<meta name="twitter:image" content="https://wpktavares.com.br/icons/og-image.jpg">
 
 <!-- ══ META PIXEL ══ -->
 <script>
@@ -42,7 +45,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-<script src="https://fast.wistia.com/assets/external/E-v1.js" async></script>
+<link rel="stylesheet" href="/assets/vsl-player.css">
 
 <style>
   :root { --bg:#07090a; --surface:#0f1412; --surface2:#141c18; --green:#4caf50; --green-bright:#6dde71; --green-dim:#2e6b31; --cream:#eeeadc; --red:#e84040; --text:#dde8dd; --muted:#6e9070; --border:rgba(76,175,80,0.16); --glow:0 0 48px rgba(76,175,80,0.12); }
@@ -173,7 +176,7 @@
   <h1 class="hero-title">Construa uma<br><span class="accent">Disciplina<br>Inabalável</span> em 21 Dias</h1>
   <p class="hero-sub">Mesmo que você seja totalmente indisciplinado hoje.<br>Assista o vídeo abaixo.</p>
   <div class="vsl-wrap" id="vsl-wrapper">
-    <div class="wistia_embed wistia_async_fvf0f1zx46 videoFoam=true"></div>
+    <div class="vsl-player" data-vsl-src="https://i.imgur.com/8r7AKRu.mp4"></div>
   </div>
   <p class="vsl-note">▲ Assista até o final — os detalhes da oferta estão no vídeo</p>
 </section>
@@ -271,15 +274,13 @@
 
       <!-- SUBSTITUA PELA URL DO CAKTO COM CUPOM DE 21 DIAS GRÁTIS (ex: GRATIS21) -->
       <a
-        href="https://wpktavares.com.br/checkout/?trial=21"
+        href="/checkout-trial/?dias=21"
         class="cta-btn cta-pulse"
         id="cta-main"
-        target="_blank"
-        rel="noopener"
         onclick="fbq('track', 'InitiateCheckout', {content_name: 'Desafio 21 Dias – 21 dias grátis', value: 0.00, currency: 'BRL'})"
       >
         COMEÇAR MEUS 21 DIAS GRÁTIS
-        <span class="cta-sub">Acesso imediato · Sem cobrança durante os 21 dias</span>
+        <span class="cta-sub">Acesso imediato · Sem cartão · Sem cobrança</span>
       </a>
 
       <div class="guarantee">
@@ -305,15 +306,13 @@
   <div class="cta2-inner">
     <!-- SUBSTITUA PELA URL DO CAKTO COM CUPOM DE 21 DIAS GRÁTIS -->
     <a
-      href="https://wpktavares.com.br/checkout/?trial=21"
+      href="/checkout-trial/?dias=21"
       class="cta-btn"
       id="cta-bottom"
-      target="_blank"
-      rel="noopener"
       onclick="fbq('track', 'InitiateCheckout', {content_name: 'Desafio 21 Dias – 21 dias grátis', value: 0.00, currency: 'BRL'})"
     >
       SIM, QUERO FAZER O DESAFIO GRÁTIS
-      <span class="cta-sub">21 dias grátis · Depois R$17/mês se quiser continuar · Cancele quando quiser</span>
+      <span class="cta-sub">21 dias grátis · Sem cartão · Acesso imediato</span>
     </a>
     <p class="cta2-help">Dúvidas? Fale com a equipe no <a href="https://wa.me/+559484427988" id="link-whatsapp" target="_blank" rel="noopener">WhatsApp</a></p>
   </div>
@@ -367,5 +366,8 @@
   if (waLink) waLink.addEventListener('click', function() { fbq('trackCustom', 'WhatsAppClick'); });
 })();
 </script>
+
+<!-- VSL PLAYER -->
+<script src="/assets/vsl-player.js" defer></script>
 </body>
 </html>

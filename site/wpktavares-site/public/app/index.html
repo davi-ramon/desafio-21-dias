@@ -5,7 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Entrar — Desafio 21 Dias</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/png" href="https://i.imgur.com/bOf9i1R.png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#07090a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
 
@@ -454,6 +458,35 @@ html, body {
 </style>
 </head>
 <body>
+<script>
+/* v140: este projeto NAO usa service worker. Se existir um registrado
+   (resquicio de versao antiga ou de instalacao do PWA), ele fica ENTRE o
+   app e a internet e intercepta toda requisicao desta pagina — foi o que
+   derrubou o login com erro de CORS e devolveu 503 num MP3 estatico, num
+   navegador onde o mesmo pedido funcionava fora de /app/. Removemos na
+   entrada. O guarda de sessao impede laco de reload. */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.getRegistrations().then(function (regs) {
+    if (!regs.length) return;
+    console.warn('[App] service worker inesperado (' + regs.length + '). Removendo.');
+    var jaTentou = false;
+    try { jaTentou = sessionStorage.getItem('sw_limpo') === '1'; } catch (e) {}
+    Promise.all(regs.map(function (r) { return r.unregister(); })).then(function () {
+      if (window.caches && caches.keys) {
+        return caches.keys().then(function (ks) {
+          return Promise.all(ks.map(function (k) { return caches.delete(k); }));
+        });
+      }
+    }).catch(function () {}).then(function () {
+      if (jaTentou) return;   // ja recarregamos uma vez: nao insiste
+      try { sessionStorage.setItem('sw_limpo', '1'); } catch (e) {}
+      location.reload();      // a pagina atual ainda esta sob o SW removido
+    });
+  }).catch(function () {});
+})();
+</script>
+
 
 <!-- Particle canvas -->
 <canvas id="bgCanvas"></canvas>
@@ -779,11 +812,39 @@ function doLogin() {
       showErr(res.error || 'E-mail ou senha incorretos.');
     }
   })
-  .catch(function() {
+  .catch(function(err) {
     btn.classList.remove('loading');
     btn.disabled = false;
-    showErr('Falha de conexão. Verifique sua internet e tente novamente.');
+    console.error('[Login] fetch falhou:', err && err.name, err && err.message);
+    showErr('Verificando o que aconteceu...');
+    _diagnosticarFalha(showErr);
   });
+}
+
+// v136: "Verifique sua internet" era mentira na maioria dos casos.
+// Quando o fetch morre e a internet está boa, quase sempre é o próprio
+// navegador barrando script.google.com — proteção contra rastreamento
+// do Edge, extensão de bloqueio ou proxy corporativo. Testamos a MESMA
+// origem para separar os dois casos e dizer o que fazer.
+function _diagnosticarFalha(cb) {
+  if (navigator.onLine === false) {
+    cb('Você está sem internet. Reconecte e tente novamente.');
+    return;
+  }
+  var t = setTimeout(function () { t = null; responder(false); }, 4000);
+  function responder(mesmaOrigemOk) {
+    if (t) { clearTimeout(t); t = null; } else if (arguments.length && mesmaOrigemOk) { return; }
+    if (mesmaOrigemOk) {
+      cb('Sua internet está funcionando, mas o navegador bloqueou a conexão com o servidor do app. ' +
+         'Costuma ser a proteção contra rastreamento ou uma extensão. Tente uma janela anônima, ' +
+         'outro navegador, ou libere este site nas configurações de privacidade.');
+    } else {
+      cb('Não conseguimos falar com o servidor agora. Tente de novo em alguns instantes.');
+    }
+  }
+  fetch('./?ping=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+    .then(function () { responder(true); })
+    .catch(function () { responder(false); });
 }
 
 function showErr(msg) {
@@ -845,10 +906,12 @@ function doSendCode() {
       errBox.classList.add('show');
     }
   })
-  .catch(function() {
+  .catch(function(err) {
     btn.classList.remove('loading'); btn.disabled = false;
-    errBox.textContent = '⚠ Falha de conexão.';
+    console.error('[Login] fetch falhou:', err && err.name, err && err.message);
     errBox.classList.add('show');
+    errBox.textContent = '⚠ Verificando o que aconteceu...';
+    _diagnosticarFalha(function(m){ errBox.textContent = '⚠ ' + m; });
   });
 }
 
@@ -888,10 +951,12 @@ function doResetPassword() {
       errBox.classList.add('show');
     }
   })
-  .catch(function() {
+  .catch(function(err) {
     btn.classList.remove('loading'); btn.disabled = false;
-    errBox.textContent = '⚠ Falha de conexão.';
+    console.error('[Login] fetch falhou:', err && err.name, err && err.message);
     errBox.classList.add('show');
+    errBox.textContent = '⚠ Verificando o que aconteceu...';
+    _diagnosticarFalha(function(m){ errBox.textContent = '⚠ ' + m; });
   });
 }
 </script>
