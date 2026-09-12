@@ -327,6 +327,9 @@ function handleRequest(payload) {
     case 'getRecuperacaoStatus':     return getRecuperacaoStatus(token);
     case 'salvarRecuperacaoConfig':  return salvarRecuperacaoConfig(token, data);
     case 'rodarRecuperacaoAgora':    return rodarRecuperacaoAgora(token);
+    // v166 — lista e exportacao de leads
+    case 'getLeadsExport':           return getLeadsExport(token, data);
+    case 'baixarLeadsExport':        return baixarLeadsExport(token, data);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)

@@ -1747,6 +1747,10 @@ button,
       <div class="nav-icon"><i data-lucide="sparkles" class="luc"></i></div>
       <span class="nav-label">Mural dos Sonhos</span>
     </div>
+    <div class="nav-item" data-page="leadsexport" id="navLeadsExport" onclick="navigate('leadsexport')" title="Leads e Exportação">
+      <span class="nav-icon"><i data-lucide="list-filter" class="luc"></i></span>
+      <span class="nav-label">Leads e Exporta&ccedil;&atilde;o</span>
+    </div>
     <div class="nav-item" data-page="indicacoes" id="navIndicacoes" onclick="navigate('indicacoes')" title="Indicações e NPS">
       <span class="nav-icon"><i data-lucide="share-2" class="luc"></i></span>
       <span class="nav-label">Indicações e NPS</span>
@@ -2061,6 +2065,7 @@ function navigate(page) {
     log:            'Log de Atividade',
     audios21:       'Áudios 21 Dias',
     mural:          'Mural dos Sonhos',
+    leadsexport:    'Leads do Funil e Exportação',
     indicacoes:     'Indicações e Satisfação',
     trialauto:      'Automações do Trial com Cartão',
     notificacoes:   'Notificações para Alunos',
@@ -2089,7 +2094,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -4610,6 +4615,209 @@ function _taSwitch(id, ligado, titulo, sub) {
     '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' + sub + '</div></div>' +
     '<label class="ta-sw"><input type="checkbox" id="' + id + '"' + (ligado ? ' checked' : '') +
     '><span class="ta-sw-tr"></span></label></div>';
+}
+
+// ════════════════════════════════════════════════════════════
+// LEADS DO FUNIL — lista, filtros e exportação (v166)
+// ════════════════════════════════════════════════════════════
+var LX = { filtros: { fluxo: 'todos', convertido: 'todos', etapa: 'todas',
+                      soValidos: false, naoContatados: false,
+                      busca: '', desde: '', ate: '' },
+           dados: null, buscando: false };
+
+async function renderLeadsExport() {
+  const content = document.getElementById('content');
+  if (!LX.dados) content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  await lxBuscar(true);
+}
+
+async function lxBuscar(redesenhar) {
+  if (LX.buscando) return;
+  LX.buscando = true;
+  try {
+    var r = await rpc('getLeadsExport', LX.filtros);
+    if (!r || !r.ok) {
+      document.getElementById('content').innerHTML =
+        '<div class="empty-state"><div class="empty-title">N&atilde;o consegui carregar</div>' +
+        '<div class="empty-sub">' + escHtml((r && r.error) || '') + '</div></div>';
+      return;
+    }
+    LX.dados = r.data;
+    lxRender();
+  } catch (e) {
+    document.getElementById('content').innerHTML =
+      '<div class="empty-state"><div class="empty-title">Erro de conex&atilde;o</div></div>';
+  } finally {
+    LX.buscando = false;
+  }
+}
+
+function lxRender() {
+  var d = LX.dados, r = d.resumo, f = LX.filtros;
+  var content = document.getElementById('content');
+
+  var opcEtapas = '<option value="todas">Todas as etapas</option>' +
+    (d.etapas || []).map(function (e) {
+      return '<option value="' + escHtml(e.valor) + '"' +
+        (f.etapa === e.valor ? ' selected' : '') + '>' + escHtml(e.rotulo) + '</option>';
+    }).join('');
+
+  var html =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px">' +
+      _metricCard('<i data-lucide="users" class="luc"></i>', r.filtrados, 'Leads no filtro', 'de ' + r.total + ' no total') +
+      _metricCard('<i data-lucide="badge-check" class="luc"></i>', r.convertidos, 'Convertidos', '') +
+      _metricCard('<i data-lucide="credit-card" class="luc"></i>', r.comCartao, 'Fluxo com cart&atilde;o', r.semCartao + ' sem cart&atilde;o') +
+      _metricCard('<i data-lucide="message-circle" class="luc"></i>', r.naoContatados, 'Ainda sem contato', r.telefonesValidos + ' com WhatsApp v&aacute;lido') +
+    '</div>' +
+
+    // ── Filtros ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">' +
+        '<div class="form-group" style="flex:2;min-width:190px;margin:0">' +
+          '<label class="form-label">Buscar</label>' +
+          '<input class="form-control" id="lx_busca" value="' + escHtml(f.busca) + '" ' +
+            'placeholder="nome, e-mail, telefone ou campanha"></div>' +
+        '<div class="form-group" style="flex:1;min-width:140px;margin:0">' +
+          '<label class="form-label">Fluxo</label>' +
+          '<select class="form-control" id="lx_fluxo">' +
+            '<option value="todos"' + (f.fluxo === 'todos' ? ' selected' : '') + '>Todos</option>' +
+            '<option value="cartao"' + (f.fluxo === 'cartao' ? ' selected' : '') + '>Com cart&atilde;o</option>' +
+            '<option value="sem"' + (f.fluxo === 'sem' ? ' selected' : '') + '>Sem cart&atilde;o</option>' +
+          '</select></div>' +
+        '<div class="form-group" style="flex:1;min-width:140px;margin:0">' +
+          '<label class="form-label">Convers&atilde;o</label>' +
+          '<select class="form-control" id="lx_conv">' +
+            '<option value="todos"' + (f.convertido === 'todos' ? ' selected' : '') + '>Todos</option>' +
+            '<option value="nao"' + (f.convertido === 'nao' ? ' selected' : '') + '>N&atilde;o convertidos</option>' +
+            '<option value="sim"' + (f.convertido === 'sim' ? ' selected' : '') + '>Convertidos</option>' +
+          '</select></div>' +
+        '<div class="form-group" style="flex:1;min-width:160px;margin:0">' +
+          '<label class="form-label">Onde parou</label>' +
+          '<select class="form-control" id="lx_etapa">' + opcEtapas + '</select></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:12px">' +
+        '<div class="form-group" style="flex:1;min-width:140px;margin:0">' +
+          '<label class="form-label">De</label>' +
+          '<input class="form-control" type="date" id="lx_desde" value="' + escHtml(f.desde) + '"></div>' +
+        '<div class="form-group" style="flex:1;min-width:140px;margin:0">' +
+          '<label class="form-label">At&eacute;</label>' +
+          '<input class="form-control" type="date" id="lx_ate" value="' + escHtml(f.ate) + '"></div>' +
+        '<label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer;padding-bottom:9px">' +
+          '<input type="checkbox" id="lx_validos"' + (f.soValidos ? ' checked' : '') + '> S&oacute; WhatsApp v&aacute;lido</label>' +
+        '<label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--muted);cursor:pointer;padding-bottom:9px">' +
+          '<input type="checkbox" id="lx_naocont"' + (f.naoContatados ? ' checked' : '') + '> Ainda sem contato</label>' +
+        '<button class="btn btn-primary btn-sm" onclick="lxAplicar()">Aplicar filtros</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="lxLimpar()">Limpar</button>' +
+      '</div>' +
+    '</div>' +
+
+    // ── Exportar ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+        'Exportar para disparo</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:13px;line-height:1.65">' +
+        'Baixa <b>os ' + r.filtrados + ' leads do filtro atual</b>, n&atilde;o s&oacute; o que aparece na tabela.<br>' +
+        'O arquivo traz o telefone em <b>duas colunas</b>: <code>WhatsApp (sem 9)</code>, no formato que ' +
+        'voc&ecirc; pediu, e <code>WhatsApp (E.164)</code> com o n&uacute;mero completo. ' +
+        'Use a que a sua ferramenta de disparo aceitar &mdash; mandar no formato errado &eacute; mensagem que n&atilde;o chega.</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn btn-primary btn-sm" onclick="lxBaixar(\'csv\')">Baixar CSV</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="lxBaixar(\'xlsx\')">Baixar XLSX</button>' +
+      '</div>' +
+      '<div id="lxDownRes" style="margin-top:9px"></div>' +
+    '</div>' +
+
+    // ── Tabela ──
+    '<div class="card">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap">' +
+        '<div style="font-size:13px;font-weight:700;color:var(--text)">Pr&eacute;via</div>' +
+        '<div style="font-size:11.5px;color:var(--muted)">' +
+          (r.filtrados > d.linhas.length
+            ? 'mostrando ' + d.linhas.length + ' de ' + r.filtrados + ' &mdash; o arquivo leva todos'
+            : d.linhas.length + ' leads') + '</div>' +
+      '</div>';
+
+  if (!d.linhas.length) {
+    html += '<div style="font-size:12.5px;color:var(--muted)">Nenhum lead com esses filtros.</div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap">' +
+      '<tr style="text-align:left;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em">' +
+        ['Nome','E-mail','WhatsApp (sem 9)','Fluxo','Onde parou','Conv.','Origem','Data','Hora']
+          .map(function (h) { return '<th style="padding:8px 10px 8px 0">' + h + '</th>'; }).join('') +
+      '</tr>' +
+      d.linhas.map(function (l) {
+        var cor = l.convertido === 'sim' ? 'var(--success)'
+                : (l.etapa_bruta === 'cartao_iniciado' ? '#e0a83c' : 'var(--muted)');
+        return '<tr style="border-top:1px solid rgba(255,255,255,.05)">' +
+          '<td style="padding:9px 10px 9px 0;color:var(--text)">' + escHtml(l.nome || '—') + '</td>' +
+          '<td style="padding:9px 10px 9px 0;color:var(--muted)">' + escHtml(l.email) + '</td>' +
+          '<td style="padding:9px 10px 9px 0;color:var(--text)"><code>' + escHtml(l.whatsapp_sem9 || '—') + '</code>' +
+            (l.telefone_valido === 'nao' ? ' <span style="color:var(--danger);font-size:10px">inv&aacute;lido</span>' : '') + '</td>' +
+          '<td style="padding:9px 10px 9px 0;color:var(--muted)">' + escHtml(l.fluxo) + '</td>' +
+          '<td style="padding:9px 10px 9px 0;color:' + cor + '">' + escHtml(l.etapa) + '</td>' +
+          '<td style="padding:9px 10px 9px 0;color:' + (l.convertido === 'sim' ? 'var(--success)' : 'var(--muted)') + '">' +
+            escHtml(l.convertido) + '</td>' +
+          '<td style="padding:9px 10px 9px 0;color:var(--muted)">' + escHtml(l.caminho || l.origem_bruta) + '</td>' +
+          '<td style="padding:9px 10px 9px 0;color:var(--muted)">' + escHtml(l.criado_data) + '</td>' +
+          '<td style="padding:9px 10px 9px 0;color:var(--muted)">' + escHtml(l.criado_hora) + '</td>' +
+        '</tr>';
+      }).join('') + '</table></div>';
+  }
+  html += '</div>';
+
+  content.innerHTML = html;
+  _processIcons && _processIcons(content);
+}
+
+function lxAplicar() {
+  var v = function (id) { var e = document.getElementById(id); return e ? e.value : ''; };
+  var c = function (id) { var e = document.getElementById(id); return !!(e && e.checked); };
+  LX.filtros = {
+    busca: v('lx_busca'), fluxo: v('lx_fluxo'), convertido: v('lx_conv'),
+    etapa: v('lx_etapa'), desde: v('lx_desde'), ate: v('lx_ate'),
+    soValidos: c('lx_validos'), naoContatados: c('lx_naocont')
+  };
+  lxBuscar();
+}
+
+function lxLimpar() {
+  LX.filtros = { fluxo: 'todos', convertido: 'todos', etapa: 'todas',
+                 soValidos: false, naoContatados: false, busca: '', desde: '', ate: '' };
+  lxBuscar();
+}
+
+async function lxBaixar(formato) {
+  var res = document.getElementById('lxDownRes');
+  res.innerHTML = '<span style="font-size:12px;color:var(--muted)">Gerando o arquivo&hellip;</span>';
+  try {
+    var payload = {};
+    Object.keys(LX.filtros).forEach(function (k) { payload[k] = LX.filtros[k]; });
+    payload.formato = formato;
+
+    var r = await rpc('baixarLeadsExport', payload);
+    if (!r || !r.ok) {
+      res.innerHTML = '<span style="font-size:12px;color:var(--danger)">' +
+        escHtml((r && r.error) || 'Falhou.') + '</span>';
+      return;
+    }
+
+    // base64 -> Blob -> download. O arquivo vem pronto do servidor; aqui
+    // só entregamos ao navegador.
+    var bin = atob(r.base64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    var url = URL.createObjectURL(new Blob([bytes], { type: r.mime }));
+
+    var a = document.createElement('a');
+    a.href = url; a.download = r.nome;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+
+    res.innerHTML = '<span style="font-size:12px;color:var(--success)">' +
+      escHtml(r.nome) + ' &mdash; ' + r.linhas + ' leads.</span>';
+  } catch (e) {
+    res.innerHTML = '<span style="font-size:12px;color:var(--danger)">Erro ao gerar o arquivo.</span>';
+  }
 }
 
 // ── Indicações e NPS ────────────────────────────────────────
