@@ -394,45 +394,64 @@
     nav.insertBefore(b, nav.firstChild);
   }
 
-  /* ───────── FASE 2 fix: mini player arrastável + snap (desktop) ───────── */
+  /* ───────── Mini player arrastável e com posição persistida (desktop) ───────── */
   function initMiniPlayerDrag(){
     var mp = document.getElementById('miniPlayer');
     if(!mp || mp._dragInit) return; mp._dragInit = true;
-    var dragging=false, moved=false, dx=0, dy=0;
-    function isCtrl(t){ return t.closest('button, .mini-btn, [onclick], input, a'); }
+    var dragging=false, moved=false, pointerId=null, dx=0, dy=0, sx=0, sy=0, suppressClickUntil=0;
+    function isCtrl(t){ return t && t.closest && t.closest('button, .mini-close, .mini-track-wrap, input, a'); }
+    function clamp(left, top){
+      return {
+        left: Math.max(8, Math.min(left, window.innerWidth-mp.offsetWidth-8)),
+        top:  Math.max(8, Math.min(top,  window.innerHeight-mp.offsetHeight-8))
+      };
+    }
+    function save(){
+      try { localStorage.setItem('d21_mini_player_pos', JSON.stringify({left:mp.offsetLeft,top:mp.offsetTop})); } catch(e){}
+    }
+    function restore(){
+      if(!isDesktop() || !mp.classList.contains('active')) return;
+      var pos=null;
+      try { pos=JSON.parse(localStorage.getItem('d21_mini_player_pos')||'null'); } catch(e){}
+      if(!pos || !isFinite(pos.left) || !isFinite(pos.top)) return;
+      var c=clamp(Number(pos.left),Number(pos.top));
+      mp.style.left=c.left+'px'; mp.style.top=c.top+'px'; mp.style.right='auto'; mp.style.bottom='auto'; mp.style.transform='';
+    }
     function down(e){
-      if(!isDesktop()) return;
+      if(!isDesktop() || (e.button!==undefined && e.button!==0)) return;
       if(isCtrl(e.target)) return;          // não arrasta ao clicar controle
-      dragging=true; moved=false;
+      dragging=true; moved=false; pointerId=e.pointerId;
       mp.classList.add('mp-dragging');
-      var p=e.touches?e.touches[0]:e, r=mp.getBoundingClientRect();
-      dx=p.clientX-r.left; dy=p.clientY-r.top;
+      var r=mp.getBoundingClientRect();
+      sx=e.clientX; sy=e.clientY; dx=e.clientX-r.left; dy=e.clientY-r.top;
+      mp.style.left=r.left+'px'; mp.style.top=r.top+'px'; mp.style.right='auto'; mp.style.bottom='auto'; mp.style.transform='';
+      try { mp.setPointerCapture(pointerId); } catch(err){}
       e.preventDefault();
     }
     function move(e){
-      if(!dragging) return;
-      var p=e.touches?e.touches[0]:e;
-      var L=p.clientX-dx, T=p.clientY-dy, w=mp.offsetWidth, h=mp.offsetHeight;
-      L=Math.max(8, Math.min(L, window.innerWidth-w-8));
-      T=Math.max(8, Math.min(T, window.innerHeight-h-8));
-      mp.style.left=L+'px'; mp.style.top=T+'px'; mp.style.right='auto'; mp.style.bottom='auto';
-      moved=true;
+      if(!dragging || e.pointerId!==pointerId) return;
+      var c=clamp(e.clientX-dx,e.clientY-dy);
+      if(Math.abs(e.clientX-sx)>3 || Math.abs(e.clientY-sy)>3) moved=true;
+      mp.style.left=c.left+'px'; mp.style.top=c.top+'px';
     }
-    function up(){
-      if(!dragging) return; dragging=false;
+    function up(e){
+      if(!dragging || e.pointerId!==pointerId) return;
+      dragging=false;
       mp.classList.remove('mp-dragging');
-      if(!moved) return;
-      // snap horizontal: esquerda / centro / direita (sempre base inferior)
-      var r=mp.getBoundingClientRect(), cx=r.left+r.width/2, vw=window.innerWidth, w=mp.offsetWidth;
-      mp.style.top='auto'; mp.style.bottom='24px';
-      if(cx < vw*0.33){ mp.style.left='24px'; mp.style.right='auto'; }
-      else if(cx > vw*0.66){ mp.style.left='auto'; mp.style.right='24px'; }
-      else { mp.style.left='50%'; mp.style.right='auto'; mp.style.transform='translateX(-50%)'; }
-      setTimeout(function(){ if(mp.style.left!=='50%') mp.style.transform=''; }, 0);
+      try { mp.releasePointerCapture(pointerId); } catch(err){}
+      pointerId=null;
+      if(moved){ suppressClickUntil=Date.now()+350; save(); }
     }
-    mp.addEventListener('mousedown', down);
-    window.addEventListener('mousemove', move);
-    window.addEventListener('mouseup', up);
+    mp.addEventListener('pointerdown', down);
+    mp.addEventListener('pointermove', move);
+    mp.addEventListener('pointerup', up);
+    mp.addEventListener('pointercancel', up);
+    mp.addEventListener('click',function(e){
+      if(Date.now()<suppressClickUntil){ e.preventDefault(); e.stopPropagation(); }
+    },true);
+    new MutationObserver(function(){ requestAnimationFrame(restore); }).observe(mp,{attributes:true,attributeFilter:['class']});
+    window.addEventListener('resize',function(){ requestAnimationFrame(restore); });
+    requestAnimationFrame(restore);
   }
 
   /* ───────── FASE 5 (preparação): mídia custom dos pilares ─────────

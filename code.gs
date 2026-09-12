@@ -107,13 +107,205 @@ function _dedupWebhook_(event, id) {
   }
 }
 
+// ── Parser tolerante da borda HTTP ───────────────────────────
+// Integrações legítimas nem sempre enviam application/json puro. Alguns
+// clientes mandam formulário URL-encoded ou serializam objetos com aspas
+// simples. A normalização acontece somente aqui; autenticação, secret e
+// rate-limit continuam sendo aplicados normalmente pelas rotas abaixo.
+function _postCitarChaves_(texto) {
+  var saida = '';
+  var emString = false;
+  var escapando = false;
+  var i = 0;
+  while (i < texto.length) {
+    var ch = texto.charAt(i);
+    if (emString) {
+      saida += ch;
+      if (escapando) escapando = false;
+      else if (ch === '\\') escapando = true;
+      else if (ch === '"') emString = false;
+      i++;
+      continue;
+    }
+    if (ch === '"') {
+      emString = true; saida += ch; i++; continue;
+    }
+    if (ch === '{' || ch === ',') {
+      saida += ch; i++;
+      while (i < texto.length && /\s/.test(texto.charAt(i))) saida += texto.charAt(i++);
+      var inicio = i;
+      if (/[A-Za-z_$]/.test(texto.charAt(i))) {
+        i++;
+        while (i < texto.length && /[A-Za-z0-9_$-]/.test(texto.charAt(i))) i++;
+        var fimNome = i;
+        while (i < texto.length && /\s/.test(texto.charAt(i))) i++;
+        if (texto.charAt(i) === ':') {
+          saida += '"' + texto.slice(inicio, fimNome) + '"' + texto.slice(fimNome, i + 1);
+          i++;
+          continue;
+        }
+        i = inicio;
+      }
+      continue;
+    }
+    saida += ch;
+    i++;
+  }
+  return saida;
+}
+
+function _postJsonAlternativo_(texto) {
+  texto = String(texto == null ? '' : texto).replace(/^\uFEFF/, '').trim();
+  if (!texto) return null;
+
+  try {
+    var estrito = JSON.parse(texto);
+    if (estrito && typeof estrito === 'object') return estrito;
+  } catch (_estritoErro) {}
+
+  // Conversão conservadora de strings delimitadas por aspas simples para
+  // JSON válido. Não usa eval e não executa conteúdo recebido.
+  if ((texto.charAt(0) === '{' || texto.charAt(0) === '[') && texto.indexOf("'") !== -1) {
+    var saida = '';
+    var emAspasDuplas = false;
+    var emAspasSimples = false;
+    var escapando = false;
+    var valido = true;
+    for (var i = 0; i < texto.length; i++) {
+      var ch = texto.charAt(i);
+      if (emAspasDuplas) {
+        saida += ch;
+        if (escapando) escapando = false;
+        else if (ch === '\\') escapando = true;
+        else if (ch === '"') emAspasDuplas = false;
+        continue;
+      }
+      if (emAspasSimples) {
+        if (escapando) {
+          if (ch === "'") saida += "'";
+          else if (ch === '"') saida += '\\"';
+          else if ('\\/bfnrtu'.indexOf(ch) !== -1) saida += '\\' + ch;
+          else { valido = false; break; }
+          escapando = false;
+        } else if (ch === '\\') {
+          escapando = true;
+        } else if (ch === "'") {
+          saida += '"'; emAspasSimples = false;
+        } else if (ch === '"') {
+          saida += '\\"';
+        } else if (ch === '\n') {
+          saida += '\\n';
+        } else if (ch === '\r') {
+          saida += '\\r';
+        } else {
+          saida += ch;
+        }
+        continue;
+      }
+      if (ch === '"') { emAspasDuplas = true; saida += ch; }
+      else if (ch === "'") { emAspasSimples = true; saida += '"'; }
+      else saida += ch;
+    }
+    if (escapando || emAspasSimples || emAspasDuplas) valido = false;
+    if (valido) {
+      try {
+        var alternativo = JSON.parse(_postCitarChaves_(saida));
+        if (alternativo && typeof alternativo === 'object') return alternativo;
+      } catch (_alternativoErro) {}
+    }
+  }
+
+  // Também cobre objetos serializados como {action:"..."}, sem executar JS.
+  if (texto.charAt(0) === '{' || texto.charAt(0) === '[') {
+    var comChavesCitadas = _postCitarChaves_(texto);
+    if (comChavesCitadas !== texto) {
+      try {
+        var semAspasNasChaves = JSON.parse(comChavesCitadas);
+        if (semAspasNasChaves && typeof semAspasNasChaves === 'object') return semAspasNasChaves;
+      } catch (_chavesErro) {}
+    }
+  }
+  return null;
+}
+
+function _postDecodificar_(valor) {
+  valor = String(valor == null ? '' : valor).replace(/\+/g, ' ');
+  try { return decodeURIComponent(valor); } catch (_e) { return valor; }
+}
+
+function _postFormulario_(texto) {
+  texto = String(texto || '').trim();
+  if (!texto || texto.indexOf('=') < 1) return null;
+  var obj = {};
+  texto.split('&').forEach(function(par) {
+    if (!par) return;
+    var pos = par.indexOf('=');
+    var chave = _postDecodificar_(pos < 0 ? par : par.slice(0, pos));
+    if (!chave || Object.prototype.hasOwnProperty.call(obj, chave)) return;
+    obj[chave] = _postDecodificar_(pos < 0 ? '' : par.slice(pos + 1));
+  });
+  var chaves = Object.keys(obj);
+  if (!chaves.length) return null;
+
+  // payload/json/body costumam encapsular o objeto inteiro.
+  for (var i = 0; i < ['payload','json','body'].length; i++) {
+    var nome = ['payload','json','body'][i];
+    if (!obj[nome]) continue;
+    var inteiro = _postJsonAlternativo_(obj[nome]);
+    if (inteiro && chaves.length === 1) return inteiro;
+    if (inteiro) obj[nome] = inteiro;
+  }
+  // Em RPCs do app, data é um campo aninhado e deve voltar a ser objeto.
+  if (typeof obj.data === 'string') {
+    var dataObj = _postJsonAlternativo_(obj.data);
+    if (dataObj) obj.data = dataObj;
+  }
+  return obj;
+}
+
+function _parsePostPayload_(e) {
+  var conteudo = e && e.postData ? String(e.postData.contents || '') : '';
+  var limpo = conteudo.replace(/^\uFEFF/, '').trim();
+  var valor = _postJsonAlternativo_(limpo);
+  var formato = valor ? 'json' : '';
+
+  if (!valor) {
+    valor = _postFormulario_(limpo);
+    if (valor) formato = 'form';
+  }
+
+  // Apps Script já decodifica formulários em e.parameter. Usa esse caminho
+  // apenas quando o corpo bruto não pôde ser interpretado.
+  if (!valor && e && e.parameter && Object.keys(e.parameter).length) {
+    var pares = [];
+    Object.keys(e.parameter).forEach(function(k) {
+      pares.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(e.parameter[k] || '')));
+    });
+    valor = _postFormulario_(pares.join('&'));
+    if (valor) formato = 'parameter';
+  }
+
+  if (!valor || typeof valor !== 'object') {
+    return { ok: false, error: 'Corpo POST inválido.', code: 'INVALID_POST_BODY' };
+  }
+  return { ok: true, value: valor, format: formato };
+}
+
 // ── REST API (POST) ──────────────────────────────────────────
 // PATCH v6: detecta Cakto nos dois formatos reais observados em produção
 function doPost(e) {
   var output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
   try {
-    var raw = JSON.parse(e.postData.contents);
+    var parsed = _parsePostPayload_(e);
+    if (!parsed.ok) {
+      var tipo = e && e.postData ? String(e.postData.type || '') : '';
+      var tamanho = e && e.postData ? Number(e.postData.length || String(e.postData.contents || '').length || 0) : 0;
+      Logger.log('[doPost] entrada rejeitada: tipo=' + tipo + ' bytes=' + tamanho + ' codigo=' + parsed.code);
+      output.setContent(JSON.stringify({ ok: false, error: parsed.error, code: parsed.code }));
+      return output;
+    }
+    var raw = parsed.value;
 
     // ── Telegram webhook (comandos do bot) ───────────────────
     if (raw && raw.update_id && (raw.message || raw.edited_message)) {
@@ -309,6 +501,7 @@ function initSheets() {
   ensureAudio21Sheet_();       // audio_21_dias
   initNotificacoesSheet_();    // notificacoes para alunos
   initCriativosSheet_();       // aba criativos (Meta Ads)
+  initUserContentSheet_();     // conteudo privado: meditacao, leitura e audio
   return { ok: true };
 }
 

@@ -431,6 +431,15 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   -webkit-tap-highlight-color: transparent;
 }
 .mini-play-btn:active { transform: scale(0.88); }
+.mini-skip-btn,.mini-reset-btn {
+  width: 30px; height: 30px; flex-shrink: 0;
+  border: 1px solid var(--border); border-radius: 9px;
+  background: var(--surface2); color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 9px; font-weight: 800;
+  -webkit-tap-highlight-color: transparent;
+}
+.mini-reset-btn { font-size: 14px; }
 .mini-close {
   font-size: 16px; color: var(--muted); cursor: pointer;
   padding: 6px; flex-shrink: 0; line-height: 1;
@@ -2879,6 +2888,28 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 }
 </style>
 <link rel="stylesheet" href="/assets/app-enhance.css">
+<style>
+/* Conteúdo privado do aluno — camada compartilhada (meditação, leitura e áudio) */
+.uc-header-action,.uc-library-action{border:1px solid rgba(109,222,113,.35);background:rgba(76,175,80,.1);color:var(--green-l);border-radius:12px;padding:10px 14px;font:700 12px inherit;cursor:pointer;margin-top:12px}
+.uc-library-action{width:100%;margin:14px 0 4px;background:linear-gradient(135deg,rgba(76,175,80,.16),rgba(76,175,80,.07))}
+.uc-origin-heading{display:flex;align-items:center;gap:10px;margin:18px 0 10px;color:var(--text2)}
+.uc-origin-heading>span{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,#4caf50,#2e7d32);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900}
+.uc-origin-heading b,.uc-origin-heading small{display:block}.uc-origin-heading b{font-size:13px}.uc-origin-heading small{font-size:10px;color:var(--muted);margin-top:2px}
+.uc-personal-shelf{margin-top:26px}.uc-personal-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.uc-personal-top h3{font-size:15px;color:var(--cream);margin:0}.uc-random-btn{border:1px solid var(--border2);background:var(--surface2);color:var(--green-l);border-radius:10px;padding:8px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.uc-audio-card{display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:11px;padding:10px;margin-bottom:8px;border:1px solid var(--border);border-radius:14px;background:var(--surface2);cursor:pointer}.uc-audio-card:hover{border-color:var(--border2)}
+.uc-audio-thumb{width:54px;height:54px;border-radius:10px;object-fit:cover;background:#102117}.uc-audio-title{font-size:13px;font-weight:700;color:var(--text2);line-height:1.3}.uc-audio-meta{font-size:10.5px;color:var(--muted);margin-top:4px}.uc-origin-pill{display:inline-flex;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;background:rgba(76,175,80,.13);color:var(--green-l);margin-right:5px}.uc-origin-pill.global{background:rgba(66,165,245,.13);color:#82b1ff}.uc-star-btn{border:0;background:transparent;color:#f5c451;font-size:19px;padding:8px;cursor:pointer}
+.uc-module-fab{position:absolute;z-index:30;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;box-shadow:0 8px 24px rgba(0,0,0,.35);font-size:19px;cursor:pointer}.uc-module-fab--med{top:18px;right:72px}
+.uc-page-fab{position:fixed;z-index:360;right:82px;bottom:88px;width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:linear-gradient(135deg,#4caf50,#2e7d32);color:#fff;box-shadow:0 8px 26px rgba(0,0,0,.42);font-size:18px;cursor:pointer}.uc-page-fab--reading{z-index:1200;bottom:24px;right:22px}
+.uc-med-youtube{width:min(430px,92vw);margin:14px auto 4px;border:1px solid rgba(109,222,113,.28);border-radius:16px;overflow:hidden;background:#07100b;box-shadow:0 16px 48px rgba(0,0,0,.55);user-select:none}.uc-med-youtube[hidden]{display:none}.uc-med-yt-head,.uc-med-yt-controls{display:flex;align-items:center;gap:7px;padding:8px 10px;background:#0b1510}.uc-med-yt-head{cursor:grab;touch-action:none;border-bottom:1px solid var(--border)}.uc-med-yt-head.grabbing{cursor:grabbing}.uc-med-yt-title{flex:1;min-width:0;color:var(--text2);font-size:10px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.uc-med-yt-actions{display:flex;gap:5px}.uc-med-yt-btn{width:28px;height:28px;border:1px solid var(--border);border-radius:9px;background:var(--surface2);color:var(--text2);cursor:pointer;font:700 12px inherit;display:flex;align-items:center;justify-content:center}.uc-med-yt-btn.main{background:var(--green);color:#07130a;border-color:var(--green)}.uc-med-yt-frame{width:100%;height:242px;min-height:200px;background:#000}.uc-med-yt-frame iframe{display:block;width:100%;height:100%;min-height:200px;border:0}.uc-med-yt-controls{justify-content:center;border-top:1px solid var(--border)}.uc-med-youtube.is-compact{position:fixed;z-index:650;right:12px;bottom:12px;width:220px;margin:0}.uc-med-youtube.is-compact .uc-med-yt-frame{height:210px}.uc-med-youtube.is-compact .uc-med-yt-title{font-size:9px}.uc-med-youtube.dragging{transition:none!important;box-shadow:0 24px 70px rgba(0,0,0,.75)}
+.uc-book-origin{position:absolute;left:7px;top:7px;z-index:2;border-radius:999px;padding:3px 7px;font-size:8px;font-weight:900;text-transform:uppercase;background:rgba(5,18,10,.82);color:#cfead2}.uc-book-origin.mine{background:rgba(46,125,50,.92);color:#fff}.uc-book-origin.global{background:rgba(25,83,132,.92);color:#fff}.leit-book-card{position:relative}
+.uc-manager{position:fixed;inset:0;z-index:6000;background:rgba(0,0,0,.68);display:flex;align-items:flex-end;justify-content:center;padding:12px}.uc-manager[hidden]{display:none}.uc-panel{width:min(680px,100%);max-height:min(88dvh,820px);overflow:auto;background:#0e1b13;border:1px solid rgba(109,222,113,.25);border-radius:22px 22px 16px 16px;box-shadow:0 30px 100px rgba(0,0,0,.7)}
+.uc-panel-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:12px;padding:16px 18px;background:rgba(14,27,19,.96);border-bottom:1px solid var(--border);backdrop-filter:blur(12px)}.uc-panel-head>div{flex:1}.uc-panel-head h2{font-size:17px;margin:0;color:var(--cream)}.uc-panel-head p{font-size:10.5px;color:var(--muted);margin:3px 0 0}.uc-close{width:34px;height:34px;border:0;border-radius:50%;background:var(--surface3);color:var(--text);cursor:pointer;font-size:16px}.uc-panel-body{padding:16px}
+.uc-add-box{padding:14px;border:1px solid var(--border);border-radius:15px;background:rgba(255,255,255,.025);margin-bottom:18px}.uc-add-box h3{font-size:13px;margin:0 0 10px;color:var(--text2)}.uc-field{display:block;margin-bottom:10px}.uc-field span{display:block;font-size:10px;color:var(--muted);margin:0 0 5px}.uc-input{width:100%;box-sizing:border-box;border:1px solid var(--border);background:#09130d;color:var(--text);border-radius:10px;padding:11px 12px;font-size:12px;outline:none}.uc-input:focus{border-color:var(--green)}.uc-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.uc-primary{border:0;border-radius:10px;background:var(--green);color:#07130a;font-weight:800;padding:11px 14px;cursor:pointer}.uc-secondary{border:1px solid var(--border2);border-radius:10px;background:var(--surface2);color:var(--text2);font-weight:700;padding:10px 13px;cursor:pointer}.uc-primary:disabled,.uc-secondary:disabled{opacity:.45;cursor:wait}
+.uc-preview{display:grid;grid-template-columns:96px 1fr;gap:11px;margin-top:12px;padding:10px;border:1px solid var(--border2);border-radius:12px}.uc-preview img{width:96px;height:60px;object-fit:cover;border-radius:8px}.uc-preview b{display:block;font-size:12px;line-height:1.3}.uc-preview small{display:block;color:var(--muted);font-size:10px;margin:4px 0 8px}.uc-limit-note{font-size:10px;color:var(--muted);line-height:1.5;margin-top:8px}
+.uc-list-title{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;color:var(--text2);margin:4px 0 9px}.uc-item{border:1px solid var(--border);border-radius:14px;background:var(--surface2);padding:12px;margin-bottom:9px}.uc-item-main{display:flex;gap:10px;align-items:center}.uc-item-thumb{width:58px;height:42px;border-radius:8px;object-fit:cover;background:#0b1710}.uc-item-info{flex:1;min-width:0}.uc-item-title{font-size:12.5px;font-weight:750;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.uc-item-sub{font-size:10px;color:var(--muted);margin-top:3px}.uc-item-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.uc-mini{border:1px solid var(--border);border-radius:8px;background:#0b1710;color:var(--muted);padding:6px 8px;font-size:10px;cursor:pointer}.uc-mini.on{color:var(--green-l);border-color:rgba(109,222,113,.3)}.uc-mini.danger{color:#ef9a9a}.uc-empty{padding:24px;text-align:center;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:14px}
+.uc-youtube-player{position:fixed;z-index:5500;right:12px;bottom:12px;width:min(440px,calc(100vw - 24px));background:#0b1510;border:1px solid rgba(109,222,113,.28);border-radius:16px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.7);user-select:none}.uc-youtube-player[hidden]{display:none}.uc-youtube-player.dragging{transition:none!important;box-shadow:0 28px 90px rgba(0,0,0,.82)}.uc-yt-head{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:grab;touch-action:none;border-bottom:1px solid var(--border)}.uc-yt-head.grabbing{cursor:grabbing}.uc-yt-title-wrap{flex:1;min-width:0}.uc-yt-head b{display:block;font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.uc-yt-head small{display:block;font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.uc-yt-actions{display:flex;gap:5px}.uc-yt-btn{border:1px solid var(--border);background:var(--surface2);color:var(--text2);border-radius:9px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:700 12px inherit}.uc-yt-btn.main{width:36px;height:32px;border-radius:11px;background:var(--green);border-color:var(--green);color:#061208;font-size:15px}.uc-yt-frame{width:100%;height:clamp(200px,56vw,248px);min-height:200px;background:#000}.uc-yt-frame iframe{display:block;width:100%;height:100%;min-height:200px;border:0}.uc-yt-controls{display:flex;align-items:center;justify-content:center;gap:9px;padding:8px 10px;border-top:1px solid var(--border);background:#09130d}.uc-yt-info{padding:9px 11px;font-size:10px;color:var(--muted);line-height:1.45;border-top:1px solid rgba(76,175,80,.08)}.uc-youtube-player.is-compact{width:220px}.uc-youtube-player.is-compact .uc-yt-frame{height:210px}.uc-youtube-player.is-compact .uc-yt-info{display:none}.uc-youtube-player.is-compact .uc-yt-head b{font-size:10px}.uc-youtube-player.is-compact .uc-yt-head small{display:none}
+@media(min-width:700px){.uc-manager{align-items:center}.uc-panel{border-radius:22px}.uc-module-fab--med{top:22px;right:82px}}@media(max-width:520px){.uc-form-grid{grid-template-columns:1fr}.uc-preview{grid-template-columns:72px 1fr}.uc-preview img{width:72px;height:52px}}
+</style>
 </head>
 <body>
 <script>
@@ -4313,7 +4344,9 @@ function renderRotina() {
 // ════════════════════════════════════════════════════════════
 async function renderAudios() {
   document.getElementById('page-audios').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-  const conteudo = await loadConteudo();
+  const carregados = await Promise.all([loadConteudo(), ucLoad('audio')]);
+  const conteudo = carregados[0];
+  const conteudoPessoal = carregados[1] || [];
   const d = APP.data;
   const diaAtual = d ? (d.diaAtual || 1) : 1;
 
@@ -4321,7 +4354,10 @@ async function renderAudios() {
   <div class="page-header">
     <h2>Áudios do Desafio</h2>
     <p>21 áudios motivacionais — um por dia</p>
-  </div>`;
+    <button class="uc-header-action" type="button" onclick="ucOpenManager('audio')">＋ Personalizar</button>
+  </div>
+  <button class="uc-page-fab" type="button" onclick="ucOpenManager('audio')" title="Personalizar áudios" aria-label="Personalizar áudios">⚙</button>
+  <div class="uc-origin-heading"><span>W</span><div><b>Conteúdo oficial</b><small>Áudios do Desafio 21 Dias</small></div></div>`;
 
   // Cache audios for initAudioPlayerByDia lookup
   if (conteudo && conteudo.audios) { window._audiosListCache = conteudo.audios; }
@@ -4374,6 +4410,8 @@ async function renderAudios() {
     });
     html += '</div>';
   }
+
+  html += ucRenderAudioShelf(conteudoPessoal);
 
   document.getElementById('page-audios').innerHTML = html;
 }
@@ -4741,7 +4779,9 @@ var AUDIO_P = {
   playing:      false,
   rate:         1,
   listenedSec:  0,      // seconds actually listened
-  audioMarked:  false   // pilar 'audio' already marked
+  audioMarked:  false,  // pilar 'audio' already marked
+  loadSeq:      0,      // invalida respostas assíncronas de carregamentos antigos
+  closed:       true
 };
 
 // ── Extrai fileId de qualquer URL do Google Drive ─────────────
@@ -4789,6 +4829,12 @@ function initAudioPlayer(urlRaw, title, capa, audioObj) {
     return;
   }
 
+  // Mantém apenas uma fonte ativa: ao iniciar um áudio nativo,
+  // encerra qualquer vídeo do YouTube aberto pelo módulo de áudios.
+  if (typeof ucCloseYoutubePlayer === 'function') ucCloseYoutubePlayer();
+  var loadId = ++AUDIO_P.loadSeq;
+  AUDIO_P.closed = false;
+
   console.info('[Audio] initAudioPlayer "' + (title||'').slice(0,40) + '" urlRaw=' + (urlRaw+'').slice(0,60));
 
   // Atualiza metadata imediatamente — player abre com info correta
@@ -4811,7 +4857,7 @@ function initAudioPlayer(urlRaw, title, capa, audioObj) {
   var fileId = _extractDriveFileId(urlRaw);
   if (fileId) {
     console.info('[Audio] Drive detectado — fileId=' + fileId.slice(0,15) + '... usando proxy GAS');
-    _loadAudioViaProxy(fileId);
+    _loadAudioViaProxy(fileId, loadId);
   } else {
     console.info('[Audio] URL direta (não-Drive)');
     _setAudioSrc(urlRaw);
@@ -4836,17 +4882,21 @@ function _createAudioElement() {
 }
 
 // ── Proxy GAS: busca base64 e alimenta o <audio> ──────────────
-async function _loadAudioViaProxy(fileId) {
+async function _loadAudioViaProxy(fileId, loadId) {
   try {
     console.info('[Audio] Proxy: iniciando fetch fileId=' + fileId);
     var r = await rpc('getAudioBase64', { fileId: fileId });
     if (!r || !r.ok) {
       throw new Error((r && r.error) || 'Sem resposta do servidor');
     }
+    // A pessoa pode ter fechado ou escolhido outro áudio enquanto o Drive
+    // ainda respondia. Nesse caso a resposta antiga não pode voltar a tocar.
+    if (AUDIO_P.closed || loadId !== AUDIO_P.loadSeq) return;
     var sizeMB = r.size ? (Math.round(r.size / 1024 / 1024 * 10) / 10) + ' MB' : '';
     console.info('[Audio] Proxy OK — "' + (r.name || '') + '" ' + sizeMB + ' ' + (r.mimeType || ''));
     _setAudioSrc(r.data);
   } catch(e) {
+    if (AUDIO_P.closed || loadId !== AUDIO_P.loadSeq) return;
     console.error('[Audio] Proxy falhou:', e && e.message);
     _epSetLoading(false);
     _epShowError('Erro ao carregar o áudio: ' + (e && e.message));
@@ -4910,6 +4960,8 @@ function minimizePlayer() {
 }
 
 function closeAudio() {
+  AUDIO_P.closed = true;
+  AUDIO_P.loadSeq++;
   if (AUDIO_P.el) { AUDIO_P.el.pause(); }
   minimizePlayer();
   var mp = document.getElementById('miniPlayer');
@@ -5177,11 +5229,22 @@ function _renderMiniPlayer() {
       '<div class="mini-title" id="miniTitle">' + escH(AUDIO_P.title) + '</div>' +
       '<div class="mini-time" id="miniTime">0:00 / --:--</div>' +
     '</div>' +
+    '<button class="mini-skip-btn" type="button" onclick="skipAudio(-10)" title="Voltar 10 segundos" aria-label="Voltar 10 segundos">−10</button>' +
     '<button class="mini-play-btn" id="miniPlayBtn" onclick="toggleAudio()">⏸</button>' +
+    '<button class="mini-skip-btn" type="button" onclick="skipAudio(10)" title="Avançar 10 segundos" aria-label="Avançar 10 segundos">+10</button>' +
+    '<button class="mini-reset-btn" type="button" onclick="resetMiniPlayerPosition()" title="Restaurar posição" aria-label="Restaurar posição">↺</button>' +
     '<span class="mini-close" onclick="closeAudio()" title="Fechar">✕</span>';
 
   mp.classList.add('active');
   document.body.classList.add('has-miniplayer');
+}
+
+function resetMiniPlayerPosition() {
+  var mp = document.getElementById('miniPlayer');
+  if (!mp) return;
+  mp.style.left = ''; mp.style.top = ''; mp.style.right = ''; mp.style.bottom = ''; mp.style.transform = '';
+  try { localStorage.removeItem('d21_mini_player_pos'); } catch (_e) {}
+  toast('Posição do player restaurada.', 'info');
 }
 
 // ── Transcription ─────────────────────────────────────────────
@@ -5949,6 +6012,7 @@ function appAlert(opts) {
 
   <!-- Botão fechar (fixo, visível em todas as telas) -->
   <button class="med-close-btn" id="medCloseBtn" onclick="closeMeditacao()" title="Fechar">✕</button>
+  <button class="uc-module-fab uc-module-fab--med" type="button" onclick="ucOpenManager('meditation')" title="Personalizar meditação" aria-label="Personalizar meditação">⚙</button>
 
   <!-- ══ PASSO 1 — Encontre um lugar tranquilo ══════════════ -->
   <div id="medS1" class="med-screen med-screen--active">
@@ -6056,6 +6120,8 @@ function appAlert(opts) {
         <button class="med-switch-btn" id="medTrocarBtn" onclick="trocarAudio()">TROCAR</button>
         <button class="med-mute-btn" id="medMuteBtn" onclick="toggleMedAudio()">🔇 SEM SOM</button>
       </div>
+
+      <div class="uc-med-youtube" id="medYoutubeWrap" hidden></div>
 
       <!-- Mensagem rotativa -->
       <div class="med-msg-wrap">
@@ -6346,6 +6412,7 @@ function openMeditacao() {
   document.getElementById('mainScroll').style.overflow = 'hidden';
   try { _pfAplicar(); } catch (e) {}   // v132: duração e áudio do aluno
   if (!_medAudiosLoaded) _medLoadAudioConfig();
+  ucLoad('meditation').catch(function(){});
   if (typeof _biaHide === 'function') _biaHide();
 
   // Mostra banner "Continuar de onde parou" se houver progresso salvo
@@ -6454,10 +6521,7 @@ function startMedSession() {
       // autoridade que seta a flag (evita race condition que impedia a marcação)
       _medMarkPilarAuto();               // marca pilar no servidor
       _medClearSavedProgress();          // limpa progresso salvo (concluído)
-      _medAudioFadeOut(function() {      // fade out do áudio
-        var aud = document.getElementById('medAudio');
-        if (aud) { aud.pause(); aud.src = ''; }
-      });
+      _medAudioFadeOut(function() { _medAudioStop(); }); // encerra Drive ou YouTube
       showMedScreen(5);                  // mostra tela de conclusão
       _medStartCountdown(8);             // fecha em 8s automaticamente
     }
@@ -6581,10 +6645,7 @@ function _medStartResumed(elapsedSeconds) {
       _medStopAll();
       _medMarkPilarAuto();
       _medClearSavedProgress();
-      _medAudioFadeOut(function() {
-        var aud = document.getElementById('medAudio');
-        if (aud) { aud.pause(); aud.src = ''; }
-      });
+      _medAudioFadeOut(function() { _medAudioStop(); });
       showMedScreen(5);
       _medStartCountdown(8);
     }
@@ -6640,16 +6701,20 @@ function toggleMedPause() {
     _medShowMsg('Pausado — retome quando quiser.');
     // Salva progresso ao pausar (tela pode bloquear a qualquer momento)
     if (typeof _medSaveProgress === 'function') _medSaveProgress();
-    // Pausa áudio com fade suave
-    _medAudioFadeOut(function() { if (aud) aud.pause(); });
+    // Pausa a origem ativa. O player do YouTube permanece visível.
+    if (MED.currentYoutube) _ucYoutubeCommand(MED.youtubeIframe, 'pauseVideo');
+    else _medAudioFadeOut(function() { if (aud) aud.pause(); });
   } else {
     if (icon)    icon.textContent  = '⏸';
     if (label)   label.textContent = 'Pausar';
     if (session) session.classList.remove('med-paused');
     _medShowMsg(_medFrasesAtivas()[MED.msgIdx]);
-    // Retoma áudio com fade
-    if (aud) { aud.volume = 0; aud.play().catch(function(){}); }
-    _medAudioFadeIn();
+    // Retoma a origem ativa
+    if (MED.currentYoutube) _ucYoutubeCommand(MED.youtubeIframe, 'playVideo');
+    else {
+      if (aud) { aud.volume = 0; aud.play().catch(function(){}); }
+      _medAudioFadeIn();
+    }
   }
 }
 
@@ -6658,6 +6723,7 @@ function exitMedSession() {
   // Salva progresso ANTES de matar tudo (permite retomar de onde parou)
   if (typeof _medSaveProgress === 'function' && MED.elapsed > 30) _medSaveProgress();
   _medStopAll();
+  _medAudioStop();
   showMedScreen(1);
 }
 
@@ -6756,6 +6822,7 @@ function _medLoadAudioConfig() {
       if (cfg.texto_s2) { var el = document.getElementById('medS2Body'); if (el) el.textContent = cfg.texto_s2; }
       if (cfg.texto_s3) { var el = document.getElementById('medS3Body'); if (el) el.textContent = cfg.texto_s3; }
       _medAudiosLoaded = true;
+      if (typeof ucApplyMeditationSelection === 'function') ucApplyMeditationSelection();
     })
     .catch(function() {
       // sem config → usa defaults hardcoded, continua normalmente
@@ -6770,7 +6837,9 @@ function _medLoadAudioConfig() {
 // URLs diretas do Drive NÃO funcionam: redirecionam para drive.usercontent.google.com
 // que exige cookies de sessão Google — elemento <audio> não os envia → erro 403.
 function _medAudioPlay(idx, autoFadeIn) {
-  var audios = MED_AUDIOS.filter(function(a) { return a.fileId && a.fileId.trim(); });
+  // Evita duas experiências sonoras simultâneas ao entrar na meditação.
+  if (typeof closeAudio === 'function') closeAudio();
+  var audios = _medAvailableAudios();
   if (!audios.length) {
     var dot  = document.getElementById('medAudioDot');
     var name = document.getElementById('medAudioName');
@@ -6804,6 +6873,13 @@ function _medAudioPlay(idx, autoFadeIn) {
   if (nameEl) { nameEl.textContent = 'Carregando ' + audio.name + '...'; nameEl.style.color = ''; }
   MED.audioLoading = true;
 
+  if (audio.source === 'youtube') {
+    _medPlayYoutubeAudio(audio, autoFadeIn);
+    return;
+  }
+
+  _medDestroyYoutube();
+
   // Limpa estado anterior
   aud.oncanplay = null;
   aud.onerror   = null;
@@ -6824,7 +6900,7 @@ function _medAudioPlay(idx, autoFadeIn) {
         aud.oncanplay    = null;
         MED.audioLoading = false;
         if (dot)    { dot.classList.remove('loading'); }
-        if (nameEl) { nameEl.textContent = '♫ ' + audio.name; nameEl.style.color = ''; }
+        if (nameEl) { nameEl.textContent = '♫ ' + audio.name + ' · Oficial'; nameEl.style.color = ''; }
         if (autoFadeIn) _medAudioFadeIn();
         console.info('[MedAudio] canplay — reproduzindo "' + audio.name + '"');
       };
@@ -6873,6 +6949,11 @@ function _medAudioFadeIn() {
 
 // Fade out do volume e executa callback ao chegar em 0
 function _medAudioFadeOut(cb) {
+  if (MED.currentYoutube) {
+    _ucYoutubeCommand(MED.youtubeIframe, 'pauseVideo');
+    if (cb) cb();
+    return;
+  }
   var aud = document.getElementById('medAudio');
   if (!aud || aud.paused) { if (cb) cb(); return; }
   var step = 0.05;
@@ -6887,6 +6968,7 @@ function _medAudioFadeOut(cb) {
 
 // Para o áudio completamente
 function _medAudioStop() {
+  _medDestroyYoutube();
   var aud = document.getElementById('medAudio');
   if (!aud) return;
   _medAudioFadeOut(function() {
@@ -6922,6 +7004,10 @@ function toggleMedAudio() {
     // Silenciar — para o áudio com fade
     MED.audioMuted = true;
     _medSyncMuteBtn();
+    if (MED.currentYoutube) {
+      _ucYoutubeCommand(MED.youtubeIframe, 'mute');
+      return;
+    }
     _medAudioFadeOut(function() {
       var aud = document.getElementById('medAudio');
       if (aud) { aud.pause(); }
@@ -7544,9 +7630,28 @@ function _leitEnsureEpubJs(cb) {
 // ── Progress helpers ───────────────────────────────────────────
 function _leitSaveProgress(bookId, data) {
   try { localStorage.setItem('leit_prog_' + bookId, JSON.stringify(data)); } catch(e) {}
+  if (String(bookId || '').indexOf('uc:') === 0) {
+    clearTimeout(LEIT.progressSyncTimer);
+    LEIT.progressSyncTimer = setTimeout(function() {
+      ucRpc('saveUserContentProgress', {
+        id: String(bookId).slice(3), progress: Number(data && data.pct || 0),
+        lastPoint: String((data && (data.cfi || data.lastPoint)) || '')
+      }).catch(function(){});
+    }, 900);
+  }
 }
 function _leitGetProgress(bookId) {
-  try { var v = localStorage.getItem('leit_prog_' + bookId); return v ? JSON.parse(v) : null; } catch(e) { return null; }
+  try {
+    var v = localStorage.getItem('leit_prog_' + bookId);
+    if (v) return JSON.parse(v);
+  } catch(e) {}
+  if (String(bookId || '').indexOf('uc:') === 0) {
+    var item = ucFind('reading', String(bookId).slice(3));
+    if (item && item.metadata && item.metadata.progress !== undefined) {
+      return { pct: Number(item.metadata.progress || 0), cfi: item.metadata.lastPoint || '' };
+    }
+  }
+  return null;
 }
 
 // ── Open / Close ───────────────────────────────────────────────
@@ -7576,6 +7681,7 @@ function openLeitura() {
   document.getElementById('leitCompletionBanner').classList.remove('active');
   _leitShowScreen(1);
   _leitRenderLibrary();
+  ucLoad('reading').then(function() { _leitRenderLibrary(); }).catch(function(){});
   if (typeof _biaHide === 'function') _biaHide();
 
   // Pop-up sala de leitura: mostra 1x por dia (somente se pilar ainda não foi marcado)
@@ -7614,11 +7720,15 @@ function _leitRenderLibrary() {
     var coverHtml = livro.cover
       ? '<img class="leit-book-cover-img" src="' + livro.cover + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
         '<div class="leit-book-cover-fallback" style="display:none">' + livro.emoji + '</div>'
-      : '<div class="leit-book-cover-fallback">' + livro.emoji + '</div>';
+      : (livro.ucId && livro.hasPrivateCover
+          ? '<img class="leit-book-cover-img uc-private-cover" data-uc-cover="' + escH(livro.ucId) + '" alt="" loading="lazy" style="display:none">' +
+            '<div class="leit-book-cover-fallback">' + livro.emoji + '</div>'
+          : '<div class="leit-book-cover-fallback">' + livro.emoji + '</div>');
     var card = document.createElement('div');
     card.className = 'leit-book-card';
     card.innerHTML =
       '<span class="leit-book-badge ' + livro.formato + '">' + livro.formato.toUpperCase() + '</span>' +
+      '<span class="uc-book-origin ' + (livro.origin === 'global' ? 'global' : livro.ucId ? 'mine' : 'official') + '">' + (livro.origin === 'global' ? 'Global' : livro.ucId ? 'Meu conteúdo' : 'Oficial') + '</span>' +
       '<div class="leit-book-cover-wrap">' + coverHtml + '</div>' +
       '<div class="leit-book-info">' +
         '<div class="leit-book-title">' + escH(livro.titulo) + '</div>' +
@@ -7628,6 +7738,7 @@ function _leitRenderLibrary() {
     card.addEventListener('click', function() { _leitSelectBook(livro.id); });
     grid.appendChild(card);
   });
+  ucHydrateCovers(grid);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -7720,7 +7831,7 @@ function _leitSalaPopupResponder(resposta) {
 }
 
 function _leitSelectBook(id) {
-  var livro = LIVROS_DATA.find(function(l) { return l.id === id; });
+  var livro = _leitLivrosVisiveis().find(function(l) { return l.id === id; });
   if (!livro) return;
   LEIT.book = livro;
   // Cover in onboarding screen 2
@@ -7756,7 +7867,10 @@ function _leitLoadEpubBook(livro) {
   _leitSetLoading(true, 'Carregando livro…');
   _leitEnsureEpubJs(function() {
     _leitSetLoading(true, 'Buscando arquivo…');
-    rpc('getAudioBase64', { fileId: livro.fileId })
+    var fetchBook = livro.ucId
+      ? ucRpc('getUserContentFile', { id: livro.ucId }, 45000)
+      : rpc('getAudioBase64', { fileId: livro.fileId });
+    fetchBook
       .then(function(r) {
         if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao buscar arquivo');
         // r.data is "data:...;base64,<b64>"
@@ -7880,9 +7994,11 @@ function _leitInitEpubRenderer(livro, buffer) {
 
 function _leitNext() {
   if (LEIT.epubRendition) { LEIT.epubRendition.next(); }
+  else if (LEIT.pdfDoc && LEIT.pdfPage < LEIT.pdfDoc.numPages) { _leitRenderPdfPage(LEIT.pdfPage + 1); }
 }
 function _leitPrev() {
   if (LEIT.epubRendition) { LEIT.epubRendition.prev(); }
+  else if (LEIT.pdfDoc && LEIT.pdfPage > 1) { _leitRenderPdfPage(LEIT.pdfPage - 1); }
 }
 function _leitUpdatePageInfo() {
   var el = document.getElementById('leitPageInfo');
@@ -7902,15 +8018,95 @@ function _leitUpdatePageInfo() {
 
 // ── PDF loading ────────────────────────────────────────────────
 function _leitLoadPdfBook(livro) {
-  _leitSetLoading(false);
   var container = document.getElementById('leitEpubContainer');
-  container.innerHTML = '<iframe class="leit-pdf-frame" src="https://drive.google.com/file/d/' +
-    livro.fileId + '/preview" allowfullscreen></iframe>';
+  if (livro.ucId) {
+    _leitSetLoading(true, 'Buscando PDF privado…');
+    ucRpc('getUserContentFile', { id: livro.ucId }, 45000).then(function(r) {
+      if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao buscar arquivo');
+      _leitEnsurePdfJs(function() {
+        var bytes = ucDataUrlToBytes(r.data);
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        window.pdfjsLib.getDocument({ data: bytes }).promise.then(function(pdf) {
+          LEIT.pdfDoc = pdf;
+          LEIT.pdfBookId = livro.id;
+          var saved = _leitGetProgress(livro.id) || {};
+          var match = String(saved.cfi || '').match(/^page:(\d+)$/);
+          var page = match ? Math.max(1, Math.min(pdf.numPages, Number(match[1]))) : 1;
+          _leitRenderPdfPage(page);
+          _leitSetLoading(false);
+        }).catch(function(e) {
+          _leitSetLoading(false);
+          _leitShowLoadError('Não foi possível abrir o PDF.\n' + ((e && e.message) || 'PDF inválido.'));
+        });
+      });
+    }).catch(function(e) {
+      _leitSetLoading(false);
+      _leitShowLoadError('Não foi possível carregar o PDF.\n' + (e.message || ''));
+    });
+  } else {
+    _leitSetLoading(false);
+    container.innerHTML = '<iframe class="leit-pdf-frame" src="https://drive.google.com/file/d/' +
+      livro.fileId + '/preview" allowfullscreen></iframe>';
+  }
   document.getElementById('leitPageInfo').textContent = '';
-  // PDF nav arrows not applicable
-  document.getElementById('leitNavPrev').style.display = 'none';
-  document.getElementById('leitNavNext').style.display = 'none';
-  document.querySelectorAll('.leit-tap-zone').forEach(function(z) { z.style.display = 'none'; });
+  // PDF privado usa o leitor paginado; o catálogo oficial mantém o preview do Drive.
+  document.getElementById('leitNavPrev').style.display = livro.ucId ? '' : 'none';
+  document.getElementById('leitNavNext').style.display = livro.ucId ? '' : 'none';
+  document.querySelectorAll('.leit-tap-zone').forEach(function(z) { z.style.display = livro.ucId ? '' : 'none'; });
+}
+
+function _leitEnsurePdfJs(cb) {
+  if (window.pdfjsLib) { cb(); return; }
+  _leitLoadScript(
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
+    cb,
+    function() { _leitShowLoadError('Falha ao carregar o leitor de PDF. Verifique sua conexão.'); }
+  );
+}
+
+function _leitRenderPdfPage(pageNumber) {
+  if (!LEIT.pdfDoc) return;
+  pageNumber = Math.max(1, Math.min(LEIT.pdfDoc.numPages, Number(pageNumber || 1)));
+  if (LEIT.pdfRendering) { LEIT.pdfPendingPage = pageNumber; return; }
+  LEIT.pdfRendering = true;
+  LEIT.pdfDoc.getPage(pageNumber).then(function(page) {
+    var container = document.getElementById('leitEpubContainer');
+    if (!container) return;
+    var base = page.getViewport({ scale: 1 });
+    var available = Math.max(280, (container.clientWidth || window.innerWidth) - 24);
+    var scale = Math.min(2, available / base.width);
+    var viewport = page.getViewport({ scale: scale });
+    var ratio = Math.min(2, window.devicePixelRatio || 1);
+    var canvas = document.createElement('canvas');
+    canvas.width = Math.floor(viewport.width * ratio);
+    canvas.height = Math.floor(viewport.height * ratio);
+    canvas.style.width = Math.floor(viewport.width) + 'px';
+    canvas.style.height = Math.floor(viewport.height) + 'px';
+    canvas.style.display = 'block';
+    canvas.style.margin = '0 auto';
+    canvas.style.background = '#fff';
+    container.innerHTML = '';
+    container.style.overflow = 'auto';
+    container.style.background = '#d8ddd9';
+    container.appendChild(canvas);
+    var ctx = canvas.getContext('2d');
+    return page.render({ canvasContext: ctx, viewport: viewport, transform: ratio === 1 ? null : [ratio, 0, 0, ratio, 0, 0] }).promise;
+  }).then(function() {
+    LEIT.pdfPage = pageNumber;
+    var pct = LEIT.pdfDoc ? (pageNumber / LEIT.pdfDoc.numPages) * 100 : 0;
+    var info = document.getElementById('leitPageInfo');
+    if (info) info.textContent = 'Página ' + pageNumber + ' de ' + LEIT.pdfDoc.numPages + ' · ' + Math.round(pct) + '% lido';
+    if (LEIT.pdfBookId) _leitSaveProgress(LEIT.pdfBookId, { cfi: 'page:' + pageNumber, pct: pct });
+  }).catch(function(e) {
+    _leitShowLoadError('Erro ao renderizar a página do PDF.\n' + (e.message || ''));
+  }).then(function() {
+    LEIT.pdfRendering = false;
+    if (LEIT.pdfPendingPage) {
+      var pending = LEIT.pdfPendingPage; LEIT.pdfPendingPage = 0;
+      if (pending !== LEIT.pdfPage) _leitRenderPdfPage(pending);
+    }
+  });
 }
 
 // ── Timer ──────────────────────────────────────────────────────
@@ -7996,8 +8192,11 @@ function _leitCleanup() {
   _leitTimerStop();
   if (LEIT.epubRendition) { try { LEIT.epubRendition.destroy(); } catch(e) {} LEIT.epubRendition = null; }
   if (LEIT.epubBook)      { try { LEIT.epubBook.destroy(); }      catch(e) {} LEIT.epubBook = null; }
+  if (LEIT.pdfDoc)       { try { LEIT.pdfDoc.destroy(); }         catch(e) {} LEIT.pdfDoc = null; }
+  LEIT.pdfPage = 0; LEIT.pdfBookId = ''; LEIT.pdfRendering = false; LEIT.pdfPendingPage = 0;
+  if (LEIT.objectUrl)     { try { URL.revokeObjectURL(LEIT.objectUrl); } catch(e) {} LEIT.objectUrl = ''; }
   var container = document.getElementById('leitEpubContainer');
-  if (container) container.innerHTML = '';
+  if (container) { container.innerHTML = ''; container.style.overflow = ''; container.style.background = ''; }
   var err = document.getElementById('leitErrorBox');
   if (err) err.classList.add('hidden');
   // restore nav arrows / tap zones
@@ -8011,6 +8210,8 @@ function _leitCleanup() {
 
 <!-- ═══ LEITURA OVERLAY ════════════════════════════════════════ -->
 <div id="leituraOverlay" class="leit-overlay">
+
+  <button class="uc-page-fab uc-page-fab--reading" type="button" onclick="ucOpenManager('reading')" title="Personalizar leitura" aria-label="Personalizar leitura">⚙</button>
 
   <!-- Header -->
   <div class="leit-header">
@@ -8030,6 +8231,7 @@ function _leitCleanup() {
     <div class="leit-library-body">
       <div class="leit-library-heading">Sua Biblioteca</div>
       <div class="leit-library-sub">Escolha um livro para começar</div>
+      <button class="uc-library-action" type="button" onclick="ucOpenManager('reading')">＋ Adicionar livro privado</button>
 
       <!-- Botão Sala de Leitura (sempre visível no topo, redireciona p/ Zoom/Jitsi configurado no admin) -->
       <button class="sala-leitura-btn" id="salaLeituraBtn" type="button" onclick="_leitOpenSala()">
@@ -13327,9 +13529,17 @@ function _medFrasesAtivas() {
 function _leitLivrosVisiveis() {
   var todos = (typeof LIVROS_DATA !== 'undefined' ? LIVROS_DATA : []);
   var ocultos = (PREFS.leitura && PREFS.leitura.livrosOcultos) || [];
-  if (!ocultos.length) return todos;
-  var out = todos.filter(function (l) { return ocultos.indexOf(l.id) < 0; });
-  return out.length ? out : todos;
+  var oficiais = ocultos.length ? todos.filter(function (l) { return ocultos.indexOf(l.id) < 0; }) : todos.slice();
+  if (!oficiais.length) oficiais = todos.slice();
+  var pessoais = ((window.UC && UC.items.reading) || []).filter(function(item) { return item.enabled; }).map(function(item) {
+    return {
+      id: 'uc:' + item.id, ucId: item.id, titulo: item.title, autor: item.author || 'Autor não informado',
+      formato: item.type, fileId: '', emoji: item.type === 'pdf' ? '📄' : '📘', cover: '',
+      hasPrivateCover: String(item.thumbnail || '').indexOf('private-cover://') === 0,
+      favorite: item.favorite, origin: item.origin
+    };
+  });
+  return oficiais.concat(pessoais);
 }
 
 
@@ -14658,6 +14868,741 @@ async function fcAvaliar(q, botao) {
     toast('Erro: ' + e.message, 'error');
     if (botao) botao.disabled = false;
   }
+}
+</script>
+
+<!-- Conteúdo privado — gerenciador compartilhado -->
+<div class="uc-manager" id="ucManager" hidden onclick="ucBackdropClose(event)">
+  <section class="uc-panel" role="dialog" aria-modal="true" aria-labelledby="ucManagerTitle">
+    <header class="uc-panel-head">
+      <div><h2 id="ucManagerTitle">Personalizar experiência</h2><p id="ucManagerSub">Seu conteúdo é privado por padrão</p></div>
+      <button class="uc-close" type="button" onclick="ucCloseManager()" aria-label="Fechar">✕</button>
+    </header>
+    <div class="uc-panel-body" id="ucManagerBody"></div>
+  </section>
+</div>
+
+<!-- Player sempre visível: o app não oculta nem extrai a mídia do YouTube -->
+<aside class="uc-youtube-player" id="ucYoutubePlayer" hidden aria-label="Player do YouTube">
+  <div class="uc-yt-head" id="ucYoutubeDragHandle" title="Arraste para posicionar">
+    <div class="uc-yt-title-wrap"><b id="ucYoutubeTitle">YouTube</b><small id="ucYoutubeChannel"></small></div>
+    <div class="uc-yt-actions">
+      <button class="uc-yt-btn" id="ucYoutubeCompactBtn" type="button" onclick="ucToggleYoutubeCompact()" aria-label="Minimizar player" title="Minimizar">−</button>
+      <button class="uc-yt-btn" type="button" onclick="ucResetYoutubePosition()" aria-label="Restaurar posição" title="Restaurar posição">↺</button>
+      <button class="uc-yt-btn" type="button" onclick="ucCloseYoutubePlayer()" aria-label="Fechar" title="Fechar">✕</button>
+    </div>
+  </div>
+  <div class="uc-yt-frame" id="ucYoutubeFrame"></div>
+  <div class="uc-yt-controls">
+    <button class="uc-yt-btn" type="button" onclick="ucYoutubeSkip('audio',-10)" aria-label="Voltar 10 segundos" title="Voltar 10 segundos">−10</button>
+    <button class="uc-yt-btn main" id="ucYoutubePlayBtn" type="button" onclick="ucYoutubeTogglePlayback('audio')" aria-label="Pausar ou reproduzir">⏸</button>
+    <button class="uc-yt-btn" type="button" onclick="ucYoutubeSkip('audio',10)" aria-label="Avançar 10 segundos" title="Avançar 10 segundos">+10</button>
+  </div>
+  <div class="uc-yt-info" id="ucYoutubeInfo"></div>
+</aside>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONTEÚDO PRIVADO DO ALUNO — UI compartilhada
+// ════════════════════════════════════════════════════════════
+var UC = window.UC = {
+  items: { meditation: [], reading: [], audio: [] },
+  loaded: { meditation: false, reading: false, audio: false },
+  covers: {}, module: '', preview: null, busy: false
+};
+
+function ucModuleLabel(module) {
+  return module === 'meditation' ? 'meditação' : module === 'reading' ? 'leitura' : 'áudios';
+}
+
+// Evita que qualquer ação nova deixe a interface presa em loading quando a
+// rede/GAS não conclui a requisição. A RPC original continua centralizando
+// autenticação e diagnóstico; esta camada apenas impõe um prazo para a UX.
+function ucRpc(action, data, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    var settled = false;
+    var timer = setTimeout(function() {
+      if (settled) return;
+      settled = true;
+      reject(new Error('A operação demorou demais. Verifique sua conexão e tente novamente.'));
+    }, Number(timeoutMs || 30000));
+    rpc(action, data).then(function(result) {
+      if (settled) return;
+      settled = true; clearTimeout(timer); resolve(result);
+    }).catch(function(error) {
+      if (settled) return;
+      settled = true; clearTimeout(timer); reject(error);
+    });
+  });
+}
+
+function ucLoad(module, force) {
+  if (!force && UC.loaded[module]) return Promise.resolve(UC.items[module] || []);
+  return ucRpc('getUserContent', { module: module }).then(function(r) {
+    if (r && r.ok) {
+      UC.items[module] = r.data || [];
+      UC.loaded[module] = true;
+      if (module === 'meditation' && typeof ucApplyMeditationSelection === 'function') ucApplyMeditationSelection();
+    }
+    return UC.items[module] || [];
+  }).catch(function() { return UC.items[module] || []; });
+}
+
+function ucFind(module, id) {
+  return (UC.items[module] || []).find(function(item) { return String(item.id) === String(id); }) || null;
+}
+
+function ucDuration(seconds) {
+  seconds = Number(seconds || 0);
+  if (!seconds) return '';
+  var h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = Math.floor(seconds % 60);
+  return (h ? h + ':' + String(m).padStart(2, '0') : m) + ':' + String(s).padStart(2, '0');
+}
+
+function ucRenderAudioShelf(items) {
+  var active = (items || []).filter(function(item) { return item.enabled && item.source === 'youtube'; });
+  var html = '<section class="uc-personal-shelf"><div class="uc-personal-top"><div><h3>Conteúdo personalizado</h3><div style="font-size:10px;color:var(--muted);margin-top:3px">Seus itens privados e conteúdos globais aprovados</div></div>' +
+    '<div><button class="uc-random-btn" type="button" onclick="ucRandom(\'audio\')">🎲 Aleatório</button></div></div>';
+  if (!active.length) {
+    html += '<div class="uc-empty">Você ainda não adicionou áudios do YouTube.<br><button class="uc-secondary" style="margin-top:10px" onclick="ucOpenManager(\'audio\')">Adicionar agora</button></div></section>';
+    return html;
+  }
+  active.forEach(function(item) {
+    var origin = item.origin === 'global' ? 'global' : '';
+    html += '<article class="uc-audio-card" onclick="ucPlayYouTubeItem(\'' + item.id + '\',\'audio\')">' +
+      '<img class="uc-audio-thumb" src="' + escH(item.thumbnail || ('https://i.ytimg.com/vi/' + (item.metadata.videoId || '') + '/hqdefault.jpg')) + '" alt="">' +
+      '<div><div class="uc-audio-title">' + escH(item.title) + '</div><div class="uc-audio-meta"><span class="uc-origin-pill ' + origin + '">' + (origin ? 'Global' : 'Meu conteúdo') + '</span>' + escH(item.author || '') + (item.duration ? ' · ' + ucDuration(item.duration) : '') + '</div></div>' +
+      (item.isOwner ? '<button class="uc-star-btn" type="button" onclick="event.stopPropagation();ucToggle(\'audio\',\'' + item.id + '\',\'favorite\')" aria-label="Favoritar">' + (item.favorite ? '★' : '☆') + '</button>' : '') +
+      '</article>';
+  });
+  return html + '</section>';
+}
+
+function ucOpenManager(module) {
+  UC.module = module; UC.preview = null;
+  var modal = document.getElementById('ucManager');
+  var title = document.getElementById('ucManagerTitle');
+  var sub = document.getElementById('ucManagerSub');
+  if (title) title.textContent = 'Personalizar ' + ucModuleLabel(module);
+  if (sub) sub.textContent = 'Seu conteúdo é privado por padrão e não aparece para outros alunos';
+  if (modal) modal.hidden = false;
+  var body = document.getElementById('ucManagerBody');
+  if (body) body.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  ucLoad(module, true).then(ucRenderManager);
+}
+
+function ucCloseManager() { var modal = document.getElementById('ucManager'); if (modal) modal.hidden = true; }
+function ucBackdropClose(event) { if (event.target && event.target.id === 'ucManager') ucCloseManager(); }
+
+function ucRenderManager() {
+  var module = UC.module, body = document.getElementById('ucManagerBody');
+  if (!body) return;
+  var addHtml = '';
+  if (module === 'reading') {
+    addHtml = '<div class="uc-add-box"><h3>Adicionar PDF ou EPUB</h3>' +
+      '<div class="uc-form-grid"><label class="uc-field"><span>Título *</span><input class="uc-input" id="ucBookTitle" maxlength="180" placeholder="Nome do livro"></label><label class="uc-field"><span>Autor</span><input class="uc-input" id="ucBookAuthor" maxlength="120" placeholder="Opcional"></label></div>' +
+      '<label class="uc-field"><span>Arquivo do livro * · máximo real de 5 MB</span><input class="uc-input" id="ucBookFile" type="file" accept=".pdf,.epub,application/pdf,application/epub+zip"></label>' +
+      '<label class="uc-field"><span>Capa opcional · PNG, JPG ou WebP · até 1 MB</span><input class="uc-input" id="ucBookCover" type="file" accept="image/png,image/jpeg,image/webp"></label>' +
+      '<button class="uc-primary" id="ucUploadBtn" type="button" onclick="ucUploadBook()">Adicionar à biblioteca</button>' +
+      '<div class="uc-limit-note">O arquivo fica em armazenamento privado. Ele só é entregue após o servidor validar sua sessão e a propriedade do conteúdo.</div></div>';
+  } else {
+    addHtml = '<div class="uc-add-box"><h3>Adicionar link público do YouTube</h3>' +
+      '<label class="uc-field"><span>URL do vídeo *</span><input class="uc-input" id="ucYoutubeUrl" type="url" maxlength="500" placeholder="https://www.youtube.com/watch?v=..."></label>' +
+      '<button class="uc-secondary" id="ucPreviewBtn" type="button" onclick="ucPreviewYouTube()">Validar e buscar dados</button>' +
+      '<div id="ucPreviewResult"></div><div class="uc-limit-note">A reprodução usa o player oficial e visível do YouTube. O app não baixa, extrai nem toca o vídeo oculto em segundo plano.</div></div>';
+  }
+
+  var own = (UC.items[module] || []).filter(function(item) { return item.isOwner; });
+  var shared = (UC.items[module] || []).filter(function(item) { return !item.isOwner; });
+  var list = '<div class="uc-list-title"><span>Meu conteúdo (' + own.length + ')</span>' +
+    (own.length ? '<button class="uc-random-btn" onclick="ucRandom(\'' + module + '\')">🎲 Sortear ativos</button>' : '') + '</div>';
+  if (!own.length) list += '<div class="uc-empty">Nada adicionado nesta experiência.</div>';
+  own.forEach(function(item, index) { list += ucManagerItem(item, index, own.length); });
+  if (shared.length) {
+    list += '<div class="uc-list-title" style="margin-top:18px"><span>Conteúdo global aprovado</span></div>';
+    shared.forEach(function(item) { list += ucManagerItem(item, -1, shared.length); });
+  }
+  body.innerHTML = addHtml + list;
+}
+
+function ucManagerItem(item, index, total) {
+  var isVideo = item.source === 'youtube';
+  var thumb = isVideo ? '<img class="uc-item-thumb" src="' + escH(item.thumbnail || '') + '" alt="">' : '<div class="uc-item-thumb" style="display:flex;align-items:center;justify-content:center;font-size:22px">' + (item.type === 'pdf' ? '📄' : '📘') + '</div>';
+  var visibility = item.visibility === 'global' ? 'Global aprovado' : item.visibility === 'approved' ? 'Aguardando publicação' : 'Privado';
+  var html = '<div class="uc-item">' +
+    '<div class="uc-item-main">' + thumb + '<div class="uc-item-info"><div class="uc-item-title">' + escH(item.title) + '</div><div class="uc-item-sub">' + escH(item.author || 'Sem autor') + ' · ' + visibility + (item.fileSize ? ' · ' + (item.fileSize / 1024 / 1024).toFixed(1) + ' MB' : '') + '</div></div></div>';
+  if (item.isOwner) {
+    html += '<div class="uc-item-actions">' +
+      '<button class="uc-mini ' + (item.favorite ? 'on' : '') + '" onclick="ucToggle(\'' + item.module + '\',\'' + item.id + '\',\'favorite\')">' + (item.favorite ? '★ Favorito' : '☆ Favoritar') + '</button>' +
+      '<button class="uc-mini ' + (item.enabled ? 'on' : '') + '" onclick="ucToggle(\'' + item.module + '\',\'' + item.id + '\',\'enabled\')">' + (item.enabled ? '✓ Ativo' : 'Inativo') + '</button>' +
+      '<button class="uc-mini ' + (item.randomEnabled ? 'on' : '') + '" onclick="ucToggle(\'' + item.module + '\',\'' + item.id + '\',\'randomEnabled\')">🎲 No aleatório</button>' +
+      (index > 0 ? '<button class="uc-mini" onclick="ucMove(\'' + item.module + '\',\'' + item.id + '\',-1)">↑</button>' : '') +
+      (index >= 0 && index < total - 1 ? '<button class="uc-mini" onclick="ucMove(\'' + item.module + '\',\'' + item.id + '\',1)">↓</button>' : '') +
+      '<button class="uc-mini" onclick="ucEdit(\'' + item.module + '\',\'' + item.id + '\')">Editar</button>' +
+      (item.module === 'meditation' ? '<button class="uc-mini on" onclick="ucUseMeditation(\'' + item.id + '\')">Usar agora</button>' : '') +
+      (item.source === 'youtube' ? '<button class="uc-mini on" onclick="ucPlayYouTubeItem(\'' + item.id + '\',\'' + item.module + '\')">▶ Tocar</button>' : '') +
+      '<button class="uc-mini danger" onclick="ucDelete(\'' + item.module + '\',\'' + item.id + '\')">Excluir</button></div>';
+  } else if (item.source === 'youtube') {
+    html += '<div class="uc-item-actions">' +
+      (item.module === 'meditation'
+        ? '<button class="uc-mini on" onclick="ucUseMeditation(\'' + item.id + '\')">Usar agora</button>'
+        : '<button class="uc-mini on" onclick="ucPlayYouTubeItem(\'' + item.id + '\',\'' + item.module + '\')">▶ Tocar</button>') +
+      '</div>';
+  }
+  return html + '</div>';
+}
+
+async function ucPreviewYouTube() {
+  var input = document.getElementById('ucYoutubeUrl'), button = document.getElementById('ucPreviewBtn'), result = document.getElementById('ucPreviewResult');
+  var url = input ? input.value.trim() : '';
+  if (!url) { toast('Cole uma URL do YouTube.', 'error'); return; }
+  if (button) { button.disabled = true; button.textContent = 'Validando…'; }
+  if (result) result.innerHTML = '';
+  try {
+    var r = await ucRpc('previewUserContentUrl', { module: UC.module, url: url });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'URL inválida.');
+    UC.preview = { url: url, data: r.data };
+    var d = r.data || {};
+    if (result) result.innerHTML = '<div class="uc-preview"><img src="' + escH(d.thumbnail || '') + '" alt=""><div><b>' + escH(d.title || '') + '</b><small>' + escH(d.author || '') + (d.duration ? ' · ' + ucDuration(d.duration) : '') + '</small><button class="uc-primary" id="ucSaveYoutubeBtn" type="button" onclick="ucSaveYouTube()">Adicionar ao meu conteúdo</button></div></div>';
+  } catch (e) { toast(e.message || 'Não foi possível validar.', 'error'); }
+  finally { if (button) { button.disabled = false; button.textContent = 'Validar e buscar dados'; } }
+}
+
+async function ucSaveYouTube() {
+  if (!UC.preview || UC.busy) return;
+  var button = document.getElementById('ucSaveYoutubeBtn');
+  UC.busy = true;
+  if (button) { button.disabled = true; button.textContent = 'Salvando…'; }
+  try {
+    var r = await ucRpc('createUserContentFromYouTube', { module: UC.module, url: UC.preview.url });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao adicionar.');
+    toast('Conteúdo privado adicionado.', 'success');
+    UC.preview = null;
+    await ucReloadCurrent();
+  } catch (e) { toast(e.message || 'Erro ao adicionar.', 'error'); }
+  finally {
+    UC.busy = false;
+    if (button && button.isConnected) { button.disabled = false; button.textContent = 'Adicionar ao meu conteúdo'; }
+  }
+}
+
+function ucReadFile(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function() { resolve(reader.result); };
+    reader.onerror = function() { reject(new Error('Não foi possível ler o arquivo.')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function ucUploadBook() {
+  if (UC.busy) return;
+  var title = (document.getElementById('ucBookTitle') || {}).value || '';
+  var author = (document.getElementById('ucBookAuthor') || {}).value || '';
+  var file = ((document.getElementById('ucBookFile') || {}).files || [])[0];
+  var cover = ((document.getElementById('ucBookCover') || {}).files || [])[0];
+  if (!title.trim() || !file) { toast('Informe o título e selecione o livro.', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { toast('O livro excede o limite de 5 MB.', 'error'); return; }
+  if (cover && cover.size > 1024 * 1024) { toast('A capa excede o limite de 1 MB.', 'error'); return; }
+  var ext = (file.name.split('.').pop() || '').toLowerCase();
+  if (['pdf','epub'].indexOf(ext) < 0) { toast('Use um arquivo PDF ou EPUB.', 'error'); return; }
+  var button = document.getElementById('ucUploadBtn');
+  UC.busy = true; if (button) { button.disabled = true; button.textContent = 'Validando e enviando…'; }
+  try {
+    var reads = [ucReadFile(file)]; if (cover) reads.push(ucReadFile(cover));
+    var dataUrls = await Promise.all(reads);
+    var payload = { module: 'reading', title: title.trim(), author: author.trim(), fileBase64: dataUrls[0], fileName: file.name, mimeType: file.type || (ext === 'pdf' ? 'application/pdf' : 'application/epub+zip') };
+    if (cover) { payload.coverBase64 = dataUrls[1]; payload.coverName = cover.name; payload.coverMimeType = cover.type; }
+    var r = await ucRpc('uploadUserContent', payload, 45000);
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Upload recusado.');
+    toast('Livro salvo na sua biblioteca privada.', 'success');
+    await ucReloadCurrent();
+  } catch (e) { toast(e.message || 'Erro no upload.', 'error'); }
+  finally { UC.busy = false; if (button) { button.disabled = false; button.textContent = 'Adicionar à biblioteca'; } }
+}
+
+async function ucToggle(module, id, field) {
+  UC.module = module;
+  var item = ucFind(module, id); if (!item || !item.isOwner) return;
+  var updates = {}; updates[field] = !item[field];
+  try {
+    var r = await ucRpc('updateUserContent', { id: id, updates: updates });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao atualizar.');
+    await ucReloadCurrent();
+  } catch (e) { toast(e.message || 'Erro ao atualizar.', 'error'); }
+}
+
+async function ucEdit(module, id) {
+  UC.module = module;
+  var item = ucFind(module, id); if (!item || !item.isOwner) return;
+  _showModal({
+    title: 'Editar conteúdo', icon: '✎',
+    body: '<label class="uc-field"><span>Título *</span><input class="uc-input" id="ucEditTitle" maxlength="180" value="' + escH(item.title || '') + '"></label>' +
+      '<label class="uc-field"><span>' + (module === 'reading' ? 'Autor' : 'Canal/autor') + '</span><input class="uc-input" id="ucEditAuthor" maxlength="120" value="' + escH(item.author || '') + '"></label>',
+    secondary: { label: 'Cancelar' },
+    primary: { label: 'Salvar', action: function() { ucSubmitEdit(module, id); } }
+  });
+}
+
+async function ucSubmitEdit(module, id) {
+  var titleEl = document.getElementById('ucEditTitle'), authorEl = document.getElementById('ucEditAuthor');
+  var title = titleEl ? titleEl.value.trim() : '';
+  var author = authorEl ? authorEl.value.trim() : '';
+  if (!title) { toast('O título não pode ficar vazio.', 'error'); return; }
+  try {
+    var r = await ucRpc('updateUserContent', { id: id, updates: { title: title, author: author } });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao editar.');
+    toast('Conteúdo atualizado.', 'success'); await ucReloadCurrent();
+  } catch (e) { toast(e.message || 'Erro ao editar.', 'error'); }
+}
+
+async function ucDelete(module, id) {
+  UC.module = module;
+  var item = ucFind(module, id); if (!item || !item.isOwner) return;
+  var confirmed = await muConfirmar('Excluir conteúdo?', '“' + item.title + '” e seu arquivo privado serão removidos.', 'Excluir');
+  if (!confirmed) return;
+  try {
+    var r = await ucRpc('deleteUserContent', { id: id });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao excluir.');
+    toast('Conteúdo excluído.', 'success'); await ucReloadCurrent();
+  } catch (e) { toast(e.message || 'Erro ao excluir.', 'error'); }
+}
+
+async function ucMove(module, id, direction) {
+  UC.module = module;
+  var own = (UC.items[module] || []).filter(function(item) { return item.isOwner; });
+  var index = own.findIndex(function(item) { return item.id === id; });
+  var target = index + Number(direction || 0);
+  if (index < 0 || target < 0 || target >= own.length) return;
+  var swap = own[index]; own[index] = own[target]; own[target] = swap;
+  try {
+    var r = await ucRpc('reorderUserContent', { module: module, ids: own.map(function(item) { return item.id; }) });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao ordenar.');
+    await ucReloadCurrent();
+  } catch (e) { toast(e.message || 'Erro ao ordenar.', 'error'); }
+}
+
+async function ucReloadCurrent() {
+  await ucLoad(UC.module, true);
+  ucRenderManager();
+  if (UC.module === 'reading' && document.getElementById('leituraOverlay').classList.contains('active')) _leitRenderLibrary();
+  if (UC.module === 'audio' && APP.page === 'audios') renderAudios();
+}
+
+function ucRandom(module) {
+  var pool;
+  if (module === 'meditation') pool = _medAvailableAudios().filter(function(item) { return item.origin === 'official' || item.randomEnabled; });
+  else if (module === 'reading') pool = _leitLivrosVisiveis().filter(function(item) { return !item.ucId || (ucFind('reading', item.ucId) || {}).randomEnabled; });
+  else {
+    var currentDay = Number((APP.data && APP.data.diaAtual) || 1);
+    var officialAudio = (window._audiosListCache || []).filter(function(item) {
+      return Number(item.dia || 0) <= currentDay && item.url && String(item.url).trim();
+    }).map(function(item) {
+      return { id: 'official:' + item.dia, dia: item.dia, title: item.titulo || ('Áudio Dia ' + item.dia), origin: 'official' };
+    });
+    var personalAudio = (UC.items.audio || []).filter(function(item) { return item.enabled && item.randomEnabled && item.source === 'youtube'; });
+    pool = officialAudio.concat(personalAudio);
+  }
+  if (!pool.length) { toast('Nenhum conteúdo ativo no modo aleatório.', 'info'); return; }
+  var selected = pool[Math.floor(Math.random() * pool.length)];
+  if (module === 'meditation') {
+    var all = _medAvailableAudios();
+    MED.audioIdx = all.findIndex(function(item) {
+      return selected.ucId ? item.ucId === selected.ucId : item.fileId === selected.fileId;
+    });
+    if (MED.audioIdx < 0) MED.audioIdx = 0;
+    toast('Ambiente sorteado: ' + selected.name, 'success');
+    if (MED.screen === 4) _medAudioPlay(MED.audioIdx, true);
+  } else if (module === 'reading') { ucCloseManager(); _leitSelectBook(selected.id); }
+  else if (selected.origin === 'official') { ucCloseManager(); initAudioPlayerByDia(selected.dia); }
+  else { ucCloseManager(); ucPlayYouTubeItem(selected.id, 'audio'); }
+}
+
+function ucUseMeditation(id) {
+  var all = _medAvailableAudios(), index = all.findIndex(function(item) { return item.ucId === id; });
+  if (index < 0) return;
+  MED.audioIdx = index;
+  try { localStorage.setItem('uc_med_selected_' + (APP.userEmail || 'anon'), id); } catch (_e) {}
+  ucCloseManager(); toast('Ambiente selecionado: ' + all[index].name, 'success');
+  if (MED.screen === 4) _medAudioPlay(index, true);
+}
+
+function ucApplyMeditationSelection() {
+  var id = '';
+  try { id = localStorage.getItem('uc_med_selected_' + (APP.userEmail || 'anon')) || ''; } catch (_e) {}
+  if (!id) return;
+  var all = _medAvailableAudios();
+  var index = all.findIndex(function(item) { return item.ucId === id; });
+  if (index >= 0) MED.audioIdx = index;
+}
+
+function _medAvailableAudios() {
+  var official = (MED_AUDIOS || []).filter(function(item) { return item.fileId && String(item.fileId).trim(); }).map(function(item) {
+    return { name: item.name, fileId: item.fileId, source: 'drive', origin: 'official', randomEnabled: true };
+  });
+  var personal = ((UC.items && UC.items.meditation) || []).filter(function(item) { return item.enabled && item.source === 'youtube'; }).map(function(item) {
+    return { name: item.title, source: 'youtube', videoId: item.metadata.videoId, ucId: item.id, origin: item.origin, randomEnabled: item.randomEnabled, item: item };
+  });
+  return official.concat(personal);
+}
+
+var UC_YT = window.UC_YT = {
+  apiPromise: null, seq: 0,
+  audioPlayer: null, medPlayer: null,
+  audioReady: false, medReady: false,
+  audioPlaying: false, medPlaying: false
+};
+
+function _ucYoutubeCommand(iframe, command, args) {
+  if (!iframe || !iframe.contentWindow) return;
+  try { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: command, args: args || [] }), 'https://www.youtube.com'); } catch (_e) {}
+}
+
+function ucEnsureYoutubeApi() {
+  if (window.YT && typeof window.YT.Player === 'function') return Promise.resolve(window.YT);
+  if (UC_YT.apiPromise) return UC_YT.apiPromise;
+  UC_YT.apiPromise = new Promise(function(resolve, reject) {
+    var finished = false;
+    var previousReady = window.onYouTubeIframeAPIReady;
+    function done() {
+      if (finished || !(window.YT && typeof window.YT.Player === 'function')) return;
+      finished = true; clearInterval(checker); clearTimeout(timeout); resolve(window.YT);
+    }
+    window.onYouTubeIframeAPIReady = function() {
+      try { if (typeof previousReady === 'function') previousReady(); } catch (_e) {}
+      done();
+    };
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      var script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api'; script.async = true;
+      script.onerror = function() {
+        if (!finished) {
+          finished = true; clearInterval(checker); clearTimeout(timeout);
+          UC_YT.apiPromise = null;
+          reject(new Error('API do YouTube indisponível.'));
+        }
+      };
+      document.head.appendChild(script);
+    }
+    var checker = setInterval(done, 120);
+    var timeout = setTimeout(function() {
+      if (finished) return;
+      finished = true; clearInterval(checker); UC_YT.apiPromise = null;
+      reject(new Error('O player do YouTube demorou para responder.'));
+    }, 12000);
+  });
+  return UC_YT.apiPromise;
+}
+
+function ucYoutubeSyncButton(scope, playing) {
+  UC_YT[scope + 'Playing'] = !!playing;
+  var id = scope === 'med' ? 'medYoutubePlayBtn' : 'ucYoutubePlayBtn';
+  var button = document.getElementById(id);
+  if (button) button.textContent = playing ? '⏸' : '▶';
+}
+
+function ucDestroyYoutubeEngine(scope) {
+  var key = scope + 'Player';
+  var player = UC_YT[key];
+  if (player && typeof player.destroy === 'function') { try { player.destroy(); } catch (_e) {} }
+  UC_YT[key] = null; UC_YT[scope + 'Ready'] = false; UC_YT[scope + 'Playing'] = false;
+}
+
+function ucMountYoutubePlayer(scope, mountId, videoId, options) {
+  options = options || {};
+  ucDestroyYoutubeEngine(scope);
+  UC_YT[scope + 'Ready'] = false;
+  return ucEnsureYoutubeApi().then(function(YT) {
+    var vars = {
+      autoplay: 1, controls: 1, playsinline: 1, enablejsapi: 1,
+      cc_load_policy: 1, rel: 0, origin: location.origin
+    };
+    if (options.loop) { vars.loop = 1; vars.playlist = videoId; }
+    var engine = new YT.Player(mountId, {
+      width: '100%', height: '100%', videoId: videoId, playerVars: vars,
+      events: {
+        onReady: function(event) {
+          UC_YT[scope + 'Ready'] = true;
+          var iframe = event.target.getIframe();
+          if (iframe) { iframe.referrerPolicy = 'strict-origin-when-cross-origin'; iframe.title = options.title || 'YouTube'; }
+          if (scope === 'med') MED.youtubeIframe = iframe;
+          try { event.target.playVideo(); } catch (_e) {}
+          ucYoutubeSyncButton(scope, true);
+          if (options.onReady) options.onReady(event.target);
+        },
+        onStateChange: function(event) {
+          ucYoutubeSyncButton(scope, event.data === YT.PlayerState.PLAYING);
+        },
+        onError: function() {
+          UC_YT[scope + 'Ready'] = false;
+          toast('O YouTube não permitiu reproduzir este vídeo.', 'error');
+        }
+      }
+    });
+    UC_YT[scope + 'Player'] = engine;
+    return engine;
+  });
+}
+
+function ucYoutubeFallback(scope, mountId, videoId, title, loop) {
+  var mount = document.getElementById(mountId);
+  if (!mount) return;
+  var src = 'https://www.youtube.com/embed/' + encodeURIComponent(videoId) + '?autoplay=1&controls=1&playsinline=1&enablejsapi=1&cc_load_policy=1&origin=' + encodeURIComponent(location.origin);
+  if (loop) src += '&loop=1&playlist=' + encodeURIComponent(videoId);
+  mount.innerHTML = '<iframe src="' + src + '" title="' + escH(title || 'YouTube') + '" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+  var iframe = mount.querySelector('iframe');
+  if (scope === 'med') MED.youtubeIframe = iframe;
+  UC_YT[scope + 'Playing'] = true;
+  ucYoutubeSyncButton(scope, true);
+}
+
+function ucResetYoutubeMount(frame, mountId) {
+  if (!frame) return null;
+  frame.innerHTML = '<div id="' + mountId + '"></div>';
+  return document.getElementById(mountId);
+}
+
+function ucYoutubeTogglePlayback(scope) {
+  var player = UC_YT[scope + 'Player'];
+  if (player && UC_YT[scope + 'Ready']) {
+    try {
+      var playing = player.getPlayerState() === window.YT.PlayerState.PLAYING;
+      if (playing) player.pauseVideo(); else player.playVideo();
+      ucYoutubeSyncButton(scope, !playing);
+      return;
+    } catch (_e) {}
+  }
+  var iframe = scope === 'med' ? MED.youtubeIframe : document.querySelector('#ucYoutubeFrame iframe');
+  var nextPlaying = !UC_YT[scope + 'Playing'];
+  _ucYoutubeCommand(iframe, nextPlaying ? 'playVideo' : 'pauseVideo');
+  ucYoutubeSyncButton(scope, nextPlaying);
+}
+
+function ucYoutubeSkip(scope, seconds) {
+  var player = UC_YT[scope + 'Player'];
+  if (!player || !UC_YT[scope + 'Ready']) { toast('Aguarde o player ficar pronto.', 'info'); return; }
+  try {
+    var current = Number(player.getCurrentTime() || 0);
+    var duration = Number(player.getDuration() || 0);
+    var target = Math.max(0, current + Number(seconds || 0));
+    if (duration) target = Math.min(duration, target);
+    player.seekTo(target, true);
+  } catch (_e) { toast('Não foi possível alterar a posição.', 'error'); }
+}
+
+function ucClampFloatingPlayer(element) {
+  if (!element || element.hidden) return;
+  var rect = element.getBoundingClientRect();
+  var left = Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8));
+  var top = Math.max(8, Math.min(rect.top, window.innerHeight - rect.height - 8));
+  element.style.left = left + 'px'; element.style.top = top + 'px';
+  element.style.right = 'auto'; element.style.bottom = 'auto';
+}
+
+function ucMakeFloatingDraggable(element, storageKey, compactOnly) {
+  if (!element || element._ucDragReady) return;
+  element._ucDragReady = true;
+  var active = false, moved = false, pointerId = null, sx = 0, sy = 0, dx = 0, dy = 0;
+  function restore() {
+    if (compactOnly && !element.classList.contains('is-compact')) return;
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem(storageKey) || 'null'); } catch (_e) {}
+    if (!saved || !isFinite(saved.left) || !isFinite(saved.top)) return;
+    element.style.left = Number(saved.left) + 'px'; element.style.top = Number(saved.top) + 'px';
+    element.style.right = 'auto'; element.style.bottom = 'auto';
+    requestAnimationFrame(function() { ucClampFloatingPlayer(element); });
+  }
+  function down(event) {
+    if (compactOnly && !element.classList.contains('is-compact')) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    if (event.target && event.target.closest && event.target.closest('button,iframe,a,input')) return;
+    var rect = element.getBoundingClientRect();
+    active = true; moved = false; pointerId = event.pointerId;
+    sx = event.clientX; sy = event.clientY; dx = sx - rect.left; dy = sy - rect.top;
+    element.style.left = rect.left + 'px'; element.style.top = rect.top + 'px';
+    element.style.right = 'auto'; element.style.bottom = 'auto';
+    element.classList.add('dragging');
+    var handle = element.querySelector('.uc-yt-head,.uc-med-yt-head'); if (handle) handle.classList.add('grabbing');
+    try { element.setPointerCapture(pointerId); } catch (_e) {}
+    event.preventDefault();
+  }
+  function move(event) {
+    if (!active || event.pointerId !== pointerId) return;
+    if (Math.abs(event.clientX - sx) > 3 || Math.abs(event.clientY - sy) > 3) moved = true;
+    var width = element.offsetWidth, height = element.offsetHeight;
+    var left = Math.max(8, Math.min(event.clientX - dx, window.innerWidth - width - 8));
+    var top = Math.max(8, Math.min(event.clientY - dy, window.innerHeight - height - 8));
+    element.style.left = left + 'px'; element.style.top = top + 'px';
+  }
+  function up(event) {
+    if (!active || event.pointerId !== pointerId) return;
+    active = false; element.classList.remove('dragging');
+    var handle = element.querySelector('.uc-yt-head,.uc-med-yt-head'); if (handle) handle.classList.remove('grabbing');
+    try { element.releasePointerCapture(pointerId); } catch (_e) {}
+    pointerId = null;
+    if (moved) {
+      try { localStorage.setItem(storageKey, JSON.stringify({ left: element.offsetLeft, top: element.offsetTop })); } catch (_e) {}
+    }
+  }
+  element.addEventListener('pointerdown', down);
+  element.addEventListener('pointermove', move);
+  element.addEventListener('pointerup', up);
+  element.addEventListener('pointercancel', up);
+  element._ucRestorePosition = restore;
+  window.addEventListener('resize', function() { if (!element.hidden) requestAnimationFrame(function() { ucClampFloatingPlayer(element); }); });
+  requestAnimationFrame(restore);
+}
+
+function ucSetYoutubeCompact(compact) {
+  var player = document.getElementById('ucYoutubePlayer'); if (!player) return;
+  player.classList.toggle('is-compact', !!compact);
+  var button = document.getElementById('ucYoutubeCompactBtn');
+  if (button) { button.textContent = compact ? '□' : '−'; button.title = compact ? 'Restaurar tamanho' : 'Minimizar'; button.setAttribute('aria-label', button.title); }
+  try { localStorage.setItem('d21_youtube_compact', compact ? '1' : '0'); } catch (_e) {}
+  requestAnimationFrame(function() { ucClampFloatingPlayer(player); });
+}
+
+function ucToggleYoutubeCompact() {
+  var player = document.getElementById('ucYoutubePlayer');
+  if (player) ucSetYoutubeCompact(!player.classList.contains('is-compact'));
+}
+
+function ucResetYoutubePosition() {
+  var player = document.getElementById('ucYoutubePlayer'); if (!player) return;
+  player.style.left = ''; player.style.top = ''; player.style.right = '12px'; player.style.bottom = '12px';
+  try { localStorage.removeItem('d21_youtube_player_pos'); } catch (_e) {}
+  toast('Posição do player restaurada.', 'info');
+}
+
+function ucSetMedYoutubeCompact(compact) {
+  var wrap = document.getElementById('medYoutubeWrap'); if (!wrap) return;
+  wrap.classList.toggle('is-compact', !!compact);
+  var button = document.getElementById('medYoutubeCompactBtn');
+  if (button) { button.textContent = compact ? '□' : '−'; button.title = compact ? 'Restaurar tamanho' : 'Minimizar'; button.setAttribute('aria-label', button.title); }
+  try { localStorage.setItem('d21_med_youtube_compact', compact ? '1' : '0'); } catch (_e) {}
+  if (!compact) { wrap.style.left = ''; wrap.style.top = ''; wrap.style.right = ''; wrap.style.bottom = ''; }
+  else requestAnimationFrame(function() { if (wrap._ucRestorePosition) wrap._ucRestorePosition(); else ucClampFloatingPlayer(wrap); });
+}
+
+function ucToggleMedYoutubeCompact() {
+  var wrap = document.getElementById('medYoutubeWrap');
+  if (wrap) ucSetMedYoutubeCompact(!wrap.classList.contains('is-compact'));
+}
+
+function ucResetMedYoutubePosition() {
+  var wrap = document.getElementById('medYoutubeWrap'); if (!wrap) return;
+  wrap.style.left = ''; wrap.style.top = ''; wrap.style.right = '12px'; wrap.style.bottom = '12px';
+  try { localStorage.removeItem('d21_med_youtube_player_pos'); } catch (_e) {}
+  toast('Posição do player restaurada.', 'info');
+}
+
+function _medPlayYoutubeAudio(audio) {
+  ucCloseYoutubePlayer();
+  var nativeAudio = document.getElementById('medAudio');
+  if (nativeAudio) { try { nativeAudio.pause(); nativeAudio.src = ''; } catch (_e) {} }
+  _medDestroyYoutube();
+  var wrap = document.getElementById('medYoutubeWrap'), dot = document.getElementById('medAudioDot'), name = document.getElementById('medAudioName');
+  if (!wrap || !audio.videoId) { MED.audioLoading = false; return; }
+  var originLabel = audio.origin === 'global' ? 'Global' : 'Meu conteúdo';
+  wrap.innerHTML =
+    '<div class="uc-med-yt-head" title="Arraste para posicionar">' +
+      '<div class="uc-med-yt-title">YouTube · ' + escH(audio.name) + '</div>' +
+      '<div class="uc-med-yt-actions"><button class="uc-med-yt-btn" id="medYoutubeCompactBtn" type="button" onclick="ucToggleMedYoutubeCompact()" title="Restaurar tamanho" aria-label="Restaurar tamanho">□</button>' +
+      '<button class="uc-med-yt-btn" type="button" onclick="ucResetMedYoutubePosition()" title="Restaurar posição" aria-label="Restaurar posição">↺</button></div>' +
+    '</div>' +
+    '<div class="uc-med-yt-frame"><div id="ucMedYoutubeMount"></div></div>' +
+    '<div class="uc-med-yt-controls"><button class="uc-med-yt-btn" type="button" onclick="ucYoutubeSkip(\'med\',-10)" aria-label="Voltar 10 segundos">−10</button>' +
+      '<button class="uc-med-yt-btn main" id="medYoutubePlayBtn" type="button" onclick="ucYoutubeTogglePlayback(\'med\')" aria-label="Pausar ou reproduzir">⏸</button>' +
+      '<button class="uc-med-yt-btn" type="button" onclick="ucYoutubeSkip(\'med\',10)" aria-label="Avançar 10 segundos">+10</button></div>';
+  wrap.hidden = false;
+  var compact = true;
+  try { compact = localStorage.getItem('d21_med_youtube_compact') !== '0'; } catch (_e) {}
+  ucSetMedYoutubeCompact(compact);
+  ucMakeFloatingDraggable(wrap, 'd21_med_youtube_player_pos', true);
+  MED.currentYoutube = audio; MED.audioLoading = true; MED.audioFading = false;
+  ucMountYoutubePlayer('med', 'ucMedYoutubeMount', audio.videoId, {
+    title: audio.name, loop: true,
+    onReady: function() {
+      MED.audioLoading = false;
+      if (dot) dot.classList.remove('loading');
+      if (name) name.textContent = '♫ ' + audio.name + ' · ' + originLabel;
+    }
+  }).catch(function() {
+    var medFrame = wrap.querySelector('.uc-med-yt-frame');
+    ucResetYoutubeMount(medFrame, 'ucMedYoutubeMount');
+    ucYoutubeFallback('med', 'ucMedYoutubeMount', audio.videoId, audio.name, true);
+    MED.audioLoading = false;
+    if (dot) dot.classList.remove('loading');
+    if (name) name.textContent = '♫ ' + audio.name + ' · ' + originLabel;
+  });
+}
+
+function _medDestroyYoutube() {
+  ucDestroyYoutubeEngine('med');
+  var wrap = document.getElementById('medYoutubeWrap');
+  if (wrap) { wrap.innerHTML = ''; wrap.hidden = true; wrap.classList.remove('is-compact','dragging'); wrap.style.left = ''; wrap.style.top = ''; wrap.style.right = ''; wrap.style.bottom = ''; }
+  MED.currentYoutube = null; MED.youtubeIframe = null;
+}
+
+function ucPlayYouTubeItem(id, module) {
+  var item = ucFind(module, id); if (!item || !item.metadata || !item.metadata.videoId) return;
+  if (module === 'meditation' && MED.screen === 4) { ucUseMeditation(id); return; }
+  if (typeof closeAudio === 'function') closeAudio();
+  var player = document.getElementById('ucYoutubePlayer'), frame = document.getElementById('ucYoutubeFrame');
+  document.getElementById('ucYoutubeTitle').textContent = item.title || 'YouTube';
+  document.getElementById('ucYoutubeChannel').textContent = (item.author || 'YouTube') + (item.duration ? ' · ' + ucDuration(item.duration) : '');
+  var transcript = item.metadata.transcriptStatus === 'captions_in_player'
+    ? 'Legendas disponíveis nos controles do YouTube. A transcrição textual não é copiada pelo app.'
+    : 'Transcrição indisponível para este conteúdo.';
+  var description = String(item.metadata.description || '').trim();
+  if (description.length > 360) description = description.slice(0, 357) + '…';
+  document.getElementById('ucYoutubeInfo').textContent = transcript + (description ? ' ' + description : '') + ' A reprodução pode parar ao bloquear a tela ou sair do navegador.';
+  UC_YT.seq++;
+  var mountId = 'ucYoutubeMount' + UC_YT.seq;
+  player.hidden = false;
+  frame.innerHTML = '<div id="' + mountId + '"></div>';
+  var compact = false;
+  try { compact = localStorage.getItem('d21_youtube_compact') === '1'; } catch (_e) {}
+  ucSetYoutubeCompact(compact);
+  ucMakeFloatingDraggable(player, 'd21_youtube_player_pos', false);
+  if (player._ucRestorePosition) requestAnimationFrame(player._ucRestorePosition);
+  ucMountYoutubePlayer('audio', mountId, item.metadata.videoId, { title: item.title }).catch(function() {
+    ucResetYoutubeMount(frame, mountId);
+    ucYoutubeFallback('audio', mountId, item.metadata.videoId, item.title, false);
+  });
+  ucCloseManager();
+}
+
+function ucCloseYoutubePlayer() {
+  ucDestroyYoutubeEngine('audio');
+  var player = document.getElementById('ucYoutubePlayer'), frame = document.getElementById('ucYoutubeFrame');
+  if (frame) frame.innerHTML = '';
+  if (player) player.hidden = true;
+}
+
+function ucHydrateCovers(root) {
+  if (!root) return;
+  root.querySelectorAll('[data-uc-cover]').forEach(function(img) {
+    var id = img.getAttribute('data-uc-cover');
+    function show(data) { img.src = data; img.style.display = 'block'; if (img.nextElementSibling) img.nextElementSibling.style.display = 'none'; }
+    if (UC.covers[id]) { show(UC.covers[id]); return; }
+    ucRpc('getUserContentCover', { id: id }, 45000).then(function(r) { if (r && r.ok && r.data) { UC.covers[id] = r.data; show(r.data); } }).catch(function(){});
+  });
+}
+
+function ucDataUrlToObjectUrl(dataUrl) {
+  var parts = String(dataUrl || '').split(','), header = parts[0] || '', b64 = parts[1] || '';
+  var mime = (header.match(/^data:([^;]+)/) || [,'application/octet-stream'])[1];
+  var binary = atob(b64), bytes = new Uint8Array(binary.length);
+  for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return URL.createObjectURL(new Blob([bytes], { type: mime }));
+}
+
+function ucDataUrlToBytes(dataUrl) {
+  var b64 = (String(dataUrl || '').split(',')[1] || '');
+  var binary = atob(b64), bytes = new Uint8Array(binary.length);
+  for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 </script>
 

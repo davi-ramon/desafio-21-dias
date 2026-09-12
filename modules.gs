@@ -224,6 +224,23 @@ function handleRequest(payload) {
     case 'getMeditacaoConfig':       return getMeditacaoConfig(token);
     case 'saveMeditacaoConfig':      return saveMeditacaoConfig(token, data);
 
+    // Conteudo privado do aluno — meditacao, leitura e audio
+    case 'getUserContent':                 return getUserContent(token, data.module);
+    case 'previewUserContentUrl':          return previewUserContentUrl(token, data);
+    case 'createUserContentFromYouTube':   return createUserContentFromYouTube(token, data);
+    case 'uploadUserContent':              return uploadUserContent(token, data);
+    case 'getUserContentFile':             return getUserContentFile(token, data.id);
+    case 'getUserContentCover':            return getUserContentCover(token, data.id);
+    case 'updateUserContent':              return updateUserContent(token, data.id, data.updates);
+    case 'reorderUserContent':             return reorderUserContent(token, data.module, data.ids);
+    case 'deleteUserContent':              return deleteUserContent(token, data.id);
+    case 'saveUserContentProgress':        return saveUserContentProgress(token, data.id, data.progress, data.lastPoint);
+    case 'getRandomUserContent':           return getRandomUserContent(token, data.module);
+    case 'getUserContentAdmin':            return getUserContentAdmin(token, data);
+    case 'setUserContentVisibility':       return setUserContentVisibility(token, data.id, data.visibility);
+    case 'setUserContentYouTubeApiKey':    return setUserContentYouTubeApiKey(token, data.apiKey);
+    case 'initUserContent':                return initUserContent(token);
+
     // Admin — gestão de alunos/compradores
     case 'getCompradoresAdmin':      return getCompradoresAdmin(token);
     case 'getCompradoresDetalhes':   return getCompradoresDetalhes(token, data.email);

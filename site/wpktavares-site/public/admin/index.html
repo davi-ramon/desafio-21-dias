@@ -1759,6 +1759,10 @@ button,
       <div class="nav-icon"><i data-lucide="bell" class="luc"></i></div>
       <span class="nav-label">Notificações</span>
     </div>
+    <div class="nav-item" data-page="usercontent" id="navUserContent" onclick="navigate('usercontent')" title="Conteúdo dos Alunos">
+      <div class="nav-icon"><i data-lucide="library" class="luc"></i></div>
+      <span class="nav-label">Conteúdo dos Alunos</span>
+    </div>
 
     <div class="nav-section-label" id="adminLabel">Administração</div>
     <div class="nav-item" data-page="sync" id="navSync" onclick="navigate('sync')" title="Sincronização">
@@ -2060,6 +2064,7 @@ function navigate(page) {
     indicacoes:     'Indicações e Satisfação',
     trialauto:      'Automações do Trial com Cartão',
     notificacoes:   'Notificações para Alunos',
+    usercontent:     'Conteúdo Privado dos Alunos',
     configuracoes:  'Configurações do Workspace'
   };
   document.getElementById('pageTitle').textContent = titles[page] || page;
@@ -2084,7 +2089,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, notificacoes: renderNotificacoes, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -5645,6 +5650,120 @@ async function excluirNotificacao(id) {
   } catch(e) {
     toast('Erro: ' + (e.message || e), 'error');
   }
+}
+
+// ══════════════════════════════════════════════════════════
+// CONTEÚDO PRIVADO DOS ALUNOS — moderação e publicação
+// O servidor é a autoridade final para private → approved → global.
+// ══════════════════════════════════════════════════════════
+var UC_ADMIN = { module: '', visibility: '' };
+
+async function renderUserContentModeration() {
+  var content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    var r = await rpc('getUserContentAdmin', { module: UC_ADMIN.module, visibility: UC_ADMIN.visibility });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao carregar.');
+    var items = r.data || [];
+    var privateCount = items.filter(function(x) { return x.visibility === 'private'; }).length;
+    var approvedCount = items.filter(function(x) { return x.visibility === 'approved'; }).length;
+    var globalCount = items.filter(function(x) { return x.visibility === 'global'; }).length;
+    var rows = items.map(ucAdminRow).join('');
+    if (!rows) rows = '<tr><td colspan="7" style="padding:34px;text-align:center;color:var(--muted)">Nenhum conteúdo encontrado neste filtro.</td></tr>';
+
+    content.innerHTML =
+      '<div style="padding:24px;max-width:1180px;margin:0 auto">' +
+        '<div class="card" style="margin-bottom:16px">' +
+          '<div style="font-size:15px;font-weight:750;margin-bottom:5px">Política de conteúdo privado</div>' +
+          '<div style="font-size:12px;line-height:1.55;color:var(--muted)">Todo conteúdo nasce privado. Apenas esta tela pode aprová-lo e, depois, publicá-lo globalmente. Antes de publicar livros ou vídeos, confirme autorização, direitos e adequação.</div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><span class="tag tag-1">Privados: ' + privateCount + '</span><span class="tag tag-2">Aprovados: ' + approvedCount + '</span><span class="tag tag-4">Globais: ' + globalCount + '</span></div>' +
+        '</div>' +
+        '<div class="card" style="margin-bottom:16px">' +
+          '<div style="font-size:13px;font-weight:700;margin-bottom:10px">Metadados avançados do YouTube</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">' + (r.youtubeEnhancedMetadata ? 'Chave configurada: duração, descrição e disponibilidade de legendas serão consultadas quando o vídeo for adicionado.' : 'Sem chave: título, canal e miniatura continuam vindo do oEmbed oficial; duração e legendas podem ficar indisponíveis.') + '</div>' +
+          '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="form-control" id="ucAdminYoutubeKey" type="password" autocomplete="off" placeholder="Nova YOUTUBE_API_KEY" style="max-width:380px"><button class="btn btn-primary btn-sm" onclick="ucAdminSaveYoutubeKey(false)">Salvar chave</button>' +
+          (r.youtubeEnhancedMetadata ? '<button class="btn btn-ghost btn-sm" onclick="ucAdminSaveYoutubeKey(true)">Remover chave</button>' : '') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">' +
+          '<select class="form-control" style="max-width:210px" onchange="UC_ADMIN.module=this.value;renderUserContentModeration()"><option value="">Todos os módulos</option><option value="meditation" ' + (UC_ADMIN.module === 'meditation' ? 'selected' : '') + '>Meditação</option><option value="reading" ' + (UC_ADMIN.module === 'reading' ? 'selected' : '') + '>Leitura</option><option value="audio" ' + (UC_ADMIN.module === 'audio' ? 'selected' : '') + '>Áudio</option></select>' +
+          '<select class="form-control" style="max-width:210px" onchange="UC_ADMIN.visibility=this.value;renderUserContentModeration()"><option value="">Todas as visibilidades</option><option value="private" ' + (UC_ADMIN.visibility === 'private' ? 'selected' : '') + '>Privado</option><option value="approved" ' + (UC_ADMIN.visibility === 'approved' ? 'selected' : '') + '>Aprovado</option><option value="global" ' + (UC_ADMIN.visibility === 'global' ? 'selected' : '') + '>Global</option></select>' +
+          '<button class="btn btn-ghost btn-sm" onclick="renderUserContentModeration()">↻ Atualizar</button>' +
+        '</div>' +
+        '<div class="table-wrap"><table class="table"><thead><tr><th>Conteúdo</th><th>Módulo</th><th>Dono</th><th>Origem</th><th>Status</th><th>Atualizado</th><th>Ações</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '</div>';
+  } catch (e) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Erro ao carregar conteúdo</div><div class="empty-sub">' + escHtml(e.message || String(e)) + '</div><button class="btn btn-ghost" style="margin-top:14px" onclick="renderUserContentModeration()">Tentar novamente</button></div>';
+  }
+}
+
+function ucAdminRow(item) {
+  var moduleName = item.module === 'meditation' ? 'Meditação' : item.module === 'reading' ? 'Leitura' : 'Áudio';
+  var stateClass = item.visibility === 'global' ? 'tag-4' : item.visibility === 'approved' ? 'tag-2' : 'tag-1';
+  var stateName = item.visibility === 'global' ? 'Global' : item.visibility === 'approved' ? 'Aprovado' : 'Privado';
+  var date = '';
+  try { date = new Date(item.updatedAt).toLocaleDateString('pt-BR'); } catch (_e) { date = item.updatedAt || ''; }
+  var source = item.source === 'youtube' && item.sourceUrl
+    ? '<a href="' + escHtml(item.sourceUrl) + '" target="_blank" rel="noopener" style="color:var(--accent-l)">YouTube ↗</a>'
+    : (item.type || 'upload').toUpperCase() + (item.fileSize ? '<div style="font-size:10px;color:var(--muted)">' + (item.fileSize / 1024 / 1024).toFixed(1) + ' MB</div>' : '');
+  var actions = '';
+  if (item.visibility === 'private') actions += '<button class="btn btn-ghost btn-sm" onclick="ucAdminSetVisibility(\'' + item.id + '\',\'approved\')">Aprovar</button>';
+  if (item.visibility === 'approved') actions += '<button class="btn btn-primary btn-sm" onclick="ucAdminSetVisibility(\'' + item.id + '\',\'global\')">Publicar global</button><button class="btn btn-ghost btn-sm" onclick="ucAdminSetVisibility(\'' + item.id + '\',\'private\')">Reprovar</button>';
+  if (item.visibility === 'global') actions += '<button class="btn btn-ghost btn-sm" onclick="ucAdminSetVisibility(\'' + item.id + '\',\'approved\')">Retirar do global</button>';
+  actions += '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="ucAdminDelete(\'' + item.id + '\')">Excluir</button>';
+  return '<tr><td><div style="font-weight:700;max-width:260px">' + escHtml(item.title || '') + '</div><div style="font-size:10px;color:var(--muted);max-width:260px">' + escHtml(item.author || '') + '</div></td><td>' + moduleName + '</td><td><div style="font-size:11px">' + escHtml(item.ownerEmail || item.userId || '—') + '</div></td><td>' + source + '</td><td><span class="tag ' + stateClass + '">' + stateName + '</span></td><td style="font-size:11px;color:var(--muted)">' + date + '</td><td><div style="display:flex;gap:6px;flex-wrap:wrap;min-width:190px">' + actions + '</div></td></tr>';
+}
+
+async function ucAdminSetVisibility(id, visibility) {
+  var label = visibility === 'global' ? 'publicar globalmente' : visibility === 'approved' ? 'marcar como aprovado' : 'tornar privado';
+  openModal('Confirmar moderação', '<p style="color:var(--muted);line-height:1.55">Deseja ' + escHtml(label) + ' este conteúdo?</p>', [
+    { label: 'Cancelar', cls: 'btn-ghost', action: closeModal },
+    { label: 'Confirmar', cls: 'btn-primary', action: function() { closeModal(); ucAdminSetVisibilityNow(id, visibility); } }
+  ]);
+}
+
+async function ucAdminSetVisibilityNow(id, visibility) {
+  try {
+    var r = await rpc('setUserContentVisibility', { id: id, visibility: visibility });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Operação recusada.');
+    toast('Visibilidade atualizada.', 'success'); renderUserContentModeration();
+  } catch (e) { toast(e.message || 'Erro ao atualizar.', 'error'); }
+}
+
+async function ucAdminDelete(id) {
+  openModal('Excluir conteúdo', '<p style="color:var(--muted);line-height:1.55">O registro será excluído e o arquivo privado será enviado para a lixeira. Esta ação afeta o dono do conteúdo.</p>', [
+    { label: 'Cancelar', cls: 'btn-ghost', action: closeModal },
+    { label: 'Excluir', cls: 'btn-danger', action: function() { closeModal(); ucAdminDeleteNow(id); } }
+  ]);
+}
+
+async function ucAdminDeleteNow(id) {
+  try {
+    var r = await rpc('deleteUserContent', { id: id });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Exclusão recusada.');
+    toast('Conteúdo excluído.', 'success'); renderUserContentModeration();
+  } catch (e) { toast(e.message || 'Erro ao excluir.', 'error'); }
+}
+
+async function ucAdminSaveYoutubeKey(remove) {
+  var input = document.getElementById('ucAdminYoutubeKey');
+  var key = remove ? '' : ((input && input.value) || '').trim();
+  if (!remove && !key) { toast('Informe a chave da API.', 'error'); return; }
+  if (remove) {
+    openModal('Remover chave do YouTube', '<p style="color:var(--muted);line-height:1.55">Título, canal e miniatura continuarão funcionando. Duração, descrição e indicação de legendas podem ficar indisponíveis.</p>', [
+      { label: 'Cancelar', cls: 'btn-ghost', action: closeModal },
+      { label: 'Remover', cls: 'btn-danger', action: function() { closeModal(); ucAdminSaveYoutubeKeyNow(''); } }
+    ]);
+    return;
+  }
+  return ucAdminSaveYoutubeKeyNow(key);
+}
+
+async function ucAdminSaveYoutubeKeyNow(key) {
+  try {
+    var r = await rpc('setUserContentYouTubeApiKey', { apiKey: key });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Não foi possível salvar.');
+    toast(key ? 'Chave salva com segurança.' : 'Chave removida.', 'success'); renderUserContentModeration();
+  } catch (e) { toast(e.message || 'Erro ao salvar chave.', 'error'); }
 }
 
 </script>
