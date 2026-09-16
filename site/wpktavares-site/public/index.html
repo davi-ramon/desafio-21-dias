@@ -1267,12 +1267,40 @@ try {
     document.body.appendChild(ov);
     var errEl = ov.querySelector('#assErrMsg');
 
-    fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      body: JSON.stringify({ action: 'criarCheckoutStripe', token: getToken(), data: { plan: plan, origin: 'custom', intent: 'new', returnUrl: location.href.split('#')[0] } }),
-      redirect: 'follow'
-    })
+    // O Apps Script as vezes responde uma pagina HTML no lugar do JSON
+    // (deploy em andamento, pico de execucoes, cold start ruim). Isso e
+    // instabilidade passageira, nao erro do cliente: le como texto, e so
+    // trata como falha de verdade depois de 3 tentativas.
+    var TENTATIVAS = 3, ESPERA = [900, 2200];
+
+    function pedir(n) {
+      return fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        body: JSON.stringify({ action: 'criarCheckoutStripe', token: getToken(), data: { plan: plan, origin: 'custom', intent: 'new', returnUrl: location.href.split('#')[0] } }),
+        redirect: 'follow'
+      })
+      .then(function (r) { return r.text(); })
+      .then(function (txt) {
+        var res = null;
+        try { res = JSON.parse(txt); } catch (e) { res = null; }
+        // Sem JSON = servidor indisponivel neste instante.
+        if (!res) throw new Error('__instavel__');
+        return res;
+      })
+      .catch(function (e) {
+        if (n >= TENTATIVAS) throw e;
+        if (errEl) {
+          errEl.textContent = 'Demorando mais que o normal. Tentando de novo\u2026';
+          errEl.style.color = '#c8a84a';
+          errEl.style.display = 'block';
+        }
+        return new Promise(function (ok) { setTimeout(ok, ESPERA[n - 1] || 2200); })
+          .then(function () { return pedir(n + 1); });
+      });
+    }
+
+    pedir(1)
     .then(function(r) { return r.json(); })
     .then(function(res) {
       if (!res || !res.ok || !res.url) {
@@ -1285,9 +1313,31 @@ try {
       try { window.location.href = res.url; }
       catch (e) { var w = window.open(res.url, '_blank'); }
     })
-    .catch(function(err) {
-      if (errEl) { errEl.textContent = 'Falha de conexao: ' + (err && err.message ? err.message : err); errEl.style.display = 'block'; }
-      setTimeout(function() { try { ov.remove(); } catch (e) {} }, 5000);
+    .catch(function() {
+      // Ninguem some com o lead: mensagem em portugues, botao para tentar
+      // de novo e uma saida pelo WhatsApp. O overlay NAO fecha sozinho —
+      // fechar sozinho e a forma mais rapida de perder a venda.
+      var cx = ov.firstChild;
+      if (cx) {
+        cx.innerHTML =
+          '<div style="font-size:26px;margin-bottom:8px">\u26a0\ufe0f</div>' +
+          '<div style="font-weight:800;margin-bottom:6px">Não consegui abrir o pagamento</div>' +
+          '<div style="font-size:12.5px;color:#7a8f80;line-height:1.6;margin-bottom:16px">' +
+            'Foi uma instabilidade momentânea, não um problema com você. ' +
+            'Tente de novo — costuma funcionar na segunda.</div>' +
+          '<button id="assRetry" style="width:100%;padding:13px;border:none;border-radius:12px;' +
+            'background:#4caf50;color:#04150a;font-weight:800;font-size:14px;cursor:pointer;' +
+            'font-family:inherit">Tentar de novo</button>' +
+          '<a href="https://wa.me/559484427988?text=Ol%C3%A1%21%20Tentei%20assinar%20no%20site%20e%20deu%20erro%20ao%20abrir%20o%20pagamento." target="_blank" rel="noopener" ' +
+            'style="display:block;margin-top:10px;font-size:12px;color:#7a8f80">' +
+            'Ou fale com a gente no WhatsApp</a>' +
+          '<button id="assFechar" style="margin-top:12px;background:none;border:none;' +
+            'color:#5c6f63;font-size:12px;cursor:pointer;font-family:inherit">Fechar</button>';
+        var rt = cx.querySelector('#assRetry');
+        if (rt) rt.onclick = function () { try { ov.remove(); } catch (e) {} window.assinarStripe(null, plan, planName, value); };
+        var fc = cx.querySelector('#assFechar');
+        if (fc) fc.onclick = function () { try { ov.remove(); } catch (e) {} };
+      }
     });
   };
 })();

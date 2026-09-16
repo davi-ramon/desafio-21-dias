@@ -1787,7 +1787,9 @@ window.handleSubmit = function(){
   var fbp = getCookie('_fbp');
   var fbc = getCookie('_fbc');
 
-  if(typeof fbq === 'function')
+  // Na nova tentativa o InitiateCheckout NAO dispara de novo: seria a
+  // mesma pessoa contada duas vezes no Pixel.
+  if(typeof fbq === 'function' && !window.__trialRetry)
     fbq('track','InitiateCheckout',{content_name:'Desafio 21 Dias Trial '+dias+' dias',value:0,currency:'BRL'});
 
   fetch(GAS, {
@@ -1801,7 +1803,15 @@ window.handleSubmit = function(){
       origem: window.location.href
     }})
   })
-  .then(function(r){ return r.json(); })
+  .then(function(r){ return r.text(); })
+  .then(function(txt){
+    // Resposta sem JSON = Apps Script indisponivel neste instante, nao
+    // erro do cadastro. Cai no .catch, que agora tenta de novo.
+    var p = null;
+    try { p = JSON.parse(txt); } catch (e) { p = null; }
+    if (!p) throw new Error('resposta invalida');
+    return p;
+  })
   .then(function(res){
     if(res.ok){
       // Pixel com MESMO eventID → dedup com o CAPI do servidor
@@ -1812,6 +1822,7 @@ window.handleSubmit = function(){
       var fn = nome.split(' ')[0];
       window.location.href = '/obrigado-trial/?dias=' + dias + '&nome=' + encodeURIComponent(fn);
     } else {
+      window.__trialRetry = false;
       document.getElementById('serverErr').textContent = res.error || 'Erro ao criar acesso. Tente novamente.';
       document.getElementById('serverErr').classList.add('show');
       btn.disabled = false;
@@ -1819,7 +1830,17 @@ window.handleSubmit = function(){
     }
   })
   .catch(function(){
-    document.getElementById('serverErr').textContent = 'Erro de conexão. Verifique sua internet e tente novamente.';
+    // Uma segunda tentativa automatica, e so entao devolve o botao.
+    // Nao culpa a internet da pessoa: na maioria das vezes o problema
+    // esta do nosso lado.
+    if (!window.__trialRetry) {
+      window.__trialRetry = true;
+      document.getElementById('ctaText').textContent = 'TENTANDO DE NOVO…';
+      setTimeout(function () { handleSubmit(); }, 1500);   // flag segue true
+      return;
+    }
+    window.__trialRetry = false;
+    document.getElementById('serverErr').textContent = 'Não consegui concluir agora. Aguarde alguns segundos e toque de novo.';
     document.getElementById('serverErr').classList.add('show');
     btn.disabled = false;
     document.getElementById('ctaText').textContent = 'QUERO TRANSFORMAR MINHA VIDA AGORA';

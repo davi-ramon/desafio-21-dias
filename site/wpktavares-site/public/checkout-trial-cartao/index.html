@@ -553,12 +553,33 @@ document.getElementById('rData2').textContent = dataCobranca();
 document.title = dias + ' dias grátis — Desafio 21 Dias';
 
 function el(id) { return document.getElementById(id); }
-function post(action, data) {
+// Ponto unico de passagem para o servidor. O Apps Script devolve HTML em
+// vez de JSON quando esta em deploy, em pico de execucoes ou num cold
+// start ruim — e `r.json()` estourava direto no rosto de quem ja tinha
+// preenchido nome, e-mail e WhatsApp. Aqui isso vira uma nova tentativa.
+//
+// Repetir um POST que grava e seguro neste funil: o lead e gravado por
+// e-mail (regrava por cima) e sessao do Stripe nao cobrada nao custa nada.
+// Perder a venda custa.
+function post(action, data, _n) {
+  _n = _n || 1;
   return fetch(GAS, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify({ action: action, data: data || {} })
-  }).then(function (r) { return r.json(); });
+  })
+  .then(function (r) { return r.text(); })
+  .then(function (txt) {
+    var res = null;
+    try { res = JSON.parse(txt); } catch (e) { res = null; }
+    if (!res) throw new Error('resposta invalida');
+    return res;
+  })
+  .catch(function (e) {
+    if (_n >= 3) throw e;
+    return new Promise(function (ok) { setTimeout(ok, _n === 1 ? 900 : 2200); })
+      .then(function () { return post(action, data, _n + 1); });
+  });
 }
 function erro(campo, texto) {
   var c = el(campo);
