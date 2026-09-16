@@ -9,6 +9,13 @@
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
 <meta name="theme-color" content="#07090a">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="21 Dias">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Desafio 21 Dias">
@@ -3051,6 +3058,10 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 
+  <div class="page" id="page-notificacoes">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+
   <div class="page" id="page-assinatura">
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
@@ -3376,6 +3387,13 @@ async function loadAlunoData(silent) {
     // com os dados já carregados — e ela mesma decide se aparece.
     try { if (typeof pqIniciar === 'function') pqIniciar(); } catch (e) {}
 
+    // v167: registra o service worker e, para quem já autorizou,
+    // renova o token. Nunca pede permissão sozinho.
+    try { if (typeof pwIniciar === 'function') pwIniciar(); } catch (e) {}
+
+    // v167: destino do clique na notificação e dos atalhos do PWA.
+    try { if (typeof pwAtalho === 'function') pwAtalho(); } catch (e) {}
+
     // Se for admin e ainda não escolheu o painel → mostrar seletor
     if (r.data.role === 'admin') {
       var mode = '';
@@ -3439,6 +3457,7 @@ function renderPage(page) {
     case 'perfil':     renderPerfil();     break;
     case 'assinatura': renderBilling(); break;   // v150: tela nova em blocos
     case 'indicar':    renderIndicacoes(); break; // v159: compartilhar e acompanhar
+    case 'notificacoes': renderNotificacoes(); break; // v167: agenda de avisos
     case 'mural':      renderMural();      break;
     case 'hub':        renderHub();        break;
   }
@@ -4561,6 +4580,8 @@ function renderPerfil() {
     .premium-card .prem-glow{position:absolute;inset:0;background:radial-gradient(140px 90px at 88% 0%,rgba(76,175,80,.16),transparent 70%);pointer-events:none}
     @keyframes premIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
   </style>
+  ${pwCartao()}
+
   <div class="card" onclick="navigate('indicar')" role="button" tabindex="0"
        onkeydown="if(event.key==='Enter'){navigate('indicar')}"
        style="cursor:pointer;margin-bottom:12px">
@@ -10637,6 +10658,27 @@ async function muSalvarEdicao(id, btn) {
 }
 
 // Confirmação custom — o app não usa modal nativa do navegador
+// Aviso simples, um botão só. As instruções do iPhone são numeradas,
+// então as quebras de linha precisam sobreviver — daí o pre-line.
+function muAvisar(titulo, msg, textoOk) {
+  return new Promise(function (resolve) {
+    var ov = document.createElement('div');
+    ov.className = 'mu-ov';
+    ov.innerHTML =
+      '<div class="mu-dlg" style="max-width:360px" onclick="event.stopPropagation()">' +
+        '<h3>' + muEsc(titulo) + '</h3>' +
+        '<p class="sub" style="white-space:pre-line;text-align:left">' + muEsc(msg) + '</p>' +
+        '<div class="mu-acts">' +
+          '<button class="mu-btn" id="muOk" style="flex:1">' + muEsc(textoOk || 'Entendi') + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(ov);
+    function fim() { ov.remove(); resolve(true); }
+    ov.onclick = fim;
+    ov.querySelector('#muOk').onclick = fim;
+  });
+}
+
 function muConfirmar(titulo, msg, textoOk) {
   return new Promise(function (resolve) {
     var ov = document.createElement('div');
@@ -12910,7 +12952,11 @@ function _prefPadrao() {
     audio:     { animacoes: true, miniPlayer: true },
     leitura:   { metaMin: 15, livrosOcultos: [] },
     exercicio: { metaMin: 15 },
-    perfil:    { avatarUrl: '' }
+    perfil:    { avatarUrl: '' },
+    notificacoes: {
+      ligado: true, acordar: '', dormir: '',
+      categorias: { rotina: true, agua: true, sono: true, sonhos: true }
+    }
   };
 }
 
@@ -12924,7 +12970,7 @@ var PREFS = _prefPadrao();
 function _prefsMesclar(vindo) {
   var p = _prefPadrao();
   if (!vindo) return p;
-  ['meditacao','audio','leitura','exercicio','perfil'].forEach(function (sec) {
+  ['meditacao','audio','leitura','exercicio','perfil','notificacoes'].forEach(function (sec) {
     if (!vindo[sec]) return;
     Object.keys(p[sec]).forEach(function (k) {
       if (vindo[sec][k] !== undefined && vindo[sec][k] !== null) p[sec][k] = vindo[sec][k];
@@ -13437,7 +13483,9 @@ function _pfColetar() {
     exercicio: { metaMin: chip('exercicio.metaMin', 15) },
     // A foto não tem controle no formulário: precisa ser repassada, ou
     // o sanitizador do servidor a zeraria a cada "Salvar preferências".
-    perfil: { avatarUrl: (PREFS.perfil && PREFS.perfil.avatarUrl) || '' }
+    perfil: { avatarUrl: (PREFS.perfil && PREFS.perfil.avatarUrl) || '' },
+    // Idem: a agenda de avisos é editada em outra tela.
+    notificacoes: PREFS.notificacoes || _prefPadrao().notificacoes
   };
 }
 
@@ -13767,6 +13815,365 @@ function _blSkeleton() {
 }
 
 // ── Ações ───────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════
+// PUSH + PWA (v167)
+// ------------------------------------------------------------
+// A permissão NÃO é pedida no carregamento. Pedir antes de a
+// pessoa ver valor é o jeito mais rápido de ouvir "bloquear" —
+// e no navegador, negado é quase definitivo: some o diálogo e
+// só volta se a pessoa souber mexer nas configurações do site.
+//
+// iOS: push na web exige iOS 16.4+ E o app instalado na tela de
+// início. Em aba do Safari não existe. Por isso, no iPhone, a
+// instalação vem ANTES do convite — o contrário seria prometer
+// algo que não funciona.
+// ════════════════════════════════════════════════════════════
+var PW = { suportado: false, permissao: 'default', token: null,
+           instalado: false, ios: false, promptInstalar: null, vapid: '' };
+
+function pwDetectar() {
+  PW.ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  PW.instalado = window.matchMedia('(display-mode: standalone)').matches ||
+                 window.navigator.standalone === true;
+  PW.suportado = ('serviceWorker' in navigator) && ('Notification' in window) &&
+                 ('PushManager' in window);
+  try { PW.permissao = Notification.permission; } catch (e) { PW.permissao = 'unsupported'; }
+}
+
+// O navegador só oferece instalar quando quer; guardamos o evento
+// para disparar no momento em que a pessoa pedir.
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  PW.promptInstalar = e;
+});
+
+async function pwRegistrarSW() {
+  if (!('serviceWorker' in navigator)) return null;
+  try {
+    return await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+  } catch (e) {
+    console.warn('[push] SW nao registrou:', e && e.message);
+    return null;
+  }
+}
+
+async function pwIniciar() {
+  pwDetectar();
+  if (!PW.suportado) return;
+
+  // O SW entra sempre: ele também serve a casca offline, mesmo para
+  // quem nunca vai autorizar notificação.
+  var reg = await pwRegistrarSW();
+
+  // Só seguimos para o token se a pessoa JÁ autorizou antes. Sem
+  // permissão, nada de diálogo automático.
+  if (PW.permissao !== 'granted' || !reg) return;
+  try { await pwObterToken(reg); } catch (e) {}
+}
+
+async function pwObterToken(reg) {
+  if (!PW.vapid) {
+    try {
+      var c = await rpc('getPushPublico', {});
+      if (c && c.ok) PW.vapid = c.data.vapid || '';
+    } catch (e) {}
+  }
+  if (!PW.vapid) return null;               // sem chave, não há o que fazer
+  if (!reg) reg = await navigator.serviceWorker.ready;
+
+  var cfg = await fetch('/__/firebase/init.json').then(function (r) { return r.json(); });
+  if (!firebase.apps.length) firebase.initializeApp(cfg);
+  var messaging = firebase.messaging();
+
+  var t = await messaging.getToken({ vapidKey: PW.vapid, serviceWorkerRegistration: reg });
+  if (!t) return null;
+  PW.token = t;
+
+  await rpc('pushRegistrar', {
+    fcmToken: t,
+    plataforma: PW.ios ? 'ios' : (/android/i.test(navigator.userAgent) ? 'android' : 'desktop'),
+    instalado: PW.instalado
+  });
+
+  // Com o app aberto o SW não desenha nada; mostramos em casa.
+  messaging.onMessage(function (payload) {
+    var d = (payload && payload.data) || {};
+    if (d.titulo) toast(d.titulo + (d.corpo ? ' — ' + d.corpo : ''), 'info');
+  });
+  return t;
+}
+
+// Convite: só chamado por gesto da pessoa, nunca sozinho.
+async function pwAtivar() {
+  pwDetectar();
+
+  if (!PW.suportado) {
+    await muAvisar('Seu navegador não aceita notificações',
+      'Tente pelo Chrome no Android ou pelo Safari no iPhone, com o app instalado na tela de início.');
+    return false;
+  }
+
+  // No iPhone não adianta pedir permissão sem instalar: o diálogo
+  // nem aparece. Ensinamos a instalar primeiro.
+  if (PW.ios && !PW.instalado) {
+    await muAvisar('Instale o app primeiro',
+      'No iPhone, as notificações só funcionam com o app na tela de início.\n\n' +
+      '1. Toque no botão Compartilhar (o quadrado com a seta)\n' +
+      '2. Escolha "Adicionar à Tela de Início"\n' +
+      '3. Abra o app por lá e ative as notificações');
+    return false;
+  }
+
+  if (PW.permissao === 'denied') {
+    await muAvisar('As notificações estão bloqueadas',
+      'Você bloqueou em algum momento e o navegador não pergunta de novo.\n\n' +
+      'Abra as configurações do site (o cadeado na barra de endereço), ' +
+      'permita Notificações e recarregue esta página.');
+    return false;
+  }
+
+  var p;
+  try { p = await Notification.requestPermission(); } catch (e) { p = 'denied'; }
+  PW.permissao = p;
+  if (p !== 'granted') {
+    toast('Sem problema — você pode ativar depois no Perfil.', 'info');
+    return false;
+  }
+
+  var reg = await pwRegistrarSW();
+  var t = await pwObterToken(reg);
+  if (!t) {
+    toast('Autorizado, mas não consegui concluir. Tente de novo em instantes.', 'error');
+    return false;
+  }
+  toast('Pronto! Você vai receber os lembretes do dia.', 'success');
+  try { renderPerfil(); } catch (e) {}
+  return true;
+}
+
+async function pwInstalar() {
+  if (PW.promptInstalar) {
+    PW.promptInstalar.prompt();
+    try { await PW.promptInstalar.userChoice; } catch (e) {}
+    PW.promptInstalar = null;
+    setTimeout(function () { try { renderPerfil(); } catch (e) {} }, 800);
+    return;
+  }
+  if (PW.ios) {
+    await muAvisar('Adicionar à Tela de Início',
+      '1. Toque no botão Compartilhar (o quadrado com a seta)\n' +
+      '2. Role e escolha "Adicionar à Tela de Início"\n' +
+      '3. Confirme');
+    return;
+  }
+  await muAvisar('Instalar o app',
+    'No menu do navegador (os três pontinhos), procure "Instalar aplicativo" ou "Adicionar à tela inicial".');
+}
+
+// ── ?atalho=  ────────────────────────────────────────────────
+// Só entram destinos que existem HOJE. Um atalho para tela que não
+// existe é pior que atalho nenhum: a pessoa toca, cai na home e
+// aprende a ignorar o próximo aviso.
+var PW_ATALHOS = {
+  meditacao:   function () { navigate('rotina'); setTimeout(function () {
+                 try { openMeditacao(); } catch (e) {} }, 120); },
+  audios:      function () { navigate('audios'); },
+  audio:       function () { navigate('audios'); },
+  mural:       function () { navigate('mural'); },
+  rotina:      function () { navigate('rotina'); },
+  comunidade:  function () { navigate('comunidade'); },
+  notificacoes:function () { navigate('notificacoes'); }
+};
+
+function pwIrPara(nome) {
+  var fn = PW_ATALHOS[String(nome || '').toLowerCase()];
+  if (fn) { try { fn(); } catch (e) {} }
+}
+
+function pwAtalho() {
+  var q;
+  try { q = new URLSearchParams(location.search).get('atalho'); } catch (e) { return; }
+  if (!q) return;
+
+  // Tira o parâmetro da barra antes de agir: senão um F5 repete o
+  // atalho e a pessoa não consegue mais ficar na home.
+  try {
+    var u = new URL(location.href);
+    u.searchParams.delete('atalho');
+    history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+  } catch (e) {}
+
+  pwIrPara(q);
+}
+
+// Com o app já aberto, o clique na notificação chega por mensagem do
+// service worker — sem recarregar a página.
+try {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function (ev) {
+      var d = (ev && ev.data) || {};
+      if (d.tipo !== 'atalho') return;
+      var alvo = '';
+      try { alvo = new URL(d.url, location.origin).searchParams.get('atalho') || ''; } catch (e) {}
+      if (alvo) pwIrPara(alvo);
+    });
+  }
+} catch (e) {}
+
+// Cartão do Perfil — mostra o estado real, sem enfeitar.
+function pwCartao() {
+  pwDetectar();
+  var ligado = PW.permissao === 'granted';
+  var cor = ligado ? 'var(--green)' : '#e0a83c';
+  var titulo, sub, acao;
+
+  if (!PW.suportado) {
+    titulo = 'Notificações indisponíveis';
+    sub = 'Este navegador não aceita notificações.';
+    acao = '';
+  } else if (PW.ios && !PW.instalado) {
+    titulo = 'Instale para receber lembretes';
+    sub = 'No iPhone, as notificações só funcionam com o app na tela de início.';
+    acao = '<button class="bl-btn" style="margin-top:12px" onclick="pwInstalar()">Como instalar</button>';
+  } else if (ligado) {
+    titulo = 'Lembretes ativos';
+    sub = 'Você recebe os avisos da sua rotina durante o dia.';
+    acao = '<button class="bl-acao" style="margin-top:10px" onclick="navigate(\'notificacoes\')">' +
+           '<span class="bl-acao-t">Ajustar horários e avisos</span>' +
+           '<span class="bl-acao-s">Escolha o que quer receber e a que horas</span></button>';
+  } else {
+    titulo = 'Ative os lembretes';
+    sub = 'O app te lembra da rotina na hora certa — e para de lembrar do que você já fez.';
+    acao = '<button class="bl-btn" style="margin-top:12px" onclick="pwAtivar()">Ativar notificações</button>' +
+           (PW.instalado ? '' :
+            '<button class="bl-acao" style="margin-top:9px" onclick="pwInstalar()">' +
+            '<span class="bl-acao-t">Instalar na tela de início</span>' +
+            '<span class="bl-acao-s">Abre como aplicativo, sem barra do navegador</span></button>');
+  }
+
+  return '<div class="card" style="margin-bottom:12px;border-color:' + cor + '33">' +
+    '<div style="display:flex;align-items:center;gap:12px">' +
+      '<div style="width:42px;height:42px;border-radius:11px;flex-shrink:0;display:flex;' +
+        'align-items:center;justify-content:center;background:' + cor + '1f;color:' + cor + ';font-size:19px">🔔</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:14.5px;font-weight:800;color:var(--text)">' + titulo + '</div>' +
+        '<div style="font-size:12px;color:var(--muted);margin-top:2px;line-height:1.5">' + sub + '</div>' +
+      '</div>' +
+    '</div>' + acao +
+  '</div>';
+}
+
+// ── Tela: quando e o que avisar ─────────────────────────────
+// A pessoa manda no próprio silêncio. Sem esta tela, a única saída
+// de quem se incomoda é bloquear as notificações no navegador — e
+// dessa ela não volta.
+var PN_CATEGORIAS = [
+  { id: 'rotina',  t: 'Lembretes da rotina',   s: 'Meditação, leitura, exercício e áudio do dia' },
+  { id: 'agua',    t: 'Beber água',            s: 'Espalhados pelo dia, param quando você bate a meta' },
+  { id: 'sono',    t: 'Hora de desacelerar',   s: 'Um aviso perto do seu horário de dormir' },
+  { id: 'sonhos',  t: 'Mural dos Sonhos',      s: 'Quando alguém interage com o que você postou' }
+];
+
+function renderNotificacoes() {
+  var el = document.getElementById('page-notificacoes');
+  if (!el) return;
+  pwDetectar();
+
+  var n = (PREFS && PREFS.notificacoes) || _prefPadrao().notificacoes;
+  var cat = n.categorias || {};
+  var ligado = PW.permissao === 'granted';
+
+  var html = '<div class="bl-wrap">' +
+    '<div class="bl-head">' +
+      '<button class="bl-voltar" onclick="navigate(\'perfil\')">‹ Perfil</button>' +
+      '<h2>Notificações</h2>' +
+    '</div>';
+
+  // Estado do aparelho — antes de qualquer ajuste, a pessoa precisa
+  // saber se o aparelho dela está de fato recebendo.
+  if (!ligado) {
+    html += '<div class="bl-card bl-aviso" style="margin-bottom:14px">' +
+      '<div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+        'Este aparelho ainda não recebe avisos</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:11px">' +
+        'Os ajustes abaixo ficam guardados, mas só valem depois que você autorizar aqui.</div>' +
+      '<button class="pf-btn" onclick="pwAtivar()">Ativar neste aparelho</button>' +
+    '</div>';
+  }
+
+  // pf-perfil e a LINHA do avatar (flex horizontal), nao um container:
+  // usar aqui deitaria as secoes lado a lado.
+  html += '<div>';
+
+  html += _pfSecao('Receber avisos', '🔔',
+    _pfLinha('Avisos ligados',
+             'Desligando aqui, o app para de te avisar em todos os aparelhos.',
+             _pfSwitch('notif.ligado', n.ligado !== false)));
+
+  html += _pfSecao('Sua janela do dia', '🕐',
+    '<div style="font-size:12.5px;color:var(--muted);line-height:1.6;padding:2px 0 12px">' +
+      'Nada chega antes de você acordar nem depois da hora de dormir. ' +
+      'Deixe em branco para usar o horário padrão do app.</div>' +
+    '<div style="display:flex;gap:12px;flex-wrap:wrap">' +
+      '<div style="flex:1;min-width:130px">' +
+        '<div class="pf-row-t" style="margin-bottom:6px">Acordo às</div>' +
+        '<input type="time" id="pnAcordar" class="pf-troca-in" value="' + muEsc(n.acordar || '') + '">' +
+      '</div>' +
+      '<div style="flex:1;min-width:130px">' +
+        '<div class="pf-row-t" style="margin-bottom:6px">Durmo às</div>' +
+        '<input type="time" id="pnDormir" class="pf-troca-in" value="' + muEsc(n.dormir || '') + '">' +
+      '</div>' +
+    '</div>');
+
+  html += _pfSecao('O que você quer receber', '📋',
+    PN_CATEGORIAS.map(function (c) {
+      return _pfLinha(c.t, c.s, _pfSwitch('notif.cat.' + c.id, cat[c.id] !== false));
+    }).join(''));
+
+  html += '<div class="pf-acoes">' +
+      '<button type="button" class="pf-btn" id="pnSalvar" onclick="pnSalvar()">Salvar</button>' +
+    '</div>' +
+    '<div class="pf-rodape">O app nunca cobra o que você já fez no dia, ' +
+      'e há um limite de avisos por dia para isso não virar barulho.</div>';
+
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+async function pnSalvar() {
+  var btn = document.getElementById('pnSalvar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+  function sw(campo) {
+    var i = document.querySelector('input[data-campo="' + campo + '"]');
+    return i ? !!i.checked : true;
+  }
+  var cats = {};
+  PN_CATEGORIAS.forEach(function (c) { cats[c.id] = sw('notif.cat.' + c.id); });
+
+  var acordar = (document.getElementById('pnAcordar') || {}).value || '';
+  var dormir  = (document.getElementById('pnDormir')  || {}).value || '';
+
+  // Manda o JSON inteiro: o servidor reescreve tudo, então o resto
+  // das preferências tem de viajar junto.
+  var prefs = JSON.parse(JSON.stringify(PREFS || _prefPadrao()));
+  prefs.notificacoes = { ligado: sw('notif.ligado'), acordar: acordar,
+                         dormir: dormir, categorias: cats };
+
+  try {
+    var res = await rpc('salvarPreferencias', { prefs: prefs });
+    if (!res || !res.ok) { toast((res && res.error) || 'Não consegui salvar.', 'error'); return; }
+    APP.data.preferencias = res.data;
+    _prefsSincronizar();
+    renderNotificacoes();
+    toast('Pronto. Seus avisos seguem esses horários.', 'success');
+  } catch (e) {
+    toast('Erro ao salvar: ' + (e && e.message ? e.message : e), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
+  }
+}
+
 // ════════════════════════════════════════════════════════════
 // PESQUISA DE SATISFAÇÃO (v160)
 // ------------------------------------------------------------

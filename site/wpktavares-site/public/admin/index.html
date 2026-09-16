@@ -1747,6 +1747,10 @@ button,
       <div class="nav-icon"><i data-lucide="sparkles" class="luc"></i></div>
       <span class="nav-label">Mural dos Sonhos</span>
     </div>
+    <div class="nav-item" data-page="push" id="navPush" onclick="navigate('push')" title="Notificações push">
+      <span class="nav-icon"><i data-lucide="bell-ring" class="luc"></i></span>
+      <span class="nav-label">Notifica&ccedil;&otilde;es Push</span>
+    </div>
     <div class="nav-item" data-page="leadsexport" id="navLeadsExport" onclick="navigate('leadsexport')" title="Leads e Exportação">
       <span class="nav-icon"><i data-lucide="list-filter" class="luc"></i></span>
       <span class="nav-label">Leads e Exporta&ccedil;&atilde;o</span>
@@ -2065,6 +2069,7 @@ function navigate(page) {
     log:            'Log de Atividade',
     audios21:       'Áudios 21 Dias',
     mural:          'Mural dos Sonhos',
+    push:           'Notificações Push e Agenda do Dia',
     leadsexport:    'Leads do Funil e Exportação',
     indicacoes:     'Indicações e Satisfação',
     trialauto:      'Automações do Trial com Cartão',
@@ -2094,7 +2099,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, push: renderPushAdmin, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -4615,6 +4620,209 @@ function _taSwitch(id, ligado, titulo, sub) {
     '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' + sub + '</div></div>' +
     '<label class="ta-sw"><input type="checkbox" id="' + id + '"' + (ligado ? ' checked' : '') +
     '><span class="ta-sw-tr"></span></label></div>';
+}
+
+// ════════════════════════════════════════════════════════════
+// NOTIFICAÇÕES PUSH — credenciais e agenda do dia (v167)
+// ════════════════════════════════════════════════════════════
+function _puCard(icon, valor, rot, sub) {
+  return '<div class="metric-card">' +
+    '<div class="metric-icon" style="background:rgba(76,175,80,0.12);color:var(--green)">' + icon + '</div>' +
+    '<div class="metric-value">' + valor + '</div>' +
+    '<div class="metric-label">' + rot +
+      '<div style="font-size:10.5px;opacity:.75;margin-top:2px">' + sub + '</div>' +
+    '</div></div>';
+}
+
+async function renderPushAdmin() {
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  var st = null, ag = null;
+  try {
+    var rs = await Promise.all([rpc('pushStatus', {}), rpc('pushAgendaStatus', {})]);
+    if (rs[0] && rs[0].ok) st = rs[0].data;
+    if (rs[1] && rs[1].ok) ag = rs[1].data;
+  } catch (e) {}
+
+  if (!st) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-title">Não consegui carregar</div>' +
+      '<div class="empty-sub">Recarregue a página ou confira se você está logado como admin.</div></div>';
+    return;
+  }
+
+  var html =
+    '<div class="metrics-grid" style="margin-bottom:18px">' +
+      _puCard('<i data-lucide="smartphone" class="luc"></i>', st.ativos, 'Aparelhos ativos',
+              'de ' + st.total + ' registrados') +
+      _puCard('<i data-lucide="download" class="luc"></i>', st.instalados, 'Com o app instalado',
+              'obrigatório no iPhone') +
+      _puCard('<i data-lucide="key-round" class="luc"></i>', st.configurado ? 'OK' : '—', 'Credenciais',
+              st.configurado ? 'conta de serviço salva' : 'faltando configurar') +
+      _puCard('<i data-lucide="clock" class="luc"></i>', (ag && ag.ativa) ? 'ON' : 'OFF', 'Agenda do dia',
+              st.rotina ? 'gatilho a cada 15 min' : 'sem gatilho') +
+    '</div>';
+
+  // Credenciais
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Credenciais do Firebase</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:15px;line-height:1.75">' +
+      'São duas coisas, as duas no <b>Console do Firebase</b>, projeto <code>wpktavares-88993</code>:<br>' +
+      '<b>1.</b> Configurações do projeto &rarr; <b>Cloud Messaging</b> &rarr; Certificados push da Web &rarr; ' +
+      'gere o par de chaves e copie a <b>chave pública</b>.<br>' +
+      '<b>2.</b> Configurações do projeto &rarr; <b>Contas de serviço</b> &rarr; Gerar nova chave privada &rarr; ' +
+      'abra o arquivo <code>.json</code> baixado e cole o conteúdo inteiro aqui.<br>' +
+      '<span style="color:var(--green)">O JSON vai para as Script Properties, nunca para a planilha, ' +
+      'e não é exibido de volta depois de salvo.</span></div>' +
+
+    '<div class="form-group">' +
+      '<label class="form-label">Chave pública VAPID</label>' +
+      '<input class="form-control" id="pushVapid" autocomplete="off" placeholder="B... (cerca de 87 caracteres)">' +
+      '<div style="font-size:11.5px;color:var(--muted);margin-top:5px">' +
+        (st.vapid ? 'Já existe uma chave salva. Preencha só se for trocar.' : 'Ainda não configurada.') +
+      '</div></div>' +
+
+    '<div class="form-group">' +
+      '<label class="form-label">JSON da conta de serviço</label>' +
+      '<textarea class="form-control" id="pushConta" rows="4" autocomplete="off" ' +
+        'placeholder="Cole aqui o conteúdo inteiro do arquivo .json"></textarea>' +
+      '<div style="font-size:11.5px;color:var(--muted);margin-top:5px">' +
+        (st.configurado ? 'Já configurada. Preencha só se for trocar.' : 'Ainda não configurada.') +
+      '</div></div>' +
+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button class="btn btn-primary btn-sm" onclick="pushSalvar()">Salvar credenciais</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="pushTeste()">Enviar teste para mim</button>' +
+    '</div>' +
+    '<div id="pushRes" style="margin-top:10px;font-size:12.5px"></div>' +
+  '</div>';
+
+  // Agenda
+  var a = ag || {};
+  var campo = function (id, rot, val, ajuda, tipo) {
+    return '<div class="form-group" style="flex:1;min-width:132px;margin:0">' +
+      '<label class="form-label">' + rot + '</label>' +
+      '<input class="form-control" type="' + (tipo || 'text') + '" id="pa_' + id + '" value="' + escHtml(val) + '">' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">' + ajuda + '</div></div>';
+  };
+
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Agenda do dia</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:15px;line-height:1.75">' +
+      'O app acompanha a pessoa do despertar até a hora de dormir. Três travas impedem que isso vire praga:<br>' +
+      '&bull; <b>nunca cobra o que já foi feito</b> — quem meditou não recebe lembrete de meditar;<br>' +
+      '&bull; <b>teto diário</b> de avisos por pessoa, e no máximo um por rodada;<br>' +
+      '&bull; <b>silêncio fora da janela</b> de cada aluno — quem acorda às 8h não é acordado às 5h.<br>' +
+      'Os horários abaixo são o padrão. Quem ajustar no próprio app manda sobre o próprio aparelho.</div>' +
+
+    _taSwitch('pa_ativa', a.ativa, 'Agenda ligada', 'Avalia todo mundo a cada 15 minutos') +
+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px">' +
+      campo('acordar', 'Acordar', a.acordar || '05:30', 'início da janela', 'time') +
+      campo('dormir', 'Dormir', a.dormir || '21:30', 'fim da janela', 'time') +
+      campo('tetoDia', 'Teto por dia', a.tetoDia || 5, 'avisos por pessoa') +
+    '</div>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">' +
+      campo('aguaDe', 'Água de', a.aguaDe || '08:00', 'primeiro lembrete', 'time') +
+      campo('aguaAte', 'até', a.aguaAte || '20:00', 'último lembrete', 'time') +
+      campo('aguaCada', 'a cada', a.aguaCada || 3, 'horas') +
+      campo('aguaMetaMl', 'Meta', a.aguaMetaMl || 2000, 'ml por dia') +
+    '</div>' +
+    '<div style="margin-top:14px;padding:11px 13px;border-radius:9px;background:rgba(224,168,60,.09);' +
+      'border:1px solid rgba(224,168,60,.28);font-size:12px;color:#e0a83c;line-height:1.65">' +
+      'Os lembretes de <b>água</b> e o ciclo de <b>sono</b> só começam a sair quando essas telas existirem ' +
+      'no app. Mandar a pessoa tocar num aviso que abre uma tela inexistente destrói a confiança em ' +
+      'todas as outras notificações.</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">' +
+      '<button class="btn btn-primary btn-sm" onclick="pushAgendaSalvar()">Salvar agenda</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="pushAgendaRodar()">Rodar agora (envia de verdade)</button>' +
+    '</div>' +
+    '<div id="pushAgRes" style="margin-top:10px;font-size:12.5px"></div>' +
+  '</div>';
+
+  content.innerHTML = html;
+  _processIcons && _processIcons(content);
+}
+
+function _puMsg(alvo, texto, cor) {
+  var el = document.getElementById(alvo);
+  if (el) el.innerHTML = '<span style="color:' + cor + '">' + texto + '</span>';
+}
+
+async function pushSalvar() {
+  var v = document.getElementById('pushVapid').value.trim();
+  var c = document.getElementById('pushConta').value.trim();
+  if (!v && !c) { _puMsg('pushRes', 'Nada para salvar.', 'var(--danger)'); return; }
+
+  _puMsg('pushRes', 'Salvando&hellip;', 'var(--muted)');
+  try {
+    var payload = {};
+    if (v) payload.vapid = v;
+    if (c) payload.serviceAccount = c;
+    var r = await rpc('pushSalvarConfig', payload);
+    if (!r || !r.ok) { _puMsg('pushRes', escHtml((r && r.error) || 'Falhou.'), 'var(--danger)'); return; }
+    document.getElementById('pushConta').value = '';
+    document.getElementById('pushVapid').value = '';
+    _puMsg('pushRes', escHtml(r.message), 'var(--green)');
+    setTimeout(renderPushAdmin, 1200);
+  } catch (e) {
+    _puMsg('pushRes', 'Erro de conexão.', 'var(--danger)');
+  }
+}
+
+async function pushTeste() {
+  _puMsg('pushRes', 'Enviando&hellip;', 'var(--muted)');
+  try {
+    var r = await rpc('pushTestar', {});
+    if (r && r.ok) {
+      _puMsg('pushRes', 'Enviado para ' + escHtml(r.email) + ' (' + r.data.enviados +
+        ' aparelho). Se nada chegar, ative as notificações no app primeiro.', 'var(--green)');
+    } else {
+      var err = String((r && r.error) || 'Falhou.');
+      if (err.indexOf('sem aparelho') >= 0) {
+        err = 'Nenhum aparelho seu está registrado. Abra o app, vá em Notificações e ative.';
+      }
+      _puMsg('pushRes', escHtml(err), 'var(--danger)');
+    }
+  } catch (e) {
+    _puMsg('pushRes', 'Erro de conexão.', 'var(--danger)');
+  }
+}
+
+async function pushAgendaSalvar() {
+  var v = function (id) { var e = document.getElementById('pa_' + id); return e ? e.value : ''; };
+  var chk = document.getElementById('pa_ativa');
+  _puMsg('pushAgRes', 'Salvando&hellip;', 'var(--muted)');
+  try {
+    var r = await rpc('pushAgendaSalvar', {
+      ativa: !!(chk && chk.checked),
+      acordar: v('acordar'), dormir: v('dormir'), tetoDia: v('tetoDia'),
+      aguaDe: v('aguaDe'), aguaAte: v('aguaAte'),
+      aguaCada: v('aguaCada'), aguaMetaMl: v('aguaMetaMl')
+    });
+    _puMsg('pushAgRes', escHtml((r && (r.message || r.error)) || 'Falhou.'),
+           (r && r.ok) ? 'var(--green)' : 'var(--danger)');
+  } catch (e) {
+    _puMsg('pushAgRes', 'Erro de conexão.', 'var(--danger)');
+  }
+}
+
+async function pushAgendaRodar() {
+  _puMsg('pushAgRes', 'Avaliando todo mundo&hellip;', 'var(--muted)');
+  try {
+    var r = await rpc('pushAgendaRodarAgora', {});
+    if (!r || !r.ok) {
+      var e1 = String((r && r.error) || 'Falhou.');
+      if (e1.indexOf('nao configurado') >= 0) e1 = 'Salve as credenciais do Firebase primeiro.';
+      _puMsg('pushAgRes', escHtml(e1), 'var(--danger)');
+      return;
+    }
+    var d = r.data || {};
+    _puMsg('pushAgRes', 'Avaliados ' + d.avaliados + ' &middot; <b>enviados ' + d.enviados +
+      '</b> &middot; pulados ' + d.pulados + ' &middot; erros ' + d.erros, 'var(--text)');
+  } catch (e) {
+    _puMsg('pushAgRes', 'Erro de conexão.', 'var(--danger)');
+  }
 }
 
 // ════════════════════════════════════════════════════════════

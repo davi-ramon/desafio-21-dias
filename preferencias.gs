@@ -31,8 +31,28 @@ function _prefsPadrao_() {
     },
     perfil: {
       avatarUrl: ''      // vazio = mostra as iniciais
+    },
+    // v167 — a agenda de avisos do dia. Horário vazio quer dizer
+    // "use o padrão do app"; quem preencher manda sobre o próprio.
+    notificacoes: {
+      ligado:  true,
+      acordar: '',
+      dormir:  '',
+      categorias: { rotina: true, agua: true, sono: true, sonhos: true }
     }
   };
+}
+
+var PREF_CATEGORIAS = ['rotina', 'agua', 'sono', 'sonhos'];
+
+// HH:MM de 00:00 a 23:59, ou vazio. Qualquer outra coisa vira vazio —
+// um horário inválido aqui silenciaria a agenda da pessoa sem aviso.
+function _prefsHora_(v) {
+  var s = String(v || '').trim();
+  if (!s) return '';
+  var m = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(s);
+  if (!m) return '';
+  return (m[1].length === 1 ? '0' + m[1] : m[1]) + ':' + m[2];
 }
 
 var PREF_DURACOES = [5, 10, 15, 20, 30];
@@ -94,6 +114,15 @@ function _prefsSanitizar_(entrada) {
   var pf = entrada.perfil || {};
   var av = String(pf.avatarUrl || '').trim().slice(0, 300);
   p.perfil.avatarUrl = /^https:\/\/(lh3\.googleusercontent\.com|drive\.google\.com)\//i.test(av) ? av : '';
+
+  var nt = entrada.notificacoes || {};
+  p.notificacoes.ligado  = _prefsBool_(nt.ligado, true);
+  p.notificacoes.acordar = _prefsHora_(nt.acordar);
+  p.notificacoes.dormir  = _prefsHora_(nt.dormir);
+  var cat = nt.categorias || {};
+  PREF_CATEGORIAS.forEach(function (k) {
+    p.notificacoes.categorias[k] = _prefsBool_(cat[k], true);
+  });
 
   return p;
 }

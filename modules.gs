@@ -330,6 +330,16 @@ function handleRequest(payload) {
     // v166 — lista e exportacao de leads
     case 'getLeadsExport':           return getLeadsExport(token, data);
     case 'baixarLeadsExport':        return baixarLeadsExport(token, data);
+    // v167 — push e PWA
+    case 'getPushPublico':           return getPushPublico(token);
+    case 'pushRegistrar':            return pushRegistrar(token, data);
+    case 'pushRemover':              return pushRemover(token, data);
+    case 'pushStatus':               return pushStatus(token);
+    case 'pushSalvarConfig':         return pushSalvarConfig(token, data);
+    case 'pushTestar':               return pushTestar(token, data);
+    case 'pushAgendaStatus':         return pushAgendaStatus(token);
+    case 'pushAgendaSalvar':         return pushAgendaSalvar(token, data);
+    case 'pushAgendaRodarAgora':     return pushAgendaRodarAgora(token);
     case 'trackVsl':                 return trackVsl_(data);
 
     // Eventos (CRUD)
