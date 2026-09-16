@@ -1,0 +1,34 @@
+{
+  "validated_at": "2026-07-07T18:30:00-03:00",
+  "token_prefix": "EAAh33CdAoJ0BR8OOAqepZC...",
+  "token_owner": {
+    "id": "1046509504984633",
+    "name": "Deyvid Ramon Ferreira Amaral",
+    "type": "personal_user_token (NAO System User — expira ~60 dias)"
+  },
+  "scopes_granted": [
+    "ads_management",
+    "ads_read",
+    "business_management",
+    "catalog_management",
+    "pages_manage_ads",
+    "pages_read_engagement",
+    "pages_show_list",
+    "public_profile",
+    "threads_business_basic"
+  ],
+  "scopes_critical_check": {
+    "ads_management": "OK",
+    "business_management": "OK",
+    "pages_show_list": "OK"
+  },
+  "ad_account_access": {
+    "id": "act_814116284141136",
+    "name": "WKP Tavares 2",
+    "account_status": "ACTIVE (1)",
+    "currency": "BRL",
+    "timezone": "America/Araguaina"
+  },
+  "conclusion": "VALIDO para criar campanhas + ad sets + ad creatives + ads via Marketing API",
+  "recommendation": "Quando possivel, rotacionar para System User token (sem expiracao, mais seguro). Por agora, este token pessoal serve."
+}
