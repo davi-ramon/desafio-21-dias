@@ -3054,6 +3054,17 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     <div id="pqCorpo"></div>
   </div>
 
+  <!-- ── CONVITE: notificações e instalar (v168) ─────────────
+       Mesma folha do NPS, de proposito: a pessoa ja conhece o
+       gesto. Elemento separado para os dois nunca brigarem pela
+       tela. -->
+  <div class="pq-fundo" id="pwcFundo" onclick="pwcFechar()"></div>
+  <div class="pq-folha" id="pwcFolha" role="dialog" aria-modal="true">
+    <div class="pq-alca"></div>
+    <button class="pq-x" onclick="pwcFechar()" aria-label="Agora não">&times;</button>
+    <div id="pwcCorpo"></div>
+  </div>
+
   <div class="page" id="page-indicar">
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
@@ -3393,6 +3404,9 @@ async function loadAlunoData(silent) {
 
     // v167: destino do clique na notificação e dos atalhos do PWA.
     try { if (typeof pwAtalho === 'function') pwAtalho(); } catch (e) {}
+
+    // v168: convida a ativar os lembretes e a instalar o app.
+    try { if (typeof pwcIniciar === 'function') pwcIniciar(); } catch (e) {}
 
     // Se for admin e ainda não escolheu o painel → mostrar seletor
     if (r.data.role === 'admin') {
@@ -14020,6 +14034,182 @@ try {
   }
 } catch (e) {}
 
+// ── Convite de entrada (v168) ────────────────────────────────
+// Pede as notificações e a instalação logo na abertura, toda vez,
+// enquanto faltar alguma das duas. Sem isso o recurso mais novo do
+// app dependia de a pessoa rolar ate o fim do Perfil e achar sozinha.
+//
+// "Toda vez" vale por SESSAO, nao por toque: reabriu o app, pergunta
+// de novo; trocou de aba dentro do app, nao.
+var PWC = { aberta: false, passo: '' };
+
+// Chrome so instala quando ELE quer (beforeinstallprompt). Sem esse
+// evento e fora do iPhone, "instalar" viraria um botao que abre um
+// texto de ajuda — insistir nisso toda sessao e so barulho.
+function pwcPodeInstalar() {
+  if (PW.instalado) return false;
+  try { if (localStorage.getItem('d21_instalado') === '1') return false; } catch (e) {}
+  return !!PW.promptInstalar || PW.ios;
+}
+
+// Repare que instalar NAO olha PW.suportado: no Safari do iPhone fora
+// da tela de inicio nao existe PushManager, entao `suportado` e false
+// justamente no caso em que mais precisamos convidar a instalar.
+function pwcPasso() {
+  pwDetectar();
+  var querNotif = PW.suportado && PW.permissao === 'default';
+  var bloqueado = PW.suportado && PW.permissao === 'denied';
+
+  // No iPhone, instalar vem antes: sem o app na tela de inicio a
+  // notificação nem existe, e pedir permissão ali não abre nada.
+  if (PW.ios && pwcPodeInstalar()) return 'instalar';
+  if (querNotif) return 'notificacoes';
+  if (bloqueado && pwcPodeInstalar()) return 'instalar';
+  if (bloqueado) {
+    var visto = 0;
+    try { visto = parseInt(localStorage.getItem('d21_bloq_visto'), 10) || 0; } catch (e) {}
+    return (Date.now() - visto > 7 * 864e5) ? 'bloqueado' : '';
+  }
+  if (pwcPodeInstalar()) return 'instalar';
+  return '';
+}
+
+function pwcIniciar() {
+  if (APP._pwcVista) return;
+  var passo = pwcPasso();
+  if (!passo) return;
+  APP._pwcVista = true;
+  APP._pwcVaiAbrir = true;       // o NPS espera a próxima sessão
+  PWC.passo = passo;
+  // Mesmo respiro do NPS: abrir no primeiro segundo parece cobrança.
+  setTimeout(function () {
+    // Reavalia: o beforeinstallprompt costuma chegar depois do load.
+    var p = pwcPasso();
+    if (!p) { APP._pwcVaiAbrir = false; return; }
+    PWC.passo = p;
+    pwcAbrir();
+  }, 2600);
+}
+
+function pwcAbrir() {
+  PWC.aberta = true;
+  pwcRender();
+  document.getElementById('pwcFundo').classList.add('on');
+  document.getElementById('pwcFolha').classList.add('on');
+}
+
+function pwcFechar() {
+  PWC.aberta = false;
+  APP._pwcVaiAbrir = false;
+  document.getElementById('pwcFundo').classList.remove('on');
+  document.getElementById('pwcFolha').classList.remove('on');
+}
+
+function pwcRender() {
+  var el = document.getElementById('pwcCorpo');
+  if (!el) return;
+
+  var beneficios =
+    '<div style="display:grid;gap:9px;margin:2px 0 18px">' +
+      pwcItem('\u2600\ufe0f', 'De manhã', 'O Milagre da Manhã na hora que você acorda') +
+      pwcItem('\ud83d\udca7', 'Durante o dia', 'Lembrete de beber água, sem exagero') +
+      pwcItem('\ud83c\udf19', 'À noite', 'Hora de desacelerar e dormir no horário') +
+    '</div>';
+
+  if (PWC.passo === 'notificacoes') {
+    el.innerHTML =
+      '<div class="pq-passo">Seu coach pessoal</div>' +
+      '<div class="pq-t">Posso te lembrar na hora certa?</div>' +
+      '<div class="pq-s">O app acompanha seu dia do despertar até a hora de dormir:</div>' +
+      beneficios +
+      '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:4px">' +
+        'Só dentro do <b>seu</b> horário, e nunca cobrando o que você já fez. ' +
+        'Você escolhe o que receber depois em <b>Perfil › Notificações</b>.</div>' +
+      '<button class="pq-btn" onclick="pwcAtivar(this)">Ativar lembretes</button>' +
+      '<button class="pq-depois" onclick="pwcFechar()">Agora não</button>';
+    return;
+  }
+
+  if (PWC.passo === 'instalar') {
+    var noIphone = PW.ios;
+    el.innerHTML =
+      '<div class="pq-passo">Fica melhor assim</div>' +
+      '<div class="pq-t">Coloque o app na sua tela de início</div>' +
+      '<div class="pq-s">' +
+        (noIphone
+          ? 'No iPhone, é assim que os lembretes passam a funcionar — e o app abre em tela cheia, sem a barra do navegador.'
+          : 'Abre como aplicativo de verdade: tela cheia, sem barra do navegador, e carrega bem mais rápido.') +
+      '</div>' +
+      (noIphone ? beneficios : '') +
+      '<button class="pq-btn" onclick="pwcInstalar(this)">' +
+        (noIphone ? 'Ver como instalar' : 'Instalar agora') + '</button>' +
+      '<button class="pq-depois" onclick="pwcFechar()">Agora não</button>';
+    return;
+  }
+
+  // bloqueado — o navegador não vai perguntar de novo sozinho.
+  // Mostrar um botão "Ativar" aqui seria mentira: ele não faz nada.
+  el.innerHTML =
+    '<div class="pq-passo">Notificações</div>' +
+    '<div class="pq-t">Os lembretes estão bloqueados</div>' +
+    '<div class="pq-s">Em algum momento as notificações foram bloqueadas neste navegador, ' +
+      'e por isso ele não pergunta mais.</div>' +
+    '<div style="background:rgba(255,255,255,.04);border:1px solid var(--border);' +
+      'border-radius:12px;padding:13px 15px;font-size:12.5px;color:var(--text);' +
+      'line-height:1.8;margin-bottom:6px">' +
+      '<b>1.</b> Toque no cadeado 🔒 na barra de endereço<br>' +
+      '<b>2.</b> Procure <b>Notificações</b><br>' +
+      '<b>3.</b> Mude para <b>Permitir</b> e recarregue esta página' +
+    '</div>' +
+    '<button class="pq-btn" onclick="pwcFechar()">Entendi</button>';
+  try { localStorage.setItem('d21_bloq_visto', String(Date.now())); } catch (e) {}
+}
+
+function pwcItem(emoji, titulo, sub) {
+  return '<div style="display:flex;gap:11px;align-items:flex-start">' +
+    '<div style="font-size:16px;line-height:1.3;flex-shrink:0;width:20px;text-align:center">' + emoji + '</div>' +
+    '<div style="min-width:0">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text)">' + titulo + '</div>' +
+      '<div style="font-size:12px;color:var(--muted);line-height:1.5">' + sub + '</div>' +
+    '</div></div>';
+}
+
+// O clique no botão É o gesto que o navegador exige para abrir o
+// diálogo de permissão. Pedir fora de um gesto não abre nada.
+async function pwcAtivar(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Aguarde\u2026'; }
+  var ok = false;
+  try { ok = await pwAtivar(); } catch (e) {}
+  if (btn) { btn.disabled = false; btn.textContent = 'Ativar lembretes'; }
+
+  pwDetectar();
+  // Autorizou e ainda dá para instalar? Emenda no segundo passo em vez
+  // de fechar e voltar a incomodar na próxima sessão.
+  if (ok && pwcPodeInstalar()) { PWC.passo = 'instalar'; pwcRender(); return; }
+  // Recusou agora? Fecha. Ensinar a desbloquear no mesmo segundo em que
+  // a pessoa escolheu bloquear e insistencia, nao ajuda. A instrucao
+  // aparece numa proxima visita, pela pwcPasso().
+  if (!ok && PW.permissao === 'denied') {
+    try { localStorage.setItem('d21_bloq_visto', String(Date.now())); } catch (e) {}
+  }
+  pwcFechar();
+}
+
+async function pwcInstalar(btn) {
+  if (btn) { btn.disabled = true; }
+  try { await pwInstalar(); } catch (e) {}
+  if (btn) { btn.disabled = false; }
+  pwcFechar();
+}
+
+// Instalou de verdade: para de convidar, inclusive quando a pessoa
+// voltar a abrir pelo navegador (aí display-mode não é standalone e o
+// convite reapareceria sem necessidade).
+window.addEventListener('appinstalled', function () {
+  try { localStorage.setItem('d21_instalado', '1'); } catch (e) {}
+  PW.promptInstalar = null;
+});
+
 // Cartão do Perfil — mostra o estado real, sem enfeitar.
 function pwCartao() {
   pwDetectar();
@@ -14185,6 +14375,8 @@ var PQ = { dados: null, passo: 0, resp: {}, aberta: false };
 
 async function pqIniciar() {
   if (PQ.aberta || APP._pqVista) return;
+  // O convite de notificação/instalação tem a vez nesta sessão.
+  if (APP._pwcVaiAbrir) return;
   APP._pqVista = true;                       // uma vez por sessão
   try {
     var r = await rpc('getPesquisaStatus', {});
