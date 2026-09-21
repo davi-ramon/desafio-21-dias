@@ -179,7 +179,7 @@ function pushEnviar_(email, aviso) {
   var conta = _puConta_();
   var url = 'https://fcm.googleapis.com/v1/projects/' + conta.project_id + '/messages:send';
   var sh = _puAba_();
-  var res = { enviados: 0, falhas: 0, removidos: 0 };
+  var res = { enviados: 0, falhas: 0, removidos: 0, motivo: '' };
 
   tokens.forEach(function (t) {
     var corpo = {
@@ -213,6 +213,14 @@ function pushEnviar_(email, aviso) {
     }
 
     res.falhas++;
+    if (!res.motivo) {
+      var det = '';
+      try {
+        var j = JSON.parse(r.getContentText());
+        det = (j.error && (j.error.message || j.error.status)) || '';
+      } catch (e) { det = String(r.getContentText() || '').slice(0, 160); }
+      res.motivo = 'HTTP ' + codigo + (det ? ' — ' + det : '');
+    }
     // 404 e 403 do FCM significam token morto: app desinstalado ou
     // permissão revogada. Insistir só gasta cota — desativa e segue.
     if (codigo === 404 || codigo === 403) {
@@ -237,7 +245,7 @@ function pushStatus(token) {
   var user = getUserByToken(token);
   if (!user || user.role !== 'admin') return { ok: false, error: 'Sem permissao.' };
 
-  var total = 0, ativos = 0, instalados = 0, porPlataforma = {};
+  var total = 0, ativos = 0, instalados = 0, porPlataforma = {}, aparelhos = [];
   try {
     var sh = _puAba_();
     if (sh.getLastRow() > 1) {
@@ -248,9 +256,22 @@ function pushStatus(token) {
         if (d[i][3] === true) instalados++;
         var p = String(d[i][2] || 'outro');
         porPlataforma[p] = (porPlataforma[p] || 0) + 1;
+        aparelhos.push({
+          email: _puNorm_(d[i][0]),
+          plataforma: p,
+          instalado: d[i][3] === true,
+          criado: d[i][4] ? String(d[i][4]) : '',
+          ultimo: d[i][5] ? String(d[i][5]) : '',
+          falhas: Number(d[i][6]) || 0,
+          ativo: d[i][7] !== false,
+          // Só o fim do token: o suficiente para distinguir dois
+          // aparelhos da mesma pessoa, inútil para qualquer outra coisa.
+          fim: String(d[i][1] || '').slice(-8)
+        });
       }
     }
   } catch (e) {}
+  aparelhos.sort(function (a, b) { return String(b.criado).localeCompare(String(a.criado)); });
 
   var trigger = false;
   try {
@@ -264,7 +285,11 @@ function pushStatus(token) {
     vapid: String(getConfig_('push_vapid') || '') ? true : false,
     rotina: trigger,
     total: total, ativos: ativos, instalados: instalados,
-    porPlataforma: porPlataforma
+    porPlataforma: porPlataforma,
+    aparelhos: aparelhos,
+    // Para o painel poder avisar quando o e-mail de admin nao tem
+    // aparelho — que foi exatamente o que aconteceu no primeiro teste.
+    meuEmail: _puNorm_(user.email)
   } };
 }
 
@@ -316,11 +341,39 @@ function pushTestar(token, data) {
   if (alvo !== _puNorm_(user.email) && user.role !== 'admin') {
     return { ok: false, error: 'Sem permissao.' };
   }
+
+  // Erro util em vez de "sem aparelho": diz quantos aparelhos existem e
+  // com quais e-mails, para o admin nao ficar adivinhando.
+  if (!_puTokensDe_(alvo).length) {
+    var donos = {};
+    try {
+      var sh = _puAba_();
+      if (sh.getLastRow() > 1) {
+        var d = sh.getDataRange().getValues();
+        for (var i = 1; i < d.length; i++) {
+          if (d[i][7] === false) continue;
+          var e = _puNorm_(d[i][0]);
+          if (e) donos[e] = (donos[e] || 0) + 1;
+        }
+      }
+    } catch (e2) {}
+    var lista = Object.keys(donos);
+    return { ok: false,
+      error: lista.length
+        ? 'Nenhum aparelho em ' + alvo + '. Ha aparelho(s) registrado(s) em: ' + lista.join(', ')
+        : 'Nenhum aparelho registrado ainda. Abra o app, ative as notificacoes e tente de novo.',
+      emails: lista };
+  }
+
   var r = pushEnviar_(alvo, {
     titulo: 'Teste do Desafio 21 Dias',
     corpo: 'Se voce esta lendo isso, o push esta funcionando.',
     url: '/app', grupo: 'teste'
   });
-  if (!r.ok) return { ok: false, error: r.error || 'Nao consegui enviar.' };
+  if (!r.ok) {
+    return { ok: false, data: r.data,
+      error: (r.data && r.data.motivo) ? ('O Firebase recusou: ' + r.data.motivo)
+                                       : (r.error || 'Nao consegui enviar.') };
+  }
   return { ok: true, data: r.data, email: alvo };
 }

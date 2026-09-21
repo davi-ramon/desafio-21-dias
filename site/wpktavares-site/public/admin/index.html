@@ -4692,9 +4692,69 @@ async function renderPushAdmin() {
 
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
       '<button class="btn btn-primary btn-sm" onclick="pushSalvar()">Salvar credenciais</button>' +
-      '<button class="btn btn-ghost btn-sm" onclick="pushTeste()">Enviar teste para mim</button>' +
     '</div>' +
     '<div id="pushRes" style="margin-top:10px;font-size:12.5px"></div>' +
+  '</div>';
+
+  // ── Aparelhos registrados ──
+  // O e-mail com que voce entra AQUI nao e necessariamente o mesmo com
+  // que voce entra no app. O aparelho fica registrado no e-mail do app,
+  // entao a lista precisa ficar visivel.
+  var aps = st.aparelhos || [];
+  var euTenho = aps.some(function (a) { return a.email === st.meuEmail && a.ativo; });
+
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">' +
+      'Aparelhos registrados</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.7">' +
+      'Cada linha e um navegador que autorizou receber. A mesma pessoa pode ter varios ' +
+      '(celular + computador) e o envio vai para todos de uma vez.' +
+      (euTenho ? '' :
+        '<br><span style="color:#e0a83c">Voce esta logado aqui como <b>' + escHtml(st.meuEmail) +
+        '</b> e nao ha aparelho nesse e-mail. Use o campo abaixo para mandar o teste ' +
+        'para o e-mail que voce usa no app.</span>') +
+    '</div>';
+
+  if (!aps.length) {
+    html += '<div style="font-size:12.5px;color:var(--muted);padding:14px;text-align:center;' +
+      'border:1px dashed var(--border);border-radius:10px">' +
+      'Nenhum aparelho ainda. Abra o app, aceite o convite de notificacoes e recarregue esta tela.' +
+      '</div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">' +
+      '<thead><tr style="text-align:left;color:var(--muted);font-size:11px;' +
+        'text-transform:uppercase;letter-spacing:.05em">' +
+        '<th style="padding:7px 8px">E-mail</th>' +
+        '<th style="padding:7px 8px">Onde</th>' +
+        '<th style="padding:7px 8px">Ultimo envio</th>' +
+        '<th style="padding:7px 8px">Estado</th>' +
+        '<th style="padding:7px 8px"></th></tr></thead><tbody>';
+
+    aps.forEach(function (a) {
+      var estado = !a.ativo ? '<span style="color:var(--danger)">desativado</span>'
+                 : a.falhas > 0 ? '<span style="color:#e0a83c">' + a.falhas + ' falha(s)</span>'
+                 : '<span style="color:var(--green)">ok</span>';
+      var onde = escHtml(a.plataforma || 'outro') + (a.instalado ? ' · instalado' : '');
+      html += '<tr style="border-top:1px solid var(--border)">' +
+        '<td style="padding:9px 8px;color:var(--text)">' + escHtml(a.email) +
+          '<div style="font-size:10.5px;color:var(--muted)">…' + escHtml(a.fim) + '</div></td>' +
+        '<td style="padding:9px 8px;color:var(--muted)">' + onde + '</td>' +
+        '<td style="padding:9px 8px;color:var(--muted)">' + (a.ultimo ? fmtDate(a.ultimo) : '—') + '</td>' +
+        '<td style="padding:9px 8px">' + estado + '</td>' +
+        '<td style="padding:9px 8px;text-align:right">' +
+          '<button class="btn btn-ghost btn-sm" onclick="pushTeste(\'' +
+            escHtml(a.email).replace(/'/g, "\\'") + '\')">Testar</button></td>' +
+        '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center">' +
+      '<input class="form-control" id="pushAlvo" style="flex:1;min-width:210px" ' +
+        'placeholder="e-mail para receber o teste" value="' + escHtml(st.meuEmail || '') + '">' +
+      '<button class="btn btn-primary btn-sm" onclick="pushTeste()">Enviar teste</button>' +
+    '</div>' +
+    '<div id="pushTesteRes" style="margin-top:10px;font-size:12.5px"></div>' +
   '</div>';
 
   // Agenda
@@ -4770,22 +4830,23 @@ async function pushSalvar() {
   }
 }
 
-async function pushTeste() {
-  _puMsg('pushRes', 'Enviando&hellip;', 'var(--muted)');
+async function pushTeste(email) {
+  var alvo = email || (document.getElementById('pushAlvo') || {}).value || '';
+  alvo = String(alvo).trim();
+  if (!alvo) { _puMsg('pushTesteRes', 'Informe um e-mail.', 'var(--danger)'); return; }
+
+  _puMsg('pushTesteRes', 'Enviando para ' + escHtml(alvo) + '&hellip;', 'var(--muted)');
   try {
-    var r = await rpc('pushTestar', {});
+    var r = await rpc('pushTestar', { email: alvo });
     if (r && r.ok) {
-      _puMsg('pushRes', 'Enviado para ' + escHtml(r.email) + ' (' + r.data.enviados +
-        ' aparelho). Se nada chegar, ative as notificações no app primeiro.', 'var(--green)');
-    } else {
-      var err = String((r && r.error) || 'Falhou.');
-      if (err.indexOf('sem aparelho') >= 0) {
-        err = 'Nenhum aparelho seu está registrado. Abra o app, vá em Notificações e ative.';
-      }
-      _puMsg('pushRes', escHtml(err), 'var(--danger)');
+      _puMsg('pushTesteRes', 'Enviado para ' + escHtml(r.email) + ' — ' + r.data.enviados +
+        ' aparelho(s). Deve chegar em segundos, no celular e no computador.', 'var(--green)');
+      setTimeout(renderPushAdmin, 2500);
+      return;
     }
+    _puMsg('pushTesteRes', escHtml(String((r && r.error) || 'Falhou.')), 'var(--danger)');
   } catch (e) {
-    _puMsg('pushRes', 'Erro de conexão.', 'var(--danger)');
+    _puMsg('pushTesteRes', 'Erro de conexão.', 'var(--danger)');
   }
 }
 

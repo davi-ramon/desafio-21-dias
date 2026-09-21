@@ -13965,6 +13965,92 @@ async function pwAtivar() {
   return true;
 }
 
+// Cada navegador instala de um jeito. Sem isto o convite virava um
+// texto generico de "procure nos tres pontinhos" que nao ajuda ninguem.
+//
+// A ordem importa: Edge e Samsung tambem tem "Chrome" no user agent, e
+// todo navegador no iPhone e WebKit por baixo — inclusive o Chrome de
+// iPhone, que instala pelo Compartilhar do Safari, nao pelo menu dele.
+function pwNavegador() {
+  var ua = navigator.userAgent;
+  var ios = /iphone|ipad|ipod/i.test(ua) ||
+            // iPad moderno se apresenta como Mac; o toque denuncia.
+            (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var android = /android/i.test(ua);
+
+  var nome = 'outro';
+  if (/FxiOS/i.test(ua) || /Firefox/i.test(ua)) nome = 'firefox';
+  // Edge se identifica de tres jeitos: Edg/ no computador, EdgA/ no
+  // Android e EdgiOS/ no iPhone. So o primeiro e o mais conhecido.
+  else if (/EdgiOS|EdgA\/|Edg\//i.test(ua))      nome = 'edge';
+  else if (/SamsungBrowser/i.test(ua))          nome = 'samsung';
+  else if (/OPR\/|Opera/i.test(ua))             nome = 'opera';
+  else if (/CriOS|Chrome/i.test(ua))            nome = 'chrome';
+  else if (/Safari/i.test(ua))                  nome = 'safari';
+
+  return { nome: nome, ios: ios, android: android,
+           desktop: !ios && !android, ua: ua };
+}
+
+// Passo a passo REAL. Quando nao existe caminho de instalacao no
+// navegador, o honesto e dizer isso e indicar um que tenha — inventar
+// um menu que nao existe faz a pessoa procurar e desistir.
+function pwComoInstalar() {
+  var n = pwNavegador();
+
+  if (n.ios) {
+    return { titulo: 'Adicionar à Tela de Início',
+      passos: ['Toque no botão Compartilhar — o quadrado com a seta para cima',
+               'Role a lista e escolha "Adicionar à Tela de Início"',
+               'Confirme em "Adicionar", no canto superior'],
+      nota: 'É assim que os lembretes passam a funcionar no iPhone.' };
+  }
+
+  if (n.android) {
+    if (n.nome === 'firefox') {
+      return { titulo: 'Instalar pelo Firefox',
+        passos: ['Toque no menu ⋮, no canto da tela',
+                 'Escolha "Instalar" ou "Adicionar à tela inicial"',
+                 'Confirme'] };
+    }
+    if (n.nome === 'samsung') {
+      return { titulo: 'Instalar pelo Samsung Internet',
+        passos: ['Toque no menu ☰, embaixo à direita',
+                 'Escolha "Adicionar página a" › "Tela inicial"',
+                 'Confirme'] };
+    }
+    return { titulo: 'Instalar o app',
+      passos: ['Toque no menu ⋮, no canto da tela',
+               'Escolha "Instalar aplicativo" ou "Adicionar à tela inicial"',
+               'Confirme'] };
+  }
+
+  // Desktop
+  if (n.nome === 'firefox') {
+    return { titulo: 'O Firefox não instala aplicativos',
+      passos: ['Abra este mesmo endereço no Chrome, Edge ou Opera',
+               'Lá aparece um ícone de instalar na barra de endereço',
+               'No celular, o Firefox instala normalmente pelo menu ⋮'],
+      nota: 'O Firefox no computador removeu esse recurso. Não é problema do app.' };
+  }
+  if (n.nome === 'safari') {
+    return { titulo: 'Adicionar ao Dock',
+      passos: ['No menu "Arquivo", escolha "Adicionar ao Dock"',
+               'Confirme o nome e clique em "Adicionar"'],
+      nota: 'Disponível no macOS Sonoma ou mais novo.' };
+  }
+  if (n.nome === 'edge') {
+    return { titulo: 'Instalar pelo Edge',
+      passos: ['Clique no ícone de instalar na barra de endereço (um monitor com seta)',
+               'Ou abra o menu ··· › "Aplicativos" › "Instalar este site como aplicativo"',
+               'Confirme em "Instalar"'] };
+  }
+  return { titulo: 'Instalar o app',
+    passos: ['Clique no ícone de instalar na barra de endereço, à direita',
+             'Ou abra o menu ⋮ › "Transmitir, salvar e compartilhar" › "Instalar página como app"',
+             'Confirme em "Instalar"'] };
+}
+
 async function pwInstalar() {
   if (PW.promptInstalar) {
     PW.promptInstalar.prompt();
@@ -13973,15 +14059,10 @@ async function pwInstalar() {
     setTimeout(function () { try { renderPerfil(); } catch (e) {} }, 800);
     return;
   }
-  if (PW.ios) {
-    await muAvisar('Adicionar à Tela de Início',
-      '1. Toque no botão Compartilhar (o quadrado com a seta)\n' +
-      '2. Role e escolha "Adicionar à Tela de Início"\n' +
-      '3. Confirme');
-    return;
-  }
-  await muAvisar('Instalar o app',
-    'No menu do navegador (os três pontinhos), procure "Instalar aplicativo" ou "Adicionar à tela inicial".');
+  var g = pwComoInstalar();
+  await muAvisar(g.titulo,
+    g.passos.map(function (t, i) { return (i + 1) + '. ' + t; }).join('\n') +
+    (g.nota ? '\n\n' + g.nota : ''));
 }
 
 // ── ?atalho=  ────────────────────────────────────────────────
@@ -14043,13 +14124,36 @@ try {
 // de novo; trocou de aba dentro do app, nao.
 var PWC = { aberta: false, passo: '' };
 
-// Chrome so instala quando ELE quer (beforeinstallprompt). Sem esse
-// evento e fora do iPhone, "instalar" viraria um botao que abre um
-// texto de ajuda — insistir nisso toda sessao e so barulho.
+// Convida em QUALQUER navegador — Chrome, Edge, Firefox, Safari, Samsung,
+// no celular ou no computador. Quando o navegador oferece o diálogo
+// nativo (beforeinstallprompt) usamos ele; quando não, mostramos o passo
+// a passo daquele navegador especifico.
+//
+// Insistencia: pergunta toda sessao. Para de perguntar so quando a
+// pessoa ja ignorou 3 vezes E ja se passaram 7 dias desde o primeiro
+// convite — as duas condicoes juntas. Assim quem fecha tres vezes no
+// primeiro dia continua sendo convidado ate o setimo.
+var PWC_MAX_IGNORADAS = 3;
+var PWC_DIAS_MINIMOS  = 7;
+
+function pwcNum(chave) {
+  try { return parseInt(localStorage.getItem(chave), 10) || 0; } catch (e) { return 0; }
+}
+function pwcGrava(chave, valor) {
+  try { localStorage.setItem(chave, String(valor)); } catch (e) {}
+}
+
 function pwcPodeInstalar() {
   if (PW.instalado) return false;
   try { if (localStorage.getItem('d21_instalado') === '1') return false; } catch (e) {}
-  return !!PW.promptInstalar || PW.ios;
+
+  var ignoradas = pwcNum('d21_inst_ignorou');
+  var primeiro  = pwcNum('d21_inst_desde');
+  if (!primeiro) { pwcGrava('d21_inst_desde', Date.now()); return true; }
+
+  var dias = (Date.now() - primeiro) / 864e5;
+  if (dias < PWC_DIAS_MINIMOS) return true;          // os 7 dias valem sempre
+  return ignoradas < PWC_MAX_IGNORADAS;
 }
 
 // Repare que instalar NAO olha PW.suportado: no Safari do iPhone fora
@@ -14099,6 +14203,11 @@ function pwcAbrir() {
 }
 
 function pwcFechar() {
+  // Fechar no passo de instalar conta como "ignorou". O de notificações
+  // não conta: esse continua perguntando sempre.
+  if (PWC.aberta && PWC.passo === 'instalar') {
+    pwcGrava('d21_inst_ignorou', pwcNum('d21_inst_ignorou') + 1);
+  }
   PWC.aberta = false;
   APP._pwcVaiAbrir = false;
   document.getElementById('pwcFundo').classList.remove('on');
@@ -14131,18 +14240,36 @@ function pwcRender() {
   }
 
   if (PWC.passo === 'instalar') {
-    var noIphone = PW.ios;
+    var nav = pwNavegador();
+    var guia = pwComoInstalar();
+    var nativo = !!PW.promptInstalar;       // o navegador abre o diálogo dele
+    var ondeFica = nav.desktop ? 'na sua área de trabalho' : 'na sua tela de início';
+
     el.innerHTML =
       '<div class="pq-passo">Fica melhor assim</div>' +
-      '<div class="pq-t">Coloque o app na sua tela de início</div>' +
+      '<div class="pq-t">Coloque o app ' + ondeFica + '</div>' +
       '<div class="pq-s">' +
-        (noIphone
+        (nav.ios
           ? 'No iPhone, é assim que os lembretes passam a funcionar — e o app abre em tela cheia, sem a barra do navegador.'
           : 'Abre como aplicativo de verdade: tela cheia, sem barra do navegador, e carrega bem mais rápido.') +
       '</div>' +
-      (noIphone ? beneficios : '') +
+      (nav.ios ? beneficios : '') +
+      // Sem diálogo nativo, o passo a passo aparece na hora — mandar a
+      // pessoa "procurar no menu" sem dizer onde é perder ela ali mesmo.
+      (nativo ? '' :
+        '<div style="background:rgba(255,255,255,.04);border:1px solid var(--border);' +
+          'border-radius:12px;padding:13px 15px;margin-bottom:14px">' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:7px">' +
+            guia.titulo + '</div>' +
+          guia.passos.map(function (t, i) {
+            return '<div style="font-size:12.5px;color:var(--muted);line-height:1.7">' +
+                   '<b style="color:var(--green)">' + (i + 1) + '.</b> ' + t + '</div>';
+          }).join('') +
+          (guia.nota ? '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;' +
+            'opacity:.85;font-style:italic">' + guia.nota + '</div>' : '') +
+        '</div>') +
       '<button class="pq-btn" onclick="pwcInstalar(this)">' +
-        (noIphone ? 'Ver como instalar' : 'Instalar agora') + '</button>' +
+        (nativo ? 'Instalar agora' : 'Entendi, vou fazer') + '</button>' +
       '<button class="pq-depois" onclick="pwcFechar()">Agora não</button>';
     return;
   }
@@ -14197,9 +14324,13 @@ async function pwcAtivar(btn) {
 
 async function pwcInstalar(btn) {
   if (btn) { btn.disabled = true; }
+  // Quem tocou no botão não ignorou — mesmo que o passo a passo só
+  // apareça agora. O contador é para quem fecha no X.
+  var p = PWC.passo; PWC.passo = '';
   try { await pwInstalar(); } catch (e) {}
   if (btn) { btn.disabled = false; }
   pwcFechar();
+  PWC.passo = p;
 }
 
 // Instalou de verdade: para de convidar, inclusive quando a pessoa
