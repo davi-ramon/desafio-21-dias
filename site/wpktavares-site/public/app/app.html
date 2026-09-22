@@ -3058,6 +3058,45 @@ input[type=range].adm-slider::-webkit-slider-thumb {
        Mesma folha do NPS, de proposito: a pessoa ja conhece o
        gesto. Elemento separado para os dois nunca brigarem pela
        tela. -->
+  <style>
+    /* Upload: barra que mede bytes de verdade (v171) */
+    .ucp-wrap{margin-top:12px;display:none}
+    .ucp-wrap.on{display:block;animation:ucpEntra .25s ease}
+    @keyframes ucpEntra{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+    .ucp-topo{display:flex;justify-content:space-between;align-items:baseline;
+      font-size:12px;margin-bottom:7px}
+    .ucp-fase{color:var(--text);font-weight:700}
+    .ucp-pct{color:var(--green);font-weight:800;font-variant-numeric:tabular-nums}
+    .ucp-trilho{height:8px;border-radius:99px;background:rgba(255,255,255,.07);
+      overflow:hidden;position:relative}
+    .ucp-barra{height:100%;width:0%;border-radius:99px;
+      background:linear-gradient(90deg,#2e7d32,var(--green));
+      transition:width .3s cubic-bezier(.4,0,.2,1)}
+    /* Enquanto o servidor processa nao ha o que medir: a faixa anda
+       sozinha para mostrar que esta vivo, sem fingir um numero. */
+    .ucp-barra.indef{width:100%;
+      background:linear-gradient(90deg,transparent,var(--green),transparent);
+      background-size:40% 100%;background-repeat:no-repeat;
+      animation:ucpAnda 1.15s linear infinite}
+    @keyframes ucpAnda{from{background-position:-40% 0}to{background-position:140% 0}}
+    .ucp-nota{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
+
+    /* Arrastar para reordenar (v171) */
+    .uc-item{transition:transform .26s cubic-bezier(.2,.9,.25,1),opacity .18s,box-shadow .18s}
+    .uc-item.ucd-voando{opacity:.92;z-index:60;position:relative;cursor:grabbing;
+      box-shadow:0 14px 34px rgba(0,0,0,.55);transition:none}
+    .uc-item.ucd-quieto{transition:transform .26s cubic-bezier(.2,.9,.25,1)}
+    .uc-alca{cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;
+      background:none;border:none;color:var(--muted);font-size:15px;padding:6px 9px;
+      line-height:1;border-radius:8px}
+    .uc-alca:hover{color:var(--text);background:rgba(255,255,255,.06)}
+    .uc-alca:active{cursor:grabbing}
+    @media (prefers-reduced-motion:reduce){
+      .uc-item,.uc-item.ucd-quieto{transition:none}
+      .ucp-barra{transition:none}.ucp-barra.indef{animation:none}
+    }
+  </style>
+
   <div class="pq-fundo" id="pwcFundo" onclick="pwcFechar()"></div>
   <div class="pq-folha" id="pwcFolha" role="dialog" aria-modal="true">
     <div class="pq-alca"></div>
@@ -15734,6 +15773,12 @@ function ucRenderManager() {
       '<label class="uc-field"><span>Arquivo do livro * · máximo real de 5 MB</span><input class="uc-input" id="ucBookFile" type="file" accept=".pdf,.epub,application/pdf,application/epub+zip"></label>' +
       '<label class="uc-field"><span>Capa opcional · PNG, JPG ou WebP · até 1 MB</span><input class="uc-input" id="ucBookCover" type="file" accept="image/png,image/jpeg,image/webp"></label>' +
       '<button class="uc-primary" id="ucUploadBtn" type="button" onclick="ucUploadBook()">Adicionar à biblioteca</button>' +
+      '<div class="ucp-wrap" id="ucProg">' +
+        '<div class="ucp-topo"><span class="ucp-fase" id="ucProgFase">Enviando</span>' +
+        '<span class="ucp-pct" id="ucProgPct">0%</span></div>' +
+        '<div class="ucp-trilho"><div class="ucp-barra" id="ucProgBarra"></div></div>' +
+        '<div class="ucp-nota" id="ucProgNota">Não feche esta tela.</div>' +
+      '</div>' +
       '<div class="uc-limit-note">O arquivo fica em armazenamento privado. Ele só é entregue após o servidor validar sua sessão e a propriedade do conteúdo.</div></div>';
   } else {
     addHtml = '<div class="uc-add-box"><h3>Adicionar link público do YouTube</h3>' +
@@ -15759,8 +15804,16 @@ function ucManagerItem(item, index, total) {
   var isVideo = item.source === 'youtube';
   var thumb = isVideo ? '<img class="uc-item-thumb" src="' + escH(item.thumbnail || '') + '" alt="">' : '<div class="uc-item-thumb" style="display:flex;align-items:center;justify-content:center;font-size:22px">' + (item.type === 'pdf' ? '📄' : '📘') + '</div>';
   var visibility = item.visibility === 'global' ? 'Global aprovado' : item.visibility === 'approved' ? 'Aguardando publicação' : 'Privado';
-  var html = '<div class="uc-item">' +
-    '<div class="uc-item-main">' + thumb + '<div class="uc-item-info"><div class="uc-item-title">' + escH(item.title) + '</div><div class="uc-item-sub">' + escH(item.author || 'Sem autor') + ' · ' + visibility + (item.fileSize ? ' · ' + (item.fileSize / 1024 / 1024).toFixed(1) + ' MB' : '') + '</div></div></div>';
+  // A alca so existe no proprio conteudo: reordenar o catalogo oficial
+  // nao e do aluno. Pointer events em vez de HTML5 drag-and-drop —
+  // aquele simplesmente nao funciona com o dedo no celular.
+  var alca = (item.isOwner && index >= 0)
+    ? '<button class="uc-alca" type="button" aria-label="Arraste para reordenar" ' +
+      'title="Arraste para reordenar" onpointerdown="ucdPegar(event,this)">⠿</button>'
+    : '';
+  var html = '<div class="uc-item" data-uc-id="' + escH(item.id) + '"' +
+    (item.isOwner && index >= 0 ? ' data-uc-mov="1"' : '') + '>' +
+    '<div class="uc-item-main">' + alca + thumb + '<div class="uc-item-info"><div class="uc-item-title">' + escH(item.title) + '</div><div class="uc-item-sub">' + escH(item.author || 'Sem autor') + ' · ' + visibility + (item.fileSize ? ' · ' + (item.fileSize / 1024 / 1024).toFixed(1) + ' MB' : '') + '</div></div></div>';
   if (item.isOwner) {
     html += '<div class="uc-item-actions">' +
       '<button class="uc-mini ' + (item.favorite ? 'on' : '') + '" onclick="ucToggle(\'' + item.module + '\',\'' + item.id + '\',\'favorite\')">' + (item.favorite ? '★ Favorito' : '☆ Favoritar') + '</button>' +
@@ -15836,6 +15889,57 @@ function ucRefDoArquivo(file, title) {
   return 'up_' + h.toString(36) + '_' + String(file.size || 0).slice(-6);
 }
 
+// ── Barra de progresso ──────────────────────────────────────
+function ucProg(fase, pct, nota) {
+  var w = document.getElementById('ucProg');
+  var b = document.getElementById('ucProgBarra');
+  var f = document.getElementById('ucProgFase');
+  var t = document.getElementById('ucProgPct');
+  var n = document.getElementById('ucProgNota');
+  if (!w) return;
+  if (fase === null) { w.classList.remove('on'); if (b) { b.classList.remove('indef'); b.style.width = '0%'; } return; }
+  w.classList.add('on');
+  if (f) f.textContent = fase;
+  if (n && nota !== undefined) n.textContent = nota;
+  if (!b || !t) return;
+  if (pct < 0) {                      // fase sem medida possivel
+    b.classList.add('indef');
+    t.textContent = '';
+  } else {
+    b.classList.remove('indef');
+    b.style.width = Math.max(0, Math.min(100, pct)) + '%';
+    t.textContent = Math.round(pct) + '%';
+  }
+}
+
+// fetch() nao expoe quanto do corpo ja subiu — so o XHR expoe. Uma barra
+// animada "de mentira" seria pior que nenhuma: some a informacao de que
+// a conexao travou no meio.
+function ucEnviarComProgresso(payload, aoSubir) {
+  return new Promise(function (resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', WEBAPP_URL, true);
+    xhr.setRequestHeader('Content-Type', 'text/plain');
+    xhr.timeout = 240000;
+
+    xhr.upload.onprogress = function (ev) {
+      if (ev.lengthComputable && aoSubir) aoSubir(ev.loaded / ev.total * 100);
+    };
+    xhr.upload.onload = function () { if (aoSubir) aoSubir(100); };
+
+    xhr.onload = function () {
+      var txt = xhr.responseText || '';
+      var j = null;
+      try { j = JSON.parse(txt); } catch (e) { j = null; }
+      if (!j) { reject(new Error('O servidor respondeu fora do padrão.')); return; }
+      resolve(j);
+    };
+    xhr.onerror   = function () { reject(new Error('A conexão caiu durante o envio.')); };
+    xhr.ontimeout = function () { reject(new Error('O envio demorou demais.')); };
+    xhr.send(JSON.stringify({ action: 'uploadUserContent', token: APP.token, data: payload }));
+  });
+}
+
 async function ucUploadBook() {
   if (UC.busy) return;
   var title = (document.getElementById('ucBookTitle') || {}).value || '';
@@ -15854,6 +15958,7 @@ async function ucUploadBook() {
   if (button) { button.disabled = true; button.textContent = 'Preparando…'; }
 
   try {
+    ucProg('Lendo o arquivo', -1, 'Preparando o envio.');
     var reads = [ucReadFile(file)]; if (cover) reads.push(ucReadFile(cover));
     var dataUrls = await Promise.all(reads);
     var payload = { module: 'reading', title: title.trim(), author: author.trim(),
@@ -15862,17 +15967,25 @@ async function ucUploadBook() {
       clientRef: ref };
     if (cover) { payload.coverBase64 = dataUrls[1]; payload.coverName = cover.name; payload.coverMimeType = cover.type; }
 
-    if (button) button.textContent = 'Enviando… pode levar 1 min';
-    // 4 minutos. Um PDF de 5 MB vira ~6,7 MB em base64: no 4G isso passa
-    // dos 45 s antigos com folga, e desistir cedo NAO cancela o servidor
-    // — so faz a pessoa achar que falhou e tentar de novo.
-    var r = await ucRpc('uploadUserContent', payload, 240000);
+    if (button) button.textContent = 'Enviando…';
+    ucProg('Enviando', 0, 'Não feche esta tela.');
+
+    var r = await ucEnviarComProgresso(payload, function (pct) {
+      // Os ultimos 8% ficam para o servidor: enquanto ele grava no Drive
+      // nao ha byte subindo, e cravar 100% ali seria mentira.
+      ucProg('Enviando', pct * 0.92, 'Não feche esta tela.');
+      if (pct >= 100) ucProg('Guardando no servidor', -1, 'Validando o arquivo e salvando. Quase lá.');
+    });
+
     if (!r || !r.ok) throw new Error((r && r.error) || 'Upload recusado.');
-    toast(r.repetido ? 'Esse livro já estava na sua biblioteca.'
-                     : 'Livro salvo na sua biblioteca privada.', 'success');
+    ucProg('Pronto', 100, 'Livro adicionado.');
     await ucReloadCurrent();
+    setTimeout(function () { ucProg(null); }, 900);
+    ucModalConcluido(title.trim(), ext, !!r.repetido);
+    return;
 
   } catch (e) {
+    ucProg('Conferindo', -1, 'Vendo se o livro chegou mesmo.');
     // Estourou o tempo aqui não quer dizer que falhou lá. Antes de
     // acusar erro, pergunta ao servidor se o livro entrou.
     if (button) button.textContent = 'Conferindo…';
@@ -15883,9 +15996,12 @@ async function ucUploadBook() {
     } catch (e2) {}
 
     if (entrou) {
-      toast('Deu certo — o livro já está na sua biblioteca.', 'success');
+      ucProg('Pronto', 100, 'Livro adicionado.');
       await ucReloadCurrent();
+      setTimeout(function () { ucProg(null); }, 900);
+      ucModalConcluido(title.trim(), ext, false);
     } else {
+      ucProg(null);
       toast(e.message || 'Erro no upload.', 'error');
       // Mesmo falhando, recarrega: se o servidor tiver terminado logo
       // depois, o livro aparece sozinho em vez de sumir da vista.
@@ -15895,6 +16011,33 @@ async function ucUploadBook() {
     UC.busy = false;
     if (button) { button.disabled = false; button.textContent = 'Adicionar à biblioteca'; }
   }
+}
+
+function ucModalConcluido(titulo, ext, repetido) {
+  // Limpa o formulario: deixar o arquivo selecionado convida a mandar de
+  // novo o que ja entrou.
+  ['ucBookTitle', 'ucBookAuthor', 'ucBookFile', 'ucBookCover'].forEach(function (id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+
+  _showModal({
+    title: repetido ? 'Esse livro já estava aí' : 'Livro adicionado',
+    icon: '<span style="font-size:24px">' + (ext === 'epub' ? '📘' : '📄') + '</span>',
+    body: '<div style="text-align:center">' +
+        '<div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px">' +
+          escH(titulo) + '</div>' +
+        '<div style="font-size:13px;line-height:1.6">' +
+          (repetido
+            ? 'Ele já constava na sua biblioteca, então não criei uma cópia.'
+            : 'Está na sua biblioteca privada, junto dos livros oficiais. ' +
+              'Só você vê e só você abre.') +
+        '</div></div>',
+    primary: { label: 'Abrir a biblioteca', action: function () {
+      try { ucCloseManager(); } catch (e) {}
+      try { if (typeof _leitRenderLibrary === 'function') _leitRenderLibrary(); } catch (e) {}
+    } },
+    secondary: { label: 'Adicionar outro' }
+  });
 }
 
 async function ucToggle(module, id, field) {
@@ -15942,6 +16085,117 @@ async function ucDelete(module, id) {
     if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao excluir.');
     toast('Conteúdo excluído.', 'success'); await ucReloadCurrent();
   } catch (e) { toast(e.message || 'Erro ao excluir.', 'error'); }
+}
+
+// ── Arrastar para reordenar (v171) ──────────────────────────
+// FLIP: mede onde cada item estava, move no DOM, mede onde ficou e
+// anima a diferenca. Sem isso os vizinhos "teleportam" ao trocar de
+// lugar e ninguem entende o que aconteceu.
+var UCD = { ativo: null, lista: null, dy: 0, y0: 0, base: 0, salvou: false };
+
+function ucdIrmaos(lista) {
+  return Array.prototype.filter.call(lista.children, function (n) {
+    return n.nodeType === 1 && n.getAttribute('data-uc-mov') === '1';
+  });
+}
+
+function ucdPegar(ev, alca) {
+  if (UCD.ativo || ev.button > 0) return;
+  var item = alca.closest('.uc-item');
+  if (!item || !item.parentNode) return;
+  ev.preventDefault();
+
+  UCD.ativo = item;
+  UCD.lista = item.parentNode;
+  UCD.y0 = ev.clientY;
+  UCD.dy = 0;
+  UCD.salvou = false;
+  item.classList.add('ucd-voando');
+  try { alca.setPointerCapture(ev.pointerId); } catch (e) {}
+
+  alca.onpointermove = ucdMover;
+  alca.onpointerup = alca.onpointercancel = function (e) { ucdSoltar(e, alca); };
+}
+
+function ucdMover(ev) {
+  var it = UCD.ativo;
+  if (!it) return;
+  UCD.dy = ev.clientY - UCD.y0;
+  it.style.transform = 'translateY(' + UCD.dy + 'px)';
+
+  var irmaos = ucdIrmaos(UCD.lista);
+  var meio = it.getBoundingClientRect().top + it.offsetHeight / 2;
+
+  for (var i = 0; i < irmaos.length; i++) {
+    var o = irmaos[i];
+    if (o === it) continue;
+    var r = o.getBoundingClientRect();
+    var cruzou = (meio > r.top && meio < r.top + r.height / 2 && o.compareDocumentPosition(it) & 4)
+              || (meio < r.bottom && meio > r.bottom - r.height / 2 && o.compareDocumentPosition(it) & 2);
+    if (!cruzou) continue;
+
+    // FLIP
+    var antes = irmaos.map(function (n) { return [n, n.getBoundingClientRect().top]; });
+    if (o.compareDocumentPosition(it) & 4) UCD.lista.insertBefore(it, o);
+    else UCD.lista.insertBefore(it, o.nextSibling);
+
+    // O arrastado continua sob o dedo: a referencia dele mudou de lugar.
+    UCD.y0 += it.getBoundingClientRect().top - (antes.filter(function (a) { return a[0] === it; })[0] || [0, 0])[1];
+    UCD.dy = ev.clientY - UCD.y0;
+    it.style.transform = 'translateY(' + UCD.dy + 'px)';
+
+    antes.forEach(function (a) {
+      var n = a[0];
+      if (n === it) return;
+      var d = a[1] - n.getBoundingClientRect().top;
+      if (!d) return;
+      n.classList.remove('ucd-quieto');
+      n.style.transform = 'translateY(' + d + 'px)';
+      // Dois frames: o primeiro aplica o deslocamento inverso sem
+      // transicao, o segundo deixa a transicao levar ate zero.
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          n.classList.add('ucd-quieto');
+          n.style.transform = '';
+        });
+      });
+    });
+    break;
+  }
+}
+
+async function ucdSoltar(ev, alca) {
+  var it = UCD.ativo;
+  if (!it) return;
+  alca.onpointermove = alca.onpointerup = alca.onpointercancel = null;
+  try { alca.releasePointerCapture(ev.pointerId); } catch (e) {}
+
+  it.classList.remove('ucd-voando');
+  it.classList.add('ucd-quieto');
+  it.style.transform = '';
+
+  var ids = ucdIrmaos(UCD.lista).map(function (n) { return n.getAttribute('data-uc-id'); });
+  var lista = UCD.lista;
+  UCD.ativo = null; UCD.lista = null;
+
+  var atual = (UC.items[UC.module] || []).filter(function (x) { return x.isOwner; })
+                .map(function (x) { return x.id; });
+  if (ids.join(',') === atual.join(',')) return;   // nao mexeu de verdade
+
+  try {
+    var r = await ucRpc('reorderUserContent', { module: UC.module, ids: ids });
+    if (!r || !r.ok) throw new Error((r && r.error) || 'Erro ao ordenar.');
+    // Atualiza a memoria local sem redesenhar: redesenhar aqui apagaria
+    // a animacao que a pessoa acabou de ver.
+    var mapa = {};
+    (UC.items[UC.module] || []).forEach(function (x) { mapa[x.id] = x; });
+    var novos = ids.map(function (id) { return mapa[id]; }).filter(Boolean);
+    UC.items[UC.module] = novos.concat(
+      (UC.items[UC.module] || []).filter(function (x) { return !x.isOwner; }));
+  } catch (e) {
+    toast(e.message || 'Erro ao ordenar.', 'error');
+    await ucReloadCurrent();
+  }
 }
 
 async function ucMove(module, id, direction) {
