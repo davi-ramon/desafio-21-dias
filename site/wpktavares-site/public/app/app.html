@@ -15825,6 +15825,17 @@ function ucReadFile(file) {
   });
 }
 
+// Impressão digital da tentativa. A MESMA seleção de arquivo gera a
+// mesma chave, então retentativa não vira um segundo livro. Sem isto,
+// cada nova tentativa deixava outra cópia do PDF no Drive.
+function ucRefDoArquivo(file, title) {
+  var base = [String(file.name || ''), String(file.size || 0),
+              String(file.lastModified || 0), String(title || '')].join('|');
+  var h = 5381;
+  for (var i = 0; i < base.length; i++) h = ((h * 33) ^ base.charCodeAt(i)) >>> 0;
+  return 'up_' + h.toString(36) + '_' + String(file.size || 0).slice(-6);
+}
+
 async function ucUploadBook() {
   if (UC.busy) return;
   var title = (document.getElementById('ucBookTitle') || {}).value || '';
@@ -15836,19 +15847,54 @@ async function ucUploadBook() {
   if (cover && cover.size > 1024 * 1024) { toast('A capa excede o limite de 1 MB.', 'error'); return; }
   var ext = (file.name.split('.').pop() || '').toLowerCase();
   if (['pdf','epub'].indexOf(ext) < 0) { toast('Use um arquivo PDF ou EPUB.', 'error'); return; }
+
   var button = document.getElementById('ucUploadBtn');
-  UC.busy = true; if (button) { button.disabled = true; button.textContent = 'Validando e enviando…'; }
+  var ref = ucRefDoArquivo(file, title.trim());
+  UC.busy = true;
+  if (button) { button.disabled = true; button.textContent = 'Preparando…'; }
+
   try {
     var reads = [ucReadFile(file)]; if (cover) reads.push(ucReadFile(cover));
     var dataUrls = await Promise.all(reads);
-    var payload = { module: 'reading', title: title.trim(), author: author.trim(), fileBase64: dataUrls[0], fileName: file.name, mimeType: file.type || (ext === 'pdf' ? 'application/pdf' : 'application/epub+zip') };
+    var payload = { module: 'reading', title: title.trim(), author: author.trim(),
+      fileBase64: dataUrls[0], fileName: file.name,
+      mimeType: file.type || (ext === 'pdf' ? 'application/pdf' : 'application/epub+zip'),
+      clientRef: ref };
     if (cover) { payload.coverBase64 = dataUrls[1]; payload.coverName = cover.name; payload.coverMimeType = cover.type; }
-    var r = await ucRpc('uploadUserContent', payload, 45000);
+
+    if (button) button.textContent = 'Enviando… pode levar 1 min';
+    // 4 minutos. Um PDF de 5 MB vira ~6,7 MB em base64: no 4G isso passa
+    // dos 45 s antigos com folga, e desistir cedo NAO cancela o servidor
+    // — so faz a pessoa achar que falhou e tentar de novo.
+    var r = await ucRpc('uploadUserContent', payload, 240000);
     if (!r || !r.ok) throw new Error((r && r.error) || 'Upload recusado.');
-    toast('Livro salvo na sua biblioteca privada.', 'success');
+    toast(r.repetido ? 'Esse livro já estava na sua biblioteca.'
+                     : 'Livro salvo na sua biblioteca privada.', 'success');
     await ucReloadCurrent();
-  } catch (e) { toast(e.message || 'Erro no upload.', 'error'); }
-  finally { UC.busy = false; if (button) { button.disabled = false; button.textContent = 'Adicionar à biblioteca'; } }
+
+  } catch (e) {
+    // Estourou o tempo aqui não quer dizer que falhou lá. Antes de
+    // acusar erro, pergunta ao servidor se o livro entrou.
+    if (button) button.textContent = 'Conferindo…';
+    var entrou = false;
+    try {
+      var v = await ucRpc('ucVerificarUpload', { clientRef: ref }, 30000);
+      entrou = !!(v && v.ok && v.achou);
+    } catch (e2) {}
+
+    if (entrou) {
+      toast('Deu certo — o livro já está na sua biblioteca.', 'success');
+      await ucReloadCurrent();
+    } else {
+      toast(e.message || 'Erro no upload.', 'error');
+      // Mesmo falhando, recarrega: se o servidor tiver terminado logo
+      // depois, o livro aparece sozinho em vez de sumir da vista.
+      try { await ucReloadCurrent(); } catch (e3) {}
+    }
+  } finally {
+    UC.busy = false;
+    if (button) { button.disabled = false; button.textContent = 'Adicionar à biblioteca'; }
+  }
 }
 
 async function ucToggle(module, id, field) {

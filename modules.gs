@@ -229,6 +229,8 @@ function handleRequest(payload) {
     case 'previewUserContentUrl':          return previewUserContentUrl(token, data);
     case 'createUserContentFromYouTube':   return createUserContentFromYouTube(token, data);
     case 'uploadUserContent':              return uploadUserContent(token, data);
+    case 'ucVerificarUpload':              return ucVerificarUpload(token, data);
+    case 'ucLimparOrfaos':                 return ucLimparOrfaos(token);
     case 'getUserContentFile':             return getUserContentFile(token, data.id);
     case 'getUserContentCover':            return getUserContentCover(token, data.id);
     case 'updateUserContent':              return updateUserContent(token, data.id, data.updates);

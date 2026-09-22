@@ -483,11 +483,44 @@ function _ucStorageTrash_(fileId) {
   try { DriveApp.getFileById(String(fileId)).setTrashed(true); } catch (_e) {}
 }
 
+// A mesma tentativa, repetida, tem de devolver o MESMO livro — nunca um
+// segundo. Um upload de 5 MB passa facil dos 45 s que o cliente esperava:
+// ele desistia, mostrava erro, o servidor terminava em paz, e a pessoa
+// tentava de novo. Cada tentativa deixava uma copia no Drive.
+function _ucAcharPorRef_(userId, ref) {
+  if (!ref) return null;
+  var achados = _ucRows_().filter(function (item) {
+    if (String(item.userId) !== String(userId)) return false;
+    var m = item.metadata || {};
+    return m.clientRef && String(m.clientRef) === String(ref);
+  });
+  return achados.length ? achados[achados.length - 1] : null;
+}
+
+// Trava curta por referencia: duas tentativas simultaneas do mesmo
+// arquivo (a original ainda rodando e a retentativa) chegariam juntas e
+// as duas passariam pela busca acima antes de qualquer uma gravar.
+function _ucLockRef_(userId, ref) {
+  if (!ref) return null;
+  var lock = LockService.getScriptLock();
+  try { lock.waitLock(30000); } catch (e) { return null; }
+  return lock;
+}
+
 function uploadUserContent(token, data) {
   var user = getUserByToken(token);
   if (!user) return { ok: false, error: 'Nao autorizado.' };
   data = data || {};
   if (_ucModule_(data.module) !== 'reading') return { ok: false, error: 'Upload disponivel apenas na leitura.' };
+
+  var ref = _ucText_(data.clientRef, 80);
+  var lock = _ucLockRef_(user.id, ref);
+  try {
+
+  // Ja existe? Devolve o que existe, sem cobrar cota e sem duplicar.
+  var jaTem = _ucAcharPorRef_(user.id, ref);
+  if (jaTem) return { ok: true, data: _ucClientItem_(jaTem, user, null), repetido: true };
+
   if (typeof _rateLimit_ === 'function' && _rateLimit_('ucupload', user.id, 8, 3600)) {
     return { ok: false, error: 'Limite de 8 uploads por hora atingido.' };
   }
@@ -521,17 +554,67 @@ function uploadUserContent(token, data) {
       metadata: {
         fileId: file.getId(), coverFileId: cover ? cover.getId() : '',
         mimeType: validated.mime, originalFileName: safeName,
-        ownerEmail: String(user.email || '')
+        ownerEmail: String(user.email || ''), clientRef: ref
       }
     };
+    // A linha entra ANTES do log. Se logAction falhasse depois do append,
+    // o catch jogava o arquivo no lixo com a linha ja gravada — livro na
+    // biblioteca apontando para um arquivo que nao existe mais.
     _ucAppend_(item);
-    logAction(user.email, 'UPLOAD_USER_CONTENT', 'user_content', id, { module: 'reading', type: validated.type, size: decoded.size });
+    try {
+      logAction(user.email, 'UPLOAD_USER_CONTENT', 'user_content', id, { module: 'reading', type: validated.type, size: decoded.size });
+    } catch (e2) {}
     return { ok: true, data: _ucClientItem_(item, user, null) };
   } catch (e) {
     if (file) _ucStorageTrash_(file.getId());
     if (cover) _ucStorageTrash_(cover.getId());
     return { ok: false, error: e.message };
   }
+
+  } finally {
+    if (lock) { try { lock.releaseLock(); } catch (e3) {} }
+  }
+}
+
+// ROTA: ucVerificarUpload — "deu certo mesmo?"
+// O cliente chama isto quando o tempo dele estoura. Sem essa pergunta,
+// um upload que FUNCIONOU aparecia como erro e a pessoa tentava de novo.
+function ucVerificarUpload(token, data) {
+  var user = getUserByToken(token);
+  if (!user) return { ok: false, error: 'Nao autorizado.' };
+  var item = _ucAcharPorRef_(user.id, _ucText_((data || {}).clientRef, 80));
+  if (!item) return { ok: true, achou: false };
+  return { ok: true, achou: true, data: _ucClientItem_(item, user, null) };
+}
+
+// ROTA: ucLimparOrfaos — arquivos no Drive sem linha na planilha.
+// Sobra de upload interrompido. Ocupam espaco e nao servem para nada.
+function ucLimparOrfaos(token) {
+  var user = getUserByToken(token);
+  if (!user) return { ok: false, error: 'Nao autorizado.' };
+
+  var usados = {};
+  _ucRows_().forEach(function (item) {
+    if (String(item.userId) !== String(user.id)) return;
+    var m = item.metadata || {};
+    if (m.fileId) usados[String(m.fileId)] = true;
+    if (m.coverFileId) usados[String(m.coverFileId)] = true;
+  });
+
+  var removidos = 0, vistos = 0;
+  try {
+    var pasta = _ucUserFolder_(user.id);
+    var it = pasta.getFiles();
+    while (it.hasNext()) {
+      var f = it.next();
+      vistos++;
+      if (usados[f.getId()]) continue;
+      try { f.setTrashed(true); removidos++; } catch (e) {}
+    }
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+  return { ok: true, data: { vistos: vistos, removidos: removidos } };
 }
 
 function _ucReadAsset_(token, id, kind) {
