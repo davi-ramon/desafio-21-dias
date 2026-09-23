@@ -3097,6 +3097,17 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     }
   </style>
 
+  <div class="sn-noite" id="snNoite" onclick="snRevelar()">
+    <div class="sn-noite-fundo" id="snNoiteFundo"></div>
+    <div class="sn-relogio" id="snRelogio">--:--</div>
+    <div class="sn-noite-som" id="snNoiteSom"></div>
+    <div class="sn-noite-ctrl">
+      <button class="sn-nb" id="snNoitePausa" onclick="event.stopPropagation();snPausar()">Pausar</button>
+      <button class="sn-nb sair" onclick="event.stopPropagation();snEncerrar(true)">Encerrar</button>
+    </div>
+    <div class="sn-dica">Toque na tela para mostrar os controles</div>
+  </div>
+
   <div class="pq-fundo" id="pwcFundo" onclick="pwcFechar()"></div>
   <div class="pq-folha" id="pwcFolha" role="dialog" aria-modal="true">
     <div class="pq-alca"></div>
@@ -3109,6 +3120,92 @@ input[type=range].adm-slider::-webkit-slider-thumb {
   </div>
 
   <div class="page" id="page-notificacoes">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+
+  <style>
+    /* ── MODULO DO SONO (v172) ───────────────────────────── */
+    .sn-topo{position:relative;border-radius:20px;overflow:hidden;margin-bottom:18px;
+      min-height:168px;display:flex;align-items:flex-end;padding:20px;
+      background:linear-gradient(170deg,#0b1220 0%,#0a1a2e 45%,#071018 100%)}
+    /* Ceu noturno feito com gradiente: nenhum arquivo para baixar, nada
+       que trave em conexao ruim, e funciona antes de existir uma capa. */
+    .sn-topo::before{content:'';position:absolute;inset:0;opacity:.5;
+      background-image:radial-gradient(1.4px 1.4px at 18% 22%,#fff,transparent),
+        radial-gradient(1.2px 1.2px at 62% 16%,#dbe7ff,transparent),
+        radial-gradient(1.6px 1.6px at 82% 38%,#fff,transparent),
+        radial-gradient(1px 1px at 34% 48%,#cfe0ff,transparent),
+        radial-gradient(1.3px 1.3px at 72% 62%,#fff,transparent),
+        radial-gradient(1px 1px at 12% 66%,#e6efff,transparent);
+      animation:snBrilha 7s ease-in-out infinite alternate}
+    @keyframes snBrilha{from{opacity:.32}to{opacity:.68}}
+    .sn-topo-txt{position:relative;z-index:1}
+    .sn-topo h2{font-size:21px;font-weight:800;color:#eaf2ff;margin:0 0 5px}
+    .sn-topo p{font-size:13px;color:#9db4d0;margin:0;line-height:1.55}
+    .sn-lua{position:absolute;top:22px;right:24px;font-size:38px;z-index:1;
+      filter:drop-shadow(0 0 18px rgba(190,215,255,.45));animation:snFlutua 6s ease-in-out infinite}
+    @keyframes snFlutua{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+
+    .sn-cats{display:flex;gap:7px;overflow-x:auto;padding-bottom:10px;margin-bottom:12px;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .sn-cats::-webkit-scrollbar{display:none}
+    .sn-cat{flex-shrink:0;padding:8px 14px;border-radius:99px;border:1px solid var(--border);
+      background:rgba(255,255,255,.03);color:var(--muted);font-family:inherit;font-size:12.5px;
+      cursor:pointer;white-space:nowrap;transition:background .18s,color .18s}
+    .sn-cat.on{background:rgba(120,165,255,.18);border-color:#6f9dff;color:#cfe0ff;font-weight:700}
+
+    .sn-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:11px}
+    .sn-card{position:relative;aspect-ratio:1/1.12;border-radius:16px;overflow:hidden;
+      border:1px solid var(--border);background:#0d1620;cursor:pointer;padding:0;
+      font-family:inherit;text-align:left;transition:transform .18s,border-color .18s}
+    .sn-card:hover{transform:translateY(-3px);border-color:#6f9dff}
+    .sn-card.on{border-color:#6f9dff;box-shadow:0 0 0 2px rgba(111,157,255,.3)}
+    .sn-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.72}
+    .sn-card-grad{position:absolute;inset:0;
+      background:linear-gradient(180deg,transparent 35%,rgba(5,9,15,.9) 100%)}
+    .sn-card-txt{position:absolute;left:0;right:0;bottom:0;padding:11px 12px}
+    .sn-card-t{font-size:13px;font-weight:700;color:#eaf2ff;line-height:1.3}
+    .sn-card-s{font-size:11px;color:#9db4d0;margin-top:2px;line-height:1.4}
+    .sn-card-ico{position:absolute;top:11px;left:12px;font-size:19px;
+      filter:drop-shadow(0 2px 6px rgba(0,0,0,.6))}
+
+    .sn-ciclos{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0 4px}
+    .sn-ciclo{padding:9px 15px;border-radius:11px;border:1px solid var(--border);
+      background:rgba(255,255,255,.03);color:var(--text);font-family:inherit;font-size:13px;
+      cursor:pointer;transition:background .18s}
+    .sn-ciclo.on{background:#6f9dff;border-color:#6f9dff;color:#04101f;font-weight:700}
+
+    .sn-tocar{width:100%;padding:16px;border:none;border-radius:14px;margin-top:16px;
+      background:linear-gradient(135deg,#6f9dff,#3f6fd8);color:#04101f;
+      font-family:inherit;font-size:15px;font-weight:800;cursor:pointer}
+    .sn-tocar:disabled{opacity:.4;cursor:not-allowed}
+
+    /* ── Tela noturna ── */
+    .sn-noite{position:fixed;inset:0;z-index:100000;background:#02050a;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      opacity:0;pointer-events:none;transition:opacity .9s ease}
+    .sn-noite.on{opacity:1;pointer-events:auto}
+    .sn-noite-fundo{position:absolute;inset:0;background-size:cover;background-position:center;
+      opacity:.14;filter:blur(2px)}
+    .sn-relogio{position:relative;font-size:62px;font-weight:200;letter-spacing:.02em;
+      color:rgba(219,231,255,.42);font-variant-numeric:tabular-nums;transition:color .6s}
+    .sn-noite-som{position:relative;font-size:13px;color:rgba(157,180,208,.4);margin-top:9px}
+    .sn-noite-ctrl{position:relative;margin-top:36px;display:flex;gap:11px;align-items:center;
+      opacity:0;transition:opacity .35s}
+    .sn-noite.revelado .sn-noite-ctrl{opacity:1}
+    .sn-noite.revelado .sn-relogio{color:rgba(219,231,255,.78)}
+    .sn-nb{padding:12px 19px;border-radius:12px;border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.05);color:#cfe0ff;font-family:inherit;font-size:13.5px;cursor:pointer}
+    .sn-nb.sair{background:none;border-color:rgba(255,255,255,.08);color:rgba(157,180,208,.75)}
+    .sn-dica{position:absolute;bottom:34px;left:0;right:0;text-align:center;
+      font-size:11.5px;color:rgba(157,180,208,.3)}
+
+    @media (prefers-reduced-motion:reduce){
+      .sn-topo::before,.sn-lua{animation:none}
+      .sn-noite,.sn-card{transition:none}
+    }
+  </style>
+  <div class="page" id="page-sono">
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 
@@ -3447,6 +3544,9 @@ async function loadAlunoData(silent) {
     // v168: convida a ativar os lembretes e a instalar o app.
     try { if (typeof pwcIniciar === 'function') pwcIniciar(); } catch (e) {}
 
+    // v172: check-in da noite passada, se houver noite para perguntar.
+    try { if (typeof snCheckinIniciar === 'function') snCheckinIniciar(); } catch (e) {}
+
     // Se for admin e ainda não escolheu o painel → mostrar seletor
     if (r.data.role === 'admin') {
       var mode = '';
@@ -3511,6 +3611,7 @@ function renderPage(page) {
     case 'assinatura': renderBilling(); break;   // v150: tela nova em blocos
     case 'indicar':    renderIndicacoes(); break; // v159: compartilhar e acompanhar
     case 'notificacoes': renderNotificacoes(); break; // v167: agenda de avisos
+    case 'sono':       renderSono();        break; // v172: modulo do sono
     case 'mural':      renderMural();      break;
     case 'hub':        renderHub();        break;
   }
@@ -13009,7 +13110,8 @@ function _prefPadrao() {
     notificacoes: {
       ligado: true, acordar: '', dormir: '',
       categorias: { rotina: true, agua: true, sono: true, sonhos: true }
-    }
+    },
+    sono: { ciclo: 30, ultimoSom: '', telaNoturna: true }
   };
 }
 
@@ -13023,7 +13125,7 @@ var PREFS = _prefPadrao();
 function _prefsMesclar(vindo) {
   var p = _prefPadrao();
   if (!vindo) return p;
-  ['meditacao','audio','leitura','exercicio','perfil','notificacoes'].forEach(function (sec) {
+  ['meditacao','audio','leitura','exercicio','perfil','notificacoes','sono'].forEach(function (sec) {
     if (!vindo[sec]) return;
     Object.keys(p[sec]).forEach(function (k) {
       if (vindo[sec][k] !== undefined && vindo[sec][k] !== null) p[sec][k] = vindo[sec][k];
@@ -13538,7 +13640,8 @@ function _pfColetar() {
     // o sanitizador do servidor a zeraria a cada "Salvar preferências".
     perfil: { avatarUrl: (PREFS.perfil && PREFS.perfil.avatarUrl) || '' },
     // Idem: a agenda de avisos é editada em outra tela.
-    notificacoes: PREFS.notificacoes || _prefPadrao().notificacoes
+    notificacoes: PREFS.notificacoes || _prefPadrao().notificacoes,
+    sono: PREFS.sono || _prefPadrao().sono
   };
 }
 
@@ -14115,6 +14218,7 @@ var PW_ATALHOS = {
   audio:       function () { navigate('audios'); },
   mural:       function () { navigate('mural'); },
   rotina:      function () { navigate('rotina'); },
+  sono:        function () { navigate('sono'); },
   comunidade:  function () { navigate('comunidade'); },
   notificacoes:function () { navigate('notificacoes'); }
 };
@@ -14421,6 +14525,376 @@ function pwCartao() {
       '</div>' +
     '</div>' + acao +
   '</div>';
+}
+
+
+// ════════════════════════════════════════════════════════════
+// MÓDULO DO SONO (v172)
+// ------------------------------------------------------------
+// Três coisas moldam este código e não são escolha de estilo:
+//
+// 1. No iPhone o áudio PARA quando a tela bloqueia — inclusive
+//    com o app instalado. Por isso existe a tela noturna com
+//    Wake Lock: quase preta, mas acesa. É o único jeito honesto
+//    de a trilha atravessar a noite ali.
+// 2. O fade importa. Som entrando em volume cheio acorda em vez
+//    de adormecer; som cortado seco no fim do ciclo também.
+// 3. Não há como medir sono num navegador. Registramos o que é
+//    real: quando começou, quanto durou, e o que a pessoa diz
+//    no check-in da manhã.
+// ════════════════════════════════════════════════════════════
+var SN = {
+  dados: null, sons: [], cat: 'todas', somId: '', ciclo: 30,
+  el: null, tocando: false, sessaoId: '', wake: null,
+  t0: 0, timerFim: null, timerRelogio: null, revelarTimer: null,
+  volAlvo: 0.85, fadeTimer: null
+};
+
+var SN_CATS = {
+  todas:     { rot: 'Tudo',      ico: '✨' },
+  chuva:     { rot: 'Chuva',     ico: '🌧️' },
+  natureza:  { rot: 'Natureza',  ico: '🌿' },
+  ruido:     { rot: 'Ruído',     ico: '🌊' },
+  ambiente:  { rot: 'Ambiente',  ico: '🌌' },
+  historia:  { rot: 'Histórias', ico: '📖' }
+};
+
+var SN_CICLOS = [
+  { min: 15,  rot: '15 min' },
+  { min: 30,  rot: '30 min' },
+  { min: 45,  rot: '45 min' },
+  { min: 60,  rot: '1 hora' },
+  { min: 480, rot: 'A noite toda' }
+];
+
+async function renderSono() {
+  var el = document.getElementById('page-sono');
+  if (!el) return;
+
+  if (!SN.dados) {
+    el.innerHTML = '<div class="bl-wrap"><div class="loading-center"><div class="spinner"></div></div></div>';
+    try {
+      var r = await rpc('getSonoSons', {});
+      if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
+      SN.dados = r.data;
+      SN.sons = r.data.sons || [];
+      var pr = r.data.prefs || {};
+      SN.ciclo = Number(pr.ciclo) || 30;
+      SN.somId = pr.ultimoSom || '';
+      if (!SN.sons.some(function (x) { return x.id === SN.somId; })) SN.somId = '';
+    } catch (e) {
+      el.innerHTML = '<div class="bl-wrap"><div class="bl-vazio">' +
+        '<div class="bl-vazio-ico">🌙</div>' +
+        '<div class="bl-vazio-t">Não consegui carregar</div>' +
+        '<div class="bl-vazio-s">Puxe para baixo e tente de novo.</div></div></div>';
+      return;
+    }
+  }
+  snRender();
+}
+
+function snRender() {
+  var el = document.getElementById('page-sono');
+  if (!el) return;
+
+  var html = '<div class="bl-wrap">' +
+    '<div class="sn-topo"><span class="sn-lua">🌙</span><div class="sn-topo-txt">' +
+      '<h2>Hora de desacelerar</h2>' +
+      '<p>Escolha um som, defina quanto tempo ele toca e deixe o telefone de lado.</p>' +
+    '</div></div>';
+
+  if (!SN.sons.length) {
+    html += '<div class="bl-vazio"><div class="bl-vazio-ico">🎧</div>' +
+      '<div class="bl-vazio-t">Os sons estão a caminho</div>' +
+      '<div class="bl-vazio-s">Ainda não há paisagens sonoras publicadas. ' +
+      'Assim que entrarem, elas aparecem aqui.</div></div></div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  // Só mostra categoria que tem som — aba vazia é decepção garantida.
+  var presentes = {};
+  SN.sons.forEach(function (x) { presentes[x.categoria] = true; });
+  html += '<div class="sn-cats">';
+  Object.keys(SN_CATS).forEach(function (k) {
+    if (k !== 'todas' && !presentes[k]) return;
+    html += '<button class="sn-cat' + (SN.cat === k ? ' on' : '') + '" onclick="snCat(\'' + k + '\')">' +
+      SN_CATS[k].ico + ' ' + SN_CATS[k].rot + '</button>';
+  });
+  html += '</div>';
+
+  var lista = SN.cat === 'todas' ? SN.sons
+    : SN.sons.filter(function (x) { return x.categoria === SN.cat; });
+
+  html += '<div class="sn-grade">';
+  lista.forEach(function (som) {
+    var ico = (SN_CATS[som.categoria] || SN_CATS.ambiente).ico;
+    html += '<button class="sn-card' + (SN.somId === som.id ? ' on' : '') + '" ' +
+      'onclick="snEscolher(\'' + som.id + '\')">' +
+      (som.capaUrl ? '<img src="' + muEsc(som.capaUrl) + '" alt="" loading="lazy">' : '') +
+      '<div class="sn-card-grad"></div>' +
+      '<span class="sn-card-ico">' + ico + '</span>' +
+      '<div class="sn-card-txt"><div class="sn-card-t">' + muEsc(som.titulo) + '</div>' +
+      (som.subtitulo ? '<div class="sn-card-s">' + muEsc(som.subtitulo) + '</div>' : '') +
+      '</div></button>';
+  });
+  html += '</div>';
+
+  html += '<div style="margin-top:20px"><div class="pf-row-t" style="margin-bottom:4px">Tocar por</div>' +
+    '<div class="sn-ciclos">';
+  SN_CICLOS.forEach(function (c) {
+    html += '<button class="sn-ciclo' + (SN.ciclo === c.min ? ' on' : '') + '" ' +
+      'onclick="snCiclo(' + c.min + ')">' + c.rot + '</button>';
+  });
+  html += '</div>' +
+    '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6">' +
+      'O som entra devagar e vai sumindo nos últimos minutos, para não te acordar ao terminar.</div>';
+
+  html += '<button class="sn-tocar" id="snTocar" onclick="snComecar()"' +
+    (SN.somId ? '' : ' disabled') + '>' +
+    (SN.somId ? 'Começar' : 'Escolha um som') + '</button>';
+
+  if (SN.dados && SN.dados.avisoIos && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
+    html += '<div class="bl-aviso" style="margin-top:12px;font-size:12px;line-height:1.6">' +
+      muEsc(SN.dados.avisoIos) + '</div>';
+  }
+
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function snCat(k) { SN.cat = k; snRender(); }
+function snCiclo(m) { SN.ciclo = m; snRender(); }
+function snEscolher(id) { SN.somId = (SN.somId === id ? '' : id); snRender(); }
+
+function snSomAtual() {
+  for (var i = 0; i < SN.sons.length; i++) if (SN.sons[i].id === SN.somId) return SN.sons[i];
+  return null;
+}
+
+// ── Fade ────────────────────────────────────────────────────
+// Rampa por passos pequenos. Som entrando em volume cheio acorda em
+// vez de adormecer.
+function snFade(de, para, ms, aoFim) {
+  if (SN.fadeTimer) { clearInterval(SN.fadeTimer); SN.fadeTimer = null; }
+  if (!SN.el) return;
+  var passos = Math.max(1, Math.round(ms / 80)), i = 0;
+  SN.el.volume = Math.max(0, Math.min(1, de));
+  SN.fadeTimer = setInterval(function () {
+    i++;
+    var v = de + (para - de) * (i / passos);
+    try { SN.el.volume = Math.max(0, Math.min(1, v)); } catch (e) {}
+    if (i >= passos) {
+      clearInterval(SN.fadeTimer); SN.fadeTimer = null;
+      if (aoFim) aoFim();
+    }
+  }, 80);
+}
+
+async function snComecar() {
+  var som = snSomAtual();
+  if (!som || SN.tocando) return;
+
+  var btn = document.getElementById('snTocar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Preparando…'; }
+
+  if (!SN.el) {
+    SN.el = new Audio();
+    SN.el.preload = 'auto';
+    SN.el.addEventListener('error', function () {
+      toast('Não consegui tocar esse som. Avise o suporte.', 'error');
+      snEncerrar(true);
+    });
+  }
+  SN.el.src = som.audioUrl;
+  SN.el.loop = som.loop !== false;
+  SN.el.volume = 0;
+
+  try {
+    // O play NASCE do toque no botão: fora de um gesto o navegador
+    // recusa, e recusa em silêncio.
+    await SN.el.play();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Começar'; }
+    toast('Toque de novo para liberar o som.', 'info');
+    return;
+  }
+
+  SN.tocando = true;
+  SN.t0 = Date.now();
+  snFade(0, SN.volAlvo, 5000);              // os 5 segundos que você pediu
+  snMediaSession(som);
+  await snWakeLock();
+
+  try {
+    var r = await rpc('sonoIniciarSessao', {
+      somId: som.id, cicloMin: SN.ciclo,
+      telaNoturna: !(PREFS.sono && PREFS.sono.telaNoturna === false)
+    });
+    if (r && r.ok) SN.sessaoId = r.sessaoId || '';
+  } catch (e) {}
+
+  // A noite toda não tem fade-out: não há "fim" para suavizar.
+  if (SN.ciclo < 480) {
+    var fadeMs = Math.min(120000, SN.ciclo * 60000 * 0.15);
+    SN.timerFim = setTimeout(function () {
+      snFade(SN.el ? SN.el.volume : SN.volAlvo, 0, fadeMs, function () { snEncerrar(false); });
+    }, Math.max(1000, SN.ciclo * 60000 - fadeMs));
+  }
+
+  snAbrirNoite(som);
+  if (btn) { btn.disabled = false; btn.textContent = 'Começar'; }
+}
+
+// ── Tela noturna ────────────────────────────────────────────
+function snAbrirNoite(som) {
+  var n = document.getElementById('snNoite');
+  if (!n) return;
+  var f = document.getElementById('snNoiteFundo');
+  if (f) f.style.backgroundImage = som.capaUrl ? 'url("' + som.capaUrl + '")' : '';
+  var t = document.getElementById('snNoiteSom');
+  if (t) t.textContent = som.titulo;
+
+  snRelogio();
+  SN.timerRelogio = setInterval(snRelogio, 20000);
+  n.classList.add('on');
+  snRevelar();
+}
+
+function snRelogio() {
+  var el = document.getElementById('snRelogio');
+  if (!el) return;
+  var d = new Date();
+  el.textContent = String(d.getHours()).padStart(2, '0') + ':' +
+                   String(d.getMinutes()).padStart(2, '0');
+}
+
+// Os controles somem sozinhos: um botão aceso a noite inteira ilumina
+// o quarto e chama o dedo.
+function snRevelar() {
+  var n = document.getElementById('snNoite');
+  if (!n) return;
+  n.classList.add('revelado');
+  if (SN.revelarTimer) clearTimeout(SN.revelarTimer);
+  SN.revelarTimer = setTimeout(function () { n.classList.remove('revelado'); }, 6000);
+}
+
+function snPausar() {
+  if (!SN.el) return;
+  var b = document.getElementById('snNoitePausa');
+  if (SN.el.paused) {
+    SN.el.play().then(function () { snFade(0, SN.volAlvo, 1200); }).catch(function () {});
+    if (b) b.textContent = 'Pausar';
+  } else {
+    snFade(SN.el.volume, 0, 700, function () { try { SN.el.pause(); } catch (e) {} });
+    if (b) b.textContent = 'Continuar';
+  }
+  snRevelar();
+}
+
+async function snEncerrar(manual) {
+  var n = document.getElementById('snNoite');
+  if (n) { n.classList.remove('on'); n.classList.remove('revelado'); }
+  if (SN.timerFim) { clearTimeout(SN.timerFim); SN.timerFim = null; }
+  if (SN.timerRelogio) { clearInterval(SN.timerRelogio); SN.timerRelogio = null; }
+  if (SN.fadeTimer) { clearInterval(SN.fadeTimer); SN.fadeTimer = null; }
+
+  if (SN.el) {
+    try { SN.el.pause(); SN.el.currentTime = 0; } catch (e) {}
+  }
+  SN.tocando = false;
+  snSoltarWake();
+
+  var minutos = SN.t0 ? Math.round((Date.now() - SN.t0) / 60000) : 0;
+  var sid = SN.sessaoId;
+  SN.sessaoId = ''; SN.t0 = 0;
+
+  if (sid) {
+    try { await rpc('sonoEncerrarSessao', { sessaoId: sid, minutos: minutos }); } catch (e) {}
+  }
+  if (manual && minutos >= 1) toast('Boa noite. Registrei ' + minutos + ' min.', 'success');
+}
+
+// ── Wake Lock ───────────────────────────────────────────────
+// Segura a tela acesa. No iPhone é o que mantém o som vivo; no
+// Android é só conforto e pode ser desligado nas preferências.
+async function snWakeLock() {
+  if (PREFS.sono && PREFS.sono.telaNoturna === false) return;
+  try {
+    if ('wakeLock' in navigator) SN.wake = await navigator.wakeLock.request('screen');
+  } catch (e) { SN.wake = null; }
+}
+
+function snSoltarWake() {
+  try { if (SN.wake) { SN.wake.release(); SN.wake = null; } } catch (e) {}
+}
+
+// O sistema derruba o wake lock ao trocar de app. Voltando, ele precisa
+// ser pedido de novo, ou a tela apaga no meio da noite.
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && SN.tocando && !SN.wake) snWakeLock();
+});
+
+// ── MediaSession: controles no fone e na tela de bloqueio ───
+function snMediaSession(som) {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: som.titulo,
+      artist: som.subtitulo || 'Desafio 21 Dias',
+      album: 'Sono',
+      artwork: som.capaUrl ? [{ src: som.capaUrl, sizes: '512x512', type: 'image/jpeg' }] : []
+    });
+    navigator.mediaSession.setActionHandler('pause', snPausar);
+    navigator.mediaSession.setActionHandler('play', snPausar);
+    navigator.mediaSession.setActionHandler('stop', function () { snEncerrar(true); });
+  } catch (e) {}
+}
+
+// ── Check-in da manhã ───────────────────────────────────────
+// A única medida de qualidade que um navegador consegue: perguntar.
+async function snCheckinIniciar() {
+  if (APP._snCheckin) return;
+  APP._snCheckin = true;
+  try {
+    var r = await rpc('sonoPrecisaCheckin', {});
+    if (!r || !r.ok || !r.precisa) return;
+    setTimeout(snCheckinAbrir, 3200);
+  } catch (e) {}
+}
+
+function snCheckinAbrir() {
+  var caras = [
+    { n: 1, e: '😵', r: 'Péssima' },
+    { n: 2, e: '😕', r: 'Ruim' },
+    { n: 3, e: '😐', r: 'Ok' },
+    { n: 4, e: '🙂', r: 'Boa' },
+    { n: 5, e: '😴', r: 'Ótima' }
+  ];
+  _showModal({
+    title: 'Como você dormiu?',
+    icon: '<span style="font-size:24px">🌅</span>',
+    body: '<div style="text-align:center;margin-bottom:6px">Um toque e pronto.</div>' +
+      '<div style="display:flex;gap:7px;justify-content:center;margin-top:14px">' +
+      caras.map(function (c) {
+        return '<button onclick="snCheckinResponder(' + c.n + ')" ' +
+          'style="flex:1;padding:13px 4px;border-radius:13px;border:1px solid var(--border);' +
+          'background:rgba(255,255,255,.03);cursor:pointer;font-family:inherit">' +
+          '<div style="font-size:23px">' + c.e + '</div>' +
+          '<div style="font-size:10.5px;color:var(--muted);margin-top:4px">' + c.r + '</div>' +
+          '</button>';
+      }).join('') + '</div>',
+    secondary: { label: 'Agora não' }
+  });
+}
+
+async function snCheckinResponder(nota) {
+  var ov = document.querySelector('.app-modal-overlay');
+  if (ov) ov.remove();
+  try {
+    var r = await rpc('sonoCheckin', { nota: nota });
+    if (r && r.ok) toast(nota >= 4 ? 'Que bom. Bom dia!' : 'Anotado. Hoje a gente tenta de novo.', 'success');
+  } catch (e) {}
 }
 
 // ── Tela: quando e o que avisar ─────────────────────────────

@@ -39,9 +39,17 @@ function _prefsPadrao_() {
       acordar: '',
       dormir:  '',
       categorias: { rotina: true, agua: true, sono: true, sonhos: true }
+    },
+    // v172 — modulo do sono
+    sono: {
+      ciclo: 30,           // minutos ate o fade-out
+      ultimoSom: '',
+      telaNoturna: true    // no iPhone e o que mantem o som vivo
     }
   };
 }
+
+var PREF_CICLOS = [15, 30, 45, 60, 480];   // 480 = a noite toda
 
 var PREF_CATEGORIAS = ['rotina', 'agua', 'sono', 'sonhos'];
 
@@ -114,6 +122,11 @@ function _prefsSanitizar_(entrada) {
   var pf = entrada.perfil || {};
   var av = String(pf.avatarUrl || '').trim().slice(0, 300);
   p.perfil.avatarUrl = /^https:\/\/(lh3\.googleusercontent\.com|drive\.google\.com)\//i.test(av) ? av : '';
+
+  var so = entrada.sono || {};
+  p.sono.ciclo       = _prefsNum_(so.ciclo, 30, PREF_CICLOS);
+  p.sono.ultimoSom   = String(so.ultimoSom || '').trim().slice(0, 40);
+  p.sono.telaNoturna = _prefsBool_(so.telaNoturna, true);
 
   var nt = entrada.notificacoes || {};
   p.notificacoes.ligado  = _prefsBool_(nt.ligado, true);

@@ -225,17 +225,15 @@ function _paRegras_(ctx) {
     url: '/app', grupo: 'rotina'
   });
 
-  // O aviso de dormir vale mesmo sem a experiência de sono pronta —
-  // mas então não promete um "ciclo de sono" que ainda não existe.
+  // v172: a tela do sono existe, entao o aviso pode prometer o que
+  // cumpre. A trava ctx.temSono saiu daqui junto com o motivo dela.
   regras.push({
     id: 'dormir', categoria: 'sono',
     vale: agora.minutos >= dormir - 30 && agora.minutos < dormir + 15,
     faz: true,
     titulo: 'Hora de desacelerar',
-    corpo: ctx.temSono
-      ? 'Comece a desligar as telas. Toque aqui para iniciar seu ciclo de sono.'
-      : 'Comece a desligar as telas. Amanhã começa cedo.',
-    url: ctx.temSono ? '/app?atalho=sono' : '/app', grupo: 'sono'
+    corpo: 'Comece a desligar as telas. Toque aqui e escolha um som para dormir.',
+    url: '/app?atalho=sono', grupo: 'sono'
   });
 
   return regras;

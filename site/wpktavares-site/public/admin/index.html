@@ -1747,6 +1747,10 @@ button,
       <div class="nav-icon"><i data-lucide="sparkles" class="luc"></i></div>
       <span class="nav-label">Mural dos Sonhos</span>
     </div>
+    <div class="nav-item" data-page="sono" id="navSono" onclick="navigate('sono')" title="Módulo do Sono">
+      <span class="nav-icon"><i data-lucide="moon" class="luc"></i></span>
+      <span class="nav-label">M&oacute;dulo do Sono</span>
+    </div>
     <div class="nav-item" data-page="push" id="navPush" onclick="navigate('push')" title="Notificações push">
       <span class="nav-icon"><i data-lucide="bell-ring" class="luc"></i></span>
       <span class="nav-label">Notifica&ccedil;&otilde;es Push</span>
@@ -2069,6 +2073,7 @@ function navigate(page) {
     log:            'Log de Atividade',
     audios21:       'Áudios 21 Dias',
     mural:          'Mural dos Sonhos',
+    sono:           'Módulo do Sono — Paisagens Sonoras',
     push:           'Notificações Push e Agenda do Dia',
     leadsexport:    'Leads do Funil e Exportação',
     indicacoes:     'Indicações e Satisfação',
@@ -2099,7 +2104,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, push: renderPushAdmin, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, push: renderPushAdmin, sono: renderSonoAdmin, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -4620,6 +4625,176 @@ function _taSwitch(id, ligado, titulo, sub) {
     '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' + sub + '</div></div>' +
     '<label class="ta-sw"><input type="checkbox" id="' + id + '"' + (ligado ? ' checked' : '') +
     '><span class="ta-sw-tr"></span></label></div>';
+}
+
+// ════════════════════════════════════════════════════════════
+// MÓDULO DO SONO — catálogo de paisagens sonoras (v172)
+// ════════════════════════════════════════════════════════════
+var SNA = { sons: [], editando: null };
+
+var SNA_CATS = { chuva: 'Chuva', natureza: 'Natureza', ruido: 'Ruído',
+                 ambiente: 'Ambiente', historia: 'Histórias' };
+
+async function renderSonoAdmin() {
+  var content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  try {
+    var r = await rpc('getSonoAdmin', {});
+    if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
+    SNA.sons = r.data.sons || [];
+    var sessoes = r.data.sessoes || 0;
+  } catch (e) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-title">Não consegui carregar</div>' +
+      '<div class="empty-sub">Confira se você está logado como admin.</div></div>';
+    return;
+  }
+
+  var ativos = SNA.sons.filter(function (x) { return x.ativo && x.audioUrl; }).length;
+  var semAudio = SNA.sons.filter(function (x) { return !x.audioUrl; }).length;
+
+  var html = '<div class="metrics-grid" style="margin-bottom:18px">' +
+    _puCard('<i data-lucide="music" class="luc"></i>', ativos, 'Sons no ar', 'de ' + SNA.sons.length + ' cadastrados') +
+    _puCard('<i data-lucide="moon" class="luc"></i>', sessoes, 'Noites registradas', 'desde o início') +
+    _puCard('<i data-lucide="alert-triangle" class="luc"></i>', semAudio, 'Sem arquivo', semAudio ? 'não aparecem no app' : 'tudo certo') +
+  '</div>';
+
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Como publicar um som</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);line-height:1.75;margin-bottom:4px">' +
+      '<b>1.</b> Suba o arquivo <code>.mp3</code> em <code>site/wpktavares-site/public/media/sono/</code> ' +
+      'e publique. O endereço fica <code>/media/sono/nome.mp3</code>.<br>' +
+      '<b>2.</b> Cadastre aqui com esse caminho no campo do áudio.<br>' +
+      '<span style="color:#e0a83c">Link do Google Drive não funciona: o Drive não entrega arquivo ' +
+      'para a tag &lt;audio&gt;, e o som simplesmente não toca. O campo recusa.</span><br>' +
+      'Faixas de <b>8 a 15 minutos</b> bastam — o app repete em loop, arquivo longo só pesa.' +
+    '</div></div>';
+
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">' +
+      '<div style="font-size:14px;font-weight:700;color:var(--text)">Catálogo</div>' +
+      '<div style="display:flex;gap:8px">' +
+        '<button class="btn btn-ghost btn-sm" onclick="snaVerificar()">Testar os arquivos</button>' +
+        '<button class="btn btn-primary btn-sm" onclick="snaEditar()">+ Novo som</button>' +
+      '</div>' +
+    '</div>' +
+    '<div id="snaRes" style="margin-bottom:10px;font-size:12.5px"></div>';
+
+  if (!SNA.sons.length) {
+    html += '<div style="font-size:12.5px;color:var(--muted);padding:20px;text-align:center;' +
+      'border:1px dashed var(--border);border-radius:10px">Nenhum som cadastrado ainda.</div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">' +
+      '<thead><tr style="text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em">' +
+      '<th style="padding:7px 8px">Ordem</th><th style="padding:7px 8px">Som</th>' +
+      '<th style="padding:7px 8px">Categoria</th><th style="padding:7px 8px">Usos</th>' +
+      '<th style="padding:7px 8px">Estado</th><th style="padding:7px 8px"></th></tr></thead><tbody>';
+
+    SNA.sons.forEach(function (x) {
+      var estado = !x.audioUrl ? '<span style="color:var(--danger)">sem arquivo</span>'
+                 : !x.ativo ? '<span style="color:var(--muted)">inativo</span>'
+                 : '<span style="color:var(--green)">no ar</span>';
+      html += '<tr style="border-top:1px solid var(--border)" id="snaLinha_' + escHtml(x.id) + '">' +
+        '<td style="padding:9px 8px;color:var(--muted)">' + x.ordem + '</td>' +
+        '<td style="padding:9px 8px;color:var(--text)">' + escHtml(x.titulo) +
+          '<div style="font-size:10.5px;color:var(--muted)">' + escHtml(x.audioUrl || '—') + '</div></td>' +
+        '<td style="padding:9px 8px;color:var(--muted)">' + escHtml(SNA_CATS[x.categoria] || x.categoria) + '</td>' +
+        '<td style="padding:9px 8px;color:var(--muted)">' + (x.usos || 0) + '</td>' +
+        '<td style="padding:9px 8px">' + estado + '</td>' +
+        '<td style="padding:9px 8px;text-align:right;white-space:nowrap">' +
+          '<button class="btn btn-ghost btn-sm" onclick="snaEditar(\'' + escHtml(x.id) + '\')">Editar</button> ' +
+          '<button class="btn btn-ghost btn-sm" onclick="snaExcluir(\'' + escHtml(x.id) + '\')">Excluir</button>' +
+        '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div>';
+
+  content.innerHTML = html;
+  _processIcons && _processIcons(content);
+}
+
+function snaEditar(id) {
+  var x = id ? SNA.sons.filter(function (a) { return a.id === id; })[0] : null;
+  SNA.editando = x || null;
+  var v = function (k, d) { return x ? (x[k] !== undefined ? x[k] : d) : d; };
+
+  var cats = Object.keys(SNA_CATS).map(function (k) {
+    return '<option value="' + k + '"' + (v('categoria', 'ambiente') === k ? ' selected' : '') + '>' +
+      SNA_CATS[k] + '</option>';
+  }).join('');
+
+  openModal(x ? 'Editar som' : 'Novo som',
+    '<div class="form-group"><label class="form-label">Título *</label>' +
+      '<input class="form-control" id="snaTitulo" maxlength="120" value="' + escHtml(v('titulo', '')) + '" placeholder="Chuva no telhado"></div>' +
+    '<div class="form-group"><label class="form-label">Subtítulo</label>' +
+      '<input class="form-control" id="snaSub" maxlength="160" value="' + escHtml(v('subtitulo', '')) + '" placeholder="Uma noite inteira de chuva constante"></div>' +
+    '<div class="form-group"><label class="form-label">URL do áudio *</label>' +
+      '<input class="form-control" id="snaAudio" value="' + escHtml(v('audioUrl', '')) + '" placeholder="/media/sono/chuva-telhado.mp3"></div>' +
+    '<div class="form-group"><label class="form-label">URL da capa</label>' +
+      '<input class="form-control" id="snaCapa" value="' + escHtml(v('capaUrl', '')) + '" placeholder="/media/sono/capas/chuva.jpg"></div>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+      '<div class="form-group" style="flex:1;min-width:130px"><label class="form-label">Categoria</label>' +
+        '<select class="form-control" id="snaCat">' + cats + '</select></div>' +
+      '<div class="form-group" style="flex:1;min-width:100px"><label class="form-label">Ordem</label>' +
+        '<input class="form-control" type="number" id="snaOrdem" value="' + (v('ordem', 0) || 0) + '"></div>' +
+    '</div>' +
+    '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);margin-bottom:8px">' +
+      '<input type="checkbox" id="snaAtivo"' + (v('ativo', true) ? ' checked' : '') + '> Ativo (aparece no app)</label>' +
+    '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)">' +
+      '<input type="checkbox" id="snaLoop"' + (v('loop', true) ? ' checked' : '') + '> Repetir em loop</label>',
+    [{ label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+     { label: 'Salvar', action: snaSalvar, cls: 'btn-primary' }]);
+}
+
+async function snaSalvar() {
+  var d = {
+    id: SNA.editando ? SNA.editando.id : '',
+    titulo: (document.getElementById('snaTitulo') || {}).value || '',
+    subtitulo: (document.getElementById('snaSub') || {}).value || '',
+    audioUrl: (document.getElementById('snaAudio') || {}).value || '',
+    capaUrl: (document.getElementById('snaCapa') || {}).value || '',
+    categoria: (document.getElementById('snaCat') || {}).value || 'ambiente',
+    ordem: (document.getElementById('snaOrdem') || {}).value || 0,
+    ativo: !!(document.getElementById('snaAtivo') || {}).checked,
+    loop: !!(document.getElementById('snaLoop') || {}).checked
+  };
+  try {
+    var r = await rpc('salvarSonoSom', d);
+    if (!r || !r.ok) { alert((r && r.error) || 'Não consegui salvar.'); return; }
+    closeModal();
+    renderSonoAdmin();
+  } catch (e) { alert('Erro de conexão.'); }
+}
+
+async function snaExcluir(id) {
+  var x = SNA.sons.filter(function (a) { return a.id === id; })[0];
+  if (!confirm('Remover "' + ((x && x.titulo) || id) + '" do catálogo?')) return;
+  try {
+    var r = await rpc('excluirSonoSom', { id: id });
+    if (!r || !r.ok) { alert((r && r.error) || 'Não consegui remover.'); return; }
+    renderSonoAdmin();
+  } catch (e) { alert('Erro de conexão.'); }
+}
+
+// Um 404 aqui é uma noite perdida lá: a pessoa deita, toca no card e
+// não sai som nenhum. Melhor descobrir pelo painel.
+async function snaVerificar() {
+  var res = document.getElementById('snaRes');
+  if (res) res.innerHTML = '<span style="color:var(--muted)">Testando cada arquivo&hellip;</span>';
+  try {
+    var r = await rpc('sonoVerificarUrls', {});
+    if (!r || !r.ok) { if (res) res.innerHTML = '<span style="color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>'; return; }
+    var ruins = (r.data || []).filter(function (x) { return x.estado !== 'ok'; });
+    if (!ruins.length) {
+      if (res) res.innerHTML = '<span style="color:var(--green)">Todos os ' + (r.data || []).length + ' arquivos responderam.</span>';
+      return;
+    }
+    if (res) res.innerHTML = '<span style="color:var(--danger)">' + ruins.length + ' não responderam: ' +
+      ruins.map(function (x) { return escHtml(x.titulo) + ' (HTTP ' + x.codigo + ')'; }).join(' · ') + '</span>';
+  } catch (e) {
+    if (res) res.innerHTML = '<span style="color:var(--danger)">Erro de conexão.</span>';
+  }
 }
 
 // ════════════════════════════════════════════════════════════

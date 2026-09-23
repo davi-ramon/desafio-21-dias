@@ -231,6 +231,17 @@ function handleRequest(payload) {
     case 'uploadUserContent':              return uploadUserContent(token, data);
     case 'ucVerificarUpload':              return ucVerificarUpload(token, data);
     case 'ucLimparOrfaos':                 return ucLimparOrfaos(token);
+    // v172 — modulo do sono
+    case 'getSonoSons':              return getSonoSons(token);
+    case 'sonoIniciarSessao':        return sonoIniciarSessao(token, data);
+    case 'sonoEncerrarSessao':       return sonoEncerrarSessao(token, data);
+    case 'sonoCheckin':              return sonoCheckin(token, data);
+    case 'getSonoResumo':            return getSonoResumo(token);
+    case 'sonoPrecisaCheckin':       return sonoPrecisaCheckin(token);
+    case 'getSonoAdmin':             return getSonoAdmin(token);
+    case 'salvarSonoSom':            return salvarSonoSom(token, data);
+    case 'excluirSonoSom':           return excluirSonoSom(token, data);
+    case 'sonoVerificarUrls':        return sonoVerificarUrls(token);
     case 'getUserContentFile':             return getUserContentFile(token, data.id);
     case 'getUserContentCover':            return getUserContentCover(token, data.id);
     case 'updateUserContent':              return updateUserContent(token, data.id, data.updates);
