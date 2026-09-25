@@ -322,6 +322,35 @@ function migracaoRecriarGatilhos(token) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// PASSO 3a — rodar pelo EDITOR, logado como a conta NOVA, ANTES do
+// primeiro deploy dela (Executar → migracaoAutorizar).
+//
+// Um web app que roda "como quem fez o deploy" precisa que essa pessoa
+// tenha dado consentimento aos escopos do projeto (planilha, Drive,
+// e-mail, chamadas externas). A conta antiga fez isso ha muito tempo;
+// a nova nunca fez. Sem este passo, a URL nova responde uma pagina de
+// "autorizacao necessaria" no lugar do JSON — o mesmo tipo de pane
+// que ja derrubou o checkout.
+//
+// Qualquer execucao no editor abre a tela de consentimento para TODOS
+// os escopos do manifesto. Esta funcao so le: nao escreve, nao envia,
+// nao cria gatilho.
+// ─────────────────────────────────────────────────────────────
+function migracaoAutorizar() {
+  var quem = '';
+  try { quem = Session.getActiveUser().getEmail(); } catch (e) {}
+  var planilha = SpreadsheetApp.openById(SPREADSHEET_ID).getName();
+  var cotaEmail = MailApp.getRemainingDailyQuota();
+  var gatilhos = ScriptApp.getProjectTriggers().length;
+  var msg = 'Autorizado como ' + (quem || '(desconhecido)') +
+            ' | planilha: ' + planilha +
+            ' | cota de e-mail hoje: ' + cotaEmail +
+            ' | gatilhos desta conta: ' + gatilhos;
+  Logger.log(msg);
+  return msg;
+}
+
+// ─────────────────────────────────────────────────────────────
 // PASSO 5 — rodar pelo EDITOR do Apps Script, logado como a conta
 // ANTIGA (Executar → migracaoApagarMeusGatilhos).
 //

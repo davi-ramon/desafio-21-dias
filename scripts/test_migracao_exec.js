@@ -204,5 +204,17 @@ passo('apagar logado como a conta antiga so leva os dela', () => {
   return apagados.length + ' apagados, ' + gatilhos[WAGNER].length + ' seguem na conta nova';
 });
 
+passo('migracaoAutorizar so le e informa quem roda', () => {
+  contexto = 'editor'; logadoNoEditor = WAGNER;
+  ctx.SpreadsheetApp = { openById: id => ({ getName: () => 'Base ' + id }) };
+  ctx.MailApp = { getRemainingDailyQuota: () => 100 };
+  const antes = JSON.stringify(gatilhos);
+  const msg = ctx.migracaoAutorizar();
+  contexto = 'admin';
+  exige(/wagner@gmail\.com/.test(msg) && /Base SHEET1/.test(msg), msg);
+  exige(JSON.stringify(gatilhos) === antes, 'mexeu nos gatilhos');
+  return msg;
+});
+
 console.log(falhas ? '\n' + falhas + ' FALHA(S)' : '\nMigracao completa executou certo, incluindo as recusas');
 process.exit(falhas ? 1 : 0);
