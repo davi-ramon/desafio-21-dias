@@ -3268,6 +3268,24 @@ input[type=range].adm-slider::-webkit-slider-thumb {
       display:none;align-items:center;justify-content:center}
     .sn-poster.on .sn-poster-sel{display:flex}
 
+    .sn-arte{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+    /* No computador a vitrine ocupa a largura toda: uma coluna de
+       760px no meio de uma tela de 1900 desperdica o formato e
+       transforma a prateleira em fila de dois itens. */
+    .page#page-sono .bl-wrap{max-width:none;padding-left:0;padding-right:0}
+    @media (min-width:900px){
+      .sn-ceu{height:270px}
+      .sn-ceu h2{font-size:30px}
+      .sn-ceu-txt{padding:0 32px 26px}
+      .sn-poster{width:168px}
+      .sn-fila-h{padding-left:4px;padding-right:4px}
+    }
+    @media (min-width:1400px){
+      .sn-ceu{height:320px}
+      .sn-poster{width:188px}
+    }
+
     /* Barra do que foi escolhido: colada embaixo, para o botao de
        comecar nunca sumir depois de rolar a vitrine inteira. */
     .sn-barra{position:sticky;bottom:0;margin:18px -16px 0;padding:14px 16px
@@ -14976,6 +14994,110 @@ function snCeuParar() {
 
 // Cor de reserva para som sem capa, derivada do título: o mesmo som
 // tem sempre a mesma cor, e a prateleira nunca fica cinza.
+
+// ── Cenas de reserva do poster (v174) ───────────────────────
+// Um catálogo com metade dos cards cinza parece quebrado. Enquanto a
+// foto não vem — ou se ela falhar ao carregar — o card mostra uma
+// cena de verdade, escolhida no painel.
+//
+// São SVG gerados aqui, em proporção 2:3 como o poster: nenhum
+// arquivo para baixar, nenhuma requisição para falhar, e escalam
+// sem borrar.
+var SN_ARTES = {
+  chuva: { rot: 'Chuva', ceu: ['#16233d', '#25405e', '#3a5c78'], svg: function () {
+    var g = '';
+    for (var i = 0; i < 26; i++) {
+      var x = (i * 37) % 120, y = (i * 53) % 150;
+      g += '<line x1="' + x + '" y1="' + y + '" x2="' + (x - 4) + '" y2="' + (y + 13) +
+           '" stroke="#cfe2ff" stroke-width="1.1" opacity="' + (0.22 + (i % 4) * 0.13) + '"/>';
+    }
+    return '<path d="M0 116q18-14 34-4t30-2 26 6 30-6v70H0z" fill="#0b1524"/>' +
+           '<ellipse cx="34" cy="44" rx="26" ry="13" fill="#2f4a68" opacity=".75"/>' +
+           '<ellipse cx="70" cy="36" rx="32" ry="15" fill="#3a5a7c" opacity=".7"/>' + g;
+  } },
+  mar: { rot: 'Mar', ceu: ['#0b2136', '#123a54', '#1d5b74'], svg: function () {
+    var g = '';
+    for (var i = 0; i < 6; i++) {
+      var y = 104 + i * 15;
+      g += '<path d="M0 ' + y + 'q30 -9 60 0t60 0v' + (180 - y) + 'H0z" fill="#0d3448" opacity="' +
+           (0.3 + i * 0.12) + '"/>';
+    }
+    return '<circle cx="86" cy="42" r="15" fill="#ffe9b8" opacity=".9"/>' +
+           '<circle cx="86" cy="42" r="28" fill="#ffe9b8" opacity=".14"/>' + g;
+  } },
+  floresta: { rot: 'Floresta', ceu: ['#08140f', '#0f2a1d', '#1b4630'], svg: function () {
+    var g = '';
+    for (var i = 0; i < 9; i++) {
+      var x = 6 + i * 14, h = 52 + ((i * 29) % 46), base = 152;
+      g += '<path d="M' + x + ' ' + base + 'l' + 9 + ' -' + h + ' 9 ' + h + 'z" fill="#071a11" opacity="' +
+           (0.55 + (i % 3) * 0.18) + '"/>';
+    }
+    return '<circle cx="30" cy="34" r="12" fill="#e8f5d0" opacity=".78"/>' + g +
+           '<rect y="150" width="120" height="30" fill="#04120b"/>';
+  } },
+  fogueira: { rot: 'Fogueira', ceu: ['#1a0e06', '#3a1a08', '#6b2f0d'], svg: function () {
+    return '<ellipse cx="60" cy="150" rx="44" ry="13" fill="#8a3d10" opacity=".45"/>' +
+           '<path d="M60 88c12 14 18 24 18 34a18 18 0 0 1-36 0c0-10 6-20 18-34z" fill="#ffb03a"/>' +
+           '<path d="M60 108c6 8 9 14 9 20a9 9 0 0 1-18 0c0-6 3-12 9-20z" fill="#fff0b8"/>' +
+           '<path d="M34 148l52-10M38 140l46 12" stroke="#4a2410" stroke-width="5" stroke-linecap="round"/>';
+  } },
+  montanha: { rot: 'Montanha', ceu: ['#101a30', '#22304f', '#3d4f72'], svg: function () {
+    return '<circle cx="88" cy="34" r="13" fill="#fdf3d4" opacity=".92"/>' +
+           '<circle cx="82" cy="30" r="12" fill="#101a30"/>' +
+           '<path d="M0 150l34-56 22 30 20-38 44 64z" fill="#0b1324"/>' +
+           '<path d="M34 94l10 16-20 0z" fill="#dfe8f5" opacity=".8"/>' +
+           '<path d="M76 86l12 18-24 0z" fill="#dfe8f5" opacity=".7"/>' +
+           '<rect y="150" width="120" height="30" fill="#060c18"/>';
+  } },
+  cidade: { rot: 'Cidade', ceu: ['#0a0f1e', '#141d38', '#243356'], svg: function () {
+    var g = '';
+    for (var i = 0; i < 8; i++) {
+      var x = i * 15, h = 40 + ((i * 41) % 58), y = 158 - h;
+      g += '<rect x="' + x + '" y="' + y + '" width="13" height="' + h + '" fill="#070c18"/>';
+      for (var j = 0; j < 5; j++) {
+        if ((i + j) % 3 === 0) continue;
+        g += '<rect x="' + (x + 3) + '" y="' + (y + 7 + j * 11) + '" width="3" height="4" fill="#ffd98a" opacity=".7"/>';
+        g += '<rect x="' + (x + 8) + '" y="' + (y + 7 + j * 11) + '" width="3" height="4" fill="#ffd98a" opacity=".45"/>';
+      }
+    }
+    return g + '<rect y="158" width="120" height="22" fill="#04080f"/>';
+  } },
+  estrelas: { rot: 'Estrelas', ceu: ['#02040e', '#070e22', '#101a38'], svg: function () {
+    var g = '';
+    for (var i = 0; i < 46; i++) {
+      var x = (i * 31) % 120, y = (i * 47) % 160, r = 0.5 + (i % 3) * 0.45;
+      g += '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#fff" opacity="' +
+           (0.3 + (i % 5) * 0.14) + '"/>';
+    }
+    return g + '<path d="M0 150q30-16 60-4t60-6v40H0z" fill="#050a16"/>';
+  } },
+  nuvens: { rot: 'Nuvens', ceu: ['#131a2a', '#232f48', '#3a4866'], svg: function () {
+    return '<ellipse cx="38" cy="58" rx="30" ry="14" fill="#33405e" opacity=".8"/>' +
+           '<ellipse cx="72" cy="48" rx="34" ry="16" fill="#3e4d6e" opacity=".75"/>' +
+           '<ellipse cx="54" cy="94" rx="40" ry="17" fill="#2b3752" opacity=".7"/>' +
+           '<ellipse cx="86" cy="118" rx="30" ry="13" fill="#232f48" opacity=".8"/>';
+  } },
+  abstrato: { rot: 'Abstrato', ceu: ['#141029', '#2a1d4a', '#432a6b'], svg: function () {
+    var g = '';
+    for (var i = 0; i < 7; i++) {
+      g += '<path d="M0 ' + (52 + i * 17) + 'q30 -' + (14 + i * 3) + ' 60 0t60 ' + (i % 2 ? 10 : -10) +
+           '" stroke="#b79aff" stroke-width="1.6" fill="none" opacity="' + (0.16 + i * 0.07) + '"/>';
+    }
+    return g;
+  } }
+};
+
+function snArteSvg(nome) {
+  var a = SN_ARTES[nome] || SN_ARTES.abstrato;
+  var id = 'ag' + Math.random().toString(36).slice(2, 8);
+  return '<svg class="sn-arte" viewBox="0 0 120 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+    '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="' + a.ceu[0] + '"/>' +
+      '<stop offset=".55" stop-color="' + a.ceu[1] + '"/>' +
+      '<stop offset="1" stop-color="' + a.ceu[2] + '"/></linearGradient></defs>' +
+    '<rect width="120" height="180" fill="url(#' + id + ')"/>' + a.svg() + '</svg>';
+}
+
 function snCorDe(txt) {
   var h = 0;
   for (var i = 0; i < txt.length; i++) h = (h * 31 + txt.charCodeAt(i)) % 360;
@@ -15074,9 +15196,15 @@ function snPoster(som) {
   var ico = (SN_CATS[som.categoria] || SN_CATS.ambiente).ico;
   return '<button class="sn-poster' + (SN.somId === som.id ? ' on' : '') + '" ' +
     'onclick="snEscolher(\'' + som.id + '\')">' +
+    // A cena vem SEMPRE, por baixo. Se a foto carregar, cobre; se
+    // falhar (arquivo removido, rede ruim), some e a cena aparece.
+    // Antes disso ficava o icone de imagem quebrada, que e a pior das
+    // duas opcoes.
+    '<div class="sn-poster-cor">' + snArteSvg(som.arte) + '</div>' +
     (som.capaUrl
-      ? '<img src="' + muEsc(som.capaUrl) + '" alt="" loading="lazy">'
-      : '<div class="sn-poster-cor" style="background:' + snCorDe(som.titulo) + '"></div>') +
+      ? '<img src="' + muEsc(som.capaUrl) + '" alt="" loading="lazy" ' +
+        'onerror="this.style.display=' + B + 'none' + B + '">'
+      : '') +
     '<div class="sn-poster-grad"></div>' +
     '<span class="sn-poster-ico">' + ico + '</span>' +
     '<span class="sn-poster-sel">\u2713</span>' +

@@ -20,7 +20,7 @@ var SONO_SONS    = 'sono_sons';
 var SONO_SESSOES = 'sono_sessoes';
 
 var SONO_CABECALHO = ['id','titulo','subtitulo','categoria','audio_url','capa_url',
-                      'duracao','loop','ativo','ordem','criado_em'];
+                      'duracao','loop','ativo','ordem','criado_em','arte'];
 var SONO_SESSAO_CABECALHO = ['id','email','som_id','iniciado_em','encerrado_em',
                              'minutos','ciclo_min','acordou_em','nota','observacao',
                              'adormeceu_em','min_ate_dormir','telas','toques'];
@@ -29,6 +29,21 @@ var SONO_SESSAO_CABECALHO = ['id','email','som_id','iniciado_em','encerrado_em',
 // último de propósito: história de terror sobe batimento, então
 // nunca é o padrão de um app que promete sono melhor.
 var SONO_CATEGORIAS = ['chuva', 'natureza', 'ruido', 'ambiente', 'historia'];
+
+// Cenas de reserva para som sem foto. Sao desenhadas no app; aqui so
+// guardamos qual foi escolhida. Um catalogo com metade dos cards
+// cinza parece quebrado — sempre ha uma cena.
+var SONO_ARTES = ['chuva', 'mar', 'floresta', 'fogueira', 'montanha',
+                  'cidade', 'estrelas', 'nuvens', 'abstrato'];
+
+function _sonoArte_(v, categoria) {
+  var a = _sonoNorm_(v);
+  if (SONO_ARTES.indexOf(a) >= 0) return a;
+  // Sem escolha, a categoria decide — e um palpite melhor que nada.
+  var porCat = { chuva: 'chuva', natureza: 'floresta', ruido: 'nuvens',
+                 ambiente: 'estrelas', historia: 'fogueira' };
+  return porCat[_sonoCategoria_(categoria)] || 'abstrato';
+}
 
 function _sonoAba_(nome, cabecalho) {
   var ss = getSpreadsheet_();
@@ -80,6 +95,7 @@ function _sonoLinhaParaObj_(linha, cab) {
     audioUrl:  String(o.audio_url || ''),
     capaUrl:   String(o.capa_url || ''),
     duracao:   Number(o.duracao) || 0,
+    arte:      _sonoArte_(o.arte, o.categoria),
     loop:      o.loop !== false && o.loop !== 'FALSE',
     ativo:     o.ativo !== false && o.ativo !== 'FALSE',
     ordem:     Number(o.ordem) || 0
@@ -370,7 +386,8 @@ function salvarSonoSom(token, data) {
     d.loop !== false,
     d.ativo !== false,
     Number(d.ordem) || 0,
-    nowISO()
+    nowISO(),
+    _sonoArte_(d.arte, d.categoria)
   ];
 
   // Atualiza se já existe; a ordem da planilha não muda, então o
@@ -408,6 +425,39 @@ function excluirSonoSom(token, data) {
     return { ok: true, message: 'Som removido.' };
   }
   return { ok: false, error: 'Som nao encontrado.' };
+}
+
+// ROTA: salvarSonoCapa — recebe a imagem já recortada pelo painel.
+//
+// Reusa o upload do Mural, que entrega URL do lh3.googleusercontent.com.
+// Isso importa: link de Drive comum NAO renderiza em <img>, e foi
+// exatamente essa armadilha que derrubou o áudio antes.
+var SONO_CAPA_MAX_BYTES = 900 * 1024;
+
+function salvarSonoCapa(token, data) {
+  var user = getUserByToken(token);
+  if (!user || user.role !== 'admin') return { ok: false, error: 'Sem permissao.' };
+  var d = data || {};
+
+  var b64 = String(d.base64 || '');
+  if (!b64) return { ok: false, error: 'Nenhuma imagem recebida.' };
+  // base64 infla ~33%: converte para o tamanho real antes de aceitar.
+  if ((b64.length * 3) / 4 > SONO_CAPA_MAX_BYTES) {
+    return { ok: false, error: 'A capa passa de 900 KB. Reduza a qualidade no recorte.' };
+  }
+  var mime = String(d.mimeType || 'image/jpeg').toLowerCase();
+  if (['image/jpeg', 'image/jpg', 'image/webp', 'image/png'].indexOf(mime) < 0) {
+    return { ok: false, error: 'Use JPG, WEBP ou PNG.' };
+  }
+
+  var nome = 'sono_' + String(d.id || 'novo').replace(/[^A-Za-z0-9_-]/g, '') + '_' + Date.now();
+  var up;
+  try { up = _dreamUploadImagem_(b64, mime, nome); }
+  catch (e) { return { ok: false, error: 'Falha no upload: ' + (e && e.message ? e.message : e) }; }
+  if (!up || !up.url) return { ok: false, error: (up && up.erro) || 'Nao consegui salvar a imagem.' };
+
+  logAction(user.email, 'SONO_CAPA', 'sono', String(d.id || ''), nome);
+  return { ok: true, url: up.url };
 }
 
 // Confere se cada arquivo realmente responde. Um 404 aqui é uma noite

@@ -4630,7 +4630,9 @@ function _taSwitch(id, ligado, titulo, sub) {
 // ════════════════════════════════════════════════════════════
 // MÓDULO DO SONO — catálogo de paisagens sonoras (v172)
 // ════════════════════════════════════════════════════════════
-var SNA = { sons: [], editando: null };
+var SNA = { sons: [], editando: null, vista: 'grade', capa: null };
+var SNA_ARTES = ['chuva','mar','floresta','fogueira','montanha',
+                 'cidade','estrelas','nuvens','abstrato'];
 
 var SNA_CATS = { chuva: 'Chuva', natureza: 'Natureza', ruido: 'Ruído',
                  ambiente: 'Ambiente', historia: 'Histórias' };
@@ -4674,6 +4676,8 @@ async function renderSonoAdmin() {
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">' +
       '<div style="font-size:14px;font-weight:700;color:var(--text)">Catálogo</div>' +
       '<div style="display:flex;gap:8px">' +
+        '<button class="btn btn-ghost btn-sm" onclick="snaVista()">' +
+          (SNA.vista === 'grade' ? 'Ver em lista' : 'Ver em grade') + '</button>' +
         '<button class="btn btn-ghost btn-sm" onclick="snaVerificar()">Testar os arquivos</button>' +
         '<button class="btn btn-primary btn-sm" onclick="snaEditar()">+ Novo som</button>' +
       '</div>' +
@@ -4683,6 +4687,46 @@ async function renderSonoAdmin() {
   if (!SNA.sons.length) {
     html += '<div style="font-size:12.5px;color:var(--muted);padding:20px;text-align:center;' +
       'border:1px dashed var(--border);border-radius:10px">Nenhum som cadastrado ainda.</div>';
+  } else if (SNA.vista === 'grade') {
+    // A grade mostra a capa. Numa lista de texto nao da para ver que
+    // metade do catalogo esta sem foto — e esse e o defeito que mais
+    // aparece na tela do aluno.
+    html += '<div style="display:grid;gap:13px;' +
+      'grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">';
+    SNA.sons.forEach(function (x) {
+      var selo = !x.audioUrl ? ['sem arquivo', 'var(--danger)']
+               : !x.ativo ? ['inativo', 'var(--muted)']
+               : ['no ar', 'var(--green)'];
+      html += '<div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;' +
+          'background:rgba(255,255,255,.02)">' +
+        '<div style="position:relative;aspect-ratio:2/3;background:#0d1620">' +
+          (x.capaUrl
+            ? '<img src="' + escHtml(x.capaUrl) + '" alt="" ' +
+              'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" ' +
+              'onerror="this.style.display=' + B + 'none' + B + '">'
+            : '') +
+          (x.capaUrl ? '' :
+            '<div style="position:absolute;inset:0;display:flex;align-items:center;' +
+            'justify-content:center;flex-direction:column;gap:6px;color:var(--muted);font-size:11px">' +
+            '<span style="font-size:22px">\u25a6</span>cena "' + escHtml(x.arte || '—') + '"</div>') +
+          '<span style="position:absolute;top:8px;left:8px;padding:3px 8px;border-radius:99px;' +
+            'font-size:10px;font-weight:700;background:rgba(4,8,14,.78);color:' + selo[1] + '">' +
+            selo[0] + '</span>' +
+        '</div>' +
+        '<div style="padding:10px 11px">' +
+          '<div style="font-size:12.5px;font-weight:700;color:var(--text);line-height:1.3">' +
+            escHtml(x.titulo) + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:3px">' +
+            escHtml(SNA_CATS[x.categoria] || x.categoria) + ' \u00b7 ' + (x.usos || 0) + ' usos</div>' +
+          '<div style="display:flex;gap:6px;margin-top:9px">' +
+            '<button class="btn btn-ghost btn-sm" style="flex:1" onclick="snaEditar(' +
+              B + escHtml(x.id) + B + ')">Editar</button>' +
+            '<button class="btn btn-ghost btn-sm" onclick="snaExcluir(' +
+              B + escHtml(x.id) + B + ')">\u2715</button>' +
+          '</div>' +
+        '</div></div>';
+    });
+    html += '</div>';
   } else {
     html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">' +
       '<thead><tr style="text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em">' +
@@ -4731,8 +4775,34 @@ function snaEditar(id) {
       '<input class="form-control" id="snaSub" maxlength="160" value="' + escHtml(v('subtitulo', '')) + '" placeholder="Uma noite inteira de chuva constante"></div>' +
     '<div class="form-group"><label class="form-label">URL do áudio *</label>' +
       '<input class="form-control" id="snaAudio" value="' + escHtml(v('audioUrl', '')) + '" placeholder="/media/sono/chuva-telhado.mp3"></div>' +
-    '<div class="form-group"><label class="form-label">URL da capa</label>' +
-      '<input class="form-control" id="snaCapa" value="' + escHtml(v('capaUrl', '')) + '" placeholder="/media/sono/capas/chuva.jpg"></div>' +
+    '<div class="form-group"><label class="form-label">Capa</label>' +
+      '<div style="display:flex;gap:12px;align-items:flex-start">' +
+        '<div id="snaCapaPrev" style="width:92px;aspect-ratio:2/3;border-radius:10px;' +
+          'border:1px solid var(--border);background:#0d1620 center/cover no-repeat;flex-shrink:0' +
+          (v('capaUrl', '') ? ';background-image:url(' + escHtml(v('capaUrl', '')) + ')' : '') + '"></div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<input type="file" id="snaCapaArq" accept="image/*" style="display:none" ' +
+            'onchange="snaCapaEscolher(event)">' +
+          '<button type="button" class="btn btn-ghost btn-sm" style="width:100%" ' +
+            'onclick="document.getElementById(' + B + 'snaCapaArq' + B + ').click()">' +
+            'Enviar imagem e recortar</button>' +
+          '<input class="form-control" id="snaCapa" style="margin-top:7px;font-size:11.5px" ' +
+            'value="' + escHtml(v('capaUrl', '')) + '" placeholder="ou cole uma URL https">' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:5px;line-height:1.55">' +
+            'Proporcao 2:3 (retrato). Ideal <b>800\u00d71200</b>, JPG. ' +
+            'O recorte ja entrega nesse tamanho.</div>' +
+        '</div>' +
+      '</div></div>' +
+
+    '<div class="form-group"><label class="form-label">Cena de reserva</label>' +
+      '<select class="form-control" id="snaArte">' +
+        SNA_ARTES.map(function (a) {
+          return '<option value="' + a + '"' + (v('arte', '') === a ? ' selected' : '') + '>' +
+            a.charAt(0).toUpperCase() + a.slice(1) + '</option>';
+        }).join('') +
+      '</select>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:5px">' +
+        'Aparece quando nao ha foto \u2014 ou se a foto falhar ao carregar.</div></div>' +
     '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
       '<div class="form-group" style="flex:1;min-width:130px"><label class="form-label">Categoria</label>' +
         '<select class="form-control" id="snaCat">' + cats + '</select></div>' +
@@ -4754,6 +4824,7 @@ async function snaSalvar() {
     subtitulo: (document.getElementById('snaSub') || {}).value || '',
     audioUrl: (document.getElementById('snaAudio') || {}).value || '',
     capaUrl: (document.getElementById('snaCapa') || {}).value || '',
+    arte: (document.getElementById('snaArte') || {}).value || '',
     categoria: (document.getElementById('snaCat') || {}).value || 'ambiente',
     ordem: (document.getElementById('snaOrdem') || {}).value || 0,
     ativo: !!(document.getElementById('snaAtivo') || {}).checked,
@@ -4765,6 +4836,139 @@ async function snaSalvar() {
     closeModal();
     renderSonoAdmin();
   } catch (e) { alert('Erro de conexão.'); }
+}
+
+function snaVista() {
+  SNA.vista = SNA.vista === 'grade' ? 'lista' : 'grade';
+  renderSonoAdmin();
+}
+
+// ── Recorte da capa ─────────────────────────────────────────
+// Arrastar move, o cursor amplia, e a saida sai sempre em 800x1200.
+// Sem isso cada capa chegaria num tamanho, e a prateleira ficaria com
+// cards de alturas diferentes.
+var SNC = { img: null, zoom: 1, x: 0, y: 0, arrastando: false, px: 0, py: 0 };
+var SNC_W = 800, SNC_H = 1200;
+
+function snaCapaEscolher(ev) {
+  var f = ev.target.files && ev.target.files[0];
+  if (!f) return;
+  if (f.size > 12 * 1024 * 1024) { alert('Imagem muito grande (max 12 MB).'); return; }
+  var fr = new FileReader();
+  fr.onload = function () {
+    var im = new Image();
+    im.onload = function () { SNC.img = im; snaCapaAbrir(); };
+    im.onerror = function () { alert('Nao consegui ler essa imagem.'); };
+    im.src = fr.result;
+  };
+  fr.readAsDataURL(f);
+}
+
+function snaCapaAbrir() {
+  openModal('Enquadrar a capa',
+    '<div style="text-align:center">' +
+      '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">' +
+        'Arraste para posicionar e use o controle para aproximar. ' +
+        'O corte sai em ' + SNC_W + '\u00d7' + SNC_H + ', a proporcao dos cards.</div>' +
+      '<canvas id="sncCv" width="260" height="390" ' +
+        'style="border-radius:12px;border:1px solid var(--border);cursor:grab;touch-action:none;' +
+        'background:#0d1620;max-width:100%"></canvas>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-top:14px">' +
+        '<span style="font-size:11px;color:var(--muted)">Zoom</span>' +
+        '<input type="range" id="sncZoom" min="100" max="320" value="100" style="flex:1">' +
+      '</div>' +
+      '<div id="sncRes" style="font-size:12px;margin-top:9px"></div>' +
+    '</div>',
+    [{ label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+     { label: 'Usar este corte', action: snaCapaSalvar, cls: 'btn-primary' }]);
+
+  setTimeout(function () {
+    var cv = document.getElementById('sncCv');
+    if (!cv) return;
+    // Comeca cobrindo o quadro inteiro: nunca sobra fundo vazio.
+    var esc = Math.max(cv.width / SNC.img.width, cv.height / SNC.img.height);
+    SNC.zoom = esc;
+    SNC.base = esc;
+    SNC.x = (cv.width - SNC.img.width * esc) / 2;
+    SNC.y = (cv.height - SNC.img.height * esc) / 2;
+    snaCapaPintar();
+
+    cv.onpointerdown = function (e) {
+      SNC.arrastando = true; SNC.px = e.clientX; SNC.py = e.clientY;
+      try { cv.setPointerCapture(e.pointerId); } catch (er) {}
+    };
+    cv.onpointermove = function (e) {
+      if (!SNC.arrastando) return;
+      SNC.x += e.clientX - SNC.px; SNC.y += e.clientY - SNC.py;
+      SNC.px = e.clientX; SNC.py = e.clientY;
+      snaCapaLimitar(cv); snaCapaPintar();
+    };
+    cv.onpointerup = cv.onpointercancel = function () { SNC.arrastando = false; };
+
+    var z = document.getElementById('sncZoom');
+    if (z) z.oninput = function () {
+      var novo = SNC.base * (Number(z.value) / 100);
+      // Amplia a partir do centro, senao a imagem foge para um canto.
+      var cx = cv.width / 2, cy = cv.height / 2;
+      SNC.x = cx - (cx - SNC.x) * (novo / SNC.zoom);
+      SNC.y = cy - (cy - SNC.y) * (novo / SNC.zoom);
+      SNC.zoom = novo;
+      snaCapaLimitar(cv); snaCapaPintar();
+    };
+  }, 60);
+}
+
+// Nao deixa sobrar borda vazia em lado nenhum.
+function snaCapaLimitar(cv) {
+  var w = SNC.img.width * SNC.zoom, h = SNC.img.height * SNC.zoom;
+  SNC.x = Math.min(0, Math.max(cv.width - w, SNC.x));
+  SNC.y = Math.min(0, Math.max(cv.height - h, SNC.y));
+}
+
+function snaCapaPintar() {
+  var cv = document.getElementById('sncCv');
+  if (!cv || !SNC.img) return;
+  var c = cv.getContext('2d');
+  c.clearRect(0, 0, cv.width, cv.height);
+  c.drawImage(SNC.img, SNC.x, SNC.y, SNC.img.width * SNC.zoom, SNC.img.height * SNC.zoom);
+}
+
+async function snaCapaSalvar() {
+  var cv = document.getElementById('sncCv');
+  var res = document.getElementById('sncRes');
+  if (!cv || !SNC.img) return;
+
+  // Repete o mesmo enquadramento em tamanho cheio: o que aparece na
+  // previa e exatamente o que e salvo.
+  var out = document.createElement('canvas');
+  out.width = SNC_W; out.height = SNC_H;
+  var k = SNC_W / cv.width;
+  out.getContext('2d').drawImage(SNC.img, SNC.x * k, SNC.y * k,
+    SNC.img.width * SNC.zoom * k, SNC.img.height * SNC.zoom * k);
+
+  var dataUrl = out.toDataURL('image/jpeg', 0.84);
+  if (res) res.innerHTML = '<span style="color:var(--muted)">Enviando\u2026</span>';
+
+  try {
+    var r = await rpc('salvarSonoCapa', {
+      base64: dataUrl, mimeType: 'image/jpeg',
+      id: SNA.editando ? SNA.editando.id : 'novo'
+    });
+    if (!r || !r.ok) {
+      if (res) res.innerHTML = '<span style="color:var(--danger)">' +
+        escHtml((r && r.error) || 'Falhou.') + '</span>';
+      return;
+    }
+    closeModal();
+    setTimeout(function () {
+      var campo = document.getElementById('snaCapa');
+      if (campo) campo.value = r.url;
+      var prev = document.getElementById('snaCapaPrev');
+      if (prev) prev.style.backgroundImage = 'url(' + r.url + ')';
+    }, 80);
+  } catch (e) {
+    if (res) res.innerHTML = '<span style="color:var(--danger)">Erro de conexao.</span>';
+  }
 }
 
 async function snaExcluir(id) {

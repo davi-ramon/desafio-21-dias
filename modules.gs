@@ -242,6 +242,7 @@ function handleRequest(payload) {
     case 'salvarSonoSom':            return salvarSonoSom(token, data);
     case 'excluirSonoSom':           return excluirSonoSom(token, data);
     case 'sonoVerificarUrls':        return sonoVerificarUrls(token);
+    case 'salvarSonoCapa':           return salvarSonoCapa(token, data);
     case 'getUserContentFile':             return getUserContentFile(token, data.id);
     case 'getUserContentCover':            return getUserContentCover(token, data.id);
     case 'updateUserContent':              return updateUserContent(token, data.id, data.updates);
