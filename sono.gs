@@ -22,7 +22,8 @@ var SONO_SESSOES = 'sono_sessoes';
 var SONO_CABECALHO = ['id','titulo','subtitulo','categoria','audio_url','capa_url',
                       'duracao','loop','ativo','ordem','criado_em'];
 var SONO_SESSAO_CABECALHO = ['id','email','som_id','iniciado_em','encerrado_em',
-                             'minutos','ciclo_min','acordou_em','nota','observacao'];
+                             'minutos','ciclo_min','acordou_em','nota','observacao',
+                             'adormeceu_em','min_ate_dormir','telas','toques'];
 
 // As categorias existem para agrupar na tela. 'historia' fica por
 // último de propósito: história de terror sobe batimento, então
@@ -144,7 +145,7 @@ function sonoIniciarSessao(token, data) {
   var id = generateId();
   _sonoAbaSessoes_().appendRow([
     id, _sonoNorm_(user.email), _sonoTexto_(d.somId, 40), nowISO(), '', '',
-    Number(d.cicloMin) || 0, '', '', ''
+    Number(d.cicloMin) || 0, '', '', '', '', '', 0, 0
   ]);
 
   // Guarda a escolha para a próxima noite já abrir no mesmo lugar.
@@ -196,6 +197,24 @@ function sonoEncerrarSessao(token, data) {
 
     aba.getRange(i + 1, 5).setValue(nowISO());
     aba.getRange(i + 1, 6).setValue(minutos);
+
+    // O ultimo sinal de vida antes do silencio e a melhor estimativa de
+    // quando a pessoa apagou. Nao e medicao de sono — e o que da para
+    // saber sem sensor, e e dito como estimativa em todo lugar.
+    var ultimo = _sonoTexto_(d.ultimoSinal, 40);
+    if (ultimo) {
+      aba.getRange(i + 1, 11).setValue(ultimo);
+      try {
+        var t0 = new Date(linhas[i][3]).getTime();
+        var t1 = new Date(ultimo).getTime();
+        var ate = Math.round((t1 - t0) / 60000);
+        // Negativo ou absurdo e relogio do aparelho fora de hora, nao dado.
+        if (ate >= 0 && ate <= 14 * 60) aba.getRange(i + 1, 12).setValue(ate);
+      } catch (e2) {}
+    }
+    aba.getRange(i + 1, 13).setValue(Number(d.telas) || 0);
+    aba.getRange(i + 1, 14).setValue(Number(d.toques) || 0);
+
     return { ok: true, minutos: minutos };
   }
   return { ok: false, error: 'Sessao nao encontrada.' };
@@ -249,13 +268,30 @@ function getSonoResumo(token) {
     if (!quando || quando < limite) continue;
     var nota = Number(linhas[i][8]) || 0;
     if (nota) { somaNota += nota; comNota++; }
-    noites.push({ inicio: String(linhas[i][3] || ''), minutos: Number(linhas[i][5]) || 0, nota: nota });
+    noites.push({
+      inicio: String(linhas[i][3] || ''),
+      minutos: Number(linhas[i][5]) || 0,
+      nota: nota,
+      adormeceuEm: String(linhas[i][10] || ''),
+      minAteDormir: Number(linhas[i][11]) || 0,
+      telas: Number(linhas[i][12]) || 0,
+      toques: Number(linhas[i][13]) || 0
+    });
   }
 
   noites.sort(function (a, b) { return String(b.inicio).localeCompare(String(a.inicio)); });
+
+  // Media de quanto tempo leva para apagar, so entre as noites que
+  // tem essa medida. Misturar com zeros puxaria tudo para baixo.
+  var comTempo = noites.filter(function (n) { return n.minAteDormir > 0; });
+  var mediaDormir = comTempo.length
+    ? Math.round(comTempo.reduce(function (a, n) { return a + n.minAteDormir; }, 0) / comTempo.length)
+    : 0;
+
   return { ok: true, data: {
     noites: noites.slice(0, 7),
     media: comNota ? Math.round(somaNota / comNota * 10) / 10 : 0,
+    mediaDormir: mediaDormir,
     total: noites.length
   } };
 }

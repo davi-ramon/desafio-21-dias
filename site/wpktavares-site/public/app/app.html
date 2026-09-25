@@ -322,6 +322,36 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   transition: background 0.2s;
 }
 .pilar-item.done .pilar-icon { background: rgba(76,175,80,0.12); }
+/* v173: a ilustracao entra como cena de fundo do card. Ela fica em
+   cima da borda e ATRAS do texto, entao o degrade abaixo garante
+   contraste — texto branco sobre ceu claro nao se le. */
+.pilar-item.com-arte {
+  position: relative; overflow: hidden; min-height: 112px;
+  align-items: flex-end; padding-top: 52px;
+}
+.pilar-arte { position: absolute; left: 0; right: 0; top: 0; height: 100%; pointer-events: none; }
+.pilar-arte svg { width: 100%; height: 100%; display: block; }
+.pilar-arte::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(8,14,11,0) 28%, rgba(8,14,11,.82) 72%, rgba(8,14,11,.95) 100%);
+}
+.pilar-item.com-arte > *:not(.pilar-arte) { position: relative; z-index: 1; }
+.pilar-item.com-arte .pilar-check {
+  position: absolute; top: 12px; left: 12px; z-index: 2;
+  background: rgba(8,14,11,.55); border-color: rgba(255,255,255,.35);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.pilar-item.com-arte.done .pilar-check { background: var(--green); border-color: var(--green); }
+.pilar-item.com-arte .pilar-arrow {
+  position: absolute; top: 14px; right: 13px; z-index: 2; color: rgba(255,255,255,.7);
+}
+.pilar-item.com-arte .pilar-name { color: #fff; font-size: 14.5px; font-weight: 700; }
+.pilar-item.com-arte .pilar-detail { color: rgba(255,255,255,.72); }
+/* Feito = a cena desbota e some para o fundo. O card cumprido nao
+   precisa competir por atencao com o que ainda falta. */
+.pilar-item.com-arte.done .pilar-arte { opacity: .38; }
+.pilar-item.sem-check { padding-top: 46px; }
+
 .pilar-info { flex: 1; }
 .pilar-name { font-size: 14px; font-weight: 600; color: var(--text); }
 .pilar-detail { font-size: 12px; color: var(--muted); }
@@ -3124,6 +3154,19 @@ input[type=range].adm-slider::-webkit-slider-thumb {
   </div>
 
   <style>
+    /* ── MAIS / EXPLORAR (v173) ──────────────────────────── */
+    .mais-grade{display:grid;gap:9px}
+    .mais-card{display:flex;align-items:center;gap:13px;width:100%;padding:15px 16px;
+      border-radius:15px;border:1px solid var(--border);background:rgba(255,255,255,.028);
+      font-family:inherit;text-align:left;cursor:pointer;transition:background .18s,transform .14s}
+    .mais-card:hover{background:rgba(255,255,255,.055);transform:translateX(2px)}
+    .mais-ico{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;
+      justify-content:center;font-size:20px;flex-shrink:0}
+    .mais-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+    .mais-nome{font-size:14.5px;font-weight:700;color:var(--text)}
+    .mais-sub{font-size:12px;color:var(--muted);line-height:1.45}
+    .mais-seta{color:var(--muted);font-size:20px;flex-shrink:0}
+
     /* ── MODULO DO SONO (v172) ───────────────────────────── */
     .sn-topo{position:relative;border-radius:20px;overflow:hidden;margin-bottom:18px;
       min-height:168px;display:flex;align-items:flex-end;padding:20px;
@@ -3180,6 +3223,59 @@ input[type=range].adm-slider::-webkit-slider-thumb {
       font-family:inherit;font-size:15px;font-weight:800;cursor:pointer}
     .sn-tocar:disabled{opacity:.4;cursor:not-allowed}
 
+    /* ── Vitrine (v173) ── */
+    .sn-ceu{position:relative;height:210px;margin:-16px -16px 0;overflow:hidden;
+      display:flex;align-items:flex-end}
+    .sn-ceu canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+    .sn-ceu-txt{position:relative;z-index:2;padding:0 20px 22px;width:100%}
+    .sn-ceu-fase{font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+      font-weight:700;color:rgba(255,255,255,.62);margin-bottom:6px}
+    .sn-ceu h2{font-size:24px;font-weight:800;color:#fff;margin:0 0 5px;
+      text-shadow:0 2px 14px rgba(0,0,0,.5)}
+    .sn-ceu p{font-size:13px;color:rgba(255,255,255,.78);margin:0;line-height:1.55;
+      text-shadow:0 1px 8px rgba(0,0,0,.5)}
+    .sn-ceu::after{content:'';position:absolute;left:0;right:0;bottom:0;height:62%;
+      z-index:1;background:linear-gradient(180deg,transparent,rgba(6,10,18,.88))}
+
+    .sn-fila{margin:22px 0 4px}
+    .sn-fila-h{display:flex;align-items:baseline;justify-content:space-between;
+      padding:0 2px 10px;gap:10px}
+    .sn-fila-t{font-size:15px;font-weight:700;color:var(--text)}
+    .sn-fila-n{font-size:11.5px;color:var(--muted)}
+    /* Rolagem horizontal com encaixe: o dedo para no card, nao no meio
+       de dois. A barra some porque no celular ela so rouba altura. */
+    .sn-trilha{display:flex;gap:11px;overflow-x:auto;padding:2px 2px 6px;
+      scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .sn-trilha::-webkit-scrollbar{display:none}
+    .sn-poster{position:relative;flex:0 0 auto;width:138px;aspect-ratio:2/3;
+      border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.09);
+      background:#0d1620;cursor:pointer;padding:0;font-family:inherit;text-align:left;
+      scroll-snap-align:start;transition:transform .2s,border-color .2s}
+    .sn-poster:hover{transform:translateY(-4px);border-color:#6f9dff}
+    .sn-poster.on{border-color:#6f9dff;box-shadow:0 0 0 2px rgba(111,157,255,.35)}
+    .sn-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .sn-poster-cor{position:absolute;inset:0}
+    .sn-poster-grad{position:absolute;inset:0;
+      background:linear-gradient(180deg,transparent 40%,rgba(4,8,14,.94) 100%)}
+    .sn-poster-txt{position:absolute;left:0;right:0;bottom:0;padding:11px 11px 12px}
+    .sn-poster-t{font-size:13px;font-weight:700;color:#eaf2ff;line-height:1.28}
+    .sn-poster-s{font-size:10.5px;color:#9db4d0;margin-top:3px;line-height:1.35;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .sn-poster-ico{position:absolute;top:10px;left:11px;font-size:17px;
+      filter:drop-shadow(0 2px 6px rgba(0,0,0,.7))}
+    .sn-poster-sel{position:absolute;top:9px;right:10px;width:22px;height:22px;
+      border-radius:50%;background:#6f9dff;color:#04101f;font-size:13px;font-weight:800;
+      display:none;align-items:center;justify-content:center}
+    .sn-poster.on .sn-poster-sel{display:flex}
+
+    /* Barra do que foi escolhido: colada embaixo, para o botao de
+       comecar nunca sumir depois de rolar a vitrine inteira. */
+    .sn-barra{position:sticky;bottom:0;margin:18px -16px 0;padding:14px 16px
+      calc(14px + env(safe-area-inset-bottom));
+      background:linear-gradient(180deg,rgba(8,13,22,.72),rgba(8,13,22,.97));
+      backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+      border-top:1px solid rgba(255,255,255,.07);z-index:5}
+
     /* ── Tela noturna ── */
     .sn-noite{position:fixed;inset:0;z-index:100000;background:#02050a;
       display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -3209,6 +3305,10 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
 
+  <div class="page" id="page-mais">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+
   <div class="page" id="page-assinatura">
     <div class="loading-center"><div class="spinner"></div></div>
   </div>
@@ -3234,7 +3334,7 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
     </svg>
-    <span>Início</span>
+    <span>Pilares</span>
   </button>
   <button class="nav-btn" id="nav-audios" onclick="navigate('audios')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -3242,11 +3342,11 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     </svg>
     <span>Áudios</span>
   </button>
-  <button class="nav-btn" id="nav-comunidade" onclick="navigate('comunidade')">
+  <button class="nav-btn" id="nav-sono" onclick="navigate('sono')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
     </svg>
-    <span>Comunidade</span>
+    <span>Sono</span>
   </button>
   <button class="nav-btn" id="nav-mural" onclick="navigate('mural')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -3255,11 +3355,11 @@ input[type=range].adm-slider::-webkit-slider-thumb {
     </svg>
     <span>Mural</span>
   </button>
-  <button class="nav-btn" id="nav-hub" onclick="navigate('hub')">
+  <button class="nav-btn" id="nav-mais" onclick="navigate('mais')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.2 1.9"/>
+      <circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>
     </svg>
-    <span>Ferramentas</span>
+    <span>Mais</span>
   </button>
   <button class="nav-btn" id="nav-perfil" onclick="navigate('perfil')">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -3587,6 +3687,9 @@ async function loadConteudo() {
 function navigate(page) {
   // Para o polling do grupo ao sair da aba comunidade
   if (page !== 'comunidade') _grupoStopPolling();
+  // v173: o ceu anima em requestAnimationFrame. Deixar rodando fora da
+  // tela do sono queima bateria sem ninguem ver.
+  if (page !== 'sono' && typeof snCeuParar === 'function') snCeuParar();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -3612,6 +3715,7 @@ function renderPage(page) {
     case 'indicar':    renderIndicacoes(); break; // v159: compartilhar e acompanhar
     case 'notificacoes': renderNotificacoes(); break; // v167: agenda de avisos
     case 'sono':       renderSono();        break; // v172: modulo do sono
+    case 'mais':       renderMais();        break; // v173: explorar
     case 'mural':      renderMural();      break;
     case 'hub':        renderHub();        break;
   }
@@ -4369,6 +4473,7 @@ function renderInicio() {
         ${_pilarItem('leitura',  '📖','Leitura',  '15 minutos',              pilaresHoje, false, 'openLeitura()',    pilarLocked('leitura'))}
         ${_pilarItem('exercicio','🏃','Exercício Físico','15 minutos',       pilaresHoje, false, 'openExercicio()', pilarLocked('exercicio'))}
         ${_pilarItem('audio',    '🎧','Áudio do Dia', d.audioUrlHoje ? escH(d.audioTituloHoje||'Ouça o áudio motivacional') : 'Não configurado', pilaresHoje, false, audioOnclick, pilarLocked('audio'))}
+        ${_pilarSono()}
       </div>
       <div class="pilar-contador" style="margin-top:12px;font-size:12px;color:var(--muted);text-align:center">${qtdFeitos} de 4 pilares concluídos hoje</div>
     </div>`;
@@ -4458,6 +4563,7 @@ function renderRotina() {
       ${_pilarItem('leitura','📖','Leitura','15 minutos', pilaresHoje, true, 'openLeitura()', pilarLocked('leitura'))}
       ${_pilarItem('exercicio','🏃','Exercício Físico','15 minutos', pilaresHoje, true, 'openExercicio()', pilarLocked('exercicio'))}
       ${_pilarItem('audio','🎧','Áudio do Dia','Ouça o áudio motivacional', pilaresHoje, true, 'navigate(\'audios\')', pilarLocked('audio'))}
+      ${_pilarSono()}
     </div>
   </div>`;
 
@@ -4787,6 +4893,122 @@ function renderPerfil() {
 // ════════════════════════════════════════════════════════════
 // PILARES
 // ════════════════════════════════════════════════════════════
+
+// ── Ilustrações dos pilares (v173) ──────────────────────────
+// Cada cena tem um céu próprio e a silhueta da ação. O objetivo não é
+// realismo: é a pessoa reconhecer o pilar de relance, sem ler.
+var PILAR_ARTE = {
+  meditacao: function () {
+    return '<svg viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+      '<defs><linearGradient id="paMed" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#1b3a5c"/><stop offset=".55" stop-color="#2e5f7a"/>' +
+        '<stop offset="1" stop-color="#6b8f7a"/></linearGradient></defs>' +
+      '<rect width="120" height="84" fill="url(#paMed)"/>' +
+      '<circle cx="92" cy="22" r="11" fill="#ffd9a0" opacity=".85"/>' +
+      '<path d="M0 62 Q30 48 58 60 T120 54 L120 84 L0 84Z" fill="#12402f" opacity=".75"/>' +
+      '<g fill="#08211a">' +
+        '<circle cx="46" cy="44" r="7"/>' +
+        '<path d="M46 52c-8 0-14 6-15 14h30c-1-8-7-14-15-14z"/>' +
+        '<path d="M28 68q18 7 36 0l2 5H26z"/>' +
+      '</g>' +
+      '<g stroke="#a8e6c8" stroke-width="1.3" fill="none" opacity=".5">' +
+        '<path d="M46 30c0-5 3-8 3-8"/><path d="M39 33c-3-4-2-8-2-8"/><path d="M53 33c3-4 2-8 2-8"/>' +
+      '</g></svg>';
+  },
+  leitura: function () {
+    return '<svg viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+      '<defs><linearGradient id="paLei" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#2b2418"/><stop offset="1" stop-color="#5c4326"/></linearGradient></defs>' +
+      '<rect width="120" height="84" fill="url(#paLei)"/>' +
+      '<circle cx="22" cy="18" r="14" fill="#ffca6e" opacity=".22"/>' +
+      '<circle cx="22" cy="18" r="6" fill="#ffca6e" opacity=".8"/>' +
+      '<g fill="#1a1207">' +
+        '<circle cx="62" cy="34" r="8"/>' +
+        '<path d="M62 43c-10 0-17 7-18 17h36c-1-10-8-17-18-17z"/>' +
+      '</g>' +
+      '<g transform="translate(44 54)">' +
+        '<path d="M0 6 Q16 0 32 6 L32 20 Q16 14 0 20Z" fill="#f2e6cf"/>' +
+        '<path d="M16 3v17" stroke="#c9b48f" stroke-width="1.4"/>' +
+        '<path d="M4 9h9M4 13h9M19 9h9M19 13h9" stroke="#cbbb9c" stroke-width="1"/>' +
+      '</g></svg>';
+  },
+  exercicio: function () {
+    return '<svg viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+      '<defs><linearGradient id="paExe" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#7a3f1d"/><stop offset=".5" stop-color="#c46a2c"/>' +
+        '<stop offset="1" stop-color="#f0a13c"/></linearGradient></defs>' +
+      '<rect width="120" height="84" fill="url(#paExe)"/>' +
+      '<circle cx="26" cy="24" r="13" fill="#ffe1a8" opacity=".55"/>' +
+      '<path d="M0 66 L34 50 L58 62 L86 44 L120 58 L120 84 L0 84Z" fill="#4a2410" opacity=".8"/>' +
+      '<g fill="#2a1207">' +
+        '<circle cx="66" cy="26" r="6.5"/>' +
+        '<path d="M64 33l-9 15 6 3 5-9 7 7-3 14h7l4-17-8-9 6-5 8 5 3-6-11-7z"/>' +
+        '<path d="M56 36l-11 5 2 6 12-5z"/>' +
+      '</g></svg>';
+  },
+  audio: function () {
+    return '<svg viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+      '<defs><linearGradient id="paAud" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0" stop-color="#2a1b4d"/><stop offset="1" stop-color="#6d3f8c"/></linearGradient></defs>' +
+      '<rect width="120" height="84" fill="url(#paAud)"/>' +
+      '<g stroke="#d8b6ff" stroke-width="2" fill="none" opacity=".4" stroke-linecap="round">' +
+        '<path d="M12 42v-8M20 46v-16M28 50v-24M96 50v-24M104 46v-16M112 42v-8"/>' +
+      '</g>' +
+      '<g fill="#150c28">' +
+        '<circle cx="60" cy="36" r="10"/>' +
+        '<path d="M60 47c-11 0-19 8-20 20h40c-1-12-9-20-20-20z"/>' +
+      '</g>' +
+      '<path d="M46 34a14 14 0 0 1 28 0" stroke="#e7c9ff" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
+      '<rect x="42" y="32" width="7" height="13" rx="3.5" fill="#e7c9ff"/>' +
+      '<rect x="71" y="32" width="7" height="13" rx="3.5" fill="#e7c9ff"/>' +
+      '<path d="M55 40q5 4 10 0" stroke="#e7c9ff" stroke-width="1.5" fill="none" stroke-linecap="round" opacity=".8"/>' +
+      '</svg>';
+  },
+  sono: function () {
+    return '<svg viewBox="0 0 120 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+      '<defs><linearGradient id="paSon" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#050a18"/><stop offset=".6" stop-color="#0e1c38"/>' +
+        '<stop offset="1" stop-color="#1d3157"/></linearGradient></defs>' +
+      '<rect width="120" height="84" fill="url(#paSon)"/>' +
+      '<g fill="#fff" opacity=".85">' +
+        '<circle cx="16" cy="14" r="1"/><circle cx="34" cy="9" r=".8"/><circle cx="52" cy="17" r="1.1"/>' +
+        '<circle cx="76" cy="11" r=".9"/><circle cx="104" cy="20" r="1"/><circle cx="90" cy="32" r=".7"/>' +
+        '<circle cx="24" cy="30" r=".8"/><circle cx="66" cy="27" r=".7"/>' +
+      '</g>' +
+      '<path d="M104 26a13 13 0 1 1-14-13 10 10 0 0 0 14 13z" fill="#ffeeba" opacity=".9"/>' +
+      '<g fill="#08101f">' +
+        '<rect x="18" y="58" width="84" height="20" rx="4"/>' +
+        '<rect x="14" y="52" width="26" height="14" rx="6" fill="#1b2b4a"/>' +
+        '<circle cx="46" cy="55" r="7"/>' +
+        '<path d="M40 60h52a6 6 0 0 1 6 6v6H40z" fill="#22406e"/>' +
+      '</g>' +
+      '<g fill="#cfe0ff" opacity=".7" font-family="system-ui" font-weight="700">' +
+        '<text x="56" y="44" font-size="9">z</text>' +
+        '<text x="64" y="37" font-size="11">z</text>' +
+        '<text x="74" y="29" font-size="13">z</text>' +
+      '</g></svg>';
+  }
+};
+
+// O card do sono. Sem caixa de marcar: ele leva ao modulo, nao
+// registra tarefa cumprida — quem diz se a noite foi boa e o
+// check-in da manha.
+function _pilarSono() {
+  return '<div class="pilar-item com-arte sem-check" onclick="navigate(\'sono\')">' +
+    _pilarArte('sono') +
+    '<div class="pilar-info">' +
+      '<div class="pilar-name">Sono</div>' +
+      '<div class="pilar-detail">Sons para dormir e seu ciclo da noite</div>' +
+    '</div>' +
+    '<div class="pilar-arrow">\u203a</div>' +
+  '</div>';
+}
+
+function _pilarArte(key) {
+  var f = PILAR_ARTE[key];
+  return f ? '<div class="pilar-arte">' + f() + '</div>' : '';
+}
+
 function _pilarItem(key, icon, nome, detalhe, pilaresHoje, clickable, customOnclick, locked) {
   const feito = pilaresHoje[key] === true;
   const effectiveLock = locked && !feito;
@@ -4798,9 +5020,12 @@ function _pilarItem(key, icon, nome, detalhe, pilaresHoje, clickable, customOncl
   } else {
     onclick = clickable ? 'onclick="togglePilar(\'' + key + '\')"' : 'onclick="navigate(\'rotina\')"';
   }
-  return '<div class="pilar-item' + (feito ? ' done' : '') + (effectiveLock ? ' locked' : '') + '" id="pilar_' + key + '" ' + onclick + '>' +
+  var arte = _pilarArte(key);
+  return '<div class="pilar-item' + (feito ? ' done' : '') + (effectiveLock ? ' locked' : '') +
+    (arte ? ' com-arte' : '') + '" id="pilar_' + key + '" ' + onclick + '>' +
+    arte +
     '<div class="pilar-check">' + (feito ? '✓' : '') + '</div>' +
-    '<div class="pilar-icon">' + icon + '</div>' +
+    (arte ? '' : '<div class="pilar-icon">' + icon + '</div>') +
     '<div class="pilar-info">' +
       '<div class="pilar-name">' + nome + '</div>' +
       '<div class="pilar-detail">' + detalhe + '</div>' +
@@ -14529,6 +14754,43 @@ function pwCartao() {
 
 
 // ════════════════════════════════════════════════════════════
+// MAIS — onde mora o que não é do dia a dia (v173)
+// ------------------------------------------------------------
+// A barra de baixo só aguenta cinco ou seis destinos antes de virar
+// sopa de ícones. O que a pessoa usa todo dia fica lá; o resto mora
+// aqui, com nome e explicação, em vez de um ícone mudo.
+// ════════════════════════════════════════════════════════════
+var MAIS_ITENS = [
+  { id: 'comunidade', nome: 'Comunidade',    sub: 'Converse com quem está no mesmo desafio', ico: '👥', cor: '#4fa8ff' },
+  { id: 'hub',        nome: 'Ferramentas',   sub: 'Foco, respiração e cronômetros',          ico: '⏱️', cor: '#c084fc' },
+  { id: 'rotina',     nome: 'Minha rotina',  sub: 'Os 21 dias, dia a dia',                   ico: '📅', cor: '#4caf50' },
+  { id: 'indicar',    nome: 'Indicar amigos',sub: 'Seu link e quem já entrou por ele',       ico: '🎁', cor: '#f0a13c' },
+  { id: 'notificacoes', nome: 'Notificações',sub: 'Horários e o que você quer receber',      ico: '🔔', cor: '#e0a83c' },
+  { id: 'assinatura', nome: 'Assinatura',    sub: 'Plano, cobrança e recibos',               ico: '⭐', cor: '#6f9dff' },
+  { id: 'perfil',     nome: 'Perfil',        sub: 'Seus dados e preferências',               ico: '👤', cor: '#9db4d0' }
+];
+
+function renderMais() {
+  var el = document.getElementById('page-mais');
+  if (!el) return;
+
+  var html = '<div class="bl-wrap">' +
+    '<div class="bl-head"><h2>Explorar</h2></div>' +
+    '<div class="mais-grade">';
+
+  MAIS_ITENS.forEach(function (it) {
+    html += '<button class="mais-card" onclick="navigate(\'' + it.id + '\')">' +
+      '<span class="mais-ico" style="background:' + it.cor + '1f;color:' + it.cor + '">' + it.ico + '</span>' +
+      '<span class="mais-txt"><span class="mais-nome">' + it.nome + '</span>' +
+      '<span class="mais-sub">' + it.sub + '</span></span>' +
+      '<span class="mais-seta">›</span></button>';
+  });
+
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+// ════════════════════════════════════════════════════════════
 // MÓDULO DO SONO (v172)
 // ------------------------------------------------------------
 // Três coisas moldam este código e não são escolha de estilo:
@@ -14567,6 +14829,159 @@ var SN_CICLOS = [
   { min: 480, rot: 'A noite toda' }
 ];
 
+
+// ── Céu animado (v173) ──────────────────────────────────────
+// A cena acompanha a hora de quem abriu. Desenhada em canvas, não em
+// vídeo: um MP4 de paisagem custaria megabytes, começaria a tocar
+// depois do carregamento e, no iPhone, entraria na mesma briga de
+// autoplay do áudio. Aqui são poucos KB de código que sobem junto com
+// a página e rodam em qualquer aparelho.
+var SN_FASES = [
+  { ate: 5,  id: 'madrugada', rot: 'Madrugada', ceu: ['#02040c','#070d1f','#0d1730'],
+    titulo: 'Ainda dá tempo de descansar',
+    sub: 'Escolha um som e volte para a cama. O resto espera.' },
+  { ate: 11, id: 'manha',     rot: 'Manhã',     ceu: ['#0a2038','#16466b','#3d7ba6'],
+    titulo: 'Preparando a noite de hoje',
+    sub: 'Deixe seu som escolhido. Na hora de dormir é só tocar em começar.' },
+  { ate: 17, id: 'tarde',     rot: 'Tarde',     ceu: ['#123a52','#2d6f8e','#78a9c4'],
+    titulo: 'Sua noite começa agora',
+    sub: 'Dormir bem é decisão da tarde, não da hora de deitar.' },
+  { ate: 20, id: 'entardecer',rot: 'Entardecer',ceu: ['#2b1b3d','#7a3358','#d86a45'],
+    titulo: 'Hora de desacelerar',
+    sub: 'Baixe as luzes, escolha um som e deixe o dia ir embora.' },
+  { ate: 24, id: 'noite',     rot: 'Noite',     ceu: ['#040814','#0b1530','#182a4d'],
+    titulo: 'Boa noite',
+    sub: 'Escolha o que vai te levar. O som some sozinho quando você dormir.' }
+];
+
+function snFase() {
+  var h = new Date().getHours();
+  for (var i = 0; i < SN_FASES.length; i++) if (h < SN_FASES[i].ate) return SN_FASES[i];
+  return SN_FASES[SN_FASES.length - 1];
+}
+
+var SN_CEU = { raf: 0, estrelas: [], t: 0, onResize: null };
+
+function snCeuIniciar(cv, fase) {
+  if (!cv || !cv.getContext) return;
+  snCeuParar();
+  var ctx = cv.getContext('2d');
+  var noturna = fase.id === 'noite' || fase.id === 'madrugada' || fase.id === 'entardecer';
+
+  function medir() {
+    var r = cv.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.max(1, Math.round(r.width * dpr));
+    cv.height = Math.max(1, Math.round(r.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { w: r.width, h: r.height };
+  }
+  var d = medir();
+
+  SN_CEU.estrelas = [];
+  if (noturna) {
+    var n = fase.id === 'madrugada' ? 90 : 55;
+    for (var i = 0; i < n; i++) {
+      SN_CEU.estrelas.push({
+        x: Math.random(), y: Math.random() * 0.72,
+        r: Math.random() * 1.1 + 0.35,
+        f: Math.random() * 6.28, v: Math.random() * 0.9 + 0.3
+      });
+    }
+  }
+
+  function quadro() {
+    SN_CEU.t += 0.016;
+    var w = d.w, h = d.h;
+
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, fase.ceu[0]);
+    g.addColorStop(0.55, fase.ceu[1]);
+    g.addColorStop(1, fase.ceu[2]);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+
+    SN_CEU.estrelas.forEach(function (e) {
+      var a = 0.35 + 0.45 * Math.sin(SN_CEU.t * e.v + e.f);
+      ctx.globalAlpha = Math.max(0, a);
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(e.x * w, e.y * h, e.r, 0, 6.2832);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    // O astro sobe conforme a noite avança: às 20h está quase no
+    // horizonte, às 3h da manhã no alto.
+    var agora = new Date();
+    var hora = agora.getHours() + agora.getMinutes() / 60;
+    var astroX = w * 0.78, astroY, raio = 26, cor;
+    if (fase.id === 'entardecer') {
+      astroY = h * 0.62; cor = '#ffd9a0'; raio = 30;
+    } else if (fase.id === 'noite' || fase.id === 'madrugada') {
+      var prog = hora >= 20 ? (hora - 20) / 8 : (hora + 4) / 8;
+      astroY = h * (0.58 - Math.min(0.42, prog * 0.42));
+      cor = '#fdf3d4';
+    } else {
+      astroY = h * 0.26; cor = '#ffe9a8'; raio = 24;
+    }
+
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = cor;
+    ctx.beginPath(); ctx.arc(astroX, astroY, raio * 2.1, 0, 6.2832); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = cor;
+    ctx.beginPath(); ctx.arc(astroX, astroY, raio, 0, 6.2832); ctx.fill();
+
+    // A lua é a mesma bola com uma mordida da cor do céu — mais barato
+    // que desenhar um crescente, e sem risco de virar banana.
+    if (fase.id === 'noite' || fase.id === 'madrugada') {
+      ctx.fillStyle = fase.ceu[0];
+      ctx.beginPath();
+      ctx.arc(astroX - raio * 0.42, astroY - raio * 0.3, raio * 0.92, 0, 6.2832);
+      ctx.fill();
+    }
+
+    // Dois morros com ondas lentas e fora de fase: profundidade de graça.
+    var morros = [[0.78, 'rgba(4,8,14,.55)'], [0.88, 'rgba(2,5,10,.85)']];
+    morros.forEach(function (m, idx) {
+      ctx.fillStyle = m[1];
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      for (var x = 0; x <= w; x += 12) {
+        var y = h * m[0] + Math.sin(x / (w / 3) + idx * 2 + SN_CEU.t * 0.06) * (12 + idx * 6);
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(w, h);
+      ctx.closePath();
+      ctx.fill();
+    });
+
+    SN_CEU.raf = requestAnimationFrame(quadro);
+  }
+  quadro();
+
+  SN_CEU.onResize = function () { d = medir(); };
+  window.addEventListener('resize', SN_CEU.onResize);
+}
+
+function snCeuParar() {
+  if (SN_CEU.raf) cancelAnimationFrame(SN_CEU.raf);
+  SN_CEU.raf = 0;
+  if (SN_CEU.onResize) {
+    window.removeEventListener('resize', SN_CEU.onResize);
+    SN_CEU.onResize = null;
+  }
+}
+
+// Cor de reserva para som sem capa, derivada do título: o mesmo som
+// tem sempre a mesma cor, e a prateleira nunca fica cinza.
+function snCorDe(txt) {
+  var h = 0;
+  for (var i = 0; i < txt.length; i++) h = (h * 31 + txt.charCodeAt(i)) % 360;
+  return 'linear-gradient(160deg,hsl(' + h + ',42%,26%),hsl(' + ((h + 40) % 360) + ',48%,13%))';
+}
+
 async function renderSono() {
   var el = document.getElementById('page-sono');
   if (!el) return;
@@ -14596,71 +15011,78 @@ async function renderSono() {
 function snRender() {
   var el = document.getElementById('page-sono');
   if (!el) return;
+  var fase = snFase();
 
-  var html = '<div class="bl-wrap">' +
-    '<div class="sn-topo"><span class="sn-lua">🌙</span><div class="sn-topo-txt">' +
-      '<h2>Hora de desacelerar</h2>' +
-      '<p>Escolha um som, defina quanto tempo ele toca e deixe o telefone de lado.</p>' +
+  var html = '<div class="bl-wrap" style="padding-top:0">' +
+    '<div class="sn-ceu"><canvas id="snCanvas"></canvas><div class="sn-ceu-txt">' +
+      '<div class="sn-ceu-fase">' + fase.rot + '</div>' +
+      '<h2>' + fase.titulo + '</h2><p>' + fase.sub + '</p>' +
     '</div></div>';
 
   if (!SN.sons.length) {
-    html += '<div class="bl-vazio"><div class="bl-vazio-ico">🎧</div>' +
-      '<div class="bl-vazio-t">Os sons estão a caminho</div>' +
-      '<div class="bl-vazio-s">Ainda não há paisagens sonoras publicadas. ' +
+    html += '<div class="bl-vazio" style="margin-top:22px"><div class="bl-vazio-ico">\ud83c\udfa7</div>' +
+      '<div class="bl-vazio-t">Os sons estao a caminho</div>' +
+      '<div class="bl-vazio-s">Ainda nao ha paisagens sonoras publicadas. ' +
       'Assim que entrarem, elas aparecem aqui.</div></div></div>';
     el.innerHTML = html;
+    snCeuIniciar(document.getElementById('snCanvas'), fase);
     return;
   }
 
-  // Só mostra categoria que tem som — aba vazia é decepção garantida.
-  var presentes = {};
-  SN.sons.forEach(function (x) { presentes[x.categoria] = true; });
-  html += '<div class="sn-cats">';
+  // Continuar de onde parou vem primeiro: e o atalho de quem ja sabe o
+  // que quer, e essa e a maioria depois da primeira semana.
+  var ultimo = SN.somId ? snSomAtual() : null;
+  if (ultimo) {
+    html += '<div class="sn-fila"><div class="sn-fila-h">' +
+      '<span class="sn-fila-t">Continuar de onde parou</span></div>' +
+      '<div class="sn-trilha">' + snPoster(ultimo) + '</div></div>';
+  }
+
   Object.keys(SN_CATS).forEach(function (k) {
-    if (k !== 'todas' && !presentes[k]) return;
-    html += '<button class="sn-cat' + (SN.cat === k ? ' on' : '') + '" onclick="snCat(\'' + k + '\')">' +
-      SN_CATS[k].ico + ' ' + SN_CATS[k].rot + '</button>';
+    if (k === 'todas') return;
+    var lista = SN.sons.filter(function (x) { return x.categoria === k; });
+    if (!lista.length) return;      // prateleira vazia nao vira secao
+    html += '<div class="sn-fila"><div class="sn-fila-h">' +
+      '<span class="sn-fila-t">' + SN_CATS[k].ico + ' ' + SN_CATS[k].rot + '</span>' +
+      '<span class="sn-fila-n">' + lista.length + '</span></div>' +
+      '<div class="sn-trilha">' + lista.map(snPoster).join('') + '</div></div>';
   });
-  html += '</div>';
 
-  var lista = SN.cat === 'todas' ? SN.sons
-    : SN.sons.filter(function (x) { return x.categoria === SN.cat; });
-
-  html += '<div class="sn-grade">';
-  lista.forEach(function (som) {
-    var ico = (SN_CATS[som.categoria] || SN_CATS.ambiente).ico;
-    html += '<button class="sn-card' + (SN.somId === som.id ? ' on' : '') + '" ' +
-      'onclick="snEscolher(\'' + som.id + '\')">' +
-      (som.capaUrl ? '<img src="' + muEsc(som.capaUrl) + '" alt="" loading="lazy">' : '') +
-      '<div class="sn-card-grad"></div>' +
-      '<span class="sn-card-ico">' + ico + '</span>' +
-      '<div class="sn-card-txt"><div class="sn-card-t">' + muEsc(som.titulo) + '</div>' +
-      (som.subtitulo ? '<div class="sn-card-s">' + muEsc(som.subtitulo) + '</div>' : '') +
-      '</div></button>';
-  });
-  html += '</div>';
-
-  html += '<div style="margin-top:20px"><div class="pf-row-t" style="margin-bottom:4px">Tocar por</div>' +
-    '<div class="sn-ciclos">';
+  var som = snSomAtual();
+  html += '<div class="sn-barra">' +
+    '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px">';
   SN_CICLOS.forEach(function (c) {
     html += '<button class="sn-ciclo' + (SN.ciclo === c.min ? ' on' : '') + '" ' +
       'onclick="snCiclo(' + c.min + ')">' + c.rot + '</button>';
   });
   html += '</div>' +
-    '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6">' +
-      'O som entra devagar e vai sumindo nos últimos minutos, para não te acordar ao terminar.</div>';
+    '<button class="sn-tocar" style="margin-top:0" id="snTocar" onclick="snComecar()"' +
+      (som ? '' : ' disabled') + '>' +
+      (som ? 'Comecar \u2014 ' + muEsc(som.titulo) : 'Escolha um som acima') + '</button>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center;line-height:1.5">' +
+      'Entra devagar e some sozinho no fim. ' +
+      (/iphone|ipad|ipod/i.test(navigator.userAgent)
+        ? 'No iPhone, mantenha a tela noturna ligada.' : '') +
+    '</div></div>';
 
-  html += '<button class="sn-tocar" id="snTocar" onclick="snComecar()"' +
-    (SN.somId ? '' : ' disabled') + '>' +
-    (SN.somId ? 'Começar' : 'Escolha um som') + '</button>';
-
-  if (SN.dados && SN.dados.avisoIos && /iphone|ipad|ipod/i.test(navigator.userAgent)) {
-    html += '<div class="bl-aviso" style="margin-top:12px;font-size:12px;line-height:1.6">' +
-      muEsc(SN.dados.avisoIos) + '</div>';
-  }
-
-  html += '</div></div>';
+  html += '</div>';
   el.innerHTML = html;
+  snCeuIniciar(document.getElementById('snCanvas'), fase);
+}
+
+function snPoster(som) {
+  var ico = (SN_CATS[som.categoria] || SN_CATS.ambiente).ico;
+  return '<button class="sn-poster' + (SN.somId === som.id ? ' on' : '') + '" ' +
+    'onclick="snEscolher(\'' + som.id + '\')">' +
+    (som.capaUrl
+      ? '<img src="' + muEsc(som.capaUrl) + '" alt="" loading="lazy">'
+      : '<div class="sn-poster-cor" style="background:' + snCorDe(som.titulo) + '"></div>') +
+    '<div class="sn-poster-grad"></div>' +
+    '<span class="sn-poster-ico">' + ico + '</span>' +
+    '<span class="sn-poster-sel">\u2713</span>' +
+    '<div class="sn-poster-txt"><div class="sn-poster-t">' + muEsc(som.titulo) + '</div>' +
+    (som.subtitulo ? '<div class="sn-poster-s">' + muEsc(som.subtitulo) + '</div>' : '') +
+    '</div></button>';
 }
 
 function snCat(k) { SN.cat = k; snRender(); }
@@ -14689,6 +15111,75 @@ function snFade(de, para, ms, aoFim) {
       if (aoFim) aoFim();
     }
   }, 80);
+}
+
+
+// ── Monitor de vigília (v173) ───────────────────────────────
+// O que dá para saber, de verdade, sem sensor nenhum:
+//
+//   • visibilitychange  → a tela acendeu ou apagou, e o app voltou
+//                         para a frente. É o "quantas vezes você
+//                         mexeu no celular" da noite.
+//   • toque na tela     → interação direta.
+//
+// A partir disso, a última vez que houve sinal antes do silêncio é a
+// melhor estimativa de quando a pessoa apagou. Um "ainda acordado?"
+// de 15 em 15 minutos acordaria justamente quem já dormiu — então o
+// pulso é passivo: ele só carimba a hora, nunca pergunta nada.
+//
+// Isso NÃO é medir sono. Sensor de movimento e microfone não rodam com
+// a tela desligada no navegador, e no iOS o JavaScript é suspenso.
+// Sempre que esse número aparece, aparece como estimativa.
+var SNM = { ativo: false, telas: 0, toques: 0, ultimo: 0, pulso: null, onVis: null, onToque: null };
+
+function snMonIniciar() {
+  snMonParar();
+  SNM.ativo = true;
+  SNM.telas = 0;
+  SNM.toques = 0;
+  SNM.ultimo = Date.now();
+
+  SNM.onVis = function () {
+    if (!SNM.ativo) return;
+    // Voltar para a frente é o sinal confiável: sair pode ser a tela
+    // apagando sozinha, que não quer dizer que a pessoa se mexeu.
+    if (document.visibilityState === 'visible') {
+      SNM.telas++;
+      SNM.ultimo = Date.now();
+    }
+  };
+  SNM.onToque = function () {
+    if (!SNM.ativo) return;
+    SNM.toques++;
+    SNM.ultimo = Date.now();
+  };
+
+  document.addEventListener('visibilitychange', SNM.onVis);
+  document.addEventListener('pointerdown', SNM.onToque, true);
+
+  // Pulso silencioso. Não acorda, não pergunta, não mostra nada: só
+  // mantém a contagem viva enquanto a página estiver desenhando.
+  SNM.pulso = setInterval(function () {
+    if (!SNM.ativo) return;
+    if (document.visibilityState === 'visible' && SNM.dormiuHa() < 15) SNM.ultimo = Date.now();
+  }, 15 * 60000);
+}
+
+SNM.dormiuHa = function () { return (Date.now() - SNM.ultimo) / 60000; };
+
+function snMonParar() {
+  SNM.ativo = false;
+  if (SNM.pulso) { clearInterval(SNM.pulso); SNM.pulso = null; }
+  if (SNM.onVis) { document.removeEventListener('visibilitychange', SNM.onVis); SNM.onVis = null; }
+  if (SNM.onToque) { document.removeEventListener('pointerdown', SNM.onToque, true); SNM.onToque = null; }
+}
+
+function snMonResumo() {
+  return {
+    telas: SNM.telas,
+    toques: SNM.toques,
+    ultimoSinal: SNM.ultimo ? new Date(SNM.ultimo).toISOString() : ''
+  };
 }
 
 async function snComecar() {
@@ -14722,6 +15213,7 @@ async function snComecar() {
 
   SN.tocando = true;
   SN.t0 = Date.now();
+  snMonIniciar();
   snFade(0, SN.volAlvo, 5000);              // os 5 segundos que você pediu
   snMediaSession(som);
   await snWakeLock();
@@ -14809,8 +15301,15 @@ async function snEncerrar(manual) {
   var sid = SN.sessaoId;
   SN.sessaoId = ''; SN.t0 = 0;
 
+  var sinais = snMonResumo();
+  snMonParar();
   if (sid) {
-    try { await rpc('sonoEncerrarSessao', { sessaoId: sid, minutos: minutos }); } catch (e) {}
+    try {
+      await rpc('sonoEncerrarSessao', {
+        sessaoId: sid, minutos: minutos,
+        ultimoSinal: sinais.ultimoSinal, telas: sinais.telas, toques: sinais.toques
+      });
+    } catch (e) {}
   }
   if (manual && minutos >= 1) toast('Boa noite. Registrei ' + minutos + ' min.', 'success');
 }
@@ -14833,6 +15332,27 @@ function snSoltarWake() {
 // ser pedido de novo, ou a tela apaga no meio da noite.
 document.addEventListener('visibilitychange', function () {
   if (document.visibilityState === 'visible' && SN.tocando && !SN.wake) snWakeLock();
+});
+
+// A aba fechada no meio da noite nao pode deixar a sessao em aberto
+// para sempre. sendBeacon sobrevive ao descarregamento da pagina; um
+// fetch comum e cancelado antes de sair.
+window.addEventListener('pagehide', function () {
+  if (!SN.tocando || !SN.sessaoId) return;
+  var sinais = snMonResumo();
+  var corpo = JSON.stringify({
+    action: 'sonoEncerrarSessao', token: APP.token,
+    data: {
+      sessaoId: SN.sessaoId,
+      minutos: SN.t0 ? Math.round((Date.now() - SN.t0) / 60000) : 0,
+      ultimoSinal: sinais.ultimoSinal, telas: sinais.telas, toques: sinais.toques
+    }
+  });
+  try {
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(WEBAPP_URL, new Blob([corpo], { type: 'text/plain' }));
+    }
+  } catch (e) {}
 });
 
 // ── MediaSession: controles no fone e na tela de bloqueio ───
