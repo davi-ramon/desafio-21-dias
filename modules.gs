@@ -243,6 +243,8 @@ function handleRequest(payload) {
     case 'excluirSonoSom':           return excluirSonoSom(token, data);
     case 'sonoVerificarUrls':        return sonoVerificarUrls(token);
     case 'salvarSonoCapa':           return salvarSonoCapa(token, data);
+    case 'salvarSonoCategoria':      return salvarSonoCategoria(token, data);
+    case 'excluirSonoCategoria':     return excluirSonoCategoria(token, data);
     case 'getUserContentFile':             return getUserContentFile(token, data.id);
     case 'getUserContentCover':            return getUserContentCover(token, data.id);
     case 'updateUserContent':              return updateUserContent(token, data.id, data.updates);

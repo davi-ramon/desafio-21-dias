@@ -18,6 +18,9 @@
 
 var SONO_SONS    = 'sono_sons';
 var SONO_SESSOES = 'sono_sessoes';
+var SONO_CATS    = 'sono_categorias';
+
+var SONO_CAT_CABECALHO = ['id','nome','icone','descricao','ordem','ativa'];
 
 var SONO_CABECALHO = ['id','titulo','subtitulo','categoria','audio_url','capa_url',
                       'duracao','loop','ativo','ordem','criado_em','arte'];
@@ -25,10 +28,65 @@ var SONO_SESSAO_CABECALHO = ['id','email','som_id','iniciado_em','encerrado_em',
                              'minutos','ciclo_min','acordou_em','nota','observacao',
                              'adormeceu_em','min_ate_dormir','telas','toques'];
 
-// As categorias existem para agrupar na tela. 'historia' fica por
-// último de propósito: história de terror sobe batimento, então
-// nunca é o padrão de um app que promete sono melhor.
-var SONO_CATEGORIAS = ['chuva', 'natureza', 'ruido', 'ambiente', 'historia'];
+// As cinco primeiras. Não são mais um limite: viraram as linhas
+// iniciais da aba `sono_categorias`, que o painel edita. A constante
+// sobrevive só como semente e como rede — se a aba sumir, o app
+// continua de pé em vez de ficar sem nenhuma prateleira.
+var SONO_CATEGORIAS_SEMENTE = [
+  { id: 'chuva',    nome: 'Chuva',     icone: '\ud83c\udf27\ufe0f', ordem: 10 },
+  { id: 'natureza', nome: 'Natureza',  icone: '\ud83c\udf3f', ordem: 20 },
+  { id: 'ruido',    nome: 'Ruído',     icone: '\ud83c\udf0a', ordem: 30 },
+  { id: 'ambiente', nome: 'Ambiente',  icone: '\ud83c\udf0c', ordem: 40 },
+  // 'historia' entra por último de propósito: terror sobe batimento,
+  // então nunca deve ser o primeiro de um app que promete sono melhor.
+  { id: 'historia', nome: 'Histórias', icone: '\ud83d\udcd6', ordem: 90 }
+];
+
+function _sonoAbaCats_() {
+  var ss = getSpreadsheet_();
+  var aba = ss.getSheetByName(SONO_CATS);
+  if (!aba) {
+    aba = ss.insertSheet(SONO_CATS);
+    aba.appendRow(SONO_CAT_CABECALHO);
+    aba.getRange(1, 1, 1, SONO_CAT_CABECALHO.length)
+       .setFontWeight('bold').setBackground('#0f1412').setFontColor('#4caf50');
+    aba.setFrozenRows(1);
+    SONO_CATEGORIAS_SEMENTE.forEach(function (c) {
+      aba.appendRow([c.id, c.nome, c.icone, '', c.ordem, true]);
+    });
+  }
+  return aba;
+}
+
+function _sonoCats_(incluirInativas) {
+  var out = [];
+  try {
+    var aba = _sonoAbaCats_();
+    if (aba.getLastRow() > 1) {
+      var d = aba.getDataRange().getValues();
+      for (var i = 1; i < d.length; i++) {
+        var id = _sonoNorm_(d[i][0]);
+        if (!id) continue;
+        var ativa = d[i][5] !== false && d[i][5] !== 'FALSE';
+        if (!ativa && !incluirInativas) continue;
+        out.push({ id: id, nome: String(d[i][1] || id), icone: String(d[i][2] || ''),
+                   descricao: String(d[i][3] || ''), ordem: Number(d[i][4]) || 0, ativa: ativa });
+      }
+    }
+  } catch (e) {}
+  if (!out.length) {
+    out = SONO_CATEGORIAS_SEMENTE.map(function (c) {
+      return { id: c.id, nome: c.nome, icone: c.icone, descricao: '', ordem: c.ordem, ativa: true };
+    });
+  }
+  out.sort(function (a, b) { return (a.ordem - b.ordem) || a.nome.localeCompare(b.nome); });
+  return out;
+}
+
+function _sonoIdCat_(nome) {
+  return _sonoNorm_(nome).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+         .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30);
+}
 
 // Cenas de reserva para som sem foto. Sao desenhadas no app; aqui so
 // guardamos qual foi escolhida. Um catalogo com metade dos cards
@@ -41,7 +99,8 @@ function _sonoArte_(v, categoria) {
   if (SONO_ARTES.indexOf(a) >= 0) return a;
   // Sem escolha, a categoria decide — e um palpite melhor que nada.
   var porCat = { chuva: 'chuva', natureza: 'floresta', ruido: 'nuvens',
-                 ambiente: 'estrelas', historia: 'fogueira' };
+                 ambiente: 'estrelas', historia: 'fogueira', mar: 'mar',
+                 meditacao: 'montanha', salmos: 'estrelas', terror: 'fogueira' };
   return porCat[_sonoCategoria_(categoria)] || 'abstrato';
 }
 
@@ -67,9 +126,12 @@ function _sonoTexto_(v, max) {
   return String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, max || 120);
 }
 
+// Categoria que nao existe mais NAO vira 'ambiente' em silencio: o som
+// sumiria de uma prateleira e apareceria noutra sem ninguem entender.
+// Guardamos o valor cru e a vitrine agrupa o que sobrou em "Outros".
 function _sonoCategoria_(v) {
-  var c = _sonoNorm_(v);
-  return SONO_CATEGORIAS.indexOf(c) >= 0 ? c : 'ambiente';
+  var c = _sonoIdCat_(v);
+  return c || 'ambiente';
 }
 
 // Só aceita mídia servida pelo nosso domínio ou por https.
@@ -143,7 +205,7 @@ function getSonoSons(token) {
   return { ok: true, data: {
     sons: sons,
     prefs: prefs,
-    categorias: SONO_CATEGORIAS,
+    categorias: _sonoCats_(false),
     // O aluno precisa saber ANTES de deitar que no iPhone a tela não
     // pode apagar, ou vai achar que o app quebrou no meio da noite.
     avisoIos: 'No iPhone o som para quando a tela bloqueia. Deixe a tela noturna ligada.'
@@ -358,7 +420,10 @@ function getSonoAdmin(token) {
   } catch (e) {}
 
   sons.forEach(function (s) { s.usos = usos[s.id] || 0; });
-  return { ok: true, data: { sons: sons, categorias: SONO_CATEGORIAS, sessoes: sessoes } };
+  return { ok: true, data: {
+    sons: sons, categorias: _sonoCats_(true), sessoes: sessoes,
+    artes: SONO_ARTES
+  } };
 }
 
 function salvarSonoSom(token, data) {
@@ -458,6 +523,59 @@ function salvarSonoCapa(token, data) {
 
   logAction(user.email, 'SONO_CAPA', 'sono', String(d.id || ''), nome);
   return { ok: true, url: up.url };
+}
+
+// ROTA: salvarSonoCategoria
+function salvarSonoCategoria(token, data) {
+  var user = getUserByToken(token);
+  if (!user || user.role !== 'admin') return { ok: false, error: 'Sem permissao.' };
+  var d = data || {};
+
+  var nome = _sonoTexto_(d.nome, 40);
+  if (nome.length < 2) return { ok: false, error: 'Informe o nome da categoria.' };
+  var id = _sonoIdCat_(d.id || nome);
+  if (!id) return { ok: false, error: 'Nome invalido.' };
+
+  var aba = _sonoAbaCats_();
+  var linha = [id, nome, _sonoTexto_(d.icone, 8), _sonoTexto_(d.descricao, 120),
+               Number(d.ordem) || 0, d.ativa !== false];
+
+  var existentes = aba.getDataRange().getValues();
+  for (var i = 1; i < existentes.length; i++) {
+    if (_sonoNorm_(existentes[i][0]) !== id) continue;
+    aba.getRange(i + 1, 1, 1, linha.length).setValues([linha]);
+    logAction(user.email, 'SONO_CAT_EDITADA', 'sono', id, nome);
+    return { ok: true, message: 'Categoria atualizada.', id: id };
+  }
+  aba.appendRow(linha);
+  logAction(user.email, 'SONO_CAT_CRIADA', 'sono', id, nome);
+  return { ok: true, message: 'Categoria criada.', id: id };
+}
+
+// ROTA: excluirSonoCategoria
+// Categoria com som dentro nao some: os sons ficariam orfaos numa
+// prateleira que nao existe mais. Ou move, ou desativa.
+function excluirSonoCategoria(token, data) {
+  var user = getUserByToken(token);
+  if (!user || user.role !== 'admin') return { ok: false, error: 'Sem permissao.' };
+  var id = _sonoIdCat_((data || {}).id);
+  if (!id) return { ok: false, error: 'Categoria nao informada.' };
+
+  var usados = _sonoTodos_().filter(function (x) { return x.categoria === id; });
+  if (usados.length) {
+    return { ok: false, error: 'Ha ' + usados.length + ' som(ns) nesta categoria. ' +
+             'Mova-os antes, ou desative a categoria em vez de excluir.' };
+  }
+
+  var aba = _sonoAbaCats_();
+  var d2 = aba.getDataRange().getValues();
+  for (var i = 1; i < d2.length; i++) {
+    if (_sonoNorm_(d2[i][0]) !== id) continue;
+    aba.deleteRow(i + 1);
+    logAction(user.email, 'SONO_CAT_EXCLUIDA', 'sono', id, String(d2[i][1] || ''));
+    return { ok: true, message: 'Categoria removida.' };
+  }
+  return { ok: false, error: 'Categoria nao encontrada.' };
 }
 
 // Confere se cada arquivo realmente responde. Um 404 aqui é uma noite

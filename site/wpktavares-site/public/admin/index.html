@@ -4630,12 +4630,13 @@ function _taSwitch(id, ligado, titulo, sub) {
 // ════════════════════════════════════════════════════════════
 // MÓDULO DO SONO — catálogo de paisagens sonoras (v172)
 // ════════════════════════════════════════════════════════════
-var SNA = { sons: [], editando: null, vista: 'grade', capa: null };
+var SNA = { sons: [], cats: [], editando: null, vista: 'grade', capa: null };
 var SNA_ARTES = ['chuva','mar','floresta','fogueira','montanha',
                  'cidade','estrelas','nuvens','abstrato'];
 
-var SNA_CATS = { chuva: 'Chuva', natureza: 'Natureza', ruido: 'Ruído',
-                 ambiente: 'Ambiente', historia: 'Histórias' };
+// Mapa id -> nome, montado a partir do cadastro a cada carga.
+var SNA_CATS = {};
+function snaNomeCat(id) { return SNA_CATS[id] || id || '\u2014'; }
 
 async function renderSonoAdmin() {
   var content = document.getElementById('content');
@@ -4645,6 +4646,9 @@ async function renderSonoAdmin() {
     var r = await rpc('getSonoAdmin', {});
     if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
     SNA.sons = r.data.sons || [];
+    SNA.cats = r.data.categorias || [];
+    SNA_CATS = {};
+    SNA.cats.forEach(function (c) { SNA_CATS[c.id] = c.nome; });
     var sessoes = r.data.sessoes || 0;
   } catch (e) {
     content.innerHTML = '<div class="empty-state"><div class="empty-title">Não consegui carregar</div>' +
@@ -4671,6 +4675,32 @@ async function renderSonoAdmin() {
       'para a tag &lt;audio&gt;, e o som simplesmente não toca. O campo recusa.</span><br>' +
       'Faixas de <b>8 a 15 minutos</b> bastam — o app repete em loop, arquivo longo só pesa.' +
     '</div></div>';
+
+  // Categorias
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;' +
+      'margin-bottom:12px;gap:10px;flex-wrap:wrap">' +
+      '<div><div style="font-size:14px;font-weight:700;color:var(--text)">Categorias</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-top:3px">' +
+        'Cada uma vira uma prateleira na tela do aluno, na ordem definida aqui.</div></div>' +
+      '<button class="btn btn-primary btn-sm" onclick="snaCatEditar()">+ Nova categoria</button>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+
+  SNA.cats.forEach(function (c) {
+    var qtd = SNA.sons.filter(function (x) { return x.categoria === c.id; }).length;
+    html += '<button onclick="snaCatEditar(' + B + escHtml(c.id) + B + ')" ' +
+      'style="display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:11px;' +
+      'border:1px solid var(--border);background:rgba(255,255,255,.03);cursor:pointer;' +
+      'font-family:inherit;font-size:12.5px;color:var(--text)' +
+      (c.ativa ? '' : ';opacity:.45') + '">' +
+      '<span style="font-size:15px">' + escHtml(c.icone || '') + '</span>' +
+      '<span>' + escHtml(c.nome) + '</span>' +
+      '<span style="color:var(--muted);font-size:11px">' + qtd + '</span>' +
+      (c.ativa ? '' : '<span style="color:#e0a83c;font-size:10px">off</span>') +
+      '</button>';
+  });
+  html += '</div></div>';
 
   html += '<div class="card" style="margin-bottom:16px">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">' +
@@ -4717,7 +4747,7 @@ async function renderSonoAdmin() {
           '<div style="font-size:12.5px;font-weight:700;color:var(--text);line-height:1.3">' +
             escHtml(x.titulo) + '</div>' +
           '<div style="font-size:11px;color:var(--muted);margin-top:3px">' +
-            escHtml(SNA_CATS[x.categoria] || x.categoria) + ' \u00b7 ' + (x.usos || 0) + ' usos</div>' +
+            escHtml(snaNomeCat(x.categoria)) + ' \u00b7 ' + (x.usos || 0) + ' usos</div>' +
           '<div style="display:flex;gap:6px;margin-top:9px">' +
             '<button class="btn btn-ghost btn-sm" style="flex:1" onclick="snaEditar(' +
               B + escHtml(x.id) + B + ')">Editar</button>' +
@@ -4742,7 +4772,7 @@ async function renderSonoAdmin() {
         '<td style="padding:9px 8px;color:var(--muted)">' + x.ordem + '</td>' +
         '<td style="padding:9px 8px;color:var(--text)">' + escHtml(x.titulo) +
           '<div style="font-size:10.5px;color:var(--muted)">' + escHtml(x.audioUrl || '—') + '</div></td>' +
-        '<td style="padding:9px 8px;color:var(--muted)">' + escHtml(SNA_CATS[x.categoria] || x.categoria) + '</td>' +
+        '<td style="padding:9px 8px;color:var(--muted)">' + escHtml(snaNomeCat(x.categoria)) + '</td>' +
         '<td style="padding:9px 8px;color:var(--muted)">' + (x.usos || 0) + '</td>' +
         '<td style="padding:9px 8px">' + estado + '</td>' +
         '<td style="padding:9px 8px;text-align:right;white-space:nowrap">' +
@@ -4763,9 +4793,10 @@ function snaEditar(id) {
   SNA.editando = x || null;
   var v = function (k, d) { return x ? (x[k] !== undefined ? x[k] : d) : d; };
 
-  var cats = Object.keys(SNA_CATS).map(function (k) {
-    return '<option value="' + k + '"' + (v('categoria', 'ambiente') === k ? ' selected' : '') + '>' +
-      SNA_CATS[k] + '</option>';
+  var cats = SNA.cats.map(function (c) {
+    return '<option value="' + escHtml(c.id) + '"' +
+      (v('categoria', 'ambiente') === c.id ? ' selected' : '') + '>' +
+      escHtml(c.nome) + (c.ativa ? '' : ' (inativa)') + '</option>';
   }).join('');
 
   openModal(x ? 'Editar som' : 'Novo som',
@@ -4836,6 +4867,72 @@ async function snaSalvar() {
     closeModal();
     renderSonoAdmin();
   } catch (e) { alert('Erro de conexão.'); }
+}
+
+function snaCatEditar(id) {
+  var c = id ? SNA.cats.filter(function (a) { return a.id === id; })[0] : null;
+  var v = function (k, d) { return c ? (c[k] !== undefined ? c[k] : d) : d; };
+  var qtd = c ? SNA.sons.filter(function (x) { return x.categoria === c.id; }).length : 0;
+
+  openModal(c ? 'Editar categoria' : 'Nova categoria',
+    '<div class="form-group"><label class="form-label">Nome *</label>' +
+      '<input class="form-control" id="snaCatNome" maxlength="40" value="' +
+      escHtml(v('nome', '')) + '" placeholder="Salmos, Terror, Dreamcore\u2026"></div>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+      '<div class="form-group" style="flex:0 0 110px"><label class="form-label">\u00cdcone</label>' +
+        '<input class="form-control" id="snaCatIcone" maxlength="8" value="' +
+        escHtml(v('icone', '')) + '" placeholder="\ud83c\udf19"></div>' +
+      '<div class="form-group" style="flex:1;min-width:110px"><label class="form-label">Ordem</label>' +
+        '<input class="form-control" type="number" id="snaCatOrdem" value="' +
+        (v('ordem', (SNA.cats.length + 1) * 10)) + '"></div>' +
+    '</div>' +
+    '<div class="form-group"><label class="form-label">Descri&ccedil;&atilde;o</label>' +
+      '<input class="form-control" id="snaCatDesc" maxlength="120" value="' +
+      escHtml(v('descricao', '')) + '" placeholder="Opcional"></div>' +
+    '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)">' +
+      '<input type="checkbox" id="snaCatAtiva"' + (v('ativa', true) ? ' checked' : '') +
+      '> Ativa (aparece na tela do aluno)</label>' +
+    (c && qtd
+      ? '<div style="margin-top:12px;padding:10px 12px;border-radius:9px;' +
+        'background:rgba(224,168,60,.09);border:1px solid rgba(224,168,60,.28);' +
+        'font-size:12px;color:#e0a83c;line-height:1.55">' +
+        qtd + ' som(ns) usam esta categoria. Desative em vez de excluir \u2014 ' +
+        'excluir deixaria eles \u00f3rf\u00e3os numa prateleira que n\u00e3o existe mais.</div>'
+      : ''),
+    (c
+      ? [{ label: 'Excluir', action: function () { snaCatExcluir(c.id); }, cls: 'btn-ghost' },
+         { label: 'Salvar', action: function () { snaCatSalvar(c.id); }, cls: 'btn-primary' }]
+      : [{ label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+         { label: 'Criar', action: function () { snaCatSalvar(''); }, cls: 'btn-primary' }]));
+}
+
+async function snaCatSalvar(id) {
+  var d = {
+    id: id || '',
+    nome: (document.getElementById('snaCatNome') || {}).value || '',
+    icone: (document.getElementById('snaCatIcone') || {}).value || '',
+    descricao: (document.getElementById('snaCatDesc') || {}).value || '',
+    ordem: (document.getElementById('snaCatOrdem') || {}).value || 0,
+    ativa: !!(document.getElementById('snaCatAtiva') || {}).checked
+  };
+  try {
+    var r = await rpc('salvarSonoCategoria', d);
+    if (!r || !r.ok) { alert((r && r.error) || 'Nao consegui salvar.'); return; }
+    closeModal();
+    renderSonoAdmin();
+  } catch (e) { alert('Erro de conexao.'); }
+}
+
+async function snaCatExcluir(id) {
+  if (!confirm('Remover esta categoria?')) return;
+  try {
+    var r = await rpc('excluirSonoCategoria', { id: id });
+    // O servidor recusa se houver som dentro, e a mensagem dele ja
+    // explica o que fazer. Mostrar do jeito que veio.
+    if (!r || !r.ok) { alert((r && r.error) || 'Nao consegui remover.'); return; }
+    closeModal();
+    renderSonoAdmin();
+  } catch (e) { alert('Erro de conexao.'); }
 }
 
 function snaVista() {

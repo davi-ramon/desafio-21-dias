@@ -3270,6 +3270,17 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 
     .sn-arte{position:absolute;inset:0;width:100%;height:100%;display:block}
 
+    .sn-busca-wrap{position:relative;margin:18px 2px 2px}
+    .sn-busca{width:100%;padding:13px 15px 13px 40px;border-radius:13px;
+      border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);
+      font-family:inherit;font-size:14px}
+    .sn-busca:focus{outline:none;border-color:#6f9dff;box-shadow:0 0 0 3px rgba(111,157,255,.14)}
+    .sn-busca::placeholder{color:var(--muted)}
+    .sn-lupa{position:absolute;left:14px;top:50%;transform:translateY(-50%);
+      color:var(--muted);font-size:15px;pointer-events:none}
+    .sn-limpar{position:absolute;right:10px;top:50%;transform:translateY(-50%);
+      background:none;border:none;color:var(--muted);font-size:19px;cursor:pointer;padding:4px 8px}
+
     /* No computador a vitrine ocupa a largura toda: uma coluna de
        760px no meio de uma tela de 1900 desperdica o formato e
        transforma a prateleira em fila de dois itens. */
@@ -14824,20 +14835,12 @@ function renderMais() {
 //    no check-in da manhã.
 // ════════════════════════════════════════════════════════════
 var SN = {
-  dados: null, sons: [], cat: 'todas', somId: '', ciclo: 30,
+  dados: null, sons: [], cats: [], busca: '', somId: '', ciclo: 30,
   el: null, tocando: false, sessaoId: '', wake: null,
   t0: 0, timerFim: null, timerRelogio: null, revelarTimer: null,
   volAlvo: 0.85, fadeTimer: null
 };
 
-var SN_CATS = {
-  todas:     { rot: 'Tudo',      ico: '✨' },
-  chuva:     { rot: 'Chuva',     ico: '🌧️' },
-  natureza:  { rot: 'Natureza',  ico: '🌿' },
-  ruido:     { rot: 'Ruído',     ico: '🌊' },
-  ambiente:  { rot: 'Ambiente',  ico: '🌌' },
-  historia:  { rot: 'Histórias', ico: '📖' }
-};
 
 var SN_CICLOS = [
   { min: 15,  rot: '15 min' },
@@ -15115,6 +15118,7 @@ async function renderSono() {
       if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
       SN.dados = r.data;
       SN.sons = r.data.sons || [];
+      SN.cats = r.data.categorias || [];
       var pr = r.data.prefs || {};
       SN.ciclo = Number(pr.ciclo) || 30;
       SN.somId = pr.ultimoSom || '';
@@ -15151,24 +15155,61 @@ function snRender() {
     return;
   }
 
-  // Continuar de onde parou vem primeiro: e o atalho de quem ja sabe o
-  // que quer, e essa e a maioria depois da primeira semana.
-  var ultimo = SN.somId ? snSomAtual() : null;
-  if (ultimo) {
-    html += '<div class="sn-fila"><div class="sn-fila-h">' +
-      '<span class="sn-fila-t">Continuar de onde parou</span></div>' +
-      '<div class="sn-trilha">' + snPoster(ultimo) + '</div></div>';
-  }
+  // Busca. Com dezenas de sons, rolar prateleira deixa de funcionar.
+  html += '<div class="sn-busca-wrap"><span class="sn-lupa">\u2315</span>' +
+    '<input class="sn-busca" id="snBusca" type="search" autocomplete="off" ' +
+      'placeholder="Buscar som, categoria ou descricao" ' +
+      'value="' + muEsc(SN.busca) + '" oninput="snBuscar(this.value)">' +
+    (SN.busca ? '<button class="sn-limpar" onclick="snBuscar(' + B + B + ')" ' +
+                'aria-label="Limpar">\u00d7</button>' : '') +
+    '</div>';
 
-  Object.keys(SN_CATS).forEach(function (k) {
-    if (k === 'todas') return;
-    var lista = SN.sons.filter(function (x) { return x.categoria === k; });
-    if (!lista.length) return;      // prateleira vazia nao vira secao
+  var termo = snNormalizar(SN.busca);
+  if (termo) {
+    var achados = SN.sons.filter(function (x) {
+      return snNormalizar(x.titulo + ' ' + (x.subtitulo || '') + ' ' +
+                          snNomeCat(x.categoria)).indexOf(termo) >= 0;
+    });
     html += '<div class="sn-fila"><div class="sn-fila-h">' +
-      '<span class="sn-fila-t">' + SN_CATS[k].ico + ' ' + SN_CATS[k].rot + '</span>' +
-      '<span class="sn-fila-n">' + lista.length + '</span></div>' +
-      '<div class="sn-trilha">' + lista.map(snPoster).join('') + '</div></div>';
-  });
+      '<span class="sn-fila-t">' + (achados.length ? 'Resultados' : 'Nada encontrado') + '</span>' +
+      '<span class="sn-fila-n">' + achados.length + '</span></div>' +
+      (achados.length
+        ? '<div class="sn-trilha">' + achados.map(snPoster).join('') + '</div>'
+        : '<div style="font-size:12.5px;color:var(--muted);padding:6px 2px 4px">' +
+          'Nenhum som com esse nome. Apague a busca para ver tudo.</div>') +
+      '</div>';
+
+  } else {
+    // Continuar de onde parou vem primeiro: e o atalho de quem ja sabe
+    // o que quer, e essa e a maioria depois da primeira semana.
+    var ultimo = SN.somId ? snSomAtual() : null;
+    if (ultimo) {
+      html += '<div class="sn-fila"><div class="sn-fila-h">' +
+        '<span class="sn-fila-t">Continuar de onde parou</span></div>' +
+        '<div class="sn-trilha">' + snPoster(ultimo) + '</div></div>';
+    }
+
+    var vistos = {};
+    (SN.cats || []).forEach(function (c) {
+      var lista = SN.sons.filter(function (x) { return x.categoria === c.id; });
+      lista.forEach(function (x) { vistos[x.id] = true; });
+      if (!lista.length) return;      // prateleira vazia nao vira secao
+      html += '<div class="sn-fila"><div class="sn-fila-h">' +
+        '<span class="sn-fila-t">' + muEsc(c.icone || '') + ' ' + muEsc(c.nome) + '</span>' +
+        '<span class="sn-fila-n">' + lista.length + '</span></div>' +
+        '<div class="sn-trilha">' + lista.map(snPoster).join('') + '</div></div>';
+    });
+
+    // Som cuja categoria foi apagada ou desativada nao pode sumir da
+    // vitrine em silencio: ele ainda existe e ainda toca.
+    var orfaos = SN.sons.filter(function (x) { return !vistos[x.id]; });
+    if (orfaos.length) {
+      html += '<div class="sn-fila"><div class="sn-fila-h">' +
+        '<span class="sn-fila-t">Outros</span>' +
+        '<span class="sn-fila-n">' + orfaos.length + '</span></div>' +
+        '<div class="sn-trilha">' + orfaos.map(snPoster).join('') + '</div></div>';
+    }
+  }
 
   var som = snSomAtual();
   html += '<div class="sn-barra">' +
@@ -15192,8 +15233,33 @@ function snRender() {
   snCeuIniciar(document.getElementById('snCanvas'), fase);
 }
 
+// Sem acento e sem caixa: quem digita "ruido" tem de achar "Ruído".
+function snNormalizar(t) {
+  return String(t || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+
+function snNomeCat(id) {
+  for (var i = 0; i < (SN.cats || []).length; i++) {
+    if (SN.cats[i].id === id) return SN.cats[i].nome;
+  }
+  return id || '';
+}
+
+function snBuscar(v) {
+  SN.busca = v || '';
+  snRender();
+  // Redesenhar troca o campo de lugar; sem isto o teclado do celular
+  // fecha a cada letra.
+  var el = document.getElementById('snBusca');
+  if (el) { el.focus(); try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) {} }
+}
+
 function snPoster(som) {
-  var ico = (SN_CATS[som.categoria] || SN_CATS.ambiente).ico;
+  var ico = '';
+  for (var i = 0; i < (SN.cats || []).length; i++) {
+    if (SN.cats[i].id === som.categoria) { ico = SN.cats[i].icone || ''; break; }
+  }
   return '<button class="sn-poster' + (SN.somId === som.id ? ' on' : '') + '" ' +
     'onclick="snEscolher(\'' + som.id + '\')">' +
     // A cena vem SEMPRE, por baixo. Se a foto carregar, cobre; se
@@ -15213,7 +15279,6 @@ function snPoster(som) {
     '</div></button>';
 }
 
-function snCat(k) { SN.cat = k; snRender(); }
 function snCiclo(m) { SN.ciclo = m; snRender(); }
 function snEscolher(id) { SN.somId = (SN.somId === id ? '' : id); snRender(); }
 
