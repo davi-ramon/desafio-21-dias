@@ -184,6 +184,89 @@ const CATS = [
     return 'ok';
   });
 
+  // ═══════════════ CONFIRMACAO E MIGRACAO ═══════════════
+  console.log('\nADMIN: confirmacao e migracao');
+
+  await passo('adminConfirmar resolve true e false', async () => {
+    let botoes = null;
+    const original = d.openModal;
+    d.openModal = (t, b, bs) => { botoes = bs; };
+    const p1 = d.adminConfirmar('T', 'M', 'Ok', true);
+    botoes[1].action();
+    const sim = await p1;
+    const p2 = d.adminConfirmar('T', 'M');
+    botoes[0].action();
+    const nao = await p2;
+    d.openModal = original;
+    if (sim !== true || nao !== false) throw new Error('resolveu ' + sim + '/' + nao);
+    if (botoes[1].cls !== 'btn-primary') throw new Error('rotulo padrao errado');
+    return 'ok';
+  });
+
+  await passo('excluir som: cancelar NAO chama o servidor', async () => {
+    const chamadas = [];
+    const rpcOrig = d.rpc;
+    d.rpc = async (acao, dado) => { chamadas.push(acao); return rpcOrig(acao, dado); };
+    const original = d.openModal;
+    let botoes = null;
+    d.openModal = (t, b, bs) => { botoes = bs; };
+    const pr = d.snaExcluir('s1');
+    botoes[0].action();                       // Cancelar
+    await pr;
+    const semExcluir = !chamadas.includes('excluirSonoSom');
+    const pr2 = d.snaExcluir('s1');
+    botoes[1].action();                       // Remover
+    await pr2;
+    d.openModal = original; d.rpc = rpcOrig;
+    if (!semExcluir) throw new Error('excluiu mesmo cancelando');
+    if (!chamadas.includes('excluirSonoSom')) throw new Error('confirmar nao excluiu');
+    return 'ok';
+  });
+
+  const INV = {
+    rodandoComo: 'davi@gmail.com', destino: '', trocaFeita: false, snapshot: [], recriadosEm: '',
+    gatilhosDesteUsuario: [],
+    itens: [
+      { tipo: 'planilha', nome: 'Base', id: 'S', dono: 'davi@gmail.com', bytes: 2400000 },
+      { tipo: 'pasta', nome: "Mural <b>Declaracoes</b> Media", id: 'M', dono: 'davi@gmail.com', bytes: 300000, arquivos: 12 },
+      { tipo: 'pasta', nome: 'capas', id: '', ausente: true },
+      { tipo: 'pasta', nome: 'PDFs dos alunos', id: 'U', erro: 'Access denied' }
+    ]
+  };
+  const estados = [
+    ['nao iniciada', {}, 'Migracao nao iniciada'],
+    ['aguardando deploy', { destino: 'wagner@gmail.com', snapshot: ['rotinaManha'] }, 'Aguardando o deploy'],
+    ['troca feita', { destino: 'wagner@gmail.com', rodandoComo: 'wagner@gmail.com', trocaFeita: true,
+                      snapshot: ['rotinaManha', 'pushRodarAgenda'], recriadosEm: '2026-09-25T10:00:00Z' }, 'Troca concluida']
+  ];
+  for (const [nome, extra, esperado] of estados) {
+    await passo('tela de migracao: ' + nome, async () => {
+      const dados = Object.assign({}, INV, extra);
+      dados.itens = INV.itens.map(i => Object.assign({ destinoTemAcesso: !!extra.destino }, i));
+      const rpcOrig = d.rpc;
+      d.rpc = async (acao) => (acao === 'getMigracaoInventario' ? { ok: true, data: dados } : rpcOrig(acao));
+      await d.renderMigracao();
+      d.rpc = rpcOrig;
+      const h = d.__el('content').innerHTML;
+      if (!h.includes(esperado)) throw new Error('faltou o selo "' + esperado + '"');
+      if (h.includes('<b>Declaracoes</b>')) throw new Error('nome de pasta nao escapado (injecao de HTML)');
+      if (!h.includes('migCompartilhar()')) throw new Error('botao compartilhar ausente');
+      const botaoRecriar = h.slice(h.indexOf('migRecriar()') - 80, h.indexOf('migRecriar()') + 40);
+      if (extra.trocaFeita && /disabled/.test(botaoRecriar)) throw new Error('recriar travado apos a troca');
+      if (!extra.trocaFeita && !/disabled/.test(botaoRecriar)) throw new Error('recriar liberado antes da troca');
+      return 'ok';
+    });
+  }
+
+  await passo('tela de migracao com erro do servidor', async () => {
+    const rpcOrig = d.rpc;
+    d.rpc = async () => ({ ok: false, error: 'Sem permissao.' });
+    await d.renderMigracao();
+    d.rpc = rpcOrig;
+    if (!d.__el('content').innerHTML.includes('Sem permissao')) throw new Error('erro nao mostrado');
+    return 'ok';
+  });
+
   console.log(falhas ? '\n' + falhas + ' FALHA(S)' : '\nTudo executou sem erro');
   process.exit(falhas ? 1 : 0);
 })();

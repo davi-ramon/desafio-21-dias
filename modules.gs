@@ -245,6 +245,10 @@ function handleRequest(payload) {
     case 'salvarSonoCapa':           return salvarSonoCapa(token, data);
     case 'salvarSonoCategoria':      return salvarSonoCategoria(token, data);
     case 'excluirSonoCategoria':     return excluirSonoCategoria(token, data);
+    // migracao para a conta do Wagner
+    case 'getMigracaoInventario':    return getMigracaoInventario(token);
+    case 'migracaoCompartilhar':     return migracaoCompartilhar(token, data);
+    case 'migracaoRecriarGatilhos':  return migracaoRecriarGatilhos(token);
     case 'getUserContentFile':             return getUserContentFile(token, data.id);
     case 'getUserContentCover':            return getUserContentCover(token, data.id);
     case 'updateUserContent':              return updateUserContent(token, data.id, data.updates);

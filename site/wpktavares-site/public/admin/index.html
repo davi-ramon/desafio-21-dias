@@ -1747,6 +1747,10 @@ button,
       <div class="nav-icon"><i data-lucide="sparkles" class="luc"></i></div>
       <span class="nav-label">Mural dos Sonhos</span>
     </div>
+    <div class="nav-item" data-page="migracao" id="navMigracao" onclick="navigate('migracao')" title="Migração de conta">
+      <span class="nav-icon"><i data-lucide="arrow-right-left" class="luc"></i></span>
+      <span class="nav-label">Migra&ccedil;&atilde;o de conta</span>
+    </div>
     <div class="nav-item" data-page="sono" id="navSono" onclick="navigate('sono')" title="Módulo do Sono">
       <span class="nav-icon"><i data-lucide="moon" class="luc"></i></span>
       <span class="nav-label">M&oacute;dulo do Sono</span>
@@ -2073,6 +2077,7 @@ function navigate(page) {
     log:            'Log de Atividade',
     audios21:       'Áudios 21 Dias',
     mural:          'Mural dos Sonhos',
+    migracao:       'Migração para a conta nova',
     sono:           'Módulo do Sono — Paisagens Sonoras',
     push:           'Notificações Push e Agenda do Dia',
     leadsexport:    'Leads do Funil e Exportação',
@@ -2104,7 +2109,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, push: renderPushAdmin, sono: renderSonoAdmin, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, push: renderPushAdmin, sono: renderSonoAdmin, migracao: renderMigracao, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -3228,6 +3233,23 @@ function openModal(title, body, buttons) {
   document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+// Confirmacao no desenho do painel, no lugar do confirm() nativo — que
+// trava a pagina, nao segue o tema e no celular parece erro do sistema.
+// Devolve uma Promise<boolean>. Fechar clicando fora nunca resolve, e o
+// fluxo simplesmente nao segue: e o mesmo efeito de cancelar.
+function adminConfirmar(titulo, mensagem, rotuloOk, perigoso) {
+  return new Promise(function (resolve) {
+    var feito = false;
+    function fim(v) { if (feito) return; feito = true; closeModal(); resolve(v); }
+    openModal(titulo,
+      '<div style="font-size:13.5px;color:var(--muted);line-height:1.65;white-space:pre-line">' +
+        escHtml(mensagem) + '</div>',
+      [{ label: 'Cancelar', action: function () { fim(false); }, cls: 'btn-ghost' },
+       { label: rotuloOk || 'Confirmar', action: function () { fim(true); },
+         cls: perigoso ? 'btn-danger' : 'btn-primary' }]);
+  });
+}
 function handleOverlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
 
 // ══════════════════════════════════════════════════════════
@@ -4628,6 +4650,186 @@ function _taSwitch(id, ligado, titulo, sub) {
 }
 
 // ════════════════════════════════════════════════════════════
+// MIGRAÇÃO PARA A CONTA NOVA
+// ------------------------------------------------------------
+// O web app roda como quem fez o DEPLOY. Transferir a planilha nao
+// move cota: quem precisa publicar e a conta nova. E tudo que o
+// sistema usa do Drive tem de estar compartilhado ANTES da troca,
+// senao o codigo cria pastas novas vazias e os arquivos somem da
+// vista sem erro nenhum.
+// ════════════════════════════════════════════════════════════
+var MIG = { dados: null };
+
+function _migTam(b) {
+  b = Number(b) || 0;
+  if (b >= 1073741824) return (b / 1073741824).toFixed(2) + ' GB';
+  if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB';
+  if (b >= 1024) return Math.round(b / 1024) + ' KB';
+  return b + ' B';
+}
+
+async function renderMigracao() {
+  var content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  var r;
+  try { r = await rpc('getMigracaoInventario', {}); } catch (e) { r = null; }
+  if (!r || !r.ok) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-title">Nao consegui ler o inventario</div>' +
+      '<div class="empty-sub">' + escHtml((r && r.error) || 'Erro de conexao.') + '</div></div>';
+    return;
+  }
+  MIG.dados = r.data;
+  var d = r.data;
+  var total = d.itens.reduce(function (a, i) { return a + (Number(i.bytes) || 0); }, 0);
+
+  var cor = d.trocaFeita ? 'var(--green)' : '#e0a83c';
+  var html = '<div class="card" style="margin-bottom:16px;border-color:' + cor + '55">' +
+    '<div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center">' +
+      '<div><div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">' +
+        'O sistema esta rodando como</div>' +
+      '<div style="font-size:18px;font-weight:800;color:var(--text);margin-top:4px">' +
+        escHtml(d.rodandoComo || '(desconhecido)') + '</div></div>' +
+      '<div style="padding:7px 13px;border-radius:99px;font-size:12px;font-weight:700;' +
+        'background:' + cor + '1f;color:' + cor + '">' +
+        (d.trocaFeita ? 'Troca concluida' : (d.destino ? 'Aguardando o deploy da conta nova' : 'Migracao nao iniciada')) +
+      '</div>' +
+    '</div>' +
+    (d.destino ? '<div style="font-size:12.5px;color:var(--muted);margin-top:10px">Conta nova: <b style="color:var(--text)">' +
+      escHtml(d.destino) + '</b></div>' : '') +
+  '</div>';
+
+  // Inventario
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">1. O que o sistema usa do Drive</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">' +
+      'Tudo isto precisa ser visivel pela conta nova no momento da troca. ' +
+      'Total: <b>' + _migTam(total) + '</b> \u2014 e o que sai do seu Drive quando a propriedade for transferida.</div>' +
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">' +
+    '<thead><tr style="text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em">' +
+      '<th style="padding:7px 8px">Item</th><th style="padding:7px 8px">Dono</th>' +
+      '<th style="padding:7px 8px">Tamanho</th><th style="padding:7px 8px">Conta nova</th></tr></thead><tbody>';
+  d.itens.forEach(function (i) {
+    var acesso = i.ausente ? '<span style="color:var(--muted)">nao existe</span>'
+      : i.erro ? '<span style="color:var(--danger)">' + escHtml(i.erro) + '</span>'
+      : !d.destino ? '<span style="color:var(--muted)">\u2014</span>'
+      : i.destinoTemAcesso ? '<span style="color:var(--green)">tem acesso</span>'
+      : '<span style="color:var(--danger)">SEM acesso</span>';
+    html += '<tr style="border-top:1px solid var(--border)">' +
+      '<td style="padding:9px 8px;color:var(--text)">' + escHtml(i.nome) +
+        '<div style="font-size:10.5px;color:var(--muted)">' + escHtml(i.tipo) +
+        (i.arquivos !== undefined ? ' \u00b7 ' + i.arquivos + ' arquivo(s)' + (i.parcial ? '+' : '') : '') +
+        '</div></td>' +
+      '<td style="padding:9px 8px;color:var(--muted)">' + escHtml(i.dono || '\u2014') + '</td>' +
+      '<td style="padding:9px 8px;color:var(--muted)">' + (i.bytes ? _migTam(i.bytes) : '\u2014') + '</td>' +
+      '<td style="padding:9px 8px">' + acesso + '</td></tr>';
+  });
+  html += '</tbody></table></div></div>';
+
+  // Passo 2
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">2. Compartilhar com a conta nova</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">' +
+      'So ACRESCENTA acesso de editor. Nada muda de dono, nada sai do lugar, e o sistema continua ' +
+      'rodando como hoje. Tambem fotografa quais rotinas automaticas estao ligadas, para recria-las ' +
+      'iguais depois. Pode repetir sem problema.</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<input class="form-control" id="migEmail" style="flex:1;min-width:230px" type="email" ' +
+        'placeholder="e-mail da conta nova" value="' + escHtml(d.destino || '') + '"' +
+        (d.trocaFeita ? ' disabled' : '') + '>' +
+      '<button class="btn btn-primary btn-sm" onclick="migCompartilhar()"' + (d.trocaFeita ? ' disabled' : '') + '>' +
+        'Compartilhar</button>' +
+    '</div>' +
+    '<div id="migRes2" style="margin-top:10px;font-size:12.5px"></div>' +
+  '</div>';
+
+  // Passo 3
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">3. Publicar pela conta nova</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);line-height:1.75">' +
+      'Feito no terminal, com o clasp logado na conta nova. Isso gera uma URL nova para o sistema, ' +
+      'que e trocada nos 19 arquivos do site antes de desligar a antiga \u2014 sem downtime. ' +
+      'Quando terminar, esta tela passa a mostrar a conta nova no topo.</div>' +
+  '</div>';
+
+  // Passo 4
+  var podeRecriar = d.trocaFeita && d.snapshot && d.snapshot.length;
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">4. Recriar as rotinas automaticas</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">' +
+      'Gatilhos pertencem a quem os criou e nao se transferem. Este passo recria na conta nova ' +
+      'exatamente os que estavam ligados' +
+      (d.snapshot && d.snapshot.length ? ' (' + d.snapshot.length + ': ' + escHtml(d.snapshot.join(', ')) + ')' : '') +
+      '. O que estava desligado continua desligado.' +
+      (d.recriadosEm ? '<br><span style="color:var(--green)">Recriados em ' + escHtml(fmtDate(d.recriadosEm)) + '.</span>' : '') +
+    '</div>' +
+    '<button class="btn btn-primary btn-sm" onclick="migRecriar()"' + (podeRecriar ? '' : ' disabled') + '>' +
+      'Recriar rotinas na conta nova</button>' +
+    (podeRecriar ? '' : '<div style="font-size:11.5px;color:var(--muted);margin-top:7px">' +
+      'Libera depois do passo 3.</div>') +
+    '<div id="migRes4" style="margin-top:10px;font-size:12.5px"></div>' +
+  '</div>';
+
+  // Passo 5
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">5. Desligar as rotinas da conta antiga</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);line-height:1.75">' +
+      'Sem isto as duas contas disparam e o aluno recebe cada aviso em dobro. ' +
+      'Nao da para fazer por aqui: esta tela roda como a conta nova e apagaria as rotinas certas. ' +
+      'Abra o editor do Apps Script <b>logado na conta antiga</b>, escolha a funcao ' +
+      '<code>migracaoApagarMeusGatilhos</code> e clique em Executar. Ela se recusa a rodar se as ' +
+      'rotinas ainda nao tiverem sido recriadas, ou se voce estiver na conta errada.</div>' +
+  '</div>';
+
+  content.innerHTML = html;
+}
+
+function _migLista(itens) {
+  return itens.map(function (i) {
+    return '<div style="display:flex;gap:8px;padding:3px 0">' +
+      '<span style="color:' + (i.ok ? 'var(--green)' : '#e0a83c') + '">' + (i.ok ? '\u2713' : '!') + '</span>' +
+      '<span style="color:var(--text)">' + escHtml(i.nome || i.funcao) + '</span>' +
+      '<span style="color:var(--muted)">\u2014 ' + escHtml(i.msg || '') + '</span></div>';
+  }).join('');
+}
+
+async function migCompartilhar() {
+  var res = document.getElementById('migRes2');
+  var email = ((document.getElementById('migEmail') || {}).value || '').trim();
+  if (!email) { res.innerHTML = '<span style="color:var(--danger)">Informe o e-mail da conta nova.</span>'; return; }
+  var ok = await adminConfirmar('Compartilhar com a conta nova',
+    email + ' vira EDITOR da planilha, do projeto e das pastas do sistema.\n\n' +
+    'Nada muda de dono e o sistema continua rodando como hoje.', 'Compartilhar');
+  if (!ok) return;
+  res.innerHTML = '<span style="color:var(--muted)">Compartilhando&hellip; pode levar um minuto.</span>';
+  try {
+    var r = await rpc('migracaoCompartilhar', { email: email });
+    if (!r || !r.ok) { res.innerHTML = '<span style="color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>'; return; }
+    res.innerHTML = _migLista(r.data.itens) +
+      '<div style="margin-top:8px;color:var(--muted)">Rotinas fotografadas: ' +
+      escHtml((r.data.gatilhos || []).join(', ') || 'nenhuma') + '</div>';
+    setTimeout(renderMigracao, 2500);
+  } catch (e) {
+    res.innerHTML = '<span style="color:var(--danger)">Erro de conexao.</span>';
+  }
+}
+
+async function migRecriar() {
+  var res = document.getElementById('migRes4');
+  var ok = await adminConfirmar('Recriar rotinas automaticas',
+    'Recria na conta que roda o sistema agora as rotinas que estavam ligadas antes da troca.', 'Recriar');
+  if (!ok) return;
+  res.innerHTML = '<span style="color:var(--muted)">Recriando&hellip;</span>';
+  try {
+    var r = await rpc('migracaoRecriarGatilhos', {});
+    if (!r || !r.ok) { res.innerHTML = '<span style="color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>'; return; }
+    res.innerHTML = _migLista(r.data.itens);
+    setTimeout(renderMigracao, 2500);
+  } catch (e) {
+    res.innerHTML = '<span style="color:var(--danger)">Erro de conexao.</span>';
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 // MÓDULO DO SONO — catálogo de paisagens sonoras (v172)
 // ════════════════════════════════════════════════════════════
 var SNA = { sons: [], cats: [], editando: null, vista: 'grade', capa: null };
@@ -4863,10 +5065,10 @@ async function snaSalvar() {
   };
   try {
     var r = await rpc('salvarSonoSom', d);
-    if (!r || !r.ok) { alert((r && r.error) || 'Não consegui salvar.'); return; }
+    if (!r || !r.ok) { toast((r && r.error) || 'Não consegui salvar.', 'error'); return; }
     closeModal();
     renderSonoAdmin();
-  } catch (e) { alert('Erro de conexão.'); }
+  } catch (e) { toast('Erro de conexão.', 'error'); }
 }
 
 function snaCatEditar(id) {
@@ -4917,22 +5119,22 @@ async function snaCatSalvar(id) {
   };
   try {
     var r = await rpc('salvarSonoCategoria', d);
-    if (!r || !r.ok) { alert((r && r.error) || 'Nao consegui salvar.'); return; }
+    if (!r || !r.ok) { toast((r && r.error) || 'Nao consegui salvar.', 'error'); return; }
     closeModal();
     renderSonoAdmin();
-  } catch (e) { alert('Erro de conexao.'); }
+  } catch (e) { toast('Erro de conexao.', 'error'); }
 }
 
 async function snaCatExcluir(id) {
-  if (!confirm('Remover esta categoria?')) return;
+  var ok = await adminConfirmar('Remover categoria', 'A categoria sai do cadastro e da tela do aluno.', 'Remover', true);
+  if (!ok) { snaCatEditar(id); return; }      // volta ao formulario de onde veio
   try {
     var r = await rpc('excluirSonoCategoria', { id: id });
     // O servidor recusa se houver som dentro, e a mensagem dele ja
     // explica o que fazer. Mostrar do jeito que veio.
-    if (!r || !r.ok) { alert((r && r.error) || 'Nao consegui remover.'); return; }
-    closeModal();
+    if (!r || !r.ok) { toast((r && r.error) || 'Nao consegui remover.', 'error'); return; }
     renderSonoAdmin();
-  } catch (e) { alert('Erro de conexao.'); }
+  } catch (e) { toast('Erro de conexao.', 'error'); }
 }
 
 function snaVista() {
@@ -4950,12 +5152,12 @@ var SNC_W = 800, SNC_H = 1200;
 function snaCapaEscolher(ev) {
   var f = ev.target.files && ev.target.files[0];
   if (!f) return;
-  if (f.size > 12 * 1024 * 1024) { alert('Imagem muito grande (max 12 MB).'); return; }
+  if (f.size > 12 * 1024 * 1024) { toast('Imagem muito grande (max 12 MB).', 'error'); return; }
   var fr = new FileReader();
   fr.onload = function () {
     var im = new Image();
     im.onload = function () { SNC.img = im; snaCapaAbrir(); };
-    im.onerror = function () { alert('Nao consegui ler essa imagem.'); };
+    im.onerror = function () { toast('Nao consegui ler essa imagem.', 'error'); };
     im.src = fr.result;
   };
   fr.readAsDataURL(f);
@@ -5070,12 +5272,14 @@ async function snaCapaSalvar() {
 
 async function snaExcluir(id) {
   var x = SNA.sons.filter(function (a) { return a.id === id; })[0];
-  if (!confirm('Remover "' + ((x && x.titulo) || id) + '" do catálogo?')) return;
+  var ok = await adminConfirmar('Remover som',
+    '"' + ((x && x.titulo) || id) + '" sai do catalogo e da tela do aluno.', 'Remover', true);
+  if (!ok) return;
   try {
     var r = await rpc('excluirSonoSom', { id: id });
-    if (!r || !r.ok) { alert((r && r.error) || 'Não consegui remover.'); return; }
+    if (!r || !r.ok) { toast((r && r.error) || 'Não consegui remover.', 'error'); return; }
     renderSonoAdmin();
-  } catch (e) { alert('Erro de conexão.'); }
+  } catch (e) { toast('Erro de conexão.', 'error'); }
 }
 
 // Um 404 aqui é uma noite perdida lá: a pessoa deita, toca no card e
