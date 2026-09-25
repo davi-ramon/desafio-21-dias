@@ -15160,7 +15160,7 @@ function snRender() {
     '<input class="sn-busca" id="snBusca" type="search" autocomplete="off" ' +
       'placeholder="Buscar som, categoria ou descricao" ' +
       'value="' + muEsc(SN.busca) + '" oninput="snBuscar(this.value)">' +
-    (SN.busca ? '<button class="sn-limpar" onclick="snBuscar(' + B + B + ')" ' +
+    (SN.busca ? '<button class="sn-limpar" onclick="snBuscar(\'\')" ' +
                 'aria-label="Limpar">\u00d7</button>' : '') +
     '</div>';
 
@@ -15269,7 +15269,7 @@ function snPoster(som) {
     '<div class="sn-poster-cor">' + snArteSvg(som.arte) + '</div>' +
     (som.capaUrl
       ? '<img src="' + muEsc(som.capaUrl) + '" alt="" loading="lazy" ' +
-        'onerror="this.style.display=' + B + 'none' + B + '">'
+        'onerror="this.style.display=\'none\'">'
       : '') +
     '<div class="sn-poster-grad"></div>' +
     '<span class="sn-poster-ico">' + ico + '</span>' +

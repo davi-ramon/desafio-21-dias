@@ -4689,7 +4689,7 @@ async function renderSonoAdmin() {
 
   SNA.cats.forEach(function (c) {
     var qtd = SNA.sons.filter(function (x) { return x.categoria === c.id; }).length;
-    html += '<button onclick="snaCatEditar(' + B + escHtml(c.id) + B + ')" ' +
+    html += '<button onclick="snaCatEditar(\'' + escHtml(c.id) + '\')" ' +
       'style="display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:11px;' +
       'border:1px solid var(--border);background:rgba(255,255,255,.03);cursor:pointer;' +
       'font-family:inherit;font-size:12.5px;color:var(--text)' +
@@ -4733,7 +4733,7 @@ async function renderSonoAdmin() {
           (x.capaUrl
             ? '<img src="' + escHtml(x.capaUrl) + '" alt="" ' +
               'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" ' +
-              'onerror="this.style.display=' + B + 'none' + B + '">'
+              'onerror="this.style.display=\'none\'">'
             : '') +
           (x.capaUrl ? '' :
             '<div style="position:absolute;inset:0;display:flex;align-items:center;' +
@@ -4750,9 +4750,9 @@ async function renderSonoAdmin() {
             escHtml(snaNomeCat(x.categoria)) + ' \u00b7 ' + (x.usos || 0) + ' usos</div>' +
           '<div style="display:flex;gap:6px;margin-top:9px">' +
             '<button class="btn btn-ghost btn-sm" style="flex:1" onclick="snaEditar(' +
-              B + escHtml(x.id) + B + ')">Editar</button>' +
+              '\'' + escHtml(x.id) + '\')">Editar</button>' +
             '<button class="btn btn-ghost btn-sm" onclick="snaExcluir(' +
-              B + escHtml(x.id) + B + ')">\u2715</button>' +
+              '\'' + escHtml(x.id) + '\')">\u2715</button>' +
           '</div>' +
         '</div></div>';
     });
@@ -4815,7 +4815,7 @@ function snaEditar(id) {
           '<input type="file" id="snaCapaArq" accept="image/*" style="display:none" ' +
             'onchange="snaCapaEscolher(event)">' +
           '<button type="button" class="btn btn-ghost btn-sm" style="width:100%" ' +
-            'onclick="document.getElementById(' + B + 'snaCapaArq' + B + ').click()">' +
+            'onclick="document.getElementById(\'snaCapaArq\').click()">' +
             'Enviar imagem e recortar</button>' +
           '<input class="form-control" id="snaCapa" style="margin-top:7px;font-size:11.5px" ' +
             'value="' + escHtml(v('capaUrl', '')) + '" placeholder="ou cole uma URL https">' +
