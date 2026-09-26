@@ -303,6 +303,39 @@ process.on('exit', () => {
     return 'sugere wpktavares e barra o wptavares';
   });
 
+  await passo('migracao: rotina a mais aparece com botao de desligar', async () => {
+    const dados = Object.assign({}, INV, {
+      rodandoComo: 'wpktavares@gmail.com', destino: 'wpktavares@gmail.com', trocaFeita: true,
+      snapshot: ['stripeBuscarEventos', 'pushRodarAgenda'],
+      gatilhosDesteUsuario: [{ funcao: 'stripeBuscarEventos' }, { funcao: 'pushRodarAgenda' },
+                             { funcao: 'followUpLeadsSemResposta' }]
+    });
+    const rpcOrig = d.rpc;
+    d.rpc = async (acao) => (acao === 'getMigracaoInventario' ? { ok: true, data: dados } : rpcOrig(acao));
+    await d.renderMigracao();
+    d.rpc = rpcOrig;
+    const h = d.__el('content').innerHTML;
+    if (!h.includes('Follow-up de leads')) throw new Error('nao mostrou a extra pelo nome');
+    if (!/data-fn="followUpLeadsSemResposta"[^>]*onclick="migDesligar\(this\)"/.test(h)) throw new Error('sem botao desligar');
+    if (/data-fn="stripeBuscarEventos"/.test(h)) throw new Error('ofereceu desligar uma essencial');
+    return 'ok';
+  });
+
+  await passo('migracao: tudo batendo mostra verde e nenhum botao', async () => {
+    const dados = Object.assign({}, INV, {
+      rodandoComo: 'wpktavares@gmail.com', destino: 'wpktavares@gmail.com', trocaFeita: true,
+      snapshot: ['stripeBuscarEventos'], gatilhosDesteUsuario: [{ funcao: 'stripeBuscarEventos' }]
+    });
+    const rpcOrig = d.rpc;
+    d.rpc = async (acao) => (acao === 'getMigracaoInventario' ? { ok: true, data: dados } : rpcOrig(acao));
+    await d.renderMigracao();
+    d.rpc = rpcOrig;
+    const h = d.__el('content').innerHTML;
+    if (!h.includes('Batem exatamente')) throw new Error('sem confirmacao verde');
+    if (h.includes('migDesligar(this)')) throw new Error('ofereceu desligar sem extra');
+    return 'ok';
+  });
+
   await passo('tela de migracao com erro do servidor', async () => {
     const rpcOrig = d.rpc;
     d.rpc = async () => ({ ok: false, error: 'Sem permissao.' });

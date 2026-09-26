@@ -212,10 +212,25 @@ function getMigracaoStatus() {
   var props = PropertiesService.getScriptProperties();
   var destino = String(props.getProperty(MIG_PROP_DESTINO) || '').toLowerCase();
   var rodando = _migRodandoComo_();
+
+  // Rotinas da conta que roda o sistema, comparadas com a fotografia
+  // tirada antes da troca. Sai so a contagem e um sim/nao: nome de
+  // funcao interna nao tem por que ficar publico.
+  var ativas = {};
+  try { ScriptApp.getProjectTriggers().forEach(function (t) { ativas[t.getHandlerFunction()] = true; }); } catch (e) {}
+  var foto = [];
+  try { foto = JSON.parse(props.getProperty(MIG_PROP_SNAPSHOT) || '{}').funcoes || []; } catch (e) {}
+  var nAtivas = Object.keys(ativas).length;
+  var conferem = foto.length > 0 && foto.length === nAtivas &&
+                 foto.every(function (f) { return ativas[f] === true; });
+
   return { ok: true, data: {
     destinoDefinido: !!destino,
     rodaComoDestino: !!destino && rodando === destino,
-    gatilhosRecriados: !!props.getProperty(MIG_PROP_RECRIADOS)
+    gatilhosRecriados: !!props.getProperty(MIG_PROP_RECRIADOS),
+    gatilhosAtivos: nAtivas,
+    gatilhosEsperados: foto.length,
+    gatilhosConferem: conferem
   } };
 }
 
@@ -323,6 +338,33 @@ function migracaoRevogar(token, data) {
   logAction(user.email, 'MIGRACAO_REVOGAR', 'migracao', email,
             resultado.filter(function (r) { return r.ok; }).length + '/' + resultado.length);
   return { ok: true, data: { itens: resultado, destinoApagado: destinoApagado } };
+}
+
+// ─────────────────────────────────────────────────────────────
+// ROTA (admin): migracaoDesligarGatilho
+// ------------------------------------------------------------
+// Desliga uma rotina que esta ativa na conta que roda o sistema mas
+// NAO estava ligada antes da troca. So aceita essas: as da fotografia
+// sao as que o sistema precisa, e nao podem ser desligadas por aqui.
+// ─────────────────────────────────────────────────────────────
+function migracaoDesligarGatilho(token, data) {
+  var user = _migAdmin_(token);
+  if (!user) return { ok: false, error: 'Sem permissao.' };
+  var fn = String((data || {}).funcao || '').trim();
+  if (!MIG_RECRIAR[fn]) return { ok: false, error: 'Rotina desconhecida.' };
+
+  var foto = [];
+  try { foto = JSON.parse(PropertiesService.getScriptProperties().getProperty(MIG_PROP_SNAPSHOT) || '{}').funcoes || []; } catch (e) {}
+  if (foto.indexOf(fn) >= 0) {
+    return { ok: false, error: 'Essa rotina estava ligada antes da troca e o sistema depende dela.' };
+  }
+
+  var n = 0;
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === fn) { ScriptApp.deleteTrigger(t); n++; }
+  });
+  logAction(user.email, 'MIGRACAO_DESLIGAR_ROTINA', 'migracao', fn, String(n));
+  return { ok: true, data: { funcao: fn, removidos: n } };
 }
 
 // ─────────────────────────────────────────────────────────────

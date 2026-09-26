@@ -250,6 +250,7 @@ function handleRequest(payload) {
     case 'migracaoCompartilhar':     return migracaoCompartilhar(token, data);
     case 'migracaoRecriarGatilhos':  return migracaoRecriarGatilhos(token);
     case 'migracaoRevogar':          return migracaoRevogar(token, data);
+    case 'migracaoDesligarGatilho':  return migracaoDesligarGatilho(token, data);
     case 'getUserContentFile':             return getUserContentFile(token, data.id);
     case 'getUserContentCover':            return getUserContentCover(token, data.id);
     case 'updateUserContent':              return updateUserContent(token, data.id, data.updates);

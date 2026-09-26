@@ -225,6 +225,31 @@ passo('recriar gatilhos como a conta nova', () => {
   exige(gatilhos[DAVI].length === 6, 'mexeu nos da conta antiga');
   return gatilhos[WAGNER].length + ' gatilhos na conta nova';
 });
+passo('sonda publica confere as rotinas sem expor nomes', () => {
+  const r = ctx.getMigracaoStatus();
+  exige(r.data.gatilhosConferem === true && r.data.gatilhosAtivos === 6 && r.data.gatilhosEsperados === 6,
+        JSON.stringify(r.data));
+  exige(!/stripe|rotina|push|@/i.test(JSON.stringify(r)), 'vazou nome ou e-mail: ' + JSON.stringify(r));
+  return JSON.stringify(r.data);
+});
+passo('a situacao real: rotina a mais depois da troca aparece e pode ser desligada', () => {
+  gatilhos[WAGNER].push(novoGatilho('followUpLeadsSemResposta', 'ligada depois por um botao'));
+  const st = ctx.getMigracaoStatus().data;
+  exige(st.gatilhosAtivos === 7 && st.gatilhosConferem === false, 'nao percebeu a extra: ' + JSON.stringify(st));
+  const r = ctx.migracaoDesligarGatilho('adm', { funcao: 'followUpLeadsSemResposta' });
+  exige(r.ok && r.data.removidos === 1, JSON.stringify(r));
+  exige(ctx.getMigracaoStatus().data.gatilhosConferem === true, 'nao voltou a bater');
+  return 'extra desligada, voltou a bater';
+});
+passo('rotina que o sistema precisa NAO pode ser desligada por la', () => {
+  const r = ctx.migracaoDesligarGatilho('adm', { funcao: 'stripeBuscarEventos' });
+  exige(!r.ok && /depende/.test(r.error), JSON.stringify(r));
+  exige(gatilhos[WAGNER].some(t => t.fn === 'stripeBuscarEventos'), 'desligou a essencial');
+  const r2 = ctx.migracaoDesligarGatilho('adm', { funcao: 'qualquerCoisa' });
+  exige(!r2.ok, 'aceitou rotina desconhecida');
+  const r3 = ctx.migracaoDesligarGatilho('alu', { funcao: 'followUpLeadsSemResposta' });
+  exige(!r3.ok, 'aluno desligou rotina');
+});
 passo('recriar de novo nao duplica', () => {
   const antes = gatilhos[WAGNER].length;
   ctx.migracaoRecriarGatilhos('adm');

@@ -4734,6 +4734,24 @@ function _taSwitch(id, ligado, titulo, sub) {
 // ════════════════════════════════════════════════════════════
 var MIG = { dados: null };
 
+// O que cada rotina faz, em portugues. Varias mandam mensagem para
+// pessoas — por isso uma a mais depois da troca precisa ser vista.
+var MIG_ROTINAS = {
+  reconciliarAcessos_:           'Reconcilia acessos com os pagamentos',
+  notificarTrialExpirando_:      'Avisa quem esta com o teste acabando',
+  processarAssinaturasdiarias_:  'Processa as assinaturas do dia',
+  pushRodarAgenda:               'Notificacoes push da agenda do dia',
+  stripeBuscarEventos:           'Busca pagamentos no Stripe (a cada 5 min)',
+  enviarLembretesTrial:          'Lembrete antes da cobranca do teste',
+  rotinaManha:                   'Rotina da manha',
+  rotinaNight:                   'Rotina da noite',
+  followUpLeadsSemResposta:      'Follow-up de leads sem resposta (envia mensagem)',
+  syncLeadsFromSheet:            'Sincroniza leads da planilha',
+  onLeadFormSubmit:              'Leads do formulario',
+  syncMetaDados_:                'Sincroniza dados do Meta Ads',
+  recuperarCheckoutsAbandonados: 'Recuperacao por WhatsApp de quem parou no cartao (envia mensagem)'
+};
+
 function _migTam(b) {
   b = Number(b) || 0;
   if (b >= 1073741824) return (b / 1073741824).toFixed(2) + ' GB';
@@ -4855,6 +4873,42 @@ async function renderMigracao() {
     '</div>' +
   '</div>';
 
+  // Rotinas ativas agora x antes da troca
+  if (d.trocaFeita) {
+    var ativas = {}, foto = {};
+    (d.gatilhosDesteUsuario || []).forEach(function (g) { ativas[g.funcao] = true; });
+    (d.snapshot || []).forEach(function (f) { foto[f] = true; });
+    var extras = Object.keys(ativas).filter(function (f) { return !foto[f]; });
+    var faltam = Object.keys(foto).filter(function (f) { return !ativas[f]; });
+    var tudoCerto = !extras.length && !faltam.length;
+
+    html += '<div class="card" style="margin-bottom:16px;border-color:' +
+      (tudoCerto ? 'rgba(76,175,80,.4)' : 'rgba(224,168,60,.5)') + '">' +
+      '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+        'Rotinas ativas na conta que roda o sistema</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">' +
+        (tudoCerto
+          ? '<span style="color:var(--green)">Batem exatamente com as que estavam ligadas antes da troca.</span>'
+          : 'Comparadas com as que estavam ligadas antes da troca. Uma a mais pode ter sido ligada ' +
+            'de proposito depois \u2014 se nao foi, desligue.') +
+      '</div>';
+    Object.keys(ativas).concat(faltam).forEach(function (f) {
+      var extra = !foto[f], falta = !ativas[f];
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">' +
+        '<span style="width:18px;color:' + (falta ? 'var(--danger)' : extra ? '#e0a83c' : 'var(--green)') + '">' +
+          (falta ? '\u2715' : extra ? '!' : '\u2713') + '</span>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:12.5px;color:var(--text)">' +
+          escHtml(MIG_ROTINAS[f] || f) + '</div>' +
+          '<div style="font-size:10.5px;color:var(--muted)">' + escHtml(f) +
+          (falta ? ' \u2014 estava ligada e SUMIU' : extra ? ' \u2014 nao estava ligada antes da troca' : '') +
+          '</div></div>' +
+        (extra ? '<button class="btn btn-ghost btn-sm" data-fn="' + escHtml(f) + '" ' +
+                 'onclick="migDesligar(this)">Desligar</button>' : '') +
+        '</div>';
+    });
+    html += '<div id="migResRot" style="margin-top:8px;font-size:12.5px"></div></div>';
+  }
+
   // Passo 4
   var podeRecriar = d.trocaFeita && d.snapshot && d.snapshot.length;
   html += '<div class="card" style="margin-bottom:16px">' +
@@ -4942,6 +4996,19 @@ async function migRevogar(botao) {
         'Esse e-mail estava anotado como conta nova e foi esquecido.</div>' : '');
     return { ok: true, msg: 'Acesso removido', depois: function () { setTimeout(renderMigracao, 2500); } };
   }, 'Removendo\u2026');
+}
+
+async function migDesligar(botao) {
+  var fn = botao && botao.dataset ? botao.dataset.fn : '';
+  var ok = await adminConfirmar('Desligar rotina',
+    (MIG_ROTINAS[fn] || fn) + '\n\nEla deixa de rodar na conta que roda o sistema. ' +
+    'Se foi ligada de proposito, cancele.', 'Desligar', true);
+  if (!ok) return;
+  return acaoBotao(botao, async function () {
+    var r = await rpc('migracaoDesligarGatilho', { funcao: fn });
+    if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'Nao consegui desligar.' };
+    return { ok: true, msg: 'Desligada', depois: function () { setTimeout(renderMigracao, 1200); } };
+  }, 'Desligando\u2026');
 }
 
 async function migRecriar(botao) {
