@@ -17,7 +17,10 @@ function arquivo(id, nome, dono, bytes) {
     getId: () => id, getName: () => nome, getSize: () => bytes,
     getOwner: () => ({ getEmail: () => dono }),
     getEditors: () => [...editores].map(e => ({ getEmail: () => e })),
-    addEditor(e) { editores.add(e); } };
+    getViewers: () => [],
+    addEditor(e) { editores.add(e); },
+    removeEditor(e) { editores.delete(e); },
+    removeViewer() {} };
 }
 function pasta(id, nome, dono, arquivos, subpastas) {
   const p = arquivo(id, nome, dono, 0);
@@ -74,7 +77,8 @@ const ctx = {
   },
   PropertiesService: { getScriptProperties: () => ({
     getProperty: k => (props.has(k) ? props.get(k) : null),
-    setProperty: (k, v) => props.set(k, String(v)) }) },
+    setProperty: (k, v) => props.set(k, String(v)),
+    deleteProperty: k => props.delete(k) }) },
   DriveApp: {
     getFileById: id => { if (!porId[id]) throw new Error('arquivo inexistente ' + id); return porId[id]; },
     getFolderById: id => { if (!porId[id]) throw new Error('pasta inexistente ' + id); return porId[id]; },
@@ -129,6 +133,33 @@ passo('recusa e-mail invalido e o proprio e-mail', () => {
   exige(!ctx.migracaoCompartilhar('adm', { email: 'nao-e-email' }).ok, 'aceitou invalido');
   exige(!ctx.migracaoCompartilhar('adm', { email: DAVI }).ok, 'aceitou a propria conta');
 });
+passo('o erro real: e-mail sem K recebe acesso, e e removido de TUDO', () => {
+  const ERRADO = 'wptavares@gmail.com';
+  const r = ctx.migracaoCompartilhar('adm', { email: ERRADO });
+  exige(r.ok && planilha.editores.has(ERRADO) && pdfs.editores.has(ERRADO), 'nem chegou a compartilhar');
+  exige(props.get('MIG_DESTINO') === ERRADO, 'destino nao anotado');
+  const rv = ctx.migracaoRevogar('adm', { email: ERRADO });
+  exige(rv.ok, rv.error);
+  const onde = [planilha, pdfs, ...Object.values(pastas)].filter(x => x.editores.has(ERRADO)).map(x => x.nome);
+  exige(!onde.length, 'sobrou acesso em: ' + onde.join(', '));
+  exige(rv.data.destinoApagado && !props.has('MIG_DESTINO'), 'destino errado nao foi esquecido');
+  return rv.data.itens.filter(i => i.msg === 'acesso removido').length + ' itens limpos';
+});
+passo('remover nao derruba quem roda o sistema', () => {
+  const r = ctx.migracaoRevogar('adm', { email: DAVI });
+  exige(!r.ok && /derrubaria/.test(r.error), 'deixou tirar o acesso de quem roda');
+});
+passo('script vinculado a planilha nao aparece como erro', () => {
+  const orig = ctx.DriveApp.getFileById;
+  ctx.DriveApp.getFileById = id => { if (id === 'SCRIPT1') throw new Error('Nao encontrado'); return orig(id); };
+  const d = ctx.getMigracaoInventario('adm').data;
+  const r = ctx.migracaoCompartilhar('adm', { email: WAGNER });
+  ctx.DriveApp.getFileById = orig;
+  const sc = d.itens.find(i => i.tipo === 'script');
+  exige(sc && !sc.erro && /vinculado/.test(sc.nome), 'script vinculado virou erro: ' + JSON.stringify(sc));
+  exige(r.data.itens.some(i => /vinculado/.test(i.nome) && i.ok), 'compartilhar marcou o vinculado como falha');
+});
+
 passo('compartilhar da acesso e fotografa os gatilhos', () => {
   const r = ctx.migracaoCompartilhar('adm', { email: WAGNER });
   exige(r.ok, r.error);

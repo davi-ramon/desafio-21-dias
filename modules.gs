@@ -249,6 +249,7 @@ function handleRequest(payload) {
     case 'getMigracaoInventario':    return getMigracaoInventario(token);
     case 'migracaoCompartilhar':     return migracaoCompartilhar(token, data);
     case 'migracaoRecriarGatilhos':  return migracaoRecriarGatilhos(token);
+    case 'migracaoRevogar':          return migracaoRevogar(token, data);
     case 'getUserContentFile':             return getUserContentFile(token, data.id);
     case 'getUserContentCover':            return getUserContentCover(token, data.id);
     case 'updateUserContent':              return updateUserContent(token, data.id, data.updates);

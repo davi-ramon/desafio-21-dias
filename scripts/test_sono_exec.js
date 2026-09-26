@@ -280,6 +280,29 @@ process.on('exit', () => {
     });
   }
 
+  await passo('migracao: sugere o dono da planilha e avisa e-mail divergente', async () => {
+    const dados = Object.assign({}, INV, {
+      rodandoComo: 'ads.deyvid@gmail.com', destino: 'wptavares@gmail.com',
+      itens: [{ tipo: 'planilha', nome: 'CRM', id: 'S', dono: 'wpktavares@gmail.com', bytes: 700000, destinoTemAcesso: true }]
+    });
+    const rpcOrig = d.rpc;
+    d.rpc = async (acao) => (acao === 'getMigracaoInventario' ? { ok: true, data: dados } : rpcOrig(acao));
+    await d.renderMigracao();
+    const h = d.__el('content').innerHTML;
+    if (!/id="migEmail"[^>]*value="wpktavares@gmail\.com"/.test(h)) throw new Error('nao sugeriu o dono da planilha');
+    if (!/id="migEmailRevogar"[^>]*value="wptavares@gmail\.com"/.test(h)) throw new Error('nao ofereceu remover o errado');
+    if (!h.includes('migRevogar(this)')) throw new Error('botao remover ausente');
+
+    let titulo = '', corpo = ''; const om = d.openModal;
+    d.openModal = (t, b, bs) => { titulo = t; corpo = b; bs[0].action(); };   // cancela
+    d.__el('migEmail').value = 'wptavares@gmail.com';
+    await d.migCompartilhar(botaoFalso('Compartilhar'));
+    d.openModal = om; d.rpc = rpcOrig;
+    if (!/diferente do dono/.test(titulo)) throw new Error('nao avisou a divergencia: ' + titulo);
+    if (!/wpktavares@gmail\.com/.test(corpo)) throw new Error('aviso nao mostra o dono');
+    return 'sugere wpktavares e barra o wptavares';
+  });
+
   await passo('tela de migracao com erro do servidor', async () => {
     const rpcOrig = d.rpc;
     d.rpc = async () => ({ ok: false, error: 'Sem permissao.' });

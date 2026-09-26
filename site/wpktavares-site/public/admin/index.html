@@ -4755,6 +4755,12 @@ async function renderMigracao() {
   MIG.dados = r.data;
   var d = r.data;
   var total = d.itens.reduce(function (a, i) { return a + (Number(i.bytes) || 0); }, 0);
+  var planilha = d.itens.filter(function (i) { return i.tipo === 'planilha'; })[0] || {};
+  // Planilha ja transferida (dono != quem roda o sistema): o dono dela
+  // E a conta nova. Sugerir esse e-mail evita digitar errado — foi um
+  // "wptavares" sem o K que ganhou acesso de editor por engano.
+  MIG.donoPlanilha = (planilha.dono && planilha.dono !== d.rodandoComo) ? planilha.dono : '';
+  var sugerido = MIG.donoPlanilha || d.destino || '';
 
   var cor = d.trocaFeita ? 'var(--green)' : '#e0a83c';
   var html = '<div class="card" style="margin-bottom:16px;border-color:' + cor + '55">' +
@@ -4808,12 +4814,31 @@ async function renderMigracao() {
       'iguais depois. Pode repetir sem problema.</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
       '<input class="form-control" id="migEmail" style="flex:1;min-width:230px" type="email" ' +
-        'placeholder="e-mail da conta nova" value="' + escHtml(d.destino || '') + '"' +
+        'placeholder="e-mail da conta nova" value="' + escHtml(sugerido) + '"' +
         (d.trocaFeita ? ' disabled' : '') + '>' +
       '<button class="btn btn-primary btn-sm" onclick="migCompartilhar(this)"' + (d.trocaFeita ? ' disabled' : '') + '>' +
         'Compartilhar</button>' +
     '</div>' +
+    (MIG.donoPlanilha ? '<div style="font-size:11.5px;color:var(--muted);margin-top:7px">' +
+      'Preenchido com o dono atual da planilha: <b style="color:var(--text)">' +
+      escHtml(MIG.donoPlanilha) + '</b>.</div>' : '') +
     '<div id="migRes2" style="margin-top:10px;font-size:12.5px"></div>' +
+  '</div>';
+
+  // Desfazer compartilhamento errado
+  html += '<div class="card" style="margin-bottom:16px;border-color:rgba(198,40,40,.35)">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+      'Remover acesso de um e-mail compartilhado por engano</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">' +
+      'Tira o e-mail de editor e de leitor na planilha e em todas as pastas do sistema. ' +
+      'Nao mexe no dono nem na conta que roda o sistema.</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<input class="form-control" id="migEmailRevogar" style="flex:1;min-width:230px" type="email" ' +
+        'placeholder="e-mail que nao deveria ter acesso" value="' +
+        escHtml(d.destino && d.destino !== MIG.donoPlanilha ? d.destino : '') + '">' +
+      '<button class="btn btn-danger btn-sm" onclick="migRevogar(this)">Remover acesso</button>' +
+    '</div>' +
+    '<div id="migResRev" style="margin-top:10px;font-size:12.5px"></div>' +
   '</div>';
 
   // Passo 3
@@ -4870,9 +4895,15 @@ async function migCompartilhar(botao) {
   var res = document.getElementById('migRes2');
   var email = ((document.getElementById('migEmail') || {}).value || '').trim();
   if (!email) { res.innerHTML = '<span style="color:var(--danger)">Informe o e-mail da conta nova.</span>'; return; }
-  var ok = await adminConfirmar('Compartilhar com a conta nova',
+  var divergente = MIG.donoPlanilha && email.toLowerCase() !== MIG.donoPlanilha;
+  var ok = await adminConfirmar(divergente ? 'Atencao: e-mail diferente do dono' : 'Compartilhar com a conta nova',
+    (divergente
+      ? 'A planilha pertence a ' + MIG.donoPlanilha + ', mas voce digitou ' + email + '.\n\n' +
+        'Se for erro de digitacao, cancele e corrija. So continue se for mesmo outra conta.\n\n'
+      : '') +
     email + ' vira EDITOR da planilha, do projeto e das pastas do sistema.\n\n' +
-    'Nada muda de dono e o sistema continua rodando como hoje.', 'Compartilhar');
+    'Nada muda de dono e o sistema continua rodando como hoje.',
+    divergente ? 'Compartilhar mesmo assim' : 'Compartilhar', divergente);
   if (!ok) return;
   return acaoBotao(botao, async function () {
     var r = await rpc('migracaoCompartilhar', { email: email });
@@ -4885,6 +4916,27 @@ async function migCompartilhar(botao) {
       escHtml((r.data.gatilhos || []).join(', ') || 'nenhuma') + '</div>';
     return { ok: true, msg: 'Compartilhado', depois: function () { setTimeout(renderMigracao, 2500); } };
   }, 'Compartilhando\u2026');
+}
+
+async function migRevogar(botao) {
+  var res = document.getElementById('migResRev');
+  var email = ((document.getElementById('migEmailRevogar') || {}).value || '').trim();
+  if (!email) { res.innerHTML = '<span style="color:var(--danger)">Informe o e-mail.</span>'; return; }
+  var ok = await adminConfirmar('Remover acesso',
+    email + ' perde o acesso de editor e de leitor na planilha e em todas as pastas do sistema.',
+    'Remover acesso', true);
+  if (!ok) return;
+  return acaoBotao(botao, async function () {
+    var r = await rpc('migracaoRevogar', { email: email });
+    if (!r || !r.ok) {
+      res.innerHTML = '<span style="color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>';
+      return { ok: false, msg: 'Falhou' };
+    }
+    res.innerHTML = _migLista(r.data.itens) +
+      (r.data.destinoApagado ? '<div style="margin-top:8px;color:var(--muted)">' +
+        'Esse e-mail estava anotado como conta nova e foi esquecido.</div>' : '');
+    return { ok: true, msg: 'Acesso removido', depois: function () { setTimeout(renderMigracao, 2500); } };
+  }, 'Removendo\u2026');
 }
 
 async function migRecriar(botao) {

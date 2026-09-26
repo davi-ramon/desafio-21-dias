@@ -107,11 +107,15 @@ function _migItens_() {
     itens.push({ tipo: 'planilha', nome: 'Planilha principal', id: SPREADSHEET_ID, erro: e.message });
   }
 
+  // Script VINCULADO a planilha nao existe como arquivo separado no
+  // Drive: quem acessa a planilha acessa o script. getFileById falha
+  // nesse caso, e isso nao e erro — e o desenho deste projeto.
   try {
     var sc = DriveApp.getFileById(ScriptApp.getScriptId());
     itens.push({ tipo: 'script', nome: sc.getName(), id: sc.getId(), obj: sc });
   } catch (e) {
-    itens.push({ tipo: 'script', nome: 'Projeto Apps Script', id: ScriptApp.getScriptId(), erro: e.message });
+    itens.push({ tipo: 'script', nome: 'Projeto Apps Script (vinculado a planilha)',
+                 id: ScriptApp.getScriptId(), vinculado: true });
   }
 
   MIG_PASTAS_POR_NOME.forEach(function (nome) {
@@ -218,7 +222,9 @@ function migracaoCompartilhar(token, data) {
 
   _migItens_().forEach(function (it) {
     if (!it.obj) {
-      resultado.push({ nome: it.nome, ok: false, msg: it.ausente ? 'nao existe (sera criada vazia na troca)' : it.erro });
+      resultado.push({ nome: it.nome, ok: !!it.vinculado,
+        msg: it.vinculado ? 'acesso segue o da planilha'
+           : it.ausente ? 'nao existe (sera criada vazia na troca)' : it.erro });
       return;
     }
     try {
@@ -248,6 +254,55 @@ function migracaoCompartilhar(token, data) {
             resultado.filter(function (r) { return r.ok; }).length + '/' + resultado.length);
 
   return { ok: true, data: { itens: resultado, gatilhos: Object.keys(funcoes), rodandoComo: rodando } };
+}
+
+// ─────────────────────────────────────────────────────────────
+// ROTA (admin): migracaoRevogar — desfaz um compartilhamento errado
+// ------------------------------------------------------------
+// Tira o e-mail de editor E de leitor em todos os itens do sistema.
+// Existe porque um endereco digitado errado (wptavares sem o K) recebeu
+// acesso de editor a planilha dos alunos e as pastas.
+// ─────────────────────────────────────────────────────────────
+function migracaoRevogar(token, data) {
+  var user = _migAdmin_(token);
+  if (!user) return { ok: false, error: 'Sem permissao.' };
+
+  var email = String((data || {}).email || '').trim().toLowerCase();
+  if (!_migEmailValido_(email)) return { ok: false, error: 'Informe um e-mail valido.' };
+  if (email === _migRodandoComo_()) {
+    return { ok: false, error: 'Esse e o e-mail que roda o sistema. Remover o acesso dele derrubaria tudo.' };
+  }
+
+  var resultado = [];
+  _migItens_().forEach(function (it) {
+    if (!it.obj) return;
+    try {
+      var dono = _migDono_(it.obj);
+      if (dono === email) { resultado.push({ nome: it.nome, ok: false, msg: 'e o dono — nao da para remover' }); return; }
+      var eds = it.obj.getEditors().map(function (u) { return String(u.getEmail()).toLowerCase(); });
+      var vis = [];
+      try { vis = it.obj.getViewers().map(function (u) { return String(u.getEmail()).toLowerCase(); }); } catch (e) {}
+      var tirou = false;
+      if (eds.indexOf(email) >= 0) { it.obj.removeEditor(email); tirou = true; }
+      if (vis.indexOf(email) >= 0) { it.obj.removeViewer(email); tirou = true; }
+      resultado.push({ nome: it.nome, ok: true, msg: tirou ? 'acesso removido' : 'ja nao tinha acesso' });
+    } catch (e) {
+      resultado.push({ nome: it.nome, ok: false, msg: e.message });
+    }
+  });
+
+  // Se era o destino anotado, esquece: senao a ferramenta seguiria
+  // tratando o e-mail errado como a conta nova.
+  var props = PropertiesService.getScriptProperties();
+  var destinoApagado = false;
+  if (String(props.getProperty(MIG_PROP_DESTINO) || '').toLowerCase() === email) {
+    props.deleteProperty(MIG_PROP_DESTINO);
+    destinoApagado = true;
+  }
+
+  logAction(user.email, 'MIGRACAO_REVOGAR', 'migracao', email,
+            resultado.filter(function (r) { return r.ok; }).length + '/' + resultado.length);
+  return { ok: true, data: { itens: resultado, destinoApagado: destinoApagado } };
 }
 
 // ─────────────────────────────────────────────────────────────
