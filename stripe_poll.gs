@@ -47,9 +47,76 @@ var SP_TIPOS = [
 // Despacho — o MESMO usado pelo webhook. Uma regra só, para os
 // dois caminhos nunca divergirem.
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Eventos ja processados — registro PERMANENTE
+// ------------------------------------------------------------
+// Antes era _dedupWebhook_, um CacheService de 6 h. A busca volta 60 s
+// antes do ultimo evento para nao perder nada na borda; quando nao
+// chegava evento novo, os MESMOS ultimos eventos voltavam em toda busca.
+// Enquanto o cache valia, eram ignorados. Quando expirava, 6 h depois,
+// eram processados de novo — e o Telegram avisava de novo, ate chegar
+// um evento mais novo.
+//
+// Pior que o aviso: o "assinatura cancelada" reprocessado regravava
+// CANCELADA pelo e-mail. Quem reassinasse nessas horas podia ter a
+// assinatura nova bloqueada por um evento antigo.
+//
+// Agora: aba stripe_eventos com o id de cada evento processado. Marca
+// SO depois de processar com sucesso — evento que falhou volta na
+// proxima busca, porque perder um pagamento e pior que repetir um sync.
+// ─────────────────────────────────────────────────────────────
+var SP_ABA_VISTOS = 'stripe_eventos';
+var SP_VISTOS_MAX = 3000;          // bem mais que 30 dias de eventos
+var _SP_VISTOS_ = null;            // cache por execucao
+var _SP_ABA_NOVA_ = false;
+
+function _spAbaVistos_() {
+  var ss = getSpreadsheet_();
+  var aba = ss.getSheetByName(SP_ABA_VISTOS);
+  if (!aba) {
+    aba = ss.insertSheet(SP_ABA_VISTOS);
+    aba.appendRow(['id', 'tipo', 'criado', 'processado_em']);
+    aba.setFrozenRows(1);
+    _SP_ABA_NOVA_ = true;
+  }
+  return aba;
+}
+
+function _spVistos_() {
+  if (_SP_VISTOS_) return _SP_VISTOS_;
+  var aba = _spAbaVistos_();
+  var set = {};
+  var n = aba.getLastRow();
+  if (n > 1) {
+    aba.getRange(2, 1, n - 1, 1).getValues().forEach(function (r) {
+      if (r[0]) set[String(r[0])] = true;
+    });
+  }
+  _SP_VISTOS_ = set;
+  return set;
+}
+
+function _spMarcarVisto_(ev) {
+  if (!ev || !ev.id) return;
+  var set = _spVistos_();
+  if (set[ev.id]) return;
+  set[ev.id] = true;
+  _spAbaVistos_().appendRow([String(ev.id), String(ev.type || ''), Number(ev.created) || '', nowISO()]);
+}
+
+// Os ids mais antigos saem: o Stripe so guarda 30 dias e a busca nunca
+// volta mais que isso.
+function _spPodarVistos_() {
+  try {
+    var aba = _spAbaVistos_();
+    var n = aba.getLastRow();
+    if (n - 1 > SP_VISTOS_MAX + 500) aba.deleteRows(2, (n - 1) - SP_VISTOS_MAX);
+  } catch (e) {}
+}
+
 function _stripeDespacharEvento_(ev) {
   if (!ev || !ev.type) return { ok: false, error: 'evento vazio' };
-  if (_dedupWebhook_(ev.type, ev.id)) return { ok: true, dedup: true };
+  if (ev.id && _spVistos_()[ev.id]) return { ok: true, dedup: true };
 
   var obj = (ev.data && ev.data.object) || {};
   try {
@@ -64,8 +131,9 @@ function _stripeDespacharEvento_(ev) {
       case 'invoice.paid':                          _stripeOnInvoicePaid_(obj); break;
       case 'invoice.payment_failed':                _stripeOnInvoiceFailed_(obj); break;
       case 'payment_method.attached':               _stripeOnPmAttached_(obj); break;
-      default: return { ok: true, ignorado: true };
+      default: _spMarcarVisto_(ev); return { ok: true, ignorado: true };
     }
+    _spMarcarVisto_(ev);
     return { ok: true, tipo: ev.type };
   } catch (e) {
     logAction('system', 'STRIPE_EVENT_ERRO', 'poll', ev.type, e.message);
@@ -113,11 +181,22 @@ function stripeBuscarEventos() {
     // aplicaria uma renovação antes da criação da assinatura.
     eventos.reverse();
 
-    var novoCursor = _spCursor_();
-    var res = { total: eventos.length, tratados: 0, repetidos: 0, erros: 0, tipos: {} };
+    var cursorAntigo = _spCursor_();
+    var novoCursor = cursorAntigo;
+    var res = { total: eventos.length, tratados: 0, repetidos: 0, erros: 0, tipos: {}, semeados: 0 };
+
+    _spVistos_();                                   // cria a aba se nao existir
+    var primeira = _SP_ABA_NOVA_;
 
     for (var i = 0; i < eventos.length; i++) {
       var ev = eventos[i];
+      // Na primeira execucao com o registro novo, tudo ate o cursor antigo
+      // ja foi processado pela versao anterior: so anota.
+      if (primeira && ev.created <= cursorAntigo) {
+        _spMarcarVisto_(ev);
+        res.semeados++;
+        continue;
+      }
       var d = _stripeDespacharEvento_(ev);
       if (d.dedup)          res.repetidos++;
       else if (d.ok)        { res.tratados++; res.tipos[ev.type] = (res.tipos[ev.type] || 0) + 1; }
@@ -126,6 +205,7 @@ function stripeBuscarEventos() {
     }
 
     _spSalvarCursor_(novoCursor);
+    _spPodarVistos_();
 
     if (res.tratados || res.erros) {
       logAction('system', 'STRIPE_POLL', 'poll', '',

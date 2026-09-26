@@ -160,7 +160,17 @@ function _stripeOnInvoiceFailed_(inv) {
     var sub = _stripeCall_('get', '/v1/subscriptions/' + encodeURIComponent(subId) + '?expand[]=items.data.price');
     if (sub && !sub._error) { if (!email) email = _stripeEmailDaSub_(sub); _stripeSyncAssinatura_(email, sub, false); }
   }
-  _stripeNotif_('⚠️ Falha de pagamento\n' + (email || ''));
+  // O Stripe tenta cobrar de novo algumas vezes, e cada tentativa e um
+  // evento novo. Avisar em todas vira ruido: avisa a primeira falha
+  // (o Stripe ainda vai tentar) e a ultima (nao ha mais tentativa).
+  var tentativa = Number(inv.attempt_count) || 1;
+  var ultima = !inv.next_payment_attempt;
+  if (tentativa === 1 && !ultima) {
+    _stripeNotif_('⚠️ Falha de pagamento — o Stripe vai tentar de novo\n' + (email || ''));
+  } else if (ultima) {
+    _stripeNotif_('❌ Pagamento recusado na última tentativa' +
+                  (tentativa > 1 ? ' (' + tentativa + 'ª)' : '') + '\n' + (email || ''));
+  }
 }
 
 // ── Sincroniza uma subscription Stripe → aba assinaturas ─────
