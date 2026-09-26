@@ -18,6 +18,16 @@
         ]
       },
       {
+        "//": "A regra **/*.html so casa quando a URL termina em .html. As paginas abertas por URL de pasta (/admin/, /app/, /, /planos/...) caiam no padrao do Firebase, max-age=3600: o navegador guardava a pagina por 1h sem perguntar nada. Foi assim que o admin do sono seguiu quebrado no navegador depois de corrigido e publicado — e a correcao do checkout levou ate 1h para chegar a quem ja tinha a pagina aberta.",
+        "source": "**/",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, max-age=0, must-revalidate"
+          }
+        ]
+      },
+      {
         "//": "CSS/JS acompanham o release e sao pequenos — mesma politica.",
         "source": "/assets/**",
         "headers": [
