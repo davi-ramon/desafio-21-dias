@@ -16,6 +16,14 @@ function passo(nome, fn) {
   );
 }
 
+function botaoFalso(texto, dataset) {
+  const cls = new Set();
+  return { cls, innerHTML: texto, disabled: false, offsetWidth: 90, isConnected: true,
+    style: {}, dataset: Object.assign({}, dataset || {}),
+    classList: { add: (...c) => c.forEach(x => cls.add(x)), remove: (...c) => c.forEach(x => cls.delete(x)),
+                 contains: c => cls.has(c) } };
+}
+
 const SONS = [
   { id: 's1', titulo: 'Chuva no telhado', subtitulo: 'Noite inteira', categoria: 'chuva',
     audioUrl: '/media/sono/a.mp3', capaUrl: '/media/sono/capas/chuva.jpg', arte: 'chuva', ativo: true, loop: true, ordem: 1, usos: 3 },
@@ -31,6 +39,14 @@ const CATS = [
   { id: 'natureza', nome: 'Natureza', icone: 'N', ordem: 20, ativa: true, descricao: '' },
   { id: 'historia', nome: 'Historias', icone: 'H', ordem: 90, ativa: false, descricao: '' }
 ];
+
+let chegouAoFim = false;
+process.on('exit', () => {
+  if (!chegouAoFim) {
+    console.log('\nO TESTE PAROU NO MEIO: alguma promessa ficou pendurada e o Node saiu calado.');
+    process.exitCode = 1;
+  }
+});
 
 (async function () {
   // ═══════════════ APP ═══════════════
@@ -142,6 +158,12 @@ const CATS = [
   const D = carregar(RAIZ + 'admin/index.html');
   D.errosCarga.forEach(e => console.log('  aviso de carga: ' + e));
   const d = D.ctx;
+  // acaoBotao espera 1-2 s mostrando o resultado. No harness os timers
+  // nao disparam; a espera vira instantanea e registra o estado do
+  // botao naquele momento, para os testes conferirem verde/vermelho.
+  const esperas = [];
+  let ultimoBotao = { cls: new Set() };
+  d._espera = async (ms) => { esperas.push({ ms, cls: [...(ultimoBotao.cls || [])].join(' ') }); };
   d.rpc = async function (acao) {
     if (acao === 'getSonoAdmin') return { ok: true, data: { sons: SONS, categorias: CATS, sessoes: 7 } };
     return { ok: true };
@@ -210,11 +232,11 @@ const CATS = [
     const original = d.openModal;
     let botoes = null;
     d.openModal = (t, b, bs) => { botoes = bs; };
-    const pr = d.snaExcluir('s1');
+    const pr = d.snaExcluir(botaoFalso('X', { id: 's1' }));
     botoes[0].action();                       // Cancelar
     await pr;
     const semExcluir = !chamadas.includes('excluirSonoSom');
-    const pr2 = d.snaExcluir('s1');
+    const pr2 = d.snaExcluir(botaoFalso('X', { id: 's1' }));
     botoes[1].action();                       // Remover
     await pr2;
     d.openModal = original; d.rpc = rpcOrig;
@@ -250,8 +272,8 @@ const CATS = [
       const h = d.__el('content').innerHTML;
       if (!h.includes(esperado)) throw new Error('faltou o selo "' + esperado + '"');
       if (h.includes('<b>Declaracoes</b>')) throw new Error('nome de pasta nao escapado (injecao de HTML)');
-      if (!h.includes('migCompartilhar()')) throw new Error('botao compartilhar ausente');
-      const botaoRecriar = h.slice(h.indexOf('migRecriar()') - 80, h.indexOf('migRecriar()') + 40);
+      if (!h.includes('migCompartilhar(this)')) throw new Error('botao compartilhar ausente');
+      const botaoRecriar = h.slice(h.indexOf('migRecriar(this)') - 80, h.indexOf('migRecriar(this)') + 40);
       if (extra.trocaFeita && /disabled/.test(botaoRecriar)) throw new Error('recriar travado apos a troca');
       if (!extra.trocaFeita && !/disabled/.test(botaoRecriar)) throw new Error('recriar liberado antes da troca');
       return 'ok';
@@ -267,6 +289,201 @@ const CATS = [
     return 'ok';
   });
 
+  // ═══════════════ BOTOES COM ESTADO ═══════════════
+  console.log('\nADMIN: botoes com estado, salvar, recorte');
+
+
+  await passo('acaoBotao: gira, trava, fica verde e volta', async () => {
+    const b = botaoFalso('Salvar'); ultimoBotao = b;
+    let noMeio = null;
+    const r = await d.acaoBotao(b, async () => {
+      noMeio = { dis: b.disabled, cls: [...b.cls].join(' '), spin: b.innerHTML.includes('btn-spin') };
+      const segundo = await d.acaoBotao(b, async () => { throw new Error('rodou duas vezes'); });
+      if (segundo !== null) throw new Error('segundo clique nao foi ignorado');
+      return { ok: true, msg: 'Salvo' };
+    }, 'Salvando');
+    if (!noMeio.dis || !noMeio.spin || !/btn-ocupado/.test(noMeio.cls)) throw new Error('sem estado de espera: ' + JSON.stringify(noMeio));
+    const e = esperas.pop();
+    if (!/btn-ok/.test(e.cls) || e.ms < 1000) throw new Error('verde nao apareceu por 1s: ' + JSON.stringify(e));
+    if (b.disabled || b.innerHTML !== 'Salvar' || b.cls.size) throw new Error('nao voltou ao normal: ' + b.innerHTML + ' ' + [...b.cls]);
+    return 'espera -> verde ' + e.ms + 'ms -> normal';
+  });
+
+  await passo('acaoBotao: erro fica vermelho mais tempo e avisa o detalhe', async () => {
+    const b = botaoFalso('Salvar'); ultimoBotao = b;
+    const avisos = []; const t0 = d.toast; d.toast = (m, t) => avisos.push(t + ':' + m);
+    await d.acaoBotao(b, async () => ({ ok: false, msg: 'Nao salvou', detalhe: 'motivo longo' }));
+    d.toast = t0;
+    const e = esperas.pop();
+    if (!/btn-erro/.test(e.cls) || e.ms < 1500) throw new Error('vermelho: ' + JSON.stringify(e));
+    if (!avisos.some(a => /error:motivo longo/.test(a))) throw new Error('detalhe nao foi para o aviso');
+    return 'vermelho ' + e.ms + 'ms + aviso';
+  });
+
+  await passo('acaoBotao: excecao vira erro, nunca trava o botao', async () => {
+    const b = botaoFalso('Salvar'); ultimoBotao = b;
+    await d.acaoBotao(b, async () => { throw new Error('rede'); });
+    if (b.disabled || b.dataset.ocupado) throw new Error('botao ficou travado');
+    return 'ok';
+  });
+
+  // Estado limpo para os testes de salvar
+  const rpcBase = d.rpc;
+  const chamadas = [];
+  d.rpc = async (acao, dado) => {
+    chamadas.push(acao);
+    if (acao === 'getSonoAdmin') return { ok: true, data: { sons: SONS, categorias: CATS, sessoes: 7 } };
+    if (acao === 'salvarSonoSom') return { ok: true, id: dado.id || 'novo1' };
+    if (acao === 'salvarSonoCategoria') return { ok: true, id: dado.id || 'salmos' };
+    if (acao === 'salvarSonoCapa') return { ok: true, url: 'https://lh3.googleusercontent.com/d/NOVA' };
+    return rpcBase(acao, dado);
+  };
+  await d.renderSonoAdmin();
+  const campo = (id, v) => { d.__el(id).value = v; };
+  const marcar = (id, v) => { d.__el(id).checked = v; };
+
+  await passo('salvar sem titulo nao chama o servidor', async () => {
+    d.snaEditar('s1');
+    campo('snaTitulo', ' '); campo('snaAudio', '/a.mp3'); campo('snaCapa', '');
+    chamadas.length = 0; ultimoBotao = botaoFalso('Salvar');
+    const r = await d.snaSalvar(ultimoBotao);
+    if (r.ok || chamadas.includes('salvarSonoSom')) throw new Error('salvou sem titulo');
+    return r.msg;
+  });
+
+  await passo('capa sem capas/ e corrigida sozinha', async () => {
+    d.testarImagem = async (url) => url.indexOf('/media/sono/capas/') === 0;
+    d.snaEditar('s1');
+    campo('snaTitulo', 'Chuva com trovoes'); campo('snaAudio', '/media/sono/a.mp3');
+    campo('snaCapa', '/media/sono/capa-audio-chuva.jpg'); campo('snaArte', 'chuva');
+    campo('snaCat', 'chuva'); campo('snaOrdem', '1'); marcar('snaAtivo', true); marcar('snaLoop', true);
+    let enviado = null; const r0 = d.rpc;
+    d.rpc = async (a, x) => { if (a === 'salvarSonoSom') enviado = x; return r0(a, x); };
+    ultimoBotao = botaoFalso('Salvar');
+    const r = await d.snaSalvar(ultimoBotao);
+    d.rpc = r0;
+    if (!r.ok) throw new Error(r.msg);
+    if (!enviado || enviado.capaUrl !== '/media/sono/capas/capa-audio-chuva.jpg') throw new Error('nao corrigiu: ' + (enviado && enviado.capaUrl));
+    if (!/corrigido/.test(r.msg)) throw new Error('nao avisou a correcao');
+    return enviado.capaUrl;
+  });
+
+  await passo('capa quebrada de vez bloqueia o salvar', async () => {
+    d.testarImagem = async () => false;
+    d.snaEditar('s1');
+    campo('snaTitulo', 'X'); campo('snaTitulo', 'Titulo ok'); campo('snaAudio', '/a.mp3');
+    campo('snaCapa', 'https://exemplo.com/nao-existe.jpg');
+    chamadas.length = 0; ultimoBotao = botaoFalso('Salvar');
+    const r = await d.snaSalvar(ultimoBotao);
+    if (r.ok || chamadas.includes('salvarSonoSom')) throw new Error('salvou com capa quebrada');
+    return r.msg;
+  });
+
+  await passo('salvar atualiza a lista NA HORA, sem esperar o servidor', async () => {
+    d.testarImagem = async () => true;
+    d.snaEditar('s2');
+    campo('snaTitulo', 'Ondas NOVAS do mar'); campo('snaAudio', '/media/sono/b.mp3'); campo('snaCapa', '');
+    campo('snaCat', 'natureza'); campo('snaOrdem', '2'); marcar('snaAtivo', true);
+    chamadas.length = 0;
+    let desenhouAntesDeBuscar = null;
+    const r0 = d.rpc;
+    d.rpc = async (a, x) => {
+      if (a === 'getSonoAdmin' && desenhouAntesDeBuscar === null)
+        desenhouAntesDeBuscar = d.__el('content').innerHTML.includes('Ondas NOVAS do mar');
+      return r0(a, x);
+    };
+    ultimoBotao = botaoFalso('Salvar');
+    const r = await d.snaSalvar(ultimoBotao);
+    await new Promise(z => setImmediate(z));
+    d.rpc = r0;
+    if (!r.ok) throw new Error(r.msg);
+    if (!d.__el('content').innerHTML.includes('Ondas NOVAS do mar')) throw new Error('lista nao mudou');
+    if (desenhouAntesDeBuscar === false) throw new Error('esperou o servidor para redesenhar');
+    return 'redesenhou da memoria' + (desenhouAntesDeBuscar ? ', sincronizou depois' : '');
+  });
+
+  await passo('recorte volta ao formulario com o que foi digitado E a capa nova', async () => {
+    d.snaEditar('s1');
+    campo('snaTitulo', 'Titulo digitado antes do recorte'); campo('snaSub', 'sub digitado');
+    campo('snaAudio', '/media/sono/a.mp3'); campo('snaCapa', '');
+    d.SNA.rascunho = d.snaLerForm();                 // o que snaCapaEscolher faz
+    let botoes = null; const om = d.openModal;
+    d.openModal = (t, b, bs) => { botoes = bs; om(t, b, bs); };
+    d.SNC.img = { width: 1000, height: 1500 };
+    d.snaCapaAbrir();
+    ultimoBotao = botaoFalso('Usar este corte');
+    const r = await d.snaCapaSalvar(ultimoBotao);
+    d.openModal = om;
+    if (!r.ok) throw new Error(r.msg);
+    const h = d.__el('modalBody').innerHTML;
+    if (!h.includes('Titulo digitado antes do recorte')) throw new Error('perdeu o titulo digitado');
+    if (!h.includes('sub digitado')) throw new Error('perdeu o subtitulo');
+    if (!h.includes('lh3.googleusercontent.com/d/NOVA')) throw new Error('perdeu a capa enviada');
+    if (d.__el('modalTitle').textContent !== 'Editar som') throw new Error('voltou como som novo');
+    return 'titulo + subtitulo + capa nova preservados';
+  });
+
+  await passo('cancelar o recorte volta ao formulario sem perder nada', async () => {
+    d.snaEditar('s2');
+    campo('snaTitulo', 'Nao pode sumir'); campo('snaCapa', '/media/sono/capas/x.jpg');
+    d.SNA.rascunho = d.snaLerForm();
+    d.snaCapaAbrir();
+    d.snaCapaVoltar('');
+    const h = d.__el('modalBody').innerHTML;
+    if (!h.includes('Nao pode sumir') || !h.includes('/media/sono/capas/x.jpg')) throw new Error('perdeu o formulario');
+    return 'ok';
+  });
+
+  await passo('categoria nova aparece na hora', async () => {
+    d.snaCatEditar();
+    campo('snaCatNome', 'Salmos'); campo('snaCatIcone', 'S'); campo('snaCatOrdem', '50');
+    marcar('snaCatAtiva', true);
+    ultimoBotao = botaoFalso('Criar');
+    const r = await d.snaCatSalvar('', ultimoBotao);
+    await new Promise(z => setImmediate(z));
+    if (!r.ok) throw new Error(r.msg);
+    if (!d.__el('content').innerHTML.includes('Salmos')) throw new Error('ficha nao apareceu');
+    return 'ok';
+  });
+
+  await passo('grade: capa quebrada acende aviso, sem aspas no onclick', () => {
+    d.SNA.vista = 'grade'; d.snaDesenhar();
+    const h = d.__el('content').innerHTML;
+    if (!h.includes('onerror="snaCapaFalhou(this)"')) throw new Error('sem tratamento de capa quebrada');
+    if (!h.includes('Capa n')) throw new Error('sem aviso de capa');
+    if (/onclick="[a-zA-Z]+\(\\'/.test(h)) throw new Error('onclick com texto entre aspas');
+    if (!/data-id="s1"/.test(h)) throw new Error('sem data-id');
+    const img = { style: {}, parentNode: { querySelector: () => ({ style: {} }) } };
+    d.snaCapaFalhou(img);
+    if (img.style.display !== 'none') throw new Error('nao escondeu a foto quebrada');
+    return 'ok';
+  });
+
+  await passo('testar arquivos inclui as capas', async () => {
+    d.testarImagem = async (u) => u.indexOf('capas') > 0;
+    const r0 = d.rpc;
+    d.rpc = async (a, x) => (a === 'sonoVerificarUrls'
+      ? { ok: true, data: [{ id: 's1', titulo: 'Chuva', estado: 'ok', codigo: 200 }] } : r0(a, x));
+    d.SNA.sons = [{ id: 's1', titulo: 'Chuva', capaUrl: '/media/sono/capa-quebrada.jpg', audioUrl: '/a.mp3' }];
+    ultimoBotao = botaoFalso('Testar');
+    const r = await d.snaVerificar(ultimoBotao);
+    d.rpc = r0;
+    if (r.ok) throw new Error('nao pegou a capa quebrada');
+    if (!d.__el('snaRes').innerHTML.includes('capa')) throw new Error('nao listou a capa');
+    return r.msg;
+  });
+
+  await passo('push: salvar sem nada preenchido nao chama o servidor', async () => {
+    d.__el('pushVapid').value = ''; d.__el('pushConta').value = '';
+    chamadas.length = 0; ultimoBotao = botaoFalso('Salvar credenciais');
+    const r = await d.pushSalvar(ultimoBotao);
+    if (r.ok || chamadas.includes('pushSalvarConfig')) throw new Error('chamou sem dados');
+    return r.msg;
+  });
+
+  d.rpc = rpcBase;
+
   console.log(falhas ? '\n' + falhas + ' FALHA(S)' : '\nTudo executou sem erro');
+  chegouAoFim = true;
   process.exit(falhas ? 1 : 0);
 })();

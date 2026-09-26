@@ -992,7 +992,25 @@ button,
   #loginOverlay,.lg-card,.lg-card.shake,.lg-check path{animation:none!important;transition:none!important}
   .lg-spin{animation-duration:1.5s}
 }
-</style></head>
+</style><style>
+  /* Botao com estado (acaoBotao). O Apps Script leva de 3 a 10 s num
+     cold start: sem sinal no proprio botao a pessoa acha que nao
+     clicou, clica de novo, e a acao roda duas vezes. */
+  .btn.btn-ocupado{pointer-events:none;opacity:.9}
+  .btn-spin{display:inline-block;width:13px;height:13px;margin-right:7px;vertical-align:-2px;
+    border:2px solid currentColor;border-right-color:transparent;border-radius:50%;
+    animation:btnGira .7s linear infinite}
+  @keyframes btnGira{to{transform:rotate(360deg)}}
+  .btn.btn-ok{background:#2e7d32 !important;border-color:#2e7d32 !important;color:#fff !important;
+    animation:btnPulso .45s ease}
+  .btn.btn-erro{background:#c62828 !important;border-color:#c62828 !important;color:#fff !important;
+    animation:btnTreme .42s ease}
+  @keyframes btnPulso{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+  @keyframes btnTreme{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}
+    40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+  @media (prefers-reduced-motion:reduce){.btn-spin,.btn.btn-ok,.btn.btn-erro{animation:none}}
+</style>
+</head>
 <body>
 <!-- Login overlay (admin Firebase-hosted) -->
 <div id="loginOverlay" role="dialog" aria-modal="true" aria-labelledby="lgTitle">
@@ -3234,6 +3252,62 @@ function openModal(title, body, buttons) {
 }
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
 
+// ── Botao com estado ──────────────────────────────────────────
+// acaoBotao(botao, fn): fn devolve {ok, msg, depois}.
+//   • enquanto roda: spinner, texto de espera e botao travado — o
+//     segundo clique e ignorado, entao a acao nunca roda duas vezes;
+//   • ao terminar: verde com ✓ ou vermelho com ✕, no proprio botao,
+//     por pelo menos 1 s (1,8 s no erro, que precisa ser lido);
+//   • `depois` roda so apos o feedback — fechar o modal antes faria o
+//     botao sumir sem ninguem ver o resultado.
+// Se fn nao devolver {ok}, o botao so volta ao normal.
+function _espera(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+async function acaoBotao(botao, fn, textoEspera) {
+  if (botao && botao.dataset.ocupado === '1') return null;
+  var original = botao ? botao.innerHTML : '';
+  if (botao) {
+    botao.dataset.ocupado = '1';
+    botao.style.minWidth = botao.offsetWidth + 'px';     // nao pula de tamanho
+    botao.disabled = true;
+    botao.classList.add('btn-ocupado');
+    botao.innerHTML = '<span class="btn-spin"></span>' + escHtml(textoEspera || 'Aguarde\u2026');
+  }
+  var r;
+  try { r = await fn(); }
+  catch (e) { r = { ok: false, msg: 'Erro de conexao' }; }
+
+  if (botao && r && typeof r.ok === 'boolean') {
+    botao.classList.remove('btn-ocupado');
+    botao.classList.add(r.ok ? 'btn-ok' : 'btn-erro');
+    botao.innerHTML = (r.ok ? '\u2713 ' : '\u2715 ') + escHtml(r.msg || (r.ok ? 'Pronto' : 'Falhou'));
+    await _espera(r.ok ? 1100 : 1800);
+  }
+  if (botao) {
+    botao.classList.remove('btn-ocupado', 'btn-ok', 'btn-erro');
+    if (botao.isConnected) { botao.innerHTML = original; botao.disabled = false; }
+    botao.style.minWidth = '';
+    delete botao.dataset.ocupado;
+  }
+  // Erro com detalhe longo tambem vai para o aviso: no botao so cabe o curto.
+  if (r && r.ok === false && r.detalhe) toast(r.detalhe, 'error');
+  if (r && r.ok && typeof r.depois === 'function') r.depois();
+  return r;
+}
+
+// A imagem abre de verdade? E o mesmo teste que o navegador do aluno vai
+// fazer — um caminho com 404 so aparece como card vazio.
+function testarImagem(url, ms) {
+  return new Promise(function (resolve) {
+    if (!url) { resolve(false); return; }
+    var im = new Image(), fim = false;
+    var t = setTimeout(function () { if (!fim) { fim = true; resolve(false); } }, ms || 9000);
+    im.onload = function () { if (!fim) { fim = true; clearTimeout(t); resolve(true); } };
+    im.onerror = function () { if (!fim) { fim = true; clearTimeout(t); resolve(false); } };
+    im.src = url;
+  });
+}
+
 // Confirmacao no desenho do painel, no lugar do confirm() nativo — que
 // trava a pagina, nao segue o tema e no celular parece erro do sistema.
 // Devolve uma Promise<boolean>. Fechar clicando fora nunca resolve, e o
@@ -4736,7 +4810,7 @@ async function renderMigracao() {
       '<input class="form-control" id="migEmail" style="flex:1;min-width:230px" type="email" ' +
         'placeholder="e-mail da conta nova" value="' + escHtml(d.destino || '') + '"' +
         (d.trocaFeita ? ' disabled' : '') + '>' +
-      '<button class="btn btn-primary btn-sm" onclick="migCompartilhar()"' + (d.trocaFeita ? ' disabled' : '') + '>' +
+      '<button class="btn btn-primary btn-sm" onclick="migCompartilhar(this)"' + (d.trocaFeita ? ' disabled' : '') + '>' +
         'Compartilhar</button>' +
     '</div>' +
     '<div id="migRes2" style="margin-top:10px;font-size:12.5px"></div>' +
@@ -4762,7 +4836,7 @@ async function renderMigracao() {
       '. O que estava desligado continua desligado.' +
       (d.recriadosEm ? '<br><span style="color:var(--green)">Recriados em ' + escHtml(fmtDate(d.recriadosEm)) + '.</span>' : '') +
     '</div>' +
-    '<button class="btn btn-primary btn-sm" onclick="migRecriar()"' + (podeRecriar ? '' : ' disabled') + '>' +
+    '<button class="btn btn-primary btn-sm" onclick="migRecriar(this)"' + (podeRecriar ? '' : ' disabled') + '>' +
       'Recriar rotinas na conta nova</button>' +
     (podeRecriar ? '' : '<div style="font-size:11.5px;color:var(--muted);margin-top:7px">' +
       'Libera depois do passo 3.</div>') +
@@ -4792,7 +4866,7 @@ function _migLista(itens) {
   }).join('');
 }
 
-async function migCompartilhar() {
+async function migCompartilhar(botao) {
   var res = document.getElementById('migRes2');
   var email = ((document.getElementById('migEmail') || {}).value || '').trim();
   if (!email) { res.innerHTML = '<span style="color:var(--danger)">Informe o e-mail da conta nova.</span>'; return; }
@@ -4800,39 +4874,44 @@ async function migCompartilhar() {
     email + ' vira EDITOR da planilha, do projeto e das pastas do sistema.\n\n' +
     'Nada muda de dono e o sistema continua rodando como hoje.', 'Compartilhar');
   if (!ok) return;
-  res.innerHTML = '<span style="color:var(--muted)">Compartilhando&hellip; pode levar um minuto.</span>';
-  try {
+  return acaoBotao(botao, async function () {
     var r = await rpc('migracaoCompartilhar', { email: email });
-    if (!r || !r.ok) { res.innerHTML = '<span style="color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>'; return; }
+    if (!r || !r.ok) {
+      res.innerHTML = '<span style="color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>';
+      return { ok: false, msg: 'Falhou' };
+    }
     res.innerHTML = _migLista(r.data.itens) +
       '<div style="margin-top:8px;color:var(--muted)">Rotinas fotografadas: ' +
       escHtml((r.data.gatilhos || []).join(', ') || 'nenhuma') + '</div>';
-    setTimeout(renderMigracao, 2500);
-  } catch (e) {
-    res.innerHTML = '<span style="color:var(--danger)">Erro de conexao.</span>';
-  }
+    return { ok: true, msg: 'Compartilhado', depois: function () { setTimeout(renderMigracao, 2500); } };
+  }, 'Compartilhando\u2026');
 }
 
-async function migRecriar() {
+async function migRecriar(botao) {
   var res = document.getElementById('migRes4');
   var ok = await adminConfirmar('Recriar rotinas automaticas',
     'Recria na conta que roda o sistema agora as rotinas que estavam ligadas antes da troca.', 'Recriar');
   if (!ok) return;
-  res.innerHTML = '<span style="color:var(--muted)">Recriando&hellip;</span>';
-  try {
+  return acaoBotao(botao, async function () {
     var r = await rpc('migracaoRecriarGatilhos', {});
-    if (!r || !r.ok) { res.innerHTML = '<span style="color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>'; return; }
+    if (!r || !r.ok) {
+      res.innerHTML = '<span style="color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>';
+      return { ok: false, msg: 'Falhou' };
+    }
     res.innerHTML = _migLista(r.data.itens);
-    setTimeout(renderMigracao, 2500);
-  } catch (e) {
-    res.innerHTML = '<span style="color:var(--danger)">Erro de conexao.</span>';
-  }
+    return { ok: true, msg: 'Recriadas', depois: function () { setTimeout(renderMigracao, 2500); } };
+  }, 'Recriando\u2026');
 }
 
 // ════════════════════════════════════════════════════════════
 // MÓDULO DO SONO — catálogo de paisagens sonoras (v172)
+// ------------------------------------------------------------
+// Desenha a partir da MEMÓRIA (snaDesenhar): salvar, excluir e editar
+// atualizam a lista na hora, sem esperar outra ida ao servidor — que
+// num cold start custa de 3 a 10 s. Uma sincronização silenciosa
+// depois só acerta o que o servidor normalizou.
 // ════════════════════════════════════════════════════════════
-var SNA = { sons: [], cats: [], editando: null, vista: 'grade', capa: null };
+var SNA = { sons: [], cats: [], sessoes: 0, editandoId: '', rascunho: null, vista: 'grade' };
 var SNA_ARTES = ['chuva','mar','floresta','fogueira','montanha',
                  'cidade','estrelas','nuvens','abstrato'];
 
@@ -4840,30 +4919,97 @@ var SNA_ARTES = ['chuva','mar','floresta','fogueira','montanha',
 var SNA_CATS = {};
 function snaNomeCat(id) { return SNA_CATS[id] || id || '\u2014'; }
 
+function _snaAplicar(data) {
+  SNA.sons = data.sons || [];
+  SNA.cats = data.categorias || [];
+  SNA.sessoes = data.sessoes || 0;
+  SNA_CATS = {};
+  SNA.cats.forEach(function (c) { SNA_CATS[c.id] = c.nome; });
+}
+
 async function renderSonoAdmin() {
   var content = document.getElementById('content');
   content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
-
   try {
     var r = await rpc('getSonoAdmin', {});
     if (!r || !r.ok) throw new Error((r && r.error) || 'falhou');
-    SNA.sons = r.data.sons || [];
-    SNA.cats = r.data.categorias || [];
-    SNA_CATS = {};
-    SNA.cats.forEach(function (c) { SNA_CATS[c.id] = c.nome; });
-    var sessoes = r.data.sessoes || 0;
+    _snaAplicar(r.data);
   } catch (e) {
     content.innerHTML = '<div class="empty-state"><div class="empty-title">Não consegui carregar</div>' +
       '<div class="empty-sub">Confira se você está logado como admin.</div></div>';
     return;
   }
+  snaDesenhar();
+}
 
+// Relê o servidor sem mostrar carregando, e só redesenha se a pessoa
+// continua nesta tela — uma resposta atrasada não pode pintar por cima
+// de outra página.
+async function snaSincronizar() {
+  try {
+    var r = await rpc('getSonoAdmin', {});
+    if (!r || !r.ok) return;
+    _snaAplicar(r.data);
+    if (CRM.currentPage === 'sono') snaDesenhar();
+  } catch (e) {}
+}
+
+function _snaCardSom(x) {
+  var selo = !x.audioUrl ? ['sem arquivo', 'var(--danger)']
+           : !x.ativo ? ['inativo', 'var(--muted)']
+           : ['no ar', 'var(--green)'];
+  // A cena fica SEMPRE por baixo. Se a foto falhar, snaCapaFalhou()
+  // esconde a foto e acende o aviso — antes o card ficava vazio e
+  // ninguém percebia que o caminho estava errado.
+  return '<div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;' +
+      'background:rgba(255,255,255,.02)">' +
+    '<div class="sna-capa" style="position:relative;aspect-ratio:2/3;background:#0d1620">' +
+      '<div style="position:absolute;inset:0;display:flex;align-items:center;' +
+        'justify-content:center;flex-direction:column;gap:6px;color:var(--muted);font-size:11px">' +
+        '<span style="font-size:22px">\u25a6</span>cena "' + escHtml(x.arte || '\u2014') + '"</div>' +
+      (x.capaUrl
+        ? '<img src="' + escHtml(x.capaUrl) + '" alt="" onerror="snaCapaFalhou(this)" ' +
+          'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">'
+        : '') +
+      '<span style="position:absolute;top:8px;left:8px;padding:3px 8px;border-radius:99px;' +
+        'font-size:10px;font-weight:700;background:rgba(4,8,14,.78);color:' + selo[1] + '">' +
+        selo[0] + '</span>' +
+      '<span class="sna-capa-404" style="display:none;position:absolute;left:8px;right:8px;bottom:8px;' +
+        'padding:6px 8px;border-radius:8px;font-size:10.5px;font-weight:700;line-height:1.35;' +
+        'background:rgba(198,40,40,.92);color:#fff">Capa n\u00e3o encontrada \u2014 confira o caminho</span>' +
+    '</div>' +
+    '<div style="padding:10px 11px">' +
+      '<div style="font-size:12.5px;font-weight:700;color:var(--text);line-height:1.3">' +
+        escHtml(x.titulo) + '</div>' +
+      (x.subtitulo ? '<div style="font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35">' +
+        escHtml(x.subtitulo) + '</div>' : '') +
+      '<div style="font-size:11px;color:var(--muted);margin-top:3px">' +
+        escHtml(snaNomeCat(x.categoria)) + ' \u00b7 ' + (x.usos || 0) + ' usos</div>' +
+      '<div style="display:flex;gap:6px;margin-top:9px">' +
+        '<button class="btn btn-ghost btn-sm" style="flex:1" data-id="' + escHtml(x.id) + '" ' +
+          'onclick="snaEditar(this.dataset.id)">Editar</button>' +
+        '<button class="btn btn-ghost btn-sm" data-id="' + escHtml(x.id) + '" ' +
+          'onclick="snaExcluir(this)" aria-label="Excluir">\u2715</button>' +
+      '</div>' +
+    '</div></div>';
+}
+
+function snaCapaFalhou(img) {
+  img.style.display = 'none';
+  var caixa = img.parentNode;
+  var aviso = caixa && caixa.querySelector('.sna-capa-404');
+  if (aviso) aviso.style.display = 'block';
+}
+
+function snaDesenhar() {
+  var content = document.getElementById('content');
+  if (!content) return;
   var ativos = SNA.sons.filter(function (x) { return x.ativo && x.audioUrl; }).length;
   var semAudio = SNA.sons.filter(function (x) { return !x.audioUrl; }).length;
 
   var html = '<div class="metrics-grid" style="margin-bottom:18px">' +
     _puCard('<i data-lucide="music" class="luc"></i>', ativos, 'Sons no ar', 'de ' + SNA.sons.length + ' cadastrados') +
-    _puCard('<i data-lucide="moon" class="luc"></i>', sessoes, 'Noites registradas', 'desde o início') +
+    _puCard('<i data-lucide="moon" class="luc"></i>', SNA.sessoes, 'Noites registradas', 'desde o início') +
     _puCard('<i data-lucide="alert-triangle" class="luc"></i>', semAudio, 'Sem arquivo', semAudio ? 'não aparecem no app' : 'tudo certo') +
   '</div>';
 
@@ -4873,9 +5019,10 @@ async function renderSonoAdmin() {
       '<b>1.</b> Suba o arquivo <code>.mp3</code> em <code>site/wpktavares-site/public/media/sono/</code> ' +
       'e publique. O endereço fica <code>/media/sono/nome.mp3</code>.<br>' +
       '<b>2.</b> Cadastre aqui com esse caminho no campo do áudio.<br>' +
+      '<b>3.</b> Capa: use <b>Enviar imagem e recortar</b>. Se preferir arquivo, ele fica em ' +
+      '<code>/media/sono/capas/nome.jpg</code> \u2014 com o <code>capas/</code> no caminho.<br>' +
       '<span style="color:#e0a83c">Link do Google Drive não funciona: o Drive não entrega arquivo ' +
-      'para a tag &lt;audio&gt;, e o som simplesmente não toca. O campo recusa.</span><br>' +
-      'Faixas de <b>8 a 15 minutos</b> bastam — o app repete em loop, arquivo longo só pesa.' +
+      'para a tag &lt;audio&gt;, e o som simplesmente não toca. O campo recusa.</span>' +
     '</div></div>';
 
   // Categorias
@@ -4888,10 +5035,9 @@ async function renderSonoAdmin() {
       '<button class="btn btn-primary btn-sm" onclick="snaCatEditar()">+ Nova categoria</button>' +
     '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap">';
-
   SNA.cats.forEach(function (c) {
     var qtd = SNA.sons.filter(function (x) { return x.categoria === c.id; }).length;
-    html += '<button onclick="snaCatEditar(\'' + escHtml(c.id) + '\')" ' +
+    html += '<button data-id="' + escHtml(c.id) + '" onclick="snaCatEditar(this.dataset.id)" ' +
       'style="display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:11px;' +
       'border:1px solid var(--border);background:rgba(255,255,255,.03);cursor:pointer;' +
       'font-family:inherit;font-size:12.5px;color:var(--text)' +
@@ -4904,13 +5050,14 @@ async function renderSonoAdmin() {
   });
   html += '</div></div>';
 
+  // Catalogo
   html += '<div class="card" style="margin-bottom:16px">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap">' +
       '<div style="font-size:14px;font-weight:700;color:var(--text)">Catálogo</div>' +
-      '<div style="display:flex;gap:8px">' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
         '<button class="btn btn-ghost btn-sm" onclick="snaVista()">' +
           (SNA.vista === 'grade' ? 'Ver em lista' : 'Ver em grade') + '</button>' +
-        '<button class="btn btn-ghost btn-sm" onclick="snaVerificar()">Testar os arquivos</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="snaVerificar(this)">Testar os arquivos</button>' +
         '<button class="btn btn-primary btn-sm" onclick="snaEditar()">+ Novo som</button>' +
       '</div>' +
     '</div>' +
@@ -4920,66 +5067,30 @@ async function renderSonoAdmin() {
     html += '<div style="font-size:12.5px;color:var(--muted);padding:20px;text-align:center;' +
       'border:1px dashed var(--border);border-radius:10px">Nenhum som cadastrado ainda.</div>';
   } else if (SNA.vista === 'grade') {
-    // A grade mostra a capa. Numa lista de texto nao da para ver que
-    // metade do catalogo esta sem foto — e esse e o defeito que mais
-    // aparece na tela do aluno.
-    html += '<div style="display:grid;gap:13px;' +
-      'grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">';
-    SNA.sons.forEach(function (x) {
-      var selo = !x.audioUrl ? ['sem arquivo', 'var(--danger)']
-               : !x.ativo ? ['inativo', 'var(--muted)']
-               : ['no ar', 'var(--green)'];
-      html += '<div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;' +
-          'background:rgba(255,255,255,.02)">' +
-        '<div style="position:relative;aspect-ratio:2/3;background:#0d1620">' +
-          (x.capaUrl
-            ? '<img src="' + escHtml(x.capaUrl) + '" alt="" ' +
-              'style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" ' +
-              'onerror="this.style.display=\'none\'">'
-            : '') +
-          (x.capaUrl ? '' :
-            '<div style="position:absolute;inset:0;display:flex;align-items:center;' +
-            'justify-content:center;flex-direction:column;gap:6px;color:var(--muted);font-size:11px">' +
-            '<span style="font-size:22px">\u25a6</span>cena "' + escHtml(x.arte || '—') + '"</div>') +
-          '<span style="position:absolute;top:8px;left:8px;padding:3px 8px;border-radius:99px;' +
-            'font-size:10px;font-weight:700;background:rgba(4,8,14,.78);color:' + selo[1] + '">' +
-            selo[0] + '</span>' +
-        '</div>' +
-        '<div style="padding:10px 11px">' +
-          '<div style="font-size:12.5px;font-weight:700;color:var(--text);line-height:1.3">' +
-            escHtml(x.titulo) + '</div>' +
-          '<div style="font-size:11px;color:var(--muted);margin-top:3px">' +
-            escHtml(snaNomeCat(x.categoria)) + ' \u00b7 ' + (x.usos || 0) + ' usos</div>' +
-          '<div style="display:flex;gap:6px;margin-top:9px">' +
-            '<button class="btn btn-ghost btn-sm" style="flex:1" onclick="snaEditar(' +
-              '\'' + escHtml(x.id) + '\')">Editar</button>' +
-            '<button class="btn btn-ghost btn-sm" onclick="snaExcluir(' +
-              '\'' + escHtml(x.id) + '\')">\u2715</button>' +
-          '</div>' +
-        '</div></div>';
-    });
-    html += '</div>';
+    html += '<div style="display:grid;gap:13px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">' +
+      SNA.sons.map(_snaCardSom).join('') + '</div>';
   } else {
     html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px">' +
       '<thead><tr style="text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em">' +
       '<th style="padding:7px 8px">Ordem</th><th style="padding:7px 8px">Som</th>' +
       '<th style="padding:7px 8px">Categoria</th><th style="padding:7px 8px">Usos</th>' +
       '<th style="padding:7px 8px">Estado</th><th style="padding:7px 8px"></th></tr></thead><tbody>';
-
     SNA.sons.forEach(function (x) {
       var estado = !x.audioUrl ? '<span style="color:var(--danger)">sem arquivo</span>'
                  : !x.ativo ? '<span style="color:var(--muted)">inativo</span>'
                  : '<span style="color:var(--green)">no ar</span>';
-      html += '<tr style="border-top:1px solid var(--border)" id="snaLinha_' + escHtml(x.id) + '">' +
+      html += '<tr style="border-top:1px solid var(--border)">' +
         '<td style="padding:9px 8px;color:var(--muted)">' + x.ordem + '</td>' +
         '<td style="padding:9px 8px;color:var(--text)">' + escHtml(x.titulo) +
-          '<div style="font-size:10.5px;color:var(--muted)">' + escHtml(x.audioUrl || '—') + '</div></td>' +
+          '<div style="font-size:10.5px;color:var(--muted)">' + escHtml(x.audioUrl || '\u2014') + '</div></td>' +
         '<td style="padding:9px 8px;color:var(--muted)">' + escHtml(snaNomeCat(x.categoria)) + '</td>' +
         '<td style="padding:9px 8px;color:var(--muted)">' + (x.usos || 0) + '</td>' +
         '<td style="padding:9px 8px">' + estado + '</td>' +
         '<td style="padding:9px 8px;text-align:right;white-space:nowrap">' +
-          '<button class="btn btn-ghost btn-sm" onclick="snaEditar(\'' + escHtml(x.id) + '\')">Editar</button> ' +
-          '<button class="btn btn-ghost btn-sm" onclick="snaExcluir(\'' + escHtml(x.id) + '\')">Excluir</button>' +
+          '<button class="btn btn-ghost btn-sm" data-id="' + escHtml(x.id) + '" ' +
+            'onclick="snaEditar(this.dataset.id)">Editar</button> ' +
+          '<button class="btn btn-ghost btn-sm" data-id="' + escHtml(x.id) + '" ' +
+            'onclick="snaExcluir(this)">Excluir</button>' +
         '</td></tr>';
     });
     html += '</tbody></table></div>';
@@ -4990,18 +5101,36 @@ async function renderSonoAdmin() {
   _processIcons && _processIcons(content);
 }
 
-function snaEditar(id) {
-  var x = id ? SNA.sons.filter(function (a) { return a.id === id; })[0] : null;
-  SNA.editando = x || null;
-  var v = function (k, d) { return x ? (x[k] !== undefined ? x[k] : d) : d; };
+// ── Formulário do som ─────────────────────────────────────────
+// rascunho: o que estava digitado antes de abrir o recorte. O recorte
+// abre no MESMO espaço do formulário e o substitui; sem o rascunho, a
+// capa recortada e enviada era descartada ao voltar — era isso o
+// "cortei a imagem e não aconteceu nada".
+function snaLerForm() {
+  var v = function (id) { var e = document.getElementById(id); return e ? e.value : ''; };
+  var c = function (id) { var e = document.getElementById(id); return !!(e && e.checked); };
+  return {
+    id: SNA.editandoId || '',
+    titulo: v('snaTitulo'), subtitulo: v('snaSub'), audioUrl: v('snaAudio'),
+    capaUrl: v('snaCapa'), arte: v('snaArte'), categoria: v('snaCat') || 'ambiente',
+    ordem: v('snaOrdem') || 0, ativo: c('snaAtivo'), loop: c('snaLoop')
+  };
+}
+
+function snaEditar(id, rascunho) {
+  var base = id ? SNA.sons.filter(function (a) { return a.id === id; })[0] : null;
+  SNA.editandoId = base ? base.id : ((rascunho && rascunho.id) || '');
+  var x = rascunho || base || null;
+  var v = function (k, d) { return x ? (x[k] !== undefined && x[k] !== null ? x[k] : d) : d; };
 
   var cats = SNA.cats.map(function (c) {
     return '<option value="' + escHtml(c.id) + '"' +
       (v('categoria', 'ambiente') === c.id ? ' selected' : '') + '>' +
       escHtml(c.nome) + (c.ativa ? '' : ' (inativa)') + '</option>';
   }).join('');
+  var capa = v('capaUrl', '');
 
-  openModal(x ? 'Editar som' : 'Novo som',
+  openModal(SNA.editandoId ? 'Editar som' : 'Novo som',
     '<div class="form-group"><label class="form-label">Título *</label>' +
       '<input class="form-control" id="snaTitulo" maxlength="120" value="' + escHtml(v('titulo', '')) + '" placeholder="Chuva no telhado"></div>' +
     '<div class="form-group"><label class="form-label">Subtítulo</label>' +
@@ -5012,21 +5141,20 @@ function snaEditar(id) {
       '<div style="display:flex;gap:12px;align-items:flex-start">' +
         '<div id="snaCapaPrev" style="width:92px;aspect-ratio:2/3;border-radius:10px;' +
           'border:1px solid var(--border);background:#0d1620 center/cover no-repeat;flex-shrink:0' +
-          (v('capaUrl', '') ? ';background-image:url(' + escHtml(v('capaUrl', '')) + ')' : '') + '"></div>' +
+          (capa ? ';background-image:url(' + escHtml(capa) + ')' : '') + '"></div>' +
         '<div style="flex:1;min-width:0">' +
           '<input type="file" id="snaCapaArq" accept="image/*" style="display:none" ' +
             'onchange="snaCapaEscolher(event)">' +
           '<button type="button" class="btn btn-ghost btn-sm" style="width:100%" ' +
-            'onclick="document.getElementById(\'snaCapaArq\').click()">' +
-            'Enviar imagem e recortar</button>' +
+            'onclick="snaCapaPedir()">Enviar imagem e recortar</button>' +
           '<input class="form-control" id="snaCapa" style="margin-top:7px;font-size:11.5px" ' +
-            'value="' + escHtml(v('capaUrl', '')) + '" placeholder="ou cole uma URL https">' +
+            'value="' + escHtml(capa) + '" placeholder="ou /media/sono/capas/nome.jpg" ' +
+            'oninput="snaCapaDigitada(this)">' +
           '<div style="font-size:11px;color:var(--muted);margin-top:5px;line-height:1.55">' +
-            'Proporcao 2:3 (retrato). Ideal <b>800\u00d71200</b>, JPG. ' +
-            'O recorte ja entrega nesse tamanho.</div>' +
+            'Proporção 2:3 (retrato). Ideal <b>800\u00d71200</b>, JPG. ' +
+            'O recorte já entrega nesse tamanho.</div>' +
         '</div>' +
       '</div></div>' +
-
     '<div class="form-group"><label class="form-label">Cena de reserva</label>' +
       '<select class="form-control" id="snaArte">' +
         SNA_ARTES.map(function (a) {
@@ -5035,7 +5163,7 @@ function snaEditar(id) {
         }).join('') +
       '</select>' +
       '<div style="font-size:11px;color:var(--muted);margin-top:5px">' +
-        'Aparece quando nao ha foto \u2014 ou se a foto falhar ao carregar.</div></div>' +
+        'Aparece quando não há foto \u2014 ou se a foto falhar ao carregar.</div></div>' +
     '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
       '<div class="form-group" style="flex:1;min-width:130px"><label class="form-label">Categoria</label>' +
         '<select class="form-control" id="snaCat">' + cats + '</select></div>' +
@@ -5047,30 +5175,64 @@ function snaEditar(id) {
     '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)">' +
       '<input type="checkbox" id="snaLoop"' + (v('loop', true) ? ' checked' : '') + '> Repetir em loop</label>',
     [{ label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
-     { label: 'Salvar', action: snaSalvar, cls: 'btn-primary' }]);
+     { label: 'Salvar', action: function (ev) { return snaSalvar(ev && ev.currentTarget); }, cls: 'btn-primary' }]);
 }
 
-async function snaSalvar() {
-  var d = {
-    id: SNA.editando ? SNA.editando.id : '',
-    titulo: (document.getElementById('snaTitulo') || {}).value || '',
-    subtitulo: (document.getElementById('snaSub') || {}).value || '',
-    audioUrl: (document.getElementById('snaAudio') || {}).value || '',
-    capaUrl: (document.getElementById('snaCapa') || {}).value || '',
-    arte: (document.getElementById('snaArte') || {}).value || '',
-    categoria: (document.getElementById('snaCat') || {}).value || 'ambiente',
-    ordem: (document.getElementById('snaOrdem') || {}).value || 0,
-    ativo: !!(document.getElementById('snaAtivo') || {}).checked,
-    loop: !!(document.getElementById('snaLoop') || {}).checked
-  };
-  try {
+// A prévia acompanha o que é digitado: caminho errado aparece na hora,
+// e não só depois de salvar.
+function snaCapaDigitada(campo) {
+  var prev = document.getElementById('snaCapaPrev');
+  if (prev) prev.style.backgroundImage = campo.value ? 'url(' + campo.value + ')' : '';
+}
+
+// Resolve a capa antes de salvar. Se o caminho não abrir e for do tipo
+// /media/sono/arquivo.jpg, tenta /media/sono/capas/arquivo.jpg — o
+// esquecimento mais comum, e exatamente o que deixou as duas primeiras
+// capas em branco.
+async function snaResolverCapa(url) {
+  url = String(url || '').trim();
+  if (!url) return { ok: true, url: '' };
+  if (await testarImagem(url)) return { ok: true, url: url };
+  var m = /^\/media\/sono\/([^\/]+\.(?:jpe?g|png|webp))$/i.exec(url);
+  if (m) {
+    var alt = '/media/sono/capas/' + m[1];
+    if (await testarImagem(alt)) return { ok: true, url: alt, corrigida: true };
+  }
+  return { ok: false, url: url };
+}
+
+async function snaSalvar(botao) {
+  return acaoBotao(botao, async function () {
+    var d = snaLerForm();
+    if (d.titulo.trim().length < 2) return { ok: false, msg: 'Informe o título' };
+    if (!d.audioUrl.trim()) return { ok: false, msg: 'Informe o áudio' };
+
+    var capa = await snaResolverCapa(d.capaUrl);
+    if (!capa.ok) {
+      return { ok: false, msg: 'Capa não abre',
+               detalhe: 'A capa "' + d.capaUrl + '" não abriu. Confira o caminho ou envie a imagem pelo recorte.' };
+    }
+    d.capaUrl = capa.url;
+
     var r = await rpc('salvarSonoSom', d);
-    if (!r || !r.ok) { toast((r && r.error) || 'Não consegui salvar.', 'error'); return; }
-    closeModal();
-    renderSonoAdmin();
-  } catch (e) { toast('Erro de conexão.', 'error'); }
+    if (!r || !r.ok) return { ok: false, msg: 'Não salvou', detalhe: (r && r.error) || 'Não consegui salvar.' };
+
+    // Atualiza a memória já: a lista redesenha na hora, sem ir ao servidor.
+    var id = r.id || d.id;
+    var antigo = SNA.sons.filter(function (a) { return a.id === id; })[0];
+    var novo = Object.assign({}, antigo || {}, d, {
+      id: id, ordem: Number(d.ordem) || 0, usos: antigo ? antigo.usos : 0
+    });
+    if (antigo) SNA.sons = SNA.sons.map(function (a) { return a.id === id ? novo : a; });
+    else SNA.sons.push(novo);
+    SNA.sons.sort(function (a, b) { return (a.ordem - b.ordem) || String(a.titulo).localeCompare(String(b.titulo)); });
+
+    return { ok: true, msg: capa.corrigida ? 'Salvo \u00b7 caminho da capa corrigido' : 'Salvo',
+      depois: function () { closeModal(); snaDesenhar(); snaSincronizar(); } };
+  }, 'Salvando\u2026');
 }
 
+// ── Categorias ────────────────────────────────────────────────
 function snaCatEditar(id) {
   var c = id ? SNA.cats.filter(function (a) { return a.id === id; })[0] : null;
   var v = function (k, d) { return c ? (c[k] !== undefined ? c[k] : d) : d; };
@@ -5102,65 +5264,88 @@ function snaCatEditar(id) {
         'excluir deixaria eles \u00f3rf\u00e3os numa prateleira que n\u00e3o existe mais.</div>'
       : ''),
     (c
-      ? [{ label: 'Excluir', action: function () { snaCatExcluir(c.id); }, cls: 'btn-ghost' },
-         { label: 'Salvar', action: function () { snaCatSalvar(c.id); }, cls: 'btn-primary' }]
+      ? [{ label: 'Excluir', action: function (ev) { return snaCatExcluir(c.id, ev && ev.currentTarget); }, cls: 'btn-ghost' },
+         { label: 'Salvar', action: function (ev) { return snaCatSalvar(c.id, ev && ev.currentTarget); }, cls: 'btn-primary' }]
       : [{ label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
-         { label: 'Criar', action: function () { snaCatSalvar(''); }, cls: 'btn-primary' }]));
+         { label: 'Criar', action: function (ev) { return snaCatSalvar('', ev && ev.currentTarget); }, cls: 'btn-primary' }]));
 }
 
-async function snaCatSalvar(id) {
-  var d = {
-    id: id || '',
-    nome: (document.getElementById('snaCatNome') || {}).value || '',
-    icone: (document.getElementById('snaCatIcone') || {}).value || '',
-    descricao: (document.getElementById('snaCatDesc') || {}).value || '',
-    ordem: (document.getElementById('snaCatOrdem') || {}).value || 0,
-    ativa: !!(document.getElementById('snaCatAtiva') || {}).checked
-  };
-  try {
+async function snaCatSalvar(id, botao) {
+  return acaoBotao(botao, async function () {
+    var v = function (i) { var e = document.getElementById(i); return e ? e.value : ''; };
+    var d = { id: id || '', nome: v('snaCatNome'), icone: v('snaCatIcone'), descricao: v('snaCatDesc'),
+              ordem: v('snaCatOrdem') || 0,
+              ativa: !!(document.getElementById('snaCatAtiva') || {}).checked };
+    if (d.nome.trim().length < 2) return { ok: false, msg: 'Informe o nome' };
+
     var r = await rpc('salvarSonoCategoria', d);
-    if (!r || !r.ok) { toast((r && r.error) || 'Nao consegui salvar.', 'error'); return; }
-    closeModal();
-    renderSonoAdmin();
-  } catch (e) { toast('Erro de conexao.', 'error'); }
+    if (!r || !r.ok) return { ok: false, msg: 'Não salvou', detalhe: (r && r.error) || 'Não consegui salvar.' };
+
+    var cid = r.id || d.id;
+    var nova = { id: cid, nome: d.nome.trim(), icone: d.icone, descricao: d.descricao,
+                 ordem: Number(d.ordem) || 0, ativa: d.ativa };
+    var achou = false;
+    SNA.cats = SNA.cats.map(function (a) { if (a.id === cid) { achou = true; return nova; } return a; });
+    if (!achou) SNA.cats.push(nova);
+    SNA.cats.sort(function (a, b) { return (a.ordem - b.ordem) || a.nome.localeCompare(b.nome); });
+    SNA_CATS[cid] = nova.nome;
+
+    return { ok: true, msg: id ? 'Salvo' : 'Criada',
+      depois: function () { closeModal(); snaDesenhar(); snaSincronizar(); } };
+  }, 'Salvando\u2026');
 }
 
-async function snaCatExcluir(id) {
+async function snaCatExcluir(id, botao) {
   var ok = await adminConfirmar('Remover categoria', 'A categoria sai do cadastro e da tela do aluno.', 'Remover', true);
-  if (!ok) { snaCatEditar(id); return; }      // volta ao formulario de onde veio
-  try {
-    var r = await rpc('excluirSonoCategoria', { id: id });
-    // O servidor recusa se houver som dentro, e a mensagem dele ja
-    // explica o que fazer. Mostrar do jeito que veio.
-    if (!r || !r.ok) { toast((r && r.error) || 'Nao consegui remover.', 'error'); return; }
-    renderSonoAdmin();
-  } catch (e) { toast('Erro de conexao.', 'error'); }
+  if (!ok) { snaCatEditar(id); return; }      // volta ao formulário de onde veio
+  // O servidor recusa se houver som dentro, e a mensagem dele já
+  // explica o que fazer. Vai inteira para o aviso.
+  var r;
+  try { r = await rpc('excluirSonoCategoria', { id: id }); } catch (e) { r = null; }
+  if (!r || !r.ok) { toast((r && r.error) || 'Não consegui remover.', 'error'); return; }
+  SNA.cats = SNA.cats.filter(function (a) { return a.id !== id; });
+  delete SNA_CATS[id];
+  snaDesenhar();
+  toast('Categoria removida.', 'success');
 }
 
 function snaVista() {
   SNA.vista = SNA.vista === 'grade' ? 'lista' : 'grade';
-  renderSonoAdmin();
+  snaDesenhar();              // só troca o desenho: nada mudou no servidor
 }
 
 // ── Recorte da capa ─────────────────────────────────────────
-// Arrastar move, o cursor amplia, e a saida sai sempre em 800x1200.
-// Sem isso cada capa chegaria num tamanho, e a prateleira ficaria com
-// cards de alturas diferentes.
+// Arrastar move, o controle amplia, e a saída sai sempre em 800x1200.
 var SNC = { img: null, zoom: 1, x: 0, y: 0, arrastando: false, px: 0, py: 0 };
 var SNC_W = 800, SNC_H = 1200;
+
+function snaCapaPedir() {
+  var arq = document.getElementById('snaCapaArq');
+  if (arq) { arq.value = ''; arq.click(); }
+}
 
 function snaCapaEscolher(ev) {
   var f = ev.target.files && ev.target.files[0];
   if (!f) return;
-  if (f.size > 12 * 1024 * 1024) { toast('Imagem muito grande (max 12 MB).', 'error'); return; }
+  if (f.size > 12 * 1024 * 1024) { toast('Imagem muito grande (máx. 12 MB).', 'error'); return; }
+  // Guarda o formulário AGORA, enquanto ele ainda está na tela: o
+  // recorte vai abrir no lugar dele.
+  SNA.rascunho = snaLerForm();
   var fr = new FileReader();
   fr.onload = function () {
     var im = new Image();
     im.onload = function () { SNC.img = im; snaCapaAbrir(); };
-    im.onerror = function () { toast('Nao consegui ler essa imagem.', 'error'); };
+    im.onerror = function () { toast('Não consegui ler essa imagem.', 'error'); };
     im.src = fr.result;
   };
   fr.readAsDataURL(f);
+}
+
+function snaCapaVoltar(capaNova) {
+  var r = SNA.rascunho || snaLerForm();
+  if (capaNova) r.capaUrl = capaNova;
+  SNA.rascunho = null;
+  snaEditar(r.id || SNA.editandoId, r);
 }
 
 function snaCapaAbrir() {
@@ -5168,7 +5353,7 @@ function snaCapaAbrir() {
     '<div style="text-align:center">' +
       '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">' +
         'Arraste para posicionar e use o controle para aproximar. ' +
-        'O corte sai em ' + SNC_W + '\u00d7' + SNC_H + ', a proporcao dos cards.</div>' +
+        'O corte sai em ' + SNC_W + '\u00d7' + SNC_H + ', a proporção dos cards.</div>' +
       '<canvas id="sncCv" width="260" height="390" ' +
         'style="border-radius:12px;border:1px solid var(--border);cursor:grab;touch-action:none;' +
         'background:#0d1620;max-width:100%"></canvas>' +
@@ -5176,15 +5361,14 @@ function snaCapaAbrir() {
         '<span style="font-size:11px;color:var(--muted)">Zoom</span>' +
         '<input type="range" id="sncZoom" min="100" max="320" value="100" style="flex:1">' +
       '</div>' +
-      '<div id="sncRes" style="font-size:12px;margin-top:9px"></div>' +
     '</div>',
-    [{ label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
-     { label: 'Usar este corte', action: snaCapaSalvar, cls: 'btn-primary' }]);
+    [{ label: 'Cancelar', action: function () { snaCapaVoltar(''); }, cls: 'btn-ghost' },
+     { label: 'Usar este corte', action: function (ev) { return snaCapaSalvar(ev && ev.currentTarget); }, cls: 'btn-primary' }]);
 
   setTimeout(function () {
     var cv = document.getElementById('sncCv');
     if (!cv) return;
-    // Comeca cobrindo o quadro inteiro: nunca sobra fundo vazio.
+    // Começa cobrindo o quadro inteiro: nunca sobra fundo vazio.
     var esc = Math.max(cv.width / SNC.img.width, cv.height / SNC.img.height);
     SNC.zoom = esc;
     SNC.base = esc;
@@ -5207,7 +5391,7 @@ function snaCapaAbrir() {
     var z = document.getElementById('sncZoom');
     if (z) z.oninput = function () {
       var novo = SNC.base * (Number(z.value) / 100);
-      // Amplia a partir do centro, senao a imagem foge para um canto.
+      // Amplia a partir do centro, senão a imagem foge para um canto.
       var cx = cv.width / 2, cy = cv.height / 2;
       SNC.x = cx - (cx - SNC.x) * (novo / SNC.zoom);
       SNC.y = cy - (cy - SNC.y) * (novo / SNC.zoom);
@@ -5217,7 +5401,7 @@ function snaCapaAbrir() {
   }, 60);
 }
 
-// Nao deixa sobrar borda vazia em lado nenhum.
+// Não deixa sobrar borda vazia em lado nenhum.
 function snaCapaLimitar(cv) {
   var w = SNC.img.width * SNC.zoom, h = SNC.img.height * SNC.zoom;
   SNC.x = Math.min(0, Math.max(cv.width - w, SNC.x));
@@ -5232,74 +5416,63 @@ function snaCapaPintar() {
   c.drawImage(SNC.img, SNC.x, SNC.y, SNC.img.width * SNC.zoom, SNC.img.height * SNC.zoom);
 }
 
-async function snaCapaSalvar() {
-  var cv = document.getElementById('sncCv');
-  var res = document.getElementById('sncRes');
-  if (!cv || !SNC.img) return;
+async function snaCapaSalvar(botao) {
+  return acaoBotao(botao, async function () {
+    var cv = document.getElementById('sncCv');
+    if (!cv || !SNC.img) return { ok: false, msg: 'Sem imagem' };
+    // Repete o mesmo enquadramento em tamanho cheio: o que aparece na
+    // prévia é exatamente o que é salvo.
+    var out = document.createElement('canvas');
+    out.width = SNC_W; out.height = SNC_H;
+    var k = SNC_W / cv.width;
+    out.getContext('2d').drawImage(SNC.img, SNC.x * k, SNC.y * k,
+      SNC.img.width * SNC.zoom * k, SNC.img.height * SNC.zoom * k);
 
-  // Repete o mesmo enquadramento em tamanho cheio: o que aparece na
-  // previa e exatamente o que e salvo.
-  var out = document.createElement('canvas');
-  out.width = SNC_W; out.height = SNC_H;
-  var k = SNC_W / cv.width;
-  out.getContext('2d').drawImage(SNC.img, SNC.x * k, SNC.y * k,
-    SNC.img.width * SNC.zoom * k, SNC.img.height * SNC.zoom * k);
-
-  var dataUrl = out.toDataURL('image/jpeg', 0.84);
-  if (res) res.innerHTML = '<span style="color:var(--muted)">Enviando\u2026</span>';
-
-  try {
     var r = await rpc('salvarSonoCapa', {
-      base64: dataUrl, mimeType: 'image/jpeg',
-      id: SNA.editando ? SNA.editando.id : 'novo'
+      base64: out.toDataURL('image/jpeg', 0.84), mimeType: 'image/jpeg',
+      id: SNA.editandoId || 'novo'
     });
-    if (!r || !r.ok) {
-      if (res) res.innerHTML = '<span style="color:var(--danger)">' +
-        escHtml((r && r.error) || 'Falhou.') + '</span>';
-      return;
-    }
-    closeModal();
-    setTimeout(function () {
-      var campo = document.getElementById('snaCapa');
-      if (campo) campo.value = r.url;
-      var prev = document.getElementById('snaCapaPrev');
-      if (prev) prev.style.backgroundImage = 'url(' + r.url + ')';
-    }, 80);
-  } catch (e) {
-    if (res) res.innerHTML = '<span style="color:var(--danger)">Erro de conexao.</span>';
-  }
+    if (!r || !r.ok) return { ok: false, msg: 'Não enviou', detalhe: (r && r.error) || 'Falhou o envio da capa.' };
+    // Volta ao formulário com o que estava digitado E a capa nova.
+    return { ok: true, msg: 'Capa enviada', depois: function () { snaCapaVoltar(r.url); } };
+  }, 'Enviando\u2026');
 }
 
-async function snaExcluir(id) {
+async function snaExcluir(botao) {
+  var id = botao && botao.dataset ? botao.dataset.id : '';
   var x = SNA.sons.filter(function (a) { return a.id === id; })[0];
   var ok = await adminConfirmar('Remover som',
-    '"' + ((x && x.titulo) || id) + '" sai do catalogo e da tela do aluno.', 'Remover', true);
+    '"' + ((x && x.titulo) || id) + '" sai do catálogo e da tela do aluno.', 'Remover', true);
   if (!ok) return;
-  try {
+  return acaoBotao(botao, async function () {
     var r = await rpc('excluirSonoSom', { id: id });
-    if (!r || !r.ok) { toast((r && r.error) || 'Não consegui remover.', 'error'); return; }
-    renderSonoAdmin();
-  } catch (e) { toast('Erro de conexão.', 'error'); }
+    if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'Não consegui remover.' };
+    SNA.sons = SNA.sons.filter(function (a) { return a.id !== id; });
+    return { ok: true, msg: 'Removido', depois: snaDesenhar };
+  }, '\u2026');
 }
 
 // Um 404 aqui é uma noite perdida lá: a pessoa deita, toca no card e
-// não sai som nenhum. Melhor descobrir pelo painel.
-async function snaVerificar() {
+// não sai som nenhum. Áudio é testado pelo servidor; capa, pelo próprio
+// navegador — que é o mesmo teste que o do aluno vai fazer.
+async function snaVerificar(botao) {
   var res = document.getElementById('snaRes');
-  if (res) res.innerHTML = '<span style="color:var(--muted)">Testando cada arquivo&hellip;</span>';
-  try {
+  return acaoBotao(botao, async function () {
     var r = await rpc('sonoVerificarUrls', {});
-    if (!r || !r.ok) { if (res) res.innerHTML = '<span style="color:var(--danger)">' + escHtml((r && r.error) || 'Falhou.') + '</span>'; return; }
-    var ruins = (r.data || []).filter(function (x) { return x.estado !== 'ok'; });
-    if (!ruins.length) {
-      if (res) res.innerHTML = '<span style="color:var(--green)">Todos os ' + (r.data || []).length + ' arquivos responderam.</span>';
-      return;
-    }
-    if (res) res.innerHTML = '<span style="color:var(--danger)">' + ruins.length + ' não responderam: ' +
-      ruins.map(function (x) { return escHtml(x.titulo) + ' (HTTP ' + x.codigo + ')'; }).join(' · ') + '</span>';
-  } catch (e) {
-    if (res) res.innerHTML = '<span style="color:var(--danger)">Erro de conexão.</span>';
-  }
+    if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'Não consegui testar.' };
+    var ruins = (r.data || []).filter(function (x) { return x.estado !== 'ok'; })
+      .map(function (x) { return escHtml(x.titulo) + ' \u2014 áudio (HTTP ' + x.codigo + ')'; });
+
+    var comCapa = SNA.sons.filter(function (x) { return x.capaUrl; });
+    var testes = await Promise.all(comCapa.map(function (x) { return testarImagem(x.capaUrl, 8000); }));
+    comCapa.forEach(function (x, i) { if (!testes[i]) ruins.push(escHtml(x.titulo) + ' \u2014 capa'); });
+
+    var total = (r.data || []).length + comCapa.length;
+    if (res) res.innerHTML = ruins.length
+      ? '<span style="color:var(--danger)">' + ruins.length + ' com problema: ' + ruins.join(' \u00b7 ') + '</span>'
+      : '<span style="color:var(--green)">Todos os ' + total + ' arquivos abriram.</span>';
+    return ruins.length ? { ok: false, msg: ruins.length + ' com problema' } : { ok: true, msg: 'Tudo certo' };
+  }, 'Testando\u2026');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -5371,7 +5544,7 @@ async function renderPushAdmin() {
       '</div></div>' +
 
     '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-      '<button class="btn btn-primary btn-sm" onclick="pushSalvar()">Salvar credenciais</button>' +
+      '<button class="btn btn-primary btn-sm" onclick="pushSalvar(this)">Salvar credenciais</button>' +
     '</div>' +
     '<div id="pushRes" style="margin-top:10px;font-size:12.5px"></div>' +
   '</div>';
@@ -5422,8 +5595,8 @@ async function renderPushAdmin() {
         '<td style="padding:9px 8px;color:var(--muted)">' + (a.ultimo ? fmtDate(a.ultimo) : '—') + '</td>' +
         '<td style="padding:9px 8px">' + estado + '</td>' +
         '<td style="padding:9px 8px;text-align:right">' +
-          '<button class="btn btn-ghost btn-sm" onclick="pushTeste(\'' +
-            escHtml(a.email).replace(/'/g, "\\'") + '\')">Testar</button></td>' +
+          '<button class="btn btn-ghost btn-sm" data-email="' + escHtml(a.email) + '" ' +
+            'onclick="pushTeste(this, this.dataset.email)">Testar</button></td>' +
         '</tr>';
     });
     html += '</tbody></table></div>';
@@ -5432,7 +5605,7 @@ async function renderPushAdmin() {
   html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center">' +
       '<input class="form-control" id="pushAlvo" style="flex:1;min-width:210px" ' +
         'placeholder="e-mail para receber o teste" value="' + escHtml(st.meuEmail || '') + '">' +
-      '<button class="btn btn-primary btn-sm" onclick="pushTeste()">Enviar teste</button>' +
+      '<button class="btn btn-primary btn-sm" onclick="pushTeste(this)">Enviar teste</button>' +
     '</div>' +
     '<div id="pushTesteRes" style="margin-top:10px;font-size:12.5px"></div>' +
   '</div>';
@@ -5474,8 +5647,8 @@ async function renderPushAdmin() {
       'no app. Mandar a pessoa tocar num aviso que abre uma tela inexistente destrói a confiança em ' +
       'todas as outras notificações.</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">' +
-      '<button class="btn btn-primary btn-sm" onclick="pushAgendaSalvar()">Salvar agenda</button>' +
-      '<button class="btn btn-ghost btn-sm" onclick="pushAgendaRodar()">Rodar agora (envia de verdade)</button>' +
+      '<button class="btn btn-primary btn-sm" onclick="pushAgendaSalvar(this)">Salvar agenda</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="pushAgendaRodar(this)">Rodar agora (envia de verdade)</button>' +
     '</div>' +
     '<div id="pushAgRes" style="margin-top:10px;font-size:12.5px"></div>' +
   '</div>';
@@ -5489,51 +5662,44 @@ function _puMsg(alvo, texto, cor) {
   if (el) el.innerHTML = '<span style="color:' + cor + '">' + texto + '</span>';
 }
 
-async function pushSalvar() {
-  var v = document.getElementById('pushVapid').value.trim();
-  var c = document.getElementById('pushConta').value.trim();
-  if (!v && !c) { _puMsg('pushRes', 'Nada para salvar.', 'var(--danger)'); return; }
-
-  _puMsg('pushRes', 'Salvando&hellip;', 'var(--muted)');
-  try {
+async function pushSalvar(botao) {
+  return acaoBotao(botao, async function () {
+    var v = document.getElementById('pushVapid').value.trim();
+    var c = document.getElementById('pushConta').value.trim();
+    if (!v && !c) return { ok: false, msg: 'Nada para salvar' };
     var payload = {};
     if (v) payload.vapid = v;
     if (c) payload.serviceAccount = c;
     var r = await rpc('pushSalvarConfig', payload);
-    if (!r || !r.ok) { _puMsg('pushRes', escHtml((r && r.error) || 'Falhou.'), 'var(--danger)'); return; }
+    if (!r || !r.ok) { _puMsg('pushRes', escHtml((r && r.error) || 'Falhou.'), 'var(--danger)'); return { ok: false, msg: 'Não salvou' }; }
     document.getElementById('pushConta').value = '';
     document.getElementById('pushVapid').value = '';
     _puMsg('pushRes', escHtml(r.message), 'var(--green)');
-    setTimeout(renderPushAdmin, 1200);
-  } catch (e) {
-    _puMsg('pushRes', 'Erro de conexão.', 'var(--danger)');
-  }
+    return { ok: true, msg: 'Salvo', depois: renderPushAdmin };
+  }, 'Salvando\u2026');
 }
 
-async function pushTeste(email) {
-  var alvo = email || (document.getElementById('pushAlvo') || {}).value || '';
-  alvo = String(alvo).trim();
-  if (!alvo) { _puMsg('pushTesteRes', 'Informe um e-mail.', 'var(--danger)'); return; }
-
-  _puMsg('pushTesteRes', 'Enviando para ' + escHtml(alvo) + '&hellip;', 'var(--muted)');
-  try {
+async function pushTeste(botao, email) {
+  return acaoBotao(botao, async function () {
+    var alvo = String(email || (document.getElementById('pushAlvo') || {}).value || '').trim();
+    if (!alvo) return { ok: false, msg: 'Informe um e-mail' };
     var r = await rpc('pushTestar', { email: alvo });
     if (r && r.ok) {
-      _puMsg('pushTesteRes', 'Enviado para ' + escHtml(r.email) + ' — ' + r.data.enviados +
+      _puMsg('pushTesteRes', 'Enviado para ' + escHtml(r.email) + ' \u2014 ' + r.data.enviados +
         ' aparelho(s). Deve chegar em segundos, no celular e no computador.', 'var(--green)');
-      setTimeout(renderPushAdmin, 2500);
-      return;
+      return { ok: true, msg: 'Enviado' };
     }
     _puMsg('pushTesteRes', escHtml(String((r && r.error) || 'Falhou.')), 'var(--danger)');
-  } catch (e) {
-    _puMsg('pushTesteRes', 'Erro de conexão.', 'var(--danger)');
-  }
+    return { ok: false, msg: 'Não enviou' };
+  }, 'Enviando\u2026');
 }
 
-async function pushAgendaSalvar() {
+async function pushAgendaSalvar(botao) {
+  return acaoBotao(botao, function () { return _pushAgendaSalvar(); }, 'Salvando\u2026');
+}
+async function _pushAgendaSalvar() {
   var v = function (id) { var e = document.getElementById('pa_' + id); return e ? e.value : ''; };
   var chk = document.getElementById('pa_ativa');
-  _puMsg('pushAgRes', 'Salvando&hellip;', 'var(--muted)');
   try {
     var r = await rpc('pushAgendaSalvar', {
       ativa: !!(chk && chk.checked),
@@ -5543,26 +5709,32 @@ async function pushAgendaSalvar() {
     });
     _puMsg('pushAgRes', escHtml((r && (r.message || r.error)) || 'Falhou.'),
            (r && r.ok) ? 'var(--green)' : 'var(--danger)');
+    return { ok: !!(r && r.ok), msg: (r && r.ok) ? 'Salvo' : 'Não salvou' };
   } catch (e) {
     _puMsg('pushAgRes', 'Erro de conexão.', 'var(--danger)');
+    return { ok: false, msg: 'Erro de conexão' };
   }
 }
 
-async function pushAgendaRodar() {
-  _puMsg('pushAgRes', 'Avaliando todo mundo&hellip;', 'var(--muted)');
+async function pushAgendaRodar(botao) {
+  return acaoBotao(botao, function () { return _pushAgendaRodar(); }, 'Avaliando\u2026');
+}
+async function _pushAgendaRodar() {
   try {
     var r = await rpc('pushAgendaRodarAgora', {});
     if (!r || !r.ok) {
       var e1 = String((r && r.error) || 'Falhou.');
       if (e1.indexOf('nao configurado') >= 0) e1 = 'Salve as credenciais do Firebase primeiro.';
       _puMsg('pushAgRes', escHtml(e1), 'var(--danger)');
-      return;
+      return { ok: false, msg: 'Falhou' };
     }
     var d = r.data || {};
     _puMsg('pushAgRes', 'Avaliados ' + d.avaliados + ' &middot; <b>enviados ' + d.enviados +
       '</b> &middot; pulados ' + d.pulados + ' &middot; erros ' + d.erros, 'var(--text)');
+    return { ok: true, msg: d.enviados + ' enviados' };
   } catch (e) {
     _puMsg('pushAgRes', 'Erro de conexão.', 'var(--danger)');
+    return { ok: false, msg: 'Erro de conexão' };
   }
 }
 
