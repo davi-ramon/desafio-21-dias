@@ -4842,12 +4842,17 @@ async function renderMigracao() {
   '</div>';
 
   // Passo 3
-  html += '<div class="card" style="margin-bottom:16px">' +
-    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">3. Publicar pela conta nova</div>' +
+  html += '<div class="card" style="margin-bottom:16px' + (d.trocaFeita ? ';border-color:rgba(76,175,80,.4)' : '') + '">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">' +
+      (d.trocaFeita ? '\u2713 ' : '') + '3. Publicar pela conta nova</div>' +
     '<div style="font-size:12.5px;color:var(--muted);line-height:1.75">' +
-      'Feito no terminal, com o clasp logado na conta nova. Isso gera uma URL nova para o sistema, ' +
-      'que e trocada nos 19 arquivos do site antes de desligar a antiga \u2014 sem downtime. ' +
-      'Quando terminar, esta tela passa a mostrar a conta nova no topo.</div>' +
+      (d.trocaFeita
+        ? '<span style="color:var(--green)">Feito.</span> O sistema ja roda como <b style="color:var(--text)">' +
+          escHtml(d.destino) + '</b>, no <b>mesmo endereco</b> de antes \u2014 site, bot do Telegram e ' +
+          'webhook da Cakto nao precisaram mudar.'
+        : 'Feito no terminal, com o clasp logado na conta nova (<code>--user wagner</code>). Publicar o ' +
+          'endereco existente por essa conta faz o sistema passar a rodar como ela, sem mudar a URL.') +
+    '</div>' +
   '</div>';
 
   // Passo 4

@@ -179,6 +179,10 @@ passo('inventario agora ve o acesso do destino', () => {
   exige(d.destino === WAGNER, 'destino');
   exige(d.itens.filter(i => !i.ausente).every(i => i.destinoTemAcesso === true), 'algum item sem acesso');
 });
+passo('sonda publica ANTES da troca diz que nao', () => {
+  const r = ctx.getMigracaoStatus();
+  exige(r.ok && r.data.rodaComoDestino === false, JSON.stringify(r));
+});
 passo('recriar gatilhos ANTES da troca e recusado', () => {
   const r = ctx.migracaoRecriarGatilhos('adm');
   exige(!r.ok && /ainda roda/.test(r.error), 'deixou duplicar: ' + JSON.stringify(r));
@@ -194,6 +198,13 @@ passo('apagar gatilhos antigos antes de recriar e recusado', () => {
 
 console.log('\nDEPOIS DA TROCA (deploy feito pela conta nova)');
 rodandoComo = WAGNER;
+passo('sonda publica: responde so booleanos, e ve a troca', () => {
+  const r = ctx.getMigracaoStatus();
+  exige(r.ok && r.data.rodaComoDestino === true && r.data.destinoDefinido === true, JSON.stringify(r));
+  const txt = JSON.stringify(r);
+  exige(!/@/.test(txt), 'a rota publica vazou e-mail: ' + txt);
+  return txt;
+});
 passo('inventario reconhece a troca', () => {
   const d = ctx.getMigracaoInventario('adm').data;
   exige(d.trocaFeita === true && d.rodandoComo === WAGNER, 'nao viu a troca');

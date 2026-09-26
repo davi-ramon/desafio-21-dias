@@ -430,7 +430,10 @@ function doPost(e) {
       // v155 — rodape do e-mail: quem clica ainda nao tem sessao
       payload.action === 'preferenciasEmail'        ||
       // v159 — clique no link de indicacao: acontece antes de qualquer cadastro
-      payload.action === 'registrarCliqueIndicacao'
+      payload.action === 'registrarCliqueIndicacao' ||
+      // migracao — so booleanos (nenhum e-mail sai); confere a troca de
+      // conta de fora, antes de mexer no endereco de producao
+      payload.action === 'getMigracaoStatus'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

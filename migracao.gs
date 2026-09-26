@@ -200,6 +200,26 @@ function getMigracaoInventario(token) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ROTA PÚBLICA: getMigracaoStatus
+// ------------------------------------------------------------
+// Responde só booleanos — nenhum e-mail sai daqui. Existe para conferir
+// a troca de fora, antes de mexer na produção: um endereço de teste
+// publicado pela conta nova responde JSON (autorizada) ou uma página de
+// "autorização necessária" (não autorizada). Na produção, diz se o
+// endereço já passou a rodar como a conta nova.
+// ─────────────────────────────────────────────────────────────
+function getMigracaoStatus() {
+  var props = PropertiesService.getScriptProperties();
+  var destino = String(props.getProperty(MIG_PROP_DESTINO) || '').toLowerCase();
+  var rodando = _migRodandoComo_();
+  return { ok: true, data: {
+    destinoDefinido: !!destino,
+    rodaComoDestino: !!destino && rodando === destino,
+    gatilhosRecriados: !!props.getProperty(MIG_PROP_RECRIADOS)
+  } };
+}
+
+// ─────────────────────────────────────────────────────────────
 // ROTA (admin): migracaoCompartilhar — passo 2
 // ------------------------------------------------------------
 // Só ACRESCENTA acesso. Nada muda de dono, nada sai do lugar, o

@@ -298,6 +298,7 @@ function handleRequest(payload) {
     case 'criarCheckoutTrialCartao': return criarCheckoutTrialCartao(data);
     // v151 — prova social com dados reais (publica, sem token)
     case 'getAtividadeReal':         return getAtividadeReal(data);
+    case 'getMigracaoStatus':        return getMigracaoStatus();
     // v154 — pos-checkout do trial com cartao
     case 'statusTrialCartao':        return statusTrialCartao(data);
     case 'preferenciasEmail':        return preferenciasEmail(data);
