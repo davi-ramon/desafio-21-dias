@@ -16,13 +16,21 @@ function passo(nome, fn) {
   );
 }
 
+// v169: o estado do botão é um SELO por cima (.fb-ico), o conteúdo original
+// não é tocado — o botão falso aceita filhos para isso.
 function botaoFalso(texto, dataset) {
   const cls = new Set();
-  return { cls, innerHTML: texto, disabled: false, offsetWidth: 90, isConnected: true,
+  const b = { cls, innerHTML: texto, disabled: false, offsetWidth: 90, isConnected: true, _filhos: [], attrs: {},
     style: {}, dataset: Object.assign({}, dataset || {}),
     classList: { add: (...c) => c.forEach(x => cls.add(x)), remove: (...c) => c.forEach(x => cls.delete(x)),
-                 contains: c => cls.has(c) } };
+                 contains: c => cls.has(c) },
+    getAttribute: k => (k in b.attrs ? b.attrs[k] : null), setAttribute: (k, v) => { b.attrs[k] = String(v); },
+    removeAttribute: k => { delete b.attrs[k]; },
+    querySelector: () => b._filhos.find(f => f.className === 'fb-ico') || null,
+    appendChild: f => { b._filhos.push(f); f.remove = () => { b._filhos = b._filhos.filter(x => x !== f); }; return f; } };
+  return b;
 }
+const seloDe = b => (b._filhos.find(f => f.className === 'fb-ico') || {}).innerHTML || '';
 
 const SONS = [
   { id: 's1', titulo: 'Chuva no telhado', subtitulo: 'Noite inteira', categoria: 'chuva',
@@ -349,20 +357,20 @@ process.on('exit', () => {
   console.log('\nADMIN: botoes com estado, salvar, recorte');
 
 
-  await passo('acaoBotao: gira, trava, fica verde e volta', async () => {
+  await passo('acaoBotao: gira, trava, fica azul com ✓ e volta', async () => {
     const b = botaoFalso('Salvar'); ultimoBotao = b;
     let noMeio = null;
     const r = await d.acaoBotao(b, async () => {
-      noMeio = { dis: b.disabled, cls: [...b.cls].join(' '), spin: b.innerHTML.includes('btn-spin') };
+      noMeio = { dis: b.disabled, cls: [...b.cls].join(' '), spin: seloDe(b).includes('fb-spin') && seloDe(b).includes('Salvando') };
       const segundo = await d.acaoBotao(b, async () => { throw new Error('rodou duas vezes'); });
       if (segundo !== null) throw new Error('segundo clique nao foi ignorado');
       return { ok: true, msg: 'Salvo' };
     }, 'Salvando');
-    if (!noMeio.dis || !noMeio.spin || !/btn-ocupado/.test(noMeio.cls)) throw new Error('sem estado de espera: ' + JSON.stringify(noMeio));
+    if (!noMeio.dis || !noMeio.spin || !/fb-on/.test(noMeio.cls)) throw new Error('sem estado de espera: ' + JSON.stringify(noMeio));
     const e = esperas.pop();
-    if (!/btn-ok/.test(e.cls) || e.ms < 1000) throw new Error('verde nao apareceu por 1s: ' + JSON.stringify(e));
-    if (b.disabled || b.innerHTML !== 'Salvar' || b.cls.size) throw new Error('nao voltou ao normal: ' + b.innerHTML + ' ' + [...b.cls]);
-    return 'espera -> verde ' + e.ms + 'ms -> normal';
+    if (!/fb-ok/.test(e.cls) || e.ms < 1000) throw new Error('azul nao apareceu por 1s: ' + JSON.stringify(e));
+    if (b.disabled || b.innerHTML !== 'Salvar' || b.cls.size || b._filhos.length) throw new Error('nao voltou ao normal: ' + b.innerHTML + ' ' + [...b.cls]);
+    return 'espera -> azul ' + e.ms + 'ms -> normal';
   });
 
   await passo('acaoBotao: erro fica vermelho mais tempo e avisa o detalhe', async () => {
@@ -371,7 +379,7 @@ process.on('exit', () => {
     await d.acaoBotao(b, async () => ({ ok: false, msg: 'Nao salvou', detalhe: 'motivo longo' }));
     d.toast = t0;
     const e = esperas.pop();
-    if (!/btn-erro/.test(e.cls) || e.ms < 1500) throw new Error('vermelho: ' + JSON.stringify(e));
+    if (!/fb-erro/.test(e.cls) || e.ms < 1500) throw new Error('vermelho: ' + JSON.stringify(e));
     if (!avisos.some(a => /error:motivo longo/.test(a))) throw new Error('detalhe nao foi para o aviso');
     return 'vermelho ' + e.ms + 'ms + aviso';
   });

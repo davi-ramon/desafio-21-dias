@@ -15,6 +15,9 @@ const PUB = path.join(__dirname, '..', 'site', 'wpktavares-site', 'public');
 const RASTREIO_JS = fs.readFileSync(path.join(PUB, 'assets', 'd21-rastreio.js'), 'utf8');
 
 let falhas = 0;
+// Promessa rejeitada sem tratamento (render assíncrono de algum cartão) não
+// pode derrubar a bateria em silêncio: vira falha com a mensagem.
+process.on('unhandledRejection', e => { falhas++; console.log('  FALHA (rejeicao solta) ' + (e && e.message)); });
 async function passo(nome, fn) {
   try { const r = await fn(); console.log('  ok    ' + nome + (r ? '  (' + r + ')' : '')); }
   catch (e) { falhas++; console.log('  FALHA ' + nome + '\n        ' + (e && e.message)); }
@@ -238,6 +241,9 @@ function abrir(rel, cfg) {
   console.log('\nADMIN');
   const adm = abrir('admin/index.html', { pathname: '/admin/', comRastreio: false, tolerar: /bloco 1: ReferenceError: CRM is not defined/ });
   const A = adm.ctx;
+  // o rpc VERDADEIRO, antes de qualquer teste trocar por um falso
+  const RPC_ORIGINAL = A.__ler('rpc');
+  const usarRpcOriginal = () => A.__ler('(function (f) { rpc = f; })')(RPC_ORIGINAL);
   const CF = { origem: 'trial-app', origem_primeira: 'trial-sem-cartao', rota: 'app-instalado', campanha: 'roteiro-05',
                utm_source: 'facebook', utm_medium: 'paid', utm_content: 'criativo-b', pagina_entrada: '/instalar/',
                dispositivo: 'android-app', consentimento_em: '2026-09-28T12:00:00Z', termos_versao: 'contato-2026-09-v1', oferta_dias: 7 };
@@ -266,6 +272,7 @@ function abrir(rel, cfg) {
         autoWhatsBoasVindas: true, autoWhatsBoasVindasSc: true, boasVindasScEfetivo: { nome: 'bv_teste_gratis', proprio: true },
         trialDiasApp: 7, lembreteDias: '2' } };
       if (acao === 'waSalvarConfig') { salvo = dados.cfg; return { ok: true }; }
+      if (acao === 'capiStatus') return { ok: true, data: { ativo: true, pixelId: '1', temToken: true, tokenMascarado: '••', testCode: '', eventos: {} } };
       return { ok: true, data: {} };
     };
     A.__ler('(function(){ rpc = globalThis.rpc; })()');
@@ -310,51 +317,167 @@ function abrir(rel, cfg) {
     exige(A.__el('emsChave').value === '', 'a chave ficou na tela');
   });
 
-  await passo('v168: quadro "o que cada pessoa recebe" com o que falta, e teste do sem cartao', async () => {
-    let testado = null;
-    A.rpc = async (acao, dados) => {
-      if (acao === 'getRitoStatus') return { ok: true, data: {
-        email: { canal: 'gmail', semCartao: true, cartao: true },
-        whatsapp: { credenciais: true, conectado: true,
-          semCartao: { ligado: true, template: 'bv_teste_gratis', proprio: true, meta: { status: 'APPROVED', categoria: 'MARKETING' }, faltas: [] },
-          cartao: { ligado: false, template: '', meta: null, faltas: ['automacao_desligada', 'template_nao_escolhido'] } },
-        rotinaStripe: true, pronto: { semCartao: true, cartao: false } } };
-      if (acao === 'waTestar') { testado = dados; return { ok: true, message: 'Enviado para +5594991234567' }; }
-      return { ok: true, data: {} };
+  // ── v169 ──────────────────────────────────────────────────
+  const RITO = (semCartao, cartao, pronto) => ({ ok: true, data: {
+    email: { canal: 'gmail', semCartao: true, cartao: true },
+    whatsapp: { credenciais: true, conectado: true, semCartao: semCartao, cartao: cartao },
+    rotinaStripe: true, pronto: pronto } });
+  const TEMPLATES = [
+    { nome: 'desafio21_trial_boasvindas_mkt', idioma: 'pt_BR', status: 'APPROVED', categoria: 'MARKETING', variaveis: 3,
+      corpo: 'Oi {{1}}! Seu teste de {{2}} dias começou. Primeira cobrança em {{3}}.' },
+    { nome: 'desafio21_boasvindas_teste_gratis', idioma: 'pt_BR', status: 'APPROVED', categoria: 'UTILITY', variaveis: 3,
+      corpo: 'Olá, {{1}}! Sua conta foi criada, {{2}} dias grátis até {{3}}.' }
+  ];
+  function botaoFalso(ds) {
+    const cls = new Set();
+    const b = {
+      dataset: Object.assign({}, ds || {}), disabled: false, style: { minWidth: '' }, offsetWidth: 150,
+      offsetParent: {}, isConnected: true, attrs: {}, _filhos: [],
+      classList: { add: (...c) => c.forEach(x => cls.add(x)), remove: (...c) => c.forEach(x => cls.delete(x)), contains: c => cls.has(c) },
+      getAttribute: k => (k in b.attrs ? b.attrs[k] : null), setAttribute: (k, v) => { b.attrs[k] = String(v); },
+      removeAttribute: k => { delete b.attrs[k]; },
+      querySelector: () => b._filhos.find(f => f.className === 'fb-ico') || null,
+      appendChild: f => { b._filhos.push(f); f.remove = () => { b._filhos = b._filhos.filter(x => x !== f); }; return f; },
+      closest: () => null
     };
-    A.__ler('(function(){ rpc = globalThis.rpc; })()');
-    A.__el('taRitoBox').innerHTML = '';
-    await A.taRitoCarregar();
-    const h = A.__el('taRitoBox').innerHTML;
-    ['falta configurar', 'Sem cart&atilde;o e app', 'Com cart&atilde;o', 'bv_teste_gratis', 'est&aacute; desligada', 'Nenhum template escolhido', 'MARKETING', 'pelo Gmail']
-      .forEach(t => exige(h.indexOf(t) >= 0, 'faltou "' + t + '"'));
-    A.__ler('TA').cfg = { tplBoasVindasSc: 'bv_teste_gratis', tplBoasVindasScVars: '["primeiro_nome","fim_teste"]', trialDiasApp: 7 };
-    A.__el('ta_teste_num').value = '(94) 99123-4567';
-    await A.taTestarSc();
-    exige(testado && testado.template === 'bv_teste_gratis' && testado.vars === '["primeiro_nome","fim_teste"]', JSON.stringify(testado));
+    b.cls = cls;
+    return b;
+  }
+
+  await passo('v169: rpc do admin tenta de novo quando o servidor devolve HTML (era o erro dos templates)', async () => {
+    const fila = [];
+    A.setTimeout = fn => { fila.push(fn); return fila.length; };
+    let n = 0;
+    A.fetch = () => { n++; return Promise.resolve({ text: () => Promise.resolve(n < 3 ? '<!DOCTYPE html><html>erro</html>' : '{"ok":true,"data":[1]}') }); };
+    usarRpcOriginal();
+    const p = A.__ler('rpc')('waListarTemplates', {});
+    for (let i = 0; i < 20 && n < 3; i++) { await tick(); while (fila.length) fila.shift()(); }
+    const r = await p;
+    exige(r.ok && n === 3, 'tentativas=' + n);
+    // 3 respostas HTML seguidas: erro claro, sem "Unexpected token"
+    n = -10;
+    const p2 = A.__ler('rpc')('waListarTemplates', {}).then(() => 'resolveu', e => e.message);
+    for (let i = 0; i < 20; i++) { await tick(); while (fila.length) fila.shift()(); }
+    const m = await p2;
+    exige(/não respondeu direito/.test(m) && !/Unexpected token/.test(m), m);
+    return '2 paginas HTML -> 3a tentativa ok';
   });
 
-  await passo('v168: sem template do sem cartao -> botao cria e manda para a Meta', async () => {
+  await passo('v169: botao que chama o servidor trava, carrega, e fecha com ✓ azul', async () => {
+    const fila = [];
+    A.setTimeout = fn => { fila.push(fn); return fila.length; };
+    let resolver;
+    A.fetch = () => new Promise(r => { resolver = () => r({ text: () => Promise.resolve('{"ok":true}') }); });
+    usarRpcOriginal();
+    const b = botaoFalso();
+    const FB = A.__ler('FB');
+    FB.botao = b; FB.ate = Date.now() + 700; FB.cliqueEm = Date.now();
+    const p = A.__ler('rpc')('waSalvarConfig', { cfg: {} });
+    exige(b.disabled && b.cls.has('fb-on') && /fb-spin/.test(b._filhos[0].innerHTML), 'nao entrou em carregando');
+    // segundo clique no mesmo botao: ignorado (disabled)
+    exige(b.disabled === true, 'nao travou');
+    resolver();
+    await p; await ticks();
+    while (fila.length && !b.cls.has('fb-ok')) { fila.shift()(); await ticks(2); }
+    exige(b.cls.has('fb-ok') && /M5 12\.5/.test(b._filhos[0].innerHTML) && /Pronto/.test(b._filhos[0].innerHTML), 'sem estado de sucesso');
+    while (fila.length) { fila.shift()(); await ticks(2); }
+    exige(!b.cls.has('fb-on') && !b.cls.has('fb-ok') && b.disabled === false && !b._filhos.length, 'nao voltou ao normal');
+  });
+
+  await passo('v169: resposta negativa -> ✕ vermelho, motivo no botao e aviso na tela', async () => {
+    const fila = [];
+    A.setTimeout = fn => { fila.push(fn); return fila.length; };
+    A.fetch = () => Promise.resolve({ text: () => Promise.resolve('{"ok":false,"error":"Template não existe"}') });
+    const avisos = [];
+    const toastOrig = A.__ler('toast');
+    A.__ler("(function(){ toast = function (m, t) { __avisos.push(t + ':' + m); }; })()");
+    A.__avisos = avisos;
+    usarRpcOriginal();
+    const b = botaoFalso();
+    const FB = A.__ler('FB');
+    FB.botao = b; FB.ate = Date.now() + 700; FB.cliqueEm = Date.now(); FB.toastEm = 0;
+    await A.__ler('rpc')('waTestar', {});
+    await ticks();
+    while (fila.length && !b.cls.has('fb-erro')) { fila.shift()(); await ticks(2); }
+    exige(b.cls.has('fb-erro') && /M7 7l10 10/.test(b._filhos[0].innerHTML) && b.attrs.title === 'Template não existe', 'sem estado de erro');
+    while (fila.length) { fila.shift()(); await ticks(2); }
+    exige(avisos.some(a => a === 'error:Template não existe'), 'sem aviso: ' + avisos);
+    exige(!b.cls.has('fb-erro') && b.disabled === false, 'nao voltou ao normal');
+    A.__ler('(function(t){ toast = t; })')(toastOrig);
+  });
+
+  await passo('v169: quadro por rota — escolher, ver aviso, testar e salvar como padrao', async () => {
+    let testado = null, salvo = null, ligado = null;
+    A.setTimeout = () => 0;
+    A.rpc = async (acao, dados) => {
+      if (acao === 'getRitoStatus') return RITO(
+        { ligado: true, template: '', proprio: false, meta: null, faltas: ['template_nao_escolhido'] },
+        { ligado: true, template: 'desafio21_trial_boasvindas_mkt', meta: { status: 'APPROVED', categoria: 'MARKETING' }, faltas: [] },
+        { semCartao: false, cartao: true });
+      if (acao === 'waListarTemplates') return { ok: true, data: TEMPLATES };
+      if (acao === 'waTestar') { testado = dados; return { ok: true, message: 'Enviado' }; }
+      if (acao === 'waSalvarConfig') { if (dados.cfg.tplBoasVindasSc || dados.cfg.tplBoasVindas) salvo = dados.cfg; else ligado = dados.cfg; return { ok: true }; }
+      return { ok: true, data: {} };
+    };
+    A.acaoBotao = async (b, fn) => { const r = await fn(); if (r && r.ok && r.depois) await r.depois(); return r; };
+    A.__ler('(function(){ rpc = globalThis.rpc; acaoBotao = globalThis.acaoBotao; })()');
+    A.__ler('TA').cfg = { tplBoasVindas: 'desafio21_trial_boasvindas_mkt', tplBoasVindasVars: '["primeiro_nome","dias_trial","data_cobranca"]', trialDiasApp: 7 };
+    A.__ler('TA').templates = [];
+    await A.taRitoCarregar(true);
+    const h = A.__el('taRitoBox').innerHTML;
+    ['Sem cart&atilde;o e app', 'Com cart&atilde;o', 'ta_tpl_sc', 'ta_tpl_bv', 'Testar no meu n&uacute;mero', 'Salvar como padr&atilde;o',
+     'ta_rt_liga_sc', 'Seu WhatsApp (para os testes)', 'Nenhum template escolhido']
+      .forEach(t => exige(h.indexOf(t) >= 0, 'faltou "' + t + '"'));
+    // escolhe o template DO CARTAO para o sem cartao: avisa de cobranca e MARKETING
+    A.__el('ta_tpl_sc').value = 'desafio21_trial_boasvindas_mkt';
+    A.taAoTrocarTemplate('sc');
+    const aviso = A.__el('ta_aviso_sc').innerHTML;
+    exige(/cobran/.test(aviso) && /MARKETING/.test(aviso), 'avisos: ' + aviso);
+    // testa e salva como padrao do sem cartao
+    A.__el('ta_teste_num').value = '63992998814';
+    A.__el('ta_v_sc_1').value = 'primeiro_nome'; A.__el('ta_v_sc_2').value = 'dias_trial'; A.__el('ta_v_sc_3').value = 'fim_teste';
+    await A.taRitoTestar({ dataset: { pref: 'sc' } });
+    exige(testado && testado.template === 'desafio21_trial_boasvindas_mkt' && testado.numero === '63992998814' &&
+          testado.vars === '["primeiro_nome","dias_trial","fim_teste"]' && testado.dias === 7, JSON.stringify(testado));
+    await A.taRitoSalvar({ dataset: { pref: 'sc' } });
+    exige(salvo && salvo.tplBoasVindasSc === 'desafio21_trial_boasvindas_mkt' && salvo.tplBoasVindasScVars === '["primeiro_nome","dias_trial","fim_teste"]'
+          && !('tplBoasVindas' in salvo), JSON.stringify(salvo));
+    // desliga o envio da rota
+    const chave = { dataset: { pref: 'sc' }, checked: false };
+    await A.taRitoLigar(chave);
+    exige(ligado && ligado.autoWhatsBoasVindasSc === false, JSON.stringify(ligado));
+    return 'testou e salvou ' + salvo.tplBoasVindasSc + ' no sem cartao';
+  });
+
+  await passo('v169: criar template novo do sem cartao continua funcionando', async () => {
     let criado = null;
     A.rpc = async (acao, dados) => {
-      if (acao === 'getRitoStatus') return { ok: true, data: {
-        email: { canal: 'gmail', semCartao: true, cartao: true },
-        whatsapp: { credenciais: true, conectado: true,
-          semCartao: { ligado: true, template: '', proprio: false, meta: null, faltas: ['template_nao_escolhido'] },
-          cartao: { ligado: true, template: 'desafio21_trial_boasvindas_mkt', meta: { status: 'APPROVED', categoria: 'MARKETING' }, faltas: [] } },
-        rotinaStripe: true, pronto: { semCartao: false, cartao: true } } };
-      if (acao === 'waCriarTemplateSemCartao') { criado = dados; return { ok: true, status: 'PENDING', message: 'Enviado para a Meta aprovar.' }; }
+      if (acao === 'getRitoStatus') return RITO(
+        { ligado: true, template: '', proprio: false, meta: null, faltas: ['template_nao_escolhido'] },
+        { ligado: true, template: 'x', meta: { status: 'APPROVED', categoria: 'UTILITY' }, faltas: [] },
+        { semCartao: false, cartao: true });
+      if (acao === 'waListarTemplates') return { ok: true, data: TEMPLATES };
+      if (acao === 'waCriarTemplateSemCartao') { criado = dados; return { ok: true, nome: dados.nome, status: 'PENDING', message: 'Enviado para a Meta aprovar.' }; }
       return { ok: true, data: {} };
     };
     A.__ler('(function(){ rpc = globalThis.rpc; })()');
-    await A.taRitoCarregar();
-    exige(/Criar o template do sem cart/.test(A.__el('taRitoBox').innerHTML), 'sem botao de criar');
+    await A.taRitoCarregar(true);
+    exige(/Criar um template novo do sem cart/.test(A.__el('taRitoBox').innerHTML), 'sem botao de criar');
     A.taCriarTemplateSc();
     exige(/Sua conta no Desafio 21 Dias foi criada/.test(A.__el('tsc_texto').value), 'texto padrao nao carregou');
     A.__el('tsc_nome').value = 'desafio21_boasvindas_teste_gratis';
     A.__el('tsc_cat').value = 'UTILITY';
     await A.taEnviarTemplateSc();
-    exige(criado && criado.categoria === 'UTILITY' && /\{\{1\}\}/.test(criado.texto) && criado.nome === 'desafio21_boasvindas_teste_gratis', JSON.stringify(criado));
+    exige(criado && criado.categoria === 'UTILITY' && /\{\{1\}\}/.test(criado.texto), JSON.stringify(criado));
+  });
+
+  await passo('v169: login do admin le a resposta da recuperacao (antes ignorava)', () => {
+    const src = fs.readFileSync(path.join(PUB, 'admin', 'index.html'), 'utf8');
+    const i = src.indexOf('function _lgSubmitRecuperar');
+    const corpo = src.slice(i, src.indexOf('function _lgSubmitRedefinir'));
+    exige(/_lgPost\('sendPasswordReset', \{ email: em \}\)\.then\(function \(res\)/.test(corpo) &&
+          /if \(!res \|\| !res\.ok\) \{ _lgFalhou/.test(corpo), 'a resposta continua ignorada');
+    exige(/_lgPost\('login'/.test(src) && !/action: 'login', data: \{ email: email, password: pass \}/.test(src), 'login ainda le JSON direto');
   });
 
   console.log(falhas ? '\n' + falhas + ' FALHA(S)' : '\nOK — front da v166 conferido por execucao');

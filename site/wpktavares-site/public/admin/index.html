@@ -956,6 +956,11 @@ button,
 .lg-btn:active:not(:disabled){transform:translateY(1px)}
 .lg-btn:disabled{cursor:not-allowed;filter:grayscale(.3) brightness(.82)}
 .lg-btn:focus-visible{outline:2px solid #a5d6a7;outline-offset:2px}
+/* v169: deu certo (azul) e deu errado (vermelho + tremor), sem o cinza de desabilitado */
+.lg-btn.lg-btn-ok{background:#2563eb !important;filter:none !important;box-shadow:0 6px 22px rgba(37,99,235,.4)}
+.lg-btn.lg-btn-erro{background:#dc2626 !important;filter:none !important;box-shadow:0 6px 22px rgba(220,38,38,.4);
+  animation:lgBtnTreme .4s ease}
+@keyframes lgBtnTreme{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
 
 .lg-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;
   border-radius:50%;animation:lgSpin .62s linear infinite;flex-shrink:0}
@@ -1009,6 +1014,29 @@ button,
   @keyframes btnTreme{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}
     40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
   @media (prefers-reduced-motion:reduce){.btn-spin,.btn.btn-ok,.btn.btn-erro{animation:none}}
+
+  /* v169 — RETORNO VISUAL EM TODO BOTÃO QUE FALA COM O SERVIDOR.
+     O conteúdo original fica escondido (não é apagado) e um selo por
+     cima mostra: carregando → ✓ azul (deu certo) ou ✕ vermelho (erro).
+     O botão fica travado do clique até o fim: a ação nunca roda 2x. */
+  button.fb-on{position:relative;pointer-events:none;overflow:hidden;color:transparent !important}
+  button.fb-on > :not(.fb-ico){visibility:hidden}
+  .fb-ico{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;
+    font-size:12.5px;font-weight:700;white-space:nowrap;visibility:visible;padding:0 8px;
+    color:#fff}  /* padrão de segurança: a cor do próprio botão (inline) vence quando existe */
+  .fb-spin{width:15px;height:15px;flex-shrink:0;border:2px solid currentColor;border-right-color:transparent;
+    border-radius:50%;animation:btnGira .7s linear infinite}
+  .fb-ico svg{width:17px;height:17px;flex-shrink:0}
+  .fb-ico svg path{fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:32;stroke-dashoffset:32;animation:fbTraca .4s ease forwards .06s}
+  @keyframes fbTraca{to{stroke-dashoffset:0}}
+  button.fb-ok{background:#2563eb !important;border-color:#2563eb !important;
+    box-shadow:0 4px 18px rgba(37,99,235,.4) !important;animation:btnPulso .45s ease}
+  button.fb-erro{background:#dc2626 !important;border-color:#dc2626 !important;
+    box-shadow:0 4px 18px rgba(220,38,38,.4) !important;animation:btnTreme .42s ease}
+  button.fb-ok .fb-ico,button.fb-erro .fb-ico{color:#fff !important}
+  @media (prefers-reduced-motion:reduce){.fb-spin,button.fb-ok,button.fb-erro,.fb-ico svg path{animation:none}
+    .fb-ico svg path{stroke-dashoffset:0}}
 </style>
 </head>
 <body>
@@ -1118,9 +1146,19 @@ button,
       b.innerHTML = '<span class="lg-spin" aria-hidden="true"></span><span>Validando…</span>';
     } else if (estado === 'ok') {
       b.disabled = true;
+      b.classList.remove('lg-btn-erro');
+      b.classList.add('lg-btn-ok');
       b.innerHTML = '<svg class="lg-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Pronto!</span>';
+    } else if (estado === 'erro') {
+      // v169: resposta negativa também aparece no botão (vermelho + ✕)
+      b.disabled = true;
+      b.classList.add('lg-btn-erro');
+      b.innerHTML = '<svg class="lg-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg><span>Não deu certo</span>';
+      clearTimeout(b._lgT);
+      b._lgT = setTimeout(function () { if (b.classList.contains('lg-btn-erro')) _lgBtn('idle'); }, 1500);
     } else {
       b.disabled = false;
+      b.classList.remove('lg-btn-erro', 'lg-btn-ok');
       b.innerHTML = '<span>' + _lgEsc(LG_ROTULO) + '</span>';
     }
   }
@@ -1167,7 +1205,7 @@ button,
   }
 
   function _lgFalhou(txt, campo) {
-    _lgBtn('idle');
+    _lgBtn('erro');
     _lgMsg(txt, 'err');
     _lgTremer();
     if (campo && LG_CAMPOS[campo]) {
@@ -1257,13 +1295,23 @@ button,
   }
 
   // POST em rota pública do GAS (login, 2FA, reset, link mágico)
-  function _lgPost(action, data) {
+  // v169: resposta sem JSON (o Apps Script devolve HTML logo depois de um
+  // deploy e no cold start) ganha mais duas tentativas antes de desistir.
+  function _lgPost(action, data, tentativa) {
+    tentativa = tentativa || 0;
     return fetch(GAS_LOGIN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
       body: JSON.stringify({ action: action, data: data || {} }),
       redirect: 'follow'
-    }).then(function (r) { return r.json(); });
+    }).then(function (r) { return r.text(); }).then(function (txt) {
+      try { return JSON.parse(txt); } catch (e) {}
+      if (tentativa < 2) {
+        return new Promise(function (ok) { setTimeout(ok, 1200 * (tentativa + 1)); })
+          .then(function () { return _lgPost(action, data, tentativa + 1); });
+      }
+      throw new Error('resposta invalida');
+    });
   }
 
   // Caminho único de "entrou" — usado por senha, 2FA e link mágico
@@ -1412,12 +1460,8 @@ button,
       _liberar('O servidor demorou demais para responder. Tente novamente.');
     }, 20000);
 
-    fetch(GAS_LOGIN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-      body: JSON.stringify({ action: 'login', data: { email: email, password: pass } }),
-      redirect: 'follow'
-    }).then(function(r){ return r.json(); }).then(function(res){
+    // v169: pelo _lgPost — resposta sem JSON (deploy/cold start) tenta de novo
+    _lgPost('login', { email: email, password: pass }).then(function(res){
       clearTimeout(_tmo);
       if (_resolvido) return;              // timeout já assumiu
 
@@ -1525,7 +1569,10 @@ button,
     if (!_lgEmailValido(em)) { _lgCampoErro('email','Informe um e-mail válido.'); _lgTremer(); e.focus(); return; }
 
     _lgBtn('loading'); _lgMsg('Enviando o código…', '');
-    _lgPost('sendPasswordReset', { email: em }).then(function () {
+    _lgPost('sendPasswordReset', { email: em }).then(function (res) {
+      // v169: antes a resposta era ignorada — se o e-mail NÃO saísse, a
+      // tela seguia para "digite o código" do mesmo jeito.
+      if (!res || !res.ok) { _lgFalhou((res && res.error) || 'Não consegui enviar o código agora.', 'email'); return; }
       _lgEmailReset = em;
       // Resposta idêntica exista ou não a conta — anti-enumeração
       _lgIr('redefinir', 'Se existe conta para <b>' + _lgEsc(em) + '</b>, o código chegou por e-mail. ' +
@@ -2046,7 +2093,19 @@ function showSyncBadge() {
 // ══════════════════════════════════════════════════════════
 // RPC reescrito para Firebase Hosting — POST JSON direto pro GAS (cross-origin OK).
 var _GAS_URL = "https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec";
+// v169: todo botão que chama o servidor ganha retorno visual (ver FB abaixo)
 function rpc(action, data) {
+  var b = _fbDaVez();
+  if (b) _fbInicio(b);
+  var p = _rpcEnviar(action, data, 0);
+  if (b) _fbAcompanhar(b, p);
+  return p;
+}
+
+// v169: o Apps Script devolve uma PÁGINA HTML (não JSON) por alguns segundos
+// logo depois de um deploy e no cold start — era o "Unexpected token '<'"
+// ao carregar os templates da Meta. Lê como texto e tenta de novo (2x).
+function _rpcEnviar(action, data, tentativa) {
   var body = JSON.stringify({ action: action, token: (CRM && CRM.token) || '', data: data || {} });
   return fetch(_GAS_URL, {
     method: 'POST',
@@ -2054,7 +2113,17 @@ function rpc(action, data) {
     body: body,
     redirect: 'follow'
   })
-  .then(function(resp) { return resp.json(); })
+  .then(function(resp) { return resp.text(); })
+  .then(function(txt) {
+    var r = null;
+    try { r = JSON.parse(txt); } catch (e) {}
+    if (r) return r;
+    if (tentativa < 2) {
+      console.warn('[rpc]', action, '→ resposta sem JSON; nova tentativa', tentativa + 1);
+      return _espera(1200 * (tentativa + 1)).then(function () { return _rpcEnviar(action, data, tentativa + 1); });
+    }
+    throw new Error('O servidor não respondeu direito agora. Tente de novo em alguns segundos.');
+  })
   .then(function(r) {
     if (r && !r.ok) {
       console.warn('[rpc]', action, '→ nok:', r.error);
@@ -2073,6 +2142,108 @@ function rpc(action, data) {
     return r;
   })
   .catch(function(e) { console.error('[rpc]', action, '→ falha:', e && e.message); throw e; });
+}
+
+// ══════════════════════════════════════════════════════════
+// v169 — RETORNO VISUAL AUTOMÁTICO NOS BOTÕES
+// Todo botão cujo clique chama o servidor (rpc) ganha, sem mexer no
+// handler de cada tela:
+//   • trava na hora — o segundo clique é ignorado, a ação roda 1 vez;
+//   • animação de carregando enquanto o servidor não responde;
+//   • no fim: azul com ✓ desenhando (deu certo) ou vermelho com ✕ e um
+//     tremor (deu errado). Erro sem aviso na tela vira aviso também.
+// Botão que não chama o servidor (instantâneo) continua igual.
+// Quem usa acaoBotao (dataset.ocupado) fica de fora: ele tem o próprio.
+// ══════════════════════════════════════════════════════════
+var FB = { botao: null, ate: 0, cliqueEm: 0, toastEm: 0 };
+var FB_SVG_OK   = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+var FB_SVG_ERRO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+
+// Captura: roda ANTES do onclick do botão, então o rpc que o handler
+// disparar já sabe de qual botão veio.
+document.addEventListener('click', function (e) {
+  var b = e.target && e.target.closest ? e.target.closest('button') : null;
+  if (!b || b.disabled || b.dataset.ocupado === '1' || b.dataset.fbOff === '1') return;
+  FB.botao = b; FB.ate = Date.now() + 700; FB.cliqueEm = Date.now();
+}, true);
+
+function _fbDaVez() {
+  var b = FB.botao;
+  if (!b || Date.now() > FB.ate) return null;
+  // Clique → confirmação → servidor: quando o rpc sai, o botão clicado
+  // por último (o "Confirmar" do modal) já sumiu. O retorno vai para o
+  // botão que abriu o modal.
+  if (b.offsetParent === null && FB.origemModal && FB.origemModal.isConnected &&
+      FB.origemModal.offsetParent !== null) b = FB.origemModal;
+  if (b.dataset && b.dataset.ocupado === '1') return null;
+  return b;
+}
+
+function _fbIcone(b, html, cor) {
+  var ic = null;
+  try { ic = b.querySelector(':scope > .fb-ico'); } catch (e) {}
+  if (!ic) { ic = document.createElement('span'); ic.className = 'fb-ico'; b.appendChild(ic); }
+  if (cor) ic.style.color = cor;
+  ic.innerHTML = html;
+}
+
+function _fbInicio(b) {
+  if (b._fb) { b._fb.n++; clearTimeout(b._fb.fim); return; }
+  var cor = '';
+  try { cor = String(getComputedStyle(b).color || ''); } catch (e) {}
+  b._fb = { n: 1, erro: '', disabled: b.disabled, minW: b.style.minWidth,
+            titulo: b.getAttribute('title'), clique: FB.cliqueEm || Date.now() };
+  b.style.minWidth = b.offsetWidth + 'px';          // não pula de tamanho
+  b.disabled = true;
+  b.classList.add('fb-on');
+  _fbIcone(b, '<span class="fb-spin"></span>' + (b.offsetWidth >= 120 ? '<span>Aguarde…</span>' : ''), cor);
+}
+
+function _fbAcompanhar(b, promessa) {
+  promessa.then(function (r) {
+    if (b._fb && r && r.ok === false && !b._fb.erro) b._fb.erro = String(r.error || 'Não deu certo.');
+  }, function () {
+    if (b._fb && !b._fb.erro) b._fb.erro = 'Falha de conexão. Tente de novo.';
+  }).then(function () {
+    if (!b._fb) return;
+    b._fb.n--;
+    if (b._fb.n > 0) return;
+    // Handler que chama o servidor de novo em seguida (await rpc A;
+    // await rpc B) continua preso ao mesmo botão até o fim.
+    FB.botao = b; FB.ate = Date.now() + 250;
+    b._fb.fim = setTimeout(function () { _fbFim(b); }, 260);
+  });
+}
+
+// Palavra do resultado que cabe no botão: curta nos estreitos, completa nos largos
+function _fbRotulo(largura, ok) {
+  if (largura < 80) return '';
+  return '<span>' + (ok ? 'Pronto' : (largura >= 130 ? 'Não deu certo' : 'Erro')) + '</span>';
+}
+
+function _fbFim(b) {
+  var st = b._fb;
+  if (!st || st.n > 0) return;
+  var ok = !st.erro;
+  if (b.isConnected) {
+    b.classList.add(ok ? 'fb-ok' : 'fb-erro');
+    _fbIcone(b, (ok ? FB_SVG_OK : FB_SVG_ERRO) + _fbRotulo(b.offsetWidth, ok));
+    if (!ok) b.setAttribute('title', st.erro);
+  }
+  // Erro que a tela não avisou: o aviso sai daqui
+  if (!ok) {
+    setTimeout(function () { if (FB.toastEm < st.clique) toast(st.erro, 'error'); }, 150);
+  }
+  setTimeout(function () {
+    b.classList.remove('fb-on', 'fb-ok', 'fb-erro');
+    var ic = null;
+    try { ic = b.querySelector(':scope > .fb-ico'); } catch (e) {}
+    if (ic) ic.remove();
+    b.disabled = st.disabled;
+    b.style.minWidth = st.minW;
+    if (st.titulo == null) b.removeAttribute('title'); else b.setAttribute('title', st.titulo);
+    b._fb = null;
+  }, ok ? 1300 : 2200);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -3307,6 +3478,10 @@ async function renderLog() {
 // MODAL SYSTEM
 // ══════════════════════════════════════════════════════════
 function openModal(title, body, buttons) {
+  // v169: guarda quem abriu o modal (para o retorno visual do botão)
+  try {
+    if (FB.botao && Date.now() - FB.cliqueEm < 1500 && !FB.botao.closest('#modalOverlay')) FB.origemModal = FB.botao;
+  } catch (e) {}
   document.getElementById('modalTitle').textContent = title;
   document.getElementById('modalBody').innerHTML = body;
   const footer = document.getElementById('modalFooter');
@@ -3335,28 +3510,35 @@ function _espera(ms) { return new Promise(function (r) { setTimeout(r, ms); }); 
 
 async function acaoBotao(botao, fn, textoEspera) {
   if (botao && botao.dataset.ocupado === '1') return null;
-  var original = botao ? botao.innerHTML : '';
+  // v169: mesmo desenho do retorno autom\u00e1tico (selo por cima, conte\u00fado
+  // original preservado; \u2713 azul / \u2715 vermelho).
+  var st = null;
   if (botao) {
     botao.dataset.ocupado = '1';
+    st = { disabled: botao.disabled, minW: botao.style.minWidth };
+    var cor = '';
+    try { cor = String(getComputedStyle(botao).color || ''); } catch (e) {}
     botao.style.minWidth = botao.offsetWidth + 'px';     // nao pula de tamanho
     botao.disabled = true;
-    botao.classList.add('btn-ocupado');
-    botao.innerHTML = '<span class="btn-spin"></span>' + escHtml(textoEspera || 'Aguarde\u2026');
+    botao.classList.add('fb-on');
+    _fbIcone(botao, '<span class="fb-spin"></span><span>' + escHtml(textoEspera || 'Aguarde\u2026') + '</span>', cor);
   }
   var r;
   try { r = await fn(); }
   catch (e) { r = { ok: false, msg: 'Erro de conexao' }; }
 
-  if (botao && r && typeof r.ok === 'boolean') {
-    botao.classList.remove('btn-ocupado');
-    botao.classList.add(r.ok ? 'btn-ok' : 'btn-erro');
-    botao.innerHTML = (r.ok ? '\u2713 ' : '\u2715 ') + escHtml(r.msg || (r.ok ? 'Pronto' : 'Falhou'));
+  if (botao && r && typeof r.ok === 'boolean' && botao.isConnected) {
+    botao.classList.add(r.ok ? 'fb-ok' : 'fb-erro');
+    _fbIcone(botao, (r.ok ? FB_SVG_OK : FB_SVG_ERRO) + '<span>' + escHtml(r.msg || (r.ok ? 'Pronto' : 'Falhou')) + '</span>');
     await _espera(r.ok ? 1100 : 1800);
   }
   if (botao) {
-    botao.classList.remove('btn-ocupado', 'btn-ok', 'btn-erro');
-    if (botao.isConnected) { botao.innerHTML = original; botao.disabled = false; }
-    botao.style.minWidth = '';
+    botao.classList.remove('fb-on', 'fb-ok', 'fb-erro');
+    var ic = null;
+    try { ic = botao.querySelector(':scope > .fb-ico'); } catch (e) {}
+    if (ic) ic.remove();
+    botao.disabled = st.disabled;
+    botao.style.minWidth = st.minW;
     delete botao.dataset.ocupado;
   }
   // Erro com detalhe longo tambem vai para o aviso: no botao so cabe o curto.
@@ -3400,6 +3582,7 @@ function handleOverlayClick(e) { if (e.target === document.getElementById('modal
 // TOAST
 // ══════════════════════════════════════════════════════════
 function toast(msg, type) {
+  try { FB.toastEm = Date.now(); } catch (e) {}   // v169: o retorno do botão não repete o aviso
   type = type || 'success';
   // 'warn' era usado em 2 lugares (sessão expirada) sem ícone nem cor
   var icons = { success:'<i data-lucide="check" class="luc"></i>', error:'<i data-lucide="x" class="luc"></i>',
@@ -6766,20 +6949,7 @@ async function renderTrialAuto() {
         'Clique em <b>Carregar da Meta</b> para listar seus templates.</div></div>' +
     '</div>' +
 
-    // ── Teste ──
-    '<div class="card" style="margin-bottom:16px">' +
-      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Testar no seu n&uacute;mero</div>' +
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Dispara o template de boas-vindas com dados de exemplo.</div>' +
-      '<div class="form-row">' +
-        '<div class="form-group"><label class="form-label">Seu WhatsApp</label>' +
-          '<input class="form-control" id="ta_teste_num" placeholder="(94) 99123-4567"></div>' +
-        '<div class="form-group"><label class="form-label">&nbsp;</label>' +
-          '<button class="btn btn-primary" style="width:100%" onclick="taTestar()">Testar boas-vindas &mdash; com cart&atilde;o</button></div>' +
-      '</div>' +
-      '<button class="btn btn-ghost btn-sm" onclick="taTestarSc()">Testar boas-vindas &mdash; sem cart&atilde;o e app</button>' +
-      '<div id="taTesteRes" style="margin-top:8px"></div>' +
-    '</div>' +
-
+    // v169: o teste das boas-vindas mora no quadro de cada rota (topo)
     '<div id="taCapiCard"></div>' +
     '<button class="btn btn-primary" onclick="taSalvar(false)">Salvar tudo</button>';
 
@@ -6806,20 +6976,15 @@ async function taCarregarTemplates() {
     box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Nenhum template aprovado encontrado nesta conta.</div>';
     return;
   }
+  // v169: as boas-vindas (com cartão / sem cartão e app) têm o próprio
+  // quadro, no topo da tela, com testar e salvar por rota.
   box.innerHTML =
-    _taBlocoTemplate('bv', 'Boas-vindas do teste (com cart&atilde;o)', TA.cfg.tplBoasVindas, TA.cfg.tplBoasVindasVars) +
-    '<div style="height:18px"></div>' +
-    _taBlocoTemplate('sc', 'Boas-vindas &mdash; teste sem cart&atilde;o e app (sem falar de cobran&ccedil;a)',
-                     TA.cfg.tplBoasVindasSc, TA.cfg.tplBoasVindasScVars) +
-    '<div style="font-size:11px;color:var(--muted);margin:-4px 0 0;line-height:1.55">Sem escolha aqui, usa o do cart&atilde;o ' +
-      '&mdash; mas s&oacute; se ele n&atilde;o tiver data de cobran&ccedil;a ou valor nas vari&aacute;veis.</div>' +
-    '<div style="height:18px"></div>' +
+    '<div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">As boas-vindas de cada rota ficam no ' +
+      'quadro do topo da tela.</div>' +
     _taBlocoTemplate('lb', 'Lembrete antes da cobran&ccedil;a', TA.cfg.tplLembrete, TA.cfg.tplLembreteVars) +
     '<div style="height:18px"></div>' +
     _taBlocoTemplate('rc', 'Recupera&ccedil;&atilde;o &mdash; parou na tela do cart&atilde;o',
                      TA.cfg.tplRecuperacao, TA.cfg.tplRecuperacaoVars);
-  taAoTrocarTemplate('bv');
-  taAoTrocarTemplate('sc');
   taAoTrocarTemplate('lb');
   taAoTrocarTemplate('rc');
 }
@@ -6847,6 +7012,7 @@ function taAoTrocarTemplate(pref) {
   if (!sel || !box) return;
 
   const t = TA.templates.find(function (x) { return x.nome === sel.value; });
+  _taAvisoTemplate(pref, t);
   if (!t) { prev.innerHTML = ''; box.innerHTML = ''; return; }
 
   prev.innerHTML = '<div class="ta-corpo">' + escHtml(t.corpo || '(sem corpo)') + '</div>';
@@ -6915,42 +7081,44 @@ async function taSalvar(testarConexao) {
   if (testarConexao) renderTrialAuto();
 }
 
-async function taTestar() {
-  const box = document.getElementById('taTesteRes');
-  const num = document.getElementById('ta_teste_num').value.trim();
-  if (!num) { toast('Informe seu WhatsApp.', 'error'); return; }
-  const bv = _taColetarVars('bv');
-  if (!bv.nome) { toast('Escolha o template de boas-vindas primeiro.', 'error'); return; }
-
-  box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Enviando&hellip;</div>';
-  let r;
-  try { r = await rpc('waTestar', { numero: num, template: bv.nome, idioma: bv.idioma, vars: bv.vars, dias: 14 }); }
-  catch (e) { box.innerHTML = '<div style="color:#e2626b;font-size:12px">Falha: ' + escHtml(e.message) + '</div>'; return; }
-  box.innerHTML = (r && r.ok)
-    ? '<div style="color:var(--green);font-size:12px">✓ ' + escHtml(r.message) + '</div>'
-    : '<div style="color:#e2626b;font-size:12px">✕ ' + escHtml((r && r.error) || 'Erro.') + '</div>';
-}
-
-
-// ── v168: quadro "o que cada pessoa recebe" ──────────────────
+// ── v168/v169: boas-vindas por rota — o que cada pessoa recebe, e o ────
+// template de cada rota escolhido, testado e salvo no mesmo lugar.
 var TA_FALTAS = {
   whatsapp_sem_credenciais: 'Preencha token, WABA ID e Phone Number ID em &ldquo;Conex&atilde;o com a Meta&rdquo;.',
   whatsapp_nao_conecta:     'A Meta n&atilde;o aceitou as credenciais &mdash; confira o token (usu&aacute;rio do sistema) e o Phone Number ID.',
-  automacao_desligada:      'A chave &ldquo;WhatsApp de boas-vindas&rdquo; desta rota est&aacute; desligada (logo abaixo).',
-  template_nao_escolhido:   'Nenhum template escolhido: clique em &ldquo;Carregar da Meta&rdquo; e escolha o desta rota.',
+  automacao_desligada:      'O envio desta rota est&aacute; desligado &mdash; ligue a chave aqui embaixo.',
+  template_nao_escolhido:   'Nenhum template escolhido &mdash; escolha aqui embaixo, teste e toque em Salvar.',
   template_nao_existe:      'O template escolhido n&atilde;o existe mais na Meta &mdash; escolha outro.',
   template_nao_aprovado:    'O template ainda n&atilde;o foi aprovado pela Meta.',
-  meta_nao_respondeu:       'A Meta n&atilde;o respondeu agora &mdash; atualize em alguns minutos.',
+  meta_nao_respondeu:       'A Meta n&atilde;o respondeu agora &mdash; toque em &ldquo;Conferir de novo&rdquo; em alguns minutos.',
   rotina_stripe_parada:     'A rotina que busca os eventos do Stripe n&atilde;o est&aacute; rodando nesta conta &mdash; use &ldquo;Recriar rotinas&rdquo; em Migra&ccedil;&atilde;o de conta.'
 };
 
-function _taRitoColuna(titulo, sub, emailOk, emailTxt, wa) {
+// Avisos do template escolhido: fala de cobrança (sem cartão) e MARKETING
+function _taAvisoTemplate(pref, t) {
+  var box = document.getElementById('ta_aviso_' + pref);
+  if (!box) return;
+  var av = [];
+  if (t && pref === 'sc' && /cobran|R\$|valor/i.test(String(t.corpo || ''))) {
+    av.push('Este template fala de <b>cobran&ccedil;a</b> &mdash; quem entra sem cart&atilde;o n&atilde;o &eacute; cobrado. ' +
+            'Pode usar, mas a pessoa vai ler isso.');
+  }
+  if (t && String(t.categoria).toUpperCase() === 'MARKETING') {
+    av.push('Categoria <b>MARKETING</b>: a Meta limita quantas mensagens desse tipo cada pessoa recebe e pode ' +
+            'segurar a entrega. Para boas-vindas, <b>UTILITY</b> entrega com mais confian&ccedil;a.');
+  }
+  box.innerHTML = av.map(function (a) {
+    return '<div style="font-size:11.5px;color:#e0a83c;line-height:1.55;margin-top:6px">&#9888; ' + a + '</div>';
+  }).join('');
+}
+
+function _taRitoColuna(pref, titulo, sub, emailOk, emailTxt, wa, ligado, escolhido, varsJson) {
   var ok = '<span style="color:var(--green);font-weight:800">&#10003;</span>';
   var no = '<span style="color:#e2626b;font-weight:800">&#10007;</span>';
   var waOk = !wa.faltas.length;
-  var tpl = wa.template ? '<code>' + escHtml(wa.template) + '</code>' + (wa.proprio === false && wa.template ? ' (o do cart&atilde;o)' : '') : '';
-  var cat = wa.meta && wa.meta.categoria;
-  var h = '<div style="flex:1;min-width:250px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:11px;padding:13px 14px">' +
+  var tpl = wa.template ? '<code>' + escHtml(wa.template) + '</code>' +
+            (pref === 'sc' && wa.proprio === false ? ' (o do cart&atilde;o)' : '') : '';
+  var h = '<div style="flex:1;min-width:280px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:11px;padding:13px 14px">' +
     '<div style="font-size:12.5px;font-weight:800;color:var(--text)">' + titulo + '</div>' +
     '<div style="font-size:11px;color:var(--muted);margin:2px 0 10px">' + sub + '</div>' +
     '<div style="font-size:12.5px;line-height:1.9">' +
@@ -6958,46 +7126,83 @@ function _taRitoColuna(titulo, sub, emailOk, emailTxt, wa) {
       (waOk ? ok : no) + ' Template de WhatsApp ' + (tpl ? '<span style="color:var(--muted)">' + tpl + '</span>' : '') +
     '</div>';
   if (!waOk) {
-    h += '<div style="margin-top:8px;font-size:11.5px;color:#e0a83c;line-height:1.6">' +
+    h += '<div style="margin-top:6px;font-size:11.5px;color:#e0a83c;line-height:1.6">' +
          wa.faltas.map(function (f) { return '&bull; ' + (TA_FALTAS[f] || escHtml(f)); }).join('<br>') + '</div>';
   }
-  if (cat === 'MARKETING') {
-    h += '<div style="margin-top:8px;font-size:11.5px;color:#e0a83c;line-height:1.6">&bull; Categoria <b>MARKETING</b>: a Meta limita ' +
-         'quantas mensagens desse tipo cada pessoa recebe e pode segurar a entrega. Para boas-vindas, use um template <b>UTILITY</b>.</div>';
+
+  // Escolher → testar → salvar, desta rota
+  h += '<div style="border-top:1px solid var(--border);margin:12px 0 10px"></div>' +
+    '<label style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--text);margin-bottom:10px;cursor:pointer">' +
+      '<span>Enviar o WhatsApp de boas-vindas nesta rota</span>' +
+      '<span class="ta-sw"><input type="checkbox" id="ta_rt_liga_' + pref + '" data-pref="' + pref + '"' +
+        (ligado ? ' checked' : '') + ' onchange="taRitoLigar(this)"><span class="ta-sw-tr"></span></span>' +
+    '</label>';
+  if (TA.templates && TA.templates.length) {
+    h += _taBlocoTemplate(pref, 'Template desta rota', escolhido, varsJson) +
+      '<div id="ta_aviso_' + pref + '"></div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+        '<button class="btn btn-ghost btn-sm" data-pref="' + pref + '" onclick="taRitoTestar(this)">Testar no meu n&uacute;mero</button>' +
+        '<button class="btn btn-primary btn-sm" data-pref="' + pref + '" onclick="taRitoSalvar(this)">Salvar como padr&atilde;o</button>' +
+      '</div>';
+  } else {
+    h += '<div style="font-size:12px;color:#e2626b;line-height:1.6">N&atilde;o consegui listar os templates da Meta' +
+         (TA.tplErro ? ': ' + escHtml(TA.tplErro) : '.') + '</div>' +
+         '<button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="taRitoCarregar(true)">Tentar de novo</button>';
   }
   return h + '</div>';
 }
 
-async function taRitoCarregar() {
+async function taRitoCarregar(recarregarTemplates) {
   var box = document.getElementById('taRitoBox');
   if (!box) return;
   var r;
   try { r = await rpc('getRitoStatus', {}); } catch (e) { r = null; }
-  if (!r || !r.ok) { box.innerHTML = ''; return; }
-  var d = r.data, canal = d.email.canal === 'resend' ? '(Resend)' : '(pelo Gmail &mdash; cole a chave do Resend em E-mails)';
+  if (!r || !r.ok || !r.data || !r.data.email || !r.data.whatsapp || !r.data.pronto) {
+    box.innerHTML = '<div class="card" style="margin-bottom:16px;font-size:12.5px;color:var(--muted)">' +
+      'N&atilde;o consegui conferir as boas-vindas agora. ' +
+      '<button class="btn btn-ghost btn-sm" onclick="taRitoCarregar(true)">Tentar de novo</button></div>';
+    return;
+  }
+  // Lista de templates da Meta: carrega junto, uma vez por abertura da tela
+  if (recarregarTemplates || !TA.templates || !TA.templates.length) {
+    TA.tplErro = '';
+    try {
+      var t = await rpc('waListarTemplates', {});
+      if (t && t.ok) TA.templates = t.data || [];
+      else TA.tplErro = (t && t.error) || 'erro';
+    } catch (e) { TA.tplErro = e.message; }
+  }
+
+  var d = r.data, cfg = TA.cfg || {};
+  var canal = d.email.canal === 'resend' ? '(Resend)' : '(pelo Gmail &mdash; cole a chave do Resend em E-mails)';
   var tudoOk = d.pronto.semCartao && d.pronto.cartao;
   box.innerHTML = '<div class="card" style="margin-bottom:16px;border-color:' + (tudoOk ? 'rgba(76,175,80,.4)' : 'rgba(224,168,60,.5)') + '">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap">' +
       '<div style="font-size:13.5px;font-weight:800;color:' + (tudoOk ? 'var(--green)' : '#e0a83c') + '">' +
         (tudoOk ? 'Boas-vindas prontas nas duas rotas' : 'Boas-vindas: falta configurar') + '</div>' +
-      '<button class="btn btn-ghost btn-sm" onclick="taRitoCarregar()">Conferir de novo</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="taRitoCarregar(true)">Conferir de novo</button>' +
     '</div>' +
     '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">O que cada pessoa recebe ao concluir o cadastro. ' +
-      'Quando algo n&atilde;o sai, o grupo do Telegram &eacute; avisado na hora, com o motivo e o link do WhatsApp da pessoa.</div>' +
+      'O WhatsApp sai na hora e abre a conversa com a pessoa. Quando algo n&atilde;o sai, o grupo do Telegram ' +
+      '&eacute; avisado na hora, com o motivo e o link do WhatsApp dela.</div>' +
+    '<div class="form-group" style="max-width:320px;margin-bottom:14px"><label class="form-label">Seu WhatsApp (para os testes)</label>' +
+      '<input class="form-control" id="ta_teste_num" placeholder="(94) 99123-4567"></div>' +
     '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
-      _taRitoColuna('Sem cart&atilde;o e app', 'Sai na hora, ao concluir o cadastro. S&oacute; para quem marcou a autoriza&ccedil;&atilde;o.',
-                    true, canal, d.whatsapp.semCartao) +
-      _taRitoColuna('Com cart&atilde;o', 'Sai quando o cart&atilde;o &eacute; aceito (em at&eacute; ~5 min).',
-                    d.email.cartao, d.email.cartao ? canal : '(desligado abaixo)', d.whatsapp.cartao) +
+      _taRitoColuna('sc', 'Sem cart&atilde;o e app', 'Sai na hora, ao concluir o cadastro. S&oacute; para quem marcou a autoriza&ccedil;&atilde;o.',
+                    true, canal, d.whatsapp.semCartao, d.whatsapp.semCartao.ligado,
+                    cfg.tplBoasVindasSc || '', cfg.tplBoasVindasScVars || '["primeiro_nome","dias_trial","fim_teste"]') +
+      _taRitoColuna('bv', 'Com cart&atilde;o', 'Sai quando o cart&atilde;o &eacute; aceito (em at&eacute; ~5 min).',
+                    d.email.cartao, d.email.cartao ? canal : '(desligado abaixo)', d.whatsapp.cartao, d.whatsapp.cartao.ligado,
+                    cfg.tplBoasVindas || '', cfg.tplBoasVindasVars || '[]') +
     '</div>' +
-    // v168: sem template para o sem cartão → cria e manda para aprovação
     (_taPrecisaTemplateSc(d)
       ? '<div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
-          '<button class="btn btn-primary btn-sm" onclick="taCriarTemplateSc()">Criar o template do sem cart&atilde;o e mandar para a Meta</button>' +
-          '<span style="font-size:11.5px;color:var(--muted)">Texto de confirma&ccedil;&atilde;o de conta, sem falar de cobran&ccedil;a. Voc&ecirc; revisa antes de enviar.</span>' +
+          '<button class="btn btn-ghost btn-sm" onclick="taCriarTemplateSc()">Criar um template novo do sem cart&atilde;o na Meta</button>' +
+          '<span style="font-size:11.5px;color:var(--muted)">Texto de confirma&ccedil;&atilde;o de conta (UTILITY), sem falar de cobran&ccedil;a.</span>' +
         '</div>'
       : '') +
     '</div>';
+  if (TA.templates && TA.templates.length) { taAoTrocarTemplate('sc'); taAoTrocarTemplate('bv'); }
 }
 
 function _taPrecisaTemplateSc(d) {
@@ -7006,6 +7211,51 @@ function _taPrecisaTemplateSc(d) {
   var f = sc.faltas || [];
   return f.indexOf('template_nao_escolhido') >= 0 || f.indexOf('template_nao_existe') >= 0 ||
          !!(sc.meta && sc.meta.status === 'REJECTED');
+}
+
+// Liga/desliga o envio da rota e já salva (a chave igual lá embaixo acompanha)
+async function taRitoLigar(el) {
+  var pref = el.dataset.pref, ligado = !!el.checked;
+  var cfg = pref === 'sc' ? { autoWhatsBoasVindasSc: ligado } : { autoWhatsBoasVindas: ligado };
+  var r;
+  try { r = await rpc('waSalvarConfig', { cfg: cfg }); } catch (e) { r = { ok: false, error: e.message }; }
+  if (!r || !r.ok) { el.checked = !ligado; toast((r && r.error) || 'Não consegui salvar.', 'error'); return; }
+  var espelho = document.getElementById(pref === 'sc' ? 'ta_zapsc' : 'ta_zapbv');
+  if (espelho) espelho.checked = ligado;
+  if (TA.cfg) TA.cfg[pref === 'sc' ? 'autoWhatsBoasVindasSc' : 'autoWhatsBoasVindas'] = ligado;
+  toast(ligado ? 'WhatsApp de boas-vindas ligado nesta rota.' : 'WhatsApp de boas-vindas desligado nesta rota.', 'success');
+  taRitoCarregar();
+}
+
+async function taRitoTestar(botao) {
+  var pref = botao.dataset.pref;
+  var num = ((document.getElementById('ta_teste_num') || {}).value || '').trim();
+  if (!num) { toast('Informe seu WhatsApp no campo de testes, acima.', 'error'); return; }
+  var t = _taColetarVars(pref);
+  if (!t.nome) { toast('Escolha o template desta rota primeiro.', 'error'); return; }
+  var dias = pref === 'sc' ? ((TA.cfg && TA.cfg.trialDiasApp) || 7) : 14;
+  return acaoBotao(botao, async function () {
+    var r = await rpc('waTestar', { numero: num, template: t.nome, idioma: t.idioma, vars: t.vars, dias: dias });
+    if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'A Meta recusou o envio.' };
+    toast('Template ' + t.nome + ' enviado para ' + num + '. Confira o WhatsApp.', 'success');
+    return { ok: true, msg: 'Enviado' };
+  }, 'Enviando…');
+}
+
+async function taRitoSalvar(botao) {
+  var pref = botao.dataset.pref;
+  var t = _taColetarVars(pref);
+  if (!t.nome) { toast('Escolha o template desta rota primeiro.', 'error'); return; }
+  var cfg = pref === 'sc'
+    ? { tplBoasVindasSc: t.nome, tplBoasVindasScLang: t.idioma, tplBoasVindasScVars: t.vars }
+    : { tplBoasVindas: t.nome, tplBoasVindasLang: t.idioma, tplBoasVindasVars: t.vars };
+  return acaoBotao(botao, async function () {
+    var r = await rpc('waSalvarConfig', { cfg: cfg });
+    if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'Não consegui salvar.' };
+    if (TA.cfg) Object.keys(cfg).forEach(function (k) { TA.cfg[k] = cfg[k]; });
+    toast('Template ' + t.nome + ' salvo como padrão ' + (pref === 'sc' ? 'do sem cartão e app.' : 'do com cartão.'), 'success');
+    return { ok: true, msg: 'Salvo', depois: function () { taRitoCarregar(); } };
+  }, 'Salvando…');
 }
 
 var TA_TPL_SC_TEXTO =
@@ -7030,9 +7280,9 @@ function taCriarTemplateSc() {
       '<textarea class="form-control" id="tsc_texto" rows="8"></textarea>' +
       '<div style="font-size:11px;color:var(--muted);margin-top:4px">Para ser aprovado como UTILITY, mantenha sobre a conta e o acesso &mdash; sem promo&ccedil;&atilde;o.</div></div>' +
     '<div id="tsc_res"></div>';
-  openModal('Template de boas-vindas &mdash; sem cart&atilde;o e app', body, [
+  openModal('Template de boas-vindas — sem cartão e app', body, [
     { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
-    { label: 'Enviar para aprova&ccedil;&atilde;o', action: taEnviarTemplateSc, cls: 'btn-primary' }
+    { label: 'Enviar para aprovação', action: taEnviarTemplateSc, cls: 'btn-primary' }
   ]);
   var t = document.getElementById('tsc_texto');
   if (t) t.value = TA_TPL_SC_TEXTO;     // .value: o texto não passa por HTML
@@ -7054,26 +7304,8 @@ async function taEnviarTemplateSc() {
   }
   closeModal();
   toast(r.message, 'success');
-  taRitoCarregar();
-}
-
-async function taTestarSc() {
-  const box = document.getElementById('taTesteRes');
-  const num = document.getElementById('ta_teste_num').value.trim();
-  if (!num) { toast('Informe seu WhatsApp.', 'error'); return; }
-  let t = _taColetarVars('sc');
-  if (!t.nome) t = { nome: TA.cfg.tplBoasVindasSc || '', idioma: TA.cfg.tplBoasVindasScLang || 'pt_BR', vars: TA.cfg.tplBoasVindasScVars || '[]' };
-  if (!t.nome && TA.cfg.boasVindasScEfetivo) {
-    t = { nome: TA.cfg.boasVindasScEfetivo.nome, idioma: TA.cfg.tplBoasVindasLang || 'pt_BR', vars: TA.cfg.tplBoasVindasVars || '[]' };
-  }
-  if (!t.nome) { toast('Escolha o template de boas-vindas sem cartão primeiro.', 'error'); return; }
-  box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Enviando&hellip;</div>';
-  let r;
-  try { r = await rpc('waTestar', { numero: num, template: t.nome, idioma: t.idioma, vars: t.vars, dias: TA.cfg.trialDiasApp || 7 }); }
-  catch (e) { box.innerHTML = '<div style="color:#e2626b;font-size:12px">Falha: ' + escHtml(e.message) + '</div>'; return; }
-  box.innerHTML = (r && r.ok)
-    ? '<div style="color:var(--green);font-size:12px">✓ ' + escHtml(r.message) + ' (template ' + escHtml(t.nome) + ')</div>'
-    : '<div style="color:#e2626b;font-size:12px">✕ ' + escHtml((r && r.error) || 'Erro.') + '</div>';
+  if (TA.cfg) { TA.cfg.tplBoasVindasSc = r.nome; TA.cfg.tplBoasVindasScVars = '["primeiro_nome","dias_trial","fim_teste"]'; }
+  taRitoCarregar(true);
 }
 
 // ── Pixel + Conversions API (v144) ──────────────────────────
