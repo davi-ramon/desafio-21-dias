@@ -135,6 +135,8 @@ input::placeholder{color:#3d5347}
 footer{padding:0 16px 44px;max-width:1500px;margin:0 auto}
 @media (prefers-reduced-motion:reduce){.etapa.on{animation:none}.spin{animation-duration:1.4s}}
 </style>
+<!-- v166: de onde a pessoa veio (UTM/entrada) para o cadastro -->
+<script src="/assets/d21-rastreio.js?v=166"></script>
 </head>
 <body>
 
@@ -777,6 +779,8 @@ el('btn4').addEventListener('click', async function () {
       email: estado.email, nome: estado.nome, whatsapp: estado.zap,
       dias: dias, ticket: estado.ticket, consentimento: true,
       origem: 'checkout-trial-cartao', campanha: params.get('utm_campaign') || '',
+      // v166: UTMs do primeiro contato, página de entrada e aparelho
+      rastreio: window.D21Rastreio ? D21Rastreio.dados() : {},
       ref: REF,
       returnUrl: location.origin + location.pathname
     });

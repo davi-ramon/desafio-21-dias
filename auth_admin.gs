@@ -95,14 +95,13 @@ function _2faCriarDesafio_(user) {
   }), A2F_TTL_SEG);
 
   var nome = String(user.name || '').split(' ')[0] || '';
-  try {
-    MailApp.sendEmail({
-      to: user.email,
-      subject: 'Seu código de acesso: ' + codigo,
-      htmlBody: _emailCodigo2FA_(nome, codigo)
-    });
-  } catch (e) {
-    logAction(user.email, '2FA_EMAIL_FALHOU', 'auth', '', e.message);
+  // v166: pelo mesmo envio do resto do sistema (Resend do domínio, com
+  // Gmail de reserva). MailApp direto saía da conta do script, sem o
+  // SPF/DKIM do wpktavares.com.br — e sem registro de falha.
+  var env = _enviarEmailWpk_(user.email, 'Seu código de acesso: ' + codigo,
+    'Seu codigo de acesso e ' + codigo + '.', _emailCodigo2FA_(nome, codigo), '2fa');
+  if (!env.ok) {
+    logAction(user.email, '2FA_EMAIL_FALHOU', 'auth', '', env.erro);
     return '';
   }
   logAction(user.email, '2FA_ENVIADO', 'auth', '', '');
@@ -168,13 +167,10 @@ function reenviar2FA(desafio) {
   var user = _acharAdminPorEmail_(st.email);
   if (!user) return { ok: false, error: 'Usuário não encontrado.' };
 
-  try {
-    MailApp.sendEmail({
-      to: user.email,
-      subject: 'Seu código de acesso: ' + st.codigo,
-      htmlBody: _emailCodigo2FA_(String(user.name || '').split(' ')[0] || '', st.codigo)
-    });
-  } catch (e) { return { ok: false, error: 'Não consegui reenviar: ' + e.message }; }
+  var env = _enviarEmailWpk_(user.email, 'Seu código de acesso: ' + st.codigo,
+    'Seu codigo de acesso e ' + st.codigo + '.',
+    _emailCodigo2FA_(String(user.name || '').split(' ')[0] || '', st.codigo), '2fa');
+  if (!env.ok) return { ok: false, error: 'Não consegui reenviar o código agora. Tente de novo em instantes.' };
 
   return { ok: true, message: 'Código reenviado.' };
 }
@@ -229,12 +225,10 @@ function solicitarLinkMagicoAdmin(email) {
   try {
     var t = _gerarTokenAdmin_(alvo, ML_TTL_MIN);
     var link = ADMIN_URL + '?ml=' + encodeURIComponent(t);
-    MailApp.sendEmail({
-      to: user.email,
-      subject: 'Seu link de acesso ao painel',
-      htmlBody: _emailLinkMagico_(String(user.name || '').split(' ')[0] || '', link)
-    });
-    logAction(alvo, 'MAGICLINK_ENVIADO', 'auth', '', '');
+    var env = _enviarEmailWpk_(user.email, 'Seu link de acesso ao painel',
+      'Seu link de acesso ao painel: ' + link,
+      _emailLinkMagico_(String(user.name || '').split(' ')[0] || '', link), 'link-admin');
+    logAction(alvo, env.ok ? 'MAGICLINK_ENVIADO' : 'MAGICLINK_FALHOU', 'auth', '', env.ok ? env.via : env.erro);
   } catch (e) {
     logAction(alvo, 'MAGICLINK_FALHOU', 'auth', '', e.message);
   }

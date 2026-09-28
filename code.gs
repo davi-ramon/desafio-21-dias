@@ -404,7 +404,6 @@ function doPost(e) {
       payload.action === 'salvarLeadIncompleto'   ||
       payload.action === 'trackVsl'                ||
       payload.action === 'criarCheckoutStripe'     ||
-      payload.action === 'diagEmailSample'         ||
       payload.action === 'userExistsPublic'        ||
       payload.action === 'reenviarCredenciais'     ||
       payload.action === 'confirmarCheckoutStripe' ||
@@ -435,7 +434,11 @@ function doPost(e) {
       // conta de fora, antes de mexer no endereco de producao
       payload.action === 'getMigracaoStatus' ||
       // v165 — leitura publica das avaliacoes da loja (sem dado pessoal)
-      payload.action === 'getAvaliacoesPublicas'
+      payload.action === 'getAvaliacoesPublicas' ||
+      // v166 — a entrada do app mostra os dias do teste antes do login;
+      // o status de e-mail so tem contagem e estado do canal (sem endereco)
+      payload.action === 'getOfertaApp'           ||
+      payload.action === 'getEmailStatus'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

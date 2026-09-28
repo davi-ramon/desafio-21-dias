@@ -302,6 +302,12 @@ function handleRequest(payload) {
     case 'getMigracaoStatus':        return getMigracaoStatus();
     // v165 — avaliacoes da loja (pagina estilo Play Store)
     case 'getAvaliacoesPublicas':    return getAvaliacoesPublicas(data);
+    // v166 — entrada do app e saúde dos e-mails
+    case 'getOfertaApp':             return getOfertaApp();
+    case 'getEmailStatus':           return getEmailStatus();
+    case 'getEmailSaude':            return getEmailSaude(token);
+    case 'testarEnvioEmail':         return testarEnvioEmail(token, data);
+    case 'salvarResendChave':        return salvarResendChave(token, data);
     case 'podeAvaliar':              return podeAvaliar(token);
     case 'salvarAvaliacao':          return salvarAvaliacao(token, data);
     case 'getAvaliacoesAdmin':       return getAvaliacoesAdmin(token);
@@ -441,13 +447,9 @@ function handleRequest(payload) {
     case 'iniciarMigracaoStripe':    return iniciarMigracaoStripe(token, data);
     case 'setupStripeStatus':        return setupStripeStatus();
 
-    // DIAGNÓSTICO TEMPORÁRIO (remover depois)
-    case 'diagEmailSample': {
-      var _al = []; try { _al = GmailApp.getAliases(); } catch(e) {}
-      var _para = (data && data.to) || 'ads.deyvid@gmail.com';
-      var _diag = _enviarBoasVindasTrial_(_para, 'David Ramon', 'Foco#482', 7);
-      return { ok: true, enviadoPara: _para, aliasesDoScript: _al, diag: _diag };
-    }
+    // v166: o antigo diagEmailSample (público, mandava e-mail para qualquer
+    // endereço informado, sem limite) saiu. O teste agora é testarEnvioEmail,
+    // só para admin e com freio.
     case 'setupAssinaturaTrigger':    return setupAssinaturaTrigger();
     case 'setupReconciliacaoTrigger': return setupReconciliacaoTrigger();
     case 'rodarReconciliacao':        return rodarReconciliacaoAgora();

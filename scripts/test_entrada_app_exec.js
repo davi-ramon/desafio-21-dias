@@ -1,0 +1,404 @@
+// Roda o backend DE VERDADE (os .gs do projeto) contra uma planilha,
+// um Resend, um Gmail e uma API do WhatsApp simulados. Cobre a v166:
+//   - sessões em vários aparelhos (login, logout de um só, limite de 5)
+//   - recuperação de senha que avisa quando nenhum canal saiu
+//   - registro de cada e-mail em emails_log, com o erro do Resend
+//   - cadastro pelo app: mesmo rito do checkout (CRM com rota e UTMs,
+//     aceite registrado, WhatsApp de boas-vindas, Telegram) + sessão
+//   - conta existente pelo app vai para o login sem tocar na senha
+//   - checkout sem cartão continua funcionando, agora com origem certa
+//   - rota pública de status sem nenhum endereço de e-mail
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+const crypto = require('crypto');
+const RAIZ = process.env.GS_DIR || path.join(__dirname, '..');
+
+// ── Planilha simulada ────────────────────────────────────────
+class Sheet {
+  constructor(nome, linhas) { this.nome = nome; this.rows = linhas || []; }
+  getDataRange() { const s = this; return { getValues: () => s.rows.map(r => r.slice()) }; }
+  getLastRow() { return this.rows.length; }
+  getLastColumn() { return this.rows.reduce((m, r) => Math.max(m, r.length), 0); }
+  appendRow(r) { this.rows.push(r.slice()); return this; }
+  getRange(r, c, nr, nc) {
+    nr = nr || 1; nc = nc || 1; const s = this;
+    const cel = (i, j) => { while (s.rows.length < i) s.rows.push([]); const row = s.rows[i - 1]; while (row.length < j) row.push(''); return row; };
+    const api = {
+      getValues() { const out = []; for (let i = 0; i < nr; i++) { const row = s.rows[r - 1 + i] || []; const o = []; for (let j = 0; j < nc; j++) o.push(row[c - 1 + j] === undefined ? '' : row[c - 1 + j]); out.push(o); } return out; },
+      getValue() { const row = s.rows[r - 1] || []; return row[c - 1] === undefined ? '' : row[c - 1]; },
+      setValue(v) { cel(r, c)[c - 1] = v; return api; },
+      setValues(vs) { vs.forEach((vr, i) => vr.forEach((v, j) => { cel(r + i, c + j)[c - 1 + j] = v; })); return api; },
+      setFontWeight() { return api; }, setBackground() { return api; }, setFontColor() { return api; }, setNumberFormat() { return api; }
+    };
+    return api;
+  }
+  deleteRows(i, n) { this.rows.splice(i - 1, n); }
+  setFrozenRows() {}
+}
+let abas = {};
+const planilha = {
+  getSheetByName: n => abas[n] || null,
+  insertSheet: n => (abas[n] = new Sheet(n))
+};
+
+// ── Serviços simulados ───────────────────────────────────────
+const props = new Map([['RESEND_API_KEY', 're_teste_nao_real']]);
+const cache = new Map();
+const S = { resend: 'ok', gmail: 'ok', mailapp: 'ok', envios: [], wa: [], tg: [], logs: [], capi: [] };
+
+function resposta(code, obj) { return { getResponseCode: () => code, getContentText: () => JSON.stringify(obj) }; }
+function fetchSim(url, opts) {
+  opts = opts || {};
+  if (url.indexOf('api.resend.com/emails') >= 0 && (opts.method || 'get') === 'post') {
+    if (S.resend === 'throw') throw new Error('Address unavailable');
+    const p = JSON.parse(opts.payload);
+    if (S.resend === '403') return resposta(403, { name: 'validation_error', message: 'The wpktavares.com.br domain is not verified. Contato: suporte@wpktavares.com.br' });
+    S.envios.push({ via: 'resend', to: p.to[0], subject: p.subject, text: p.text });
+    return resposta(200, { id: 'rs_' + S.envios.length });
+  }
+  if (url.indexOf('api.resend.com/domains') >= 0) {
+    const auth = String(((opts.headers || {}).Authorization) || '');
+    if (/re_semdominio/.test(auth)) return resposta(200, { data: [{ name: 'lazylabs.com.br', status: 'verified' }] });
+    if (/re_soenvio/.test(auth)) return resposta(401, { name: 'restricted_api_key', message: 'This API key is restricted to only send emails' });
+    if (/re_invalida/.test(auth)) return resposta(401, { name: 'validation_error', message: 'API key is invalid' });
+    return resposta(200, { data: [{ name: 'wpktavares.com.br', status: 'verified', region: 'us-east-1' }] });
+  }
+  if (url.indexOf('api.resend.com/emails/') >= 0) return resposta(200, { last_event: 'delivered' });
+  if (url.indexOf('graph.facebook.com') >= 0 && url.indexOf('/messages') >= 0) {
+    S.wa.push(JSON.parse(opts.payload)); return resposta(200, { messages: [{ id: 'wamid.' + S.wa.length }] });
+  }
+  if (url.indexOf('graph.facebook.com') >= 0) return resposta(200, {});
+  if (url.indexOf('api.telegram.org') >= 0) { S.tg.push(JSON.parse(opts.payload).text); return resposta(200, { ok: true }); }
+  throw new Error('fetch inesperado: ' + url);
+}
+
+let uuid = 0;
+const ctx = {
+  console, JSON, Math, Date, String, Number, Object, Array, RegExp, Error, parseInt, parseFloat, isNaN, encodeURIComponent, decodeURIComponent,
+  SpreadsheetApp: { openById: () => planilha, getActiveSpreadsheet: () => planilha },
+  PropertiesService: { getScriptProperties: () => ({ getProperty: k => (props.has(k) ? props.get(k) : null),
+                                                     setProperty: (k, v) => props.set(k, v), deleteProperty: k => props.delete(k) }) },
+  CacheService: { getScriptCache: () => ({ get: k => (cache.has(k) ? cache.get(k) : null), put: (k, v) => cache.set(k, v), remove: k => cache.delete(k), removeAll: ks => ks.forEach(k => cache.delete(k)) }) },
+  UrlFetchApp: { fetch: fetchSim, fetchAll: reqs => reqs.map(r => fetchSim(r.url, r)) },
+  GmailApp: {
+    sendEmail: (to, subject) => { if (S.gmail === 'throw') throw new Error('Service invoked too many times for one day: email.'); S.envios.push({ via: 'gmail', to, subject }); },
+    getAliases: () => []
+  },
+  MailApp: {
+    sendEmail: o => { if (S.mailapp === 'throw') throw new Error('Service invoked too many times for one day: email.'); S.envios.push({ via: 'mailapp', to: typeof o === 'string' ? o : o.to }); },
+    getRemainingDailyQuota: () => 87
+  },
+  Utilities: {
+    getUuid: () => '00000000-0000-4000-8000-' + String(++uuid).padStart(12, '0'),
+    DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' },
+    computeDigest: (alg, s) => Array.from(crypto.createHash('sha256').update(String(s), 'utf8').digest()).map(b => (b > 127 ? b - 256 : b)),
+    formatDate: (d, tz, f) => { const p = n => String(n).padStart(2, '0'); return f.replace('dd', p(d.getDate())).replace('MM', p(d.getMonth() + 1)).replace('yyyy', d.getFullYear()).replace('HH', p(d.getHours())).replace('mm', p(d.getMinutes())); }
+  },
+  Session: { getEffectiveUser: () => ({ getEmail: () => 'wpktavares@gmail.com' }) },
+  LockService: { getScriptLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }) },
+  Logger: { log() {} },
+  ScriptApp: { getProjectTriggers: () => [] }
+};
+ctx.globalThis = ctx;
+vm.createContext(ctx);
+
+for (const f of ['code.gs', 'automation.gs', 'auth.gs', 'auth_admin.gs', 'leads.gs', 'crm_leads.gs', 'trial_routes.gs',
+                 'trial_card.gs', 'whatsapp.gs', 'telegram.gs', 'email_saude.gs', 'email_layout.gs', 'modules.gs', 'setup.gs']) {
+  vm.runInContext(fs.readFileSync(path.join(RAIZ, f), 'utf8'), ctx, { filename: f });
+}
+
+// O que mora em arquivos que o teste não carrega (assinaturas, indicação, CAPI)
+const assinaturas = {};
+vm.runInContext(`
+  var _ASS_ = { APP_STATUS: 0 };
+  var AS = { ACTIVE: 'active', TRIAL: 'trial', CANCELLED: 'cancelled' };
+  function _getAssinaturaRow_(e) { return __ass[e] ? [__ass[e]] : null; }
+  function _upsertAssinatura_(e, o) { __ass[e] = o.app_status; }
+  function _syncAcesso_() {}
+  function indRegistrarConversao_() {}
+  function enviarEventoCapi_(n, o) { __capi.push(n); }
+  function _rlBloqueado_() { return 0; } function _rlFalha_() {} function _rlLimpar_() {}
+  function _twofaAtivo_() { return false; }
+  function _rateLimit_() { return false; }
+  function logAction(u, a, en, id, det) { __logs.push(a + ' ' + (det || '')); }
+`, Object.assign(ctx, { __ass: assinaturas, __capi: S.capi, __logs: S.logs }));
+props.set('TG_TOKEN', 'tg_teste');
+
+function planilhaNova() {
+  abas = {};
+  uuid = 0;
+  cache.clear();
+  planilha.insertSheet('users').appendRow(['id', 'name', 'email', 'password_hash', 'role', 'token', 'active', 'created_at']);
+  planilha.insertSheet('CRM').appendRow(['id', 'name', 'email', 'phone', 'form_answers', 'status', 'created_at', 'updated_at', 'assigned_user', 'custom_fields', 'timeline']);
+  planilha.insertSheet('compradores').appendRow(['OrderId', 'Email']);
+  planilha.insertSheet('password_reset').appendRow(['id', 'email', 'code', 'expires_at', 'used', 'created_at']);
+  const cfg = planilha.insertSheet('config');
+  cfg.appendRow(['key', 'value', 'updated_at']);
+  [['wa_token', 'tok'], ['wa_waba_id', '1'], ['wa_phone_id', '2'], ['auto_whats_boasvindas', 'true'],
+   ['wa_tpl_boasvindas', 'bv_cartao'], ['wa_tpl_boasvindas_vars', '["primeiro_nome","data_cobranca"]'],
+   ['wa_tpl_boasvindas_sc', 'bv_teste_gratis'], ['wa_tpl_boasvindas_sc_vars', '["primeiro_nome","fim_teste"]'],
+   ['trial_dias_app', '14']].forEach(p => cfg.appendRow([p[0], p[1], '']));
+  Object.keys(assinaturas).forEach(k => delete assinaturas[k]);
+  S.envios.length = 0; S.wa.length = 0; S.tg.length = 0; S.logs.length = 0; S.capi.length = 0;
+  S.resend = 'ok'; S.gmail = 'ok'; S.mailapp = 'ok';
+}
+function usuario(email) { return ctx.sheetToObjects(abas.users).find(u => u.email === email); }
+function leadCrm(email) {
+  const l = ctx.sheetToObjects(abas.CRM).find(x => x.email === email);
+  return l ? Object.assign(l, { cf: JSON.parse(l.custom_fields || '{}'), tl: JSON.parse(l.timeline || '[]') }) : null;
+}
+
+let falhas = 0;
+function passo(nome, fn) {
+  try { const r = fn(); console.log('  ok    ' + nome + (r ? '  (' + r + ')' : '')); }
+  catch (e) { falhas++; console.log('  FALHA ' + nome + '\n        ' + e.message); }
+}
+function exige(c, m) { if (!c) throw new Error(m); }
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nSESSOES EM VARIOS APARELHOS');
+passo('celular e computador logados ao mesmo tempo', () => {
+  planilhaNova();
+  abas.users.appendRow(['u1', 'Ana Souza', 'ana@x.com', ctx.hashPassword('segredo1'), 'aluno', '', true, '']);
+  const a = ctx.login('ana@x.com', 'segredo1'), b = ctx.login('ANA@x.com ', 'segredo1');
+  exige(a.ok && b.ok && a.token !== b.token, 'login falhou');
+  exige(ctx.getUserByToken(a.token) && ctx.getUserByToken(b.token), 'o primeiro aparelho caiu ao entrar no segundo');
+  ctx.__t = [a.token, b.token];
+  return '2 sessoes validas';
+});
+passo('sair em um aparelho nao derruba o outro', () => {
+  ctx.logout(ctx.__t[0]);
+  exige(!ctx.getUserByToken(ctx.__t[0]), 'token que saiu continua valendo');
+  exige(ctx.getUserByToken(ctx.__t[1]), 'o outro aparelho caiu junto');
+});
+passo('limite de 5: o mais antigo sai', () => {
+  for (let i = 0; i < 5; i++) ctx.login('ana@x.com', 'segredo1');
+  exige(!ctx.getUserByToken(ctx.__t[1]), 'passou de 5 sessoes');
+  const n = String(usuario('ana@x.com').token).split(' ').length;
+  exige(n === 5, n + ' tokens guardados');
+  return '5 tokens na celula';
+});
+passo('token vazio ou inexistente nao entra', () => {
+  exige(ctx.getUserByToken('') === null && ctx.getUserByToken('nao-existe') === null, 'entrou sem token valido');
+  exige(ctx.getUserByToken('00000000') === null, 'pedaco de token entrou');
+});
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nRECUPERACAO DE SENHA');
+passo('Resend ok: codigo sai pelo dominio e fica registrado', () => {
+  planilhaNova();
+  abas.users.appendRow(['u1', 'Davi', 'davi@x.com', ctx.hashPassword('x'), 'admin', '', true, '']);
+  const r = ctx.sendPasswordReset('davi@x.com');
+  exige(r.ok, JSON.stringify(r));
+  exige(S.envios.length === 1 && S.envios[0].via === 'resend' && /recupera/i.test(S.envios[0].subject), JSON.stringify(S.envios));
+  exige(S.envios[0].text && /codigo/.test(S.envios[0].text), 'sem parte em texto');
+  const log = abas.emails_log.rows;
+  exige(log.length === 2 && log[1][1] === 'senha' && log[1][4] === 'resend' && log[1][5] === 'sim', JSON.stringify(log[1]));
+  return 'via resend, tipo senha';
+});
+passo('Resend recusa: cai no Gmail e o erro do Resend fica guardado', () => {
+  planilhaNova();
+  abas.users.appendRow(['u1', 'Davi', 'davi@x.com', ctx.hashPassword('x'), 'admin', '', true, '']);
+  S.resend = '403';
+  const r = ctx.sendPasswordReset('davi@x.com');
+  exige(r.ok && S.envios[0].via === 'gmail', JSON.stringify(S.envios));
+  const lin = abas.emails_log.rows[1];
+  exige(lin[4] === 'gmail-owner' && /resend: HTTP 403/.test(lin[7]) && /not verified/.test(lin[7]), JSON.stringify(lin));
+  return 'erro do Resend: ' + lin[7].slice(0, 50) + '...';
+});
+passo('NENHUM canal sai: a tela recebe erro (antes dizia "enviado")', () => {
+  planilhaNova();
+  abas.users.appendRow(['u1', 'Davi', 'davi@x.com', ctx.hashPassword('x'), 'admin', '', true, '']);
+  S.resend = '403'; S.gmail = 'throw'; S.mailapp = 'throw';
+  const r = ctx.sendPasswordReset('davi@x.com');
+  exige(!r.ok && /Não consegui enviar/.test(r.error), JSON.stringify(r));
+  exige(abas.emails_log.rows[1][5] === 'nao', 'falha nao registrada');
+  return r.error.slice(0, 40) + '...';
+});
+passo('e-mail que nao existe: resposta igual, nada enviado', () => {
+  planilhaNova();
+  const r = ctx.sendPasswordReset('ninguem@x.com');
+  exige(r.ok && S.envios.length === 0, 'enviou ou revelou');
+});
+passo('senha redefinida derruba as sessoes abertas', () => {
+  planilhaNova();
+  abas.users.appendRow(['u1', 'Ana', 'ana@x.com', ctx.hashPassword('velha'), 'aluno', '', true, '']);
+  const t = ctx.login('ana@x.com', 'velha').token;
+  ctx.sendPasswordReset('ana@x.com');
+  const cod = abas.password_reset.rows[1][2];
+  exige(ctx.verifyAndResetPassword('ana@x.com', cod, 'novaSenha1').ok, 'reset falhou');
+  exige(!ctx.getUserByToken(t), 'sessao antiga sobreviveu a troca de senha');
+  exige(ctx.login('ana@x.com', 'novaSenha1').ok, 'senha nova nao entra');
+});
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nCADASTRO PELO APP');
+const RASTREIO = { utm_source: 'facebook', utm_medium: 'paid', utm_campaign: 'roteiro-05', utm_content: 'criativo-b',
+                   landing: '/instalar/', referrer: 'https://l.instagram.com/', dispositivo: 'android-app',
+                   primeira_visita: '2026-09-27T12:00:00Z', lixo: 'nao entra', pagina: '=HYPERLINK("x")' };
+passo('conta nova: entra logada, com os dias do painel (14), nao os do pedido', () => {
+  planilhaNova();
+  const r = ctx.registrarTrial_({ nome: 'Carla', email: 'Carla@Y.com', whatsapp: '(94) 99123-4567', dias: 21,
+    rota: 'app-instalado', rastreio: RASTREIO, consentimento: true, origem: 'https://wpktavares.com.br/app/?fonte=pwa' });
+  exige(r.ok && r.token && r.user && r.user.email === 'carla@y.com', JSON.stringify(r));
+  exige(r.dias === 14, 'dias = ' + r.dias);
+  exige(ctx.getUserByToken(r.token) && ctx.getUserByToken(r.token).email === 'carla@y.com', 'token nao abre sessao');
+  exige(assinaturas['carla@y.com'] === 'trial', 'assinatura nao virou trial');
+  return 'token ok, trial 14 dias';
+});
+passo('CRM: origem trial-app, rota, UTMs, aparelho, aceite — e so chaves conhecidas', () => {
+  const l = leadCrm('carla@y.com');
+  exige(l, 'lead nao entrou no CRM');
+  const cf = l.cf;
+  exige(cf.origem === 'trial-app' && cf.origem_primeira === 'trial-app' && cf.rota === 'app-instalado', JSON.stringify(cf));
+  exige(cf.campanha === 'roteiro-05' && cf.utm_source === 'facebook' && cf.utm_content === 'criativo-b', 'UTMs: ' + JSON.stringify(cf));
+  exige(cf.pagina_entrada === '/instalar/' && cf.dispositivo === 'android-app', 'entrada/aparelho: ' + JSON.stringify(cf));
+  exige(cf.consentimento_em && cf.termos_versao === 'contato-2026-09-v1', 'aceite: ' + JSON.stringify(cf));
+  exige(!('lixo' in cf), 'chave desconhecida entrou');
+  exige(l.phone === '+5594991234567', 'telefone: ' + l.phone);
+  return 'origem=' + cf.origem + ' campanha=' + cf.campanha;
+});
+passo('aceite provado na aba consentimentos, com versao do texto', () => {
+  const c = abas.consentimentos.rows;
+  exige(c.length === 2, c.length + ' linhas');
+  exige(c[1][1] === 'carla@y.com' && c[1][6] === 'contato-2026-09-v1' && c[1][8] === 'app-instalado', JSON.stringify(c[1]));
+});
+passo('rito: e-mail de boas-vindas + WhatsApp (template do sem cartao) + Telegram + Meta', () => {
+  exige(S.envios.some(e => e.to === 'carla@y.com' && /acesso ao Desafio/.test(e.subject)), 'sem e-mail de boas-vindas');
+  exige(S.wa.length === 1 && S.wa[0].template.name === 'bv_teste_gratis' && S.wa[0].to === '5594991234567', JSON.stringify(S.wa));
+  const vars = S.wa[0].template.components[0].parameters.map(p => p.text);
+  exige(vars[0] === 'Carla' && /^\d\d\/\d\d\/\d{4}$/.test(vars[1]), 'variaveis: ' + vars);
+  exige(S.tg.length === 1 && /App instalado/.test(S.tg[0]) && /roteiro-05/.test(S.tg[0]), S.tg[0]);
+  exige(S.capi.indexOf('Lead') >= 0 && S.capi.indexOf('CompleteRegistration') >= 0, 'CAPI: ' + S.capi);
+  const tl = leadCrm('carla@y.com').tl.map(t => t.action);
+  exige(tl.some(a => /Boas-vindas: e-mail enviado · WhatsApp enviado/.test(a)), 'historico: ' + tl.join(' / '));
+  return 'fim do teste no WhatsApp: ' + vars[1];
+});
+passo('trial_leads com a rota e sem formula vinda de fora', () => {
+  const t = abas.trial_leads.rows.find(r => r[2] === 'carla@y.com');
+  exige(t && /^app-instalado · roteiro-05$/.test(t[6]) && t[8] === 'sim', JSON.stringify(t));
+});
+passo('mesmo e-mail de novo pelo app: vai para o login, senha intacta', () => {
+  const antes = usuario('carla@y.com').password_hash;
+  const nEnv = S.envios.length, nWa = S.wa.length;
+  const r = ctx.registrarTrial_({ nome: 'Outra', email: 'carla@y.com', whatsapp: '94991234567', rota: 'app-instalado', consentimento: true });
+  exige(!r.ok && r.existe === true && !r.token, JSON.stringify(r));
+  exige(usuario('carla@y.com').password_hash === antes, 'SENHA TROCADA por cadastro alheio');
+  exige(S.envios.length === nEnv && S.wa.length === nWa, 'disparou mensagem para conta existente');
+});
+passo('pelo app sem autorizacao: bloqueia antes de gravar qualquer coisa', () => {
+  const r = ctx.registrarTrial_({ nome: 'Beto', email: 'beto@y.com', whatsapp: '94991234567', rota: 'app-web', consentimento: false });
+  exige(!r.ok && /autoriza/.test(r.error), JSON.stringify(r));
+  exige(!usuario('beto@y.com') && !leadCrm('beto@y.com'), 'gravou sem autorizacao');
+});
+passo('pelo app com fixo/numero invalido: pede celular', () => {
+  const r = ctx.registrarTrial_({ nome: 'Beto', email: 'beto@y.com', whatsapp: '9433221100', rota: 'app-web', consentimento: true });
+  exige(!r.ok && /celular/i.test(r.error), JSON.stringify(r));
+});
+passo('rota desconhecida vira checkout (nunca da sessao)', () => {
+  const r = ctx.registrarTrial_({ nome: 'Duda Lima', email: 'duda@y.com', whatsapp: '11988887777', rota: 'hacker', consentimento: true, dias: 7 });
+  exige(r.ok && !r.token, JSON.stringify(r));
+  exige(leadCrm('duda@y.com').cf.rota === 'checkout-sem-cartao', 'rota: ' + leadCrm('duda@y.com').cf.rota);
+});
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nCHECKOUT SEM CARTAO (a porta que ja existia)');
+passo('continua igual: sem sessao, "verifique seu e-mail", dias da pagina', () => {
+  planilhaNova();
+  const r = ctx.registrarTrial_({ nome: 'Eva Maria', email: 'eva@y.com', whatsapp: '94991112222', dias: 7,
+    consentimento: true, rota: 'checkout-sem-cartao', rastreio: { utm_campaign: 'roteiro-02', landing: '/7-dias/' } });
+  exige(r.ok && !r.token && /Verifique seu e-mail/.test(r.message) && r.dias === 7, JSON.stringify(r));
+});
+passo('CORRECAO: sem cartao agora entra no CRM como trial-sem-cartao (era trial-cartao)', () => {
+  const cf = leadCrm('eva@y.com').cf;
+  exige(cf.origem === 'trial-sem-cartao', 'origem = ' + cf.origem);
+  exige(cf.campanha === 'roteiro-02' && cf.pagina_entrada === '/7-dias/', JSON.stringify(cf));
+  exige(S.wa.length === 1 && S.wa[0].template.name === 'bv_teste_gratis', 'WhatsApp: ' + JSON.stringify(S.wa));
+});
+passo('pagina antiga em cache (sem aceite): cadastra, mas NAO manda WhatsApp', () => {
+  const r = ctx.registrarTrial_({ nome: 'Fabi Rocha', email: 'fabi@y.com', whatsapp: '94993334444', dias: 7 });
+  exige(r.ok, JSON.stringify(r));
+  exige(S.wa.length === 1, 'mandou WhatsApp sem autorizacao');
+  exige(S.tg.some(t => /Sem autorização/.test(t)), 'Telegram nao avisou a falta de autorizacao');
+});
+passo('classificacao de origem (inclusive historico de trial_leads)', () => {
+  const casos = { 'trial-sem-cartao': 'trial-sem-cartao', 'trial-cartao': 'trial-cartao', 'trial-cartao-14d': 'trial-cartao',
+                  '/checkout-trial/?dias=7': 'trial-sem-cartao', '/checkout-trial-cartao/?dias=14': 'trial-cartao',
+                  'app-instalado · roteiro-05': 'trial-app', 'trial-app': 'trial-app', '': 'trial-sem-cartao' };
+  Object.keys(casos).forEach(k => exige(ctx._clOrigem_(k) === casos[k], k + ' -> ' + ctx._clOrigem_(k)));
+});
+passo('primeiro contato nao e sobrescrito quando a pessoa volta por outra porta', () => {
+  ctx.crmRegistrarLeadTrial_({ email: 'eva@y.com', whatsapp: '94991112222', origem: 'trial-cartao', rota: 'checkout-com-cartao', estagio: 'cartao_iniciado' });
+  const cf = leadCrm('eva@y.com').cf;
+  exige(cf.origem === 'trial-cartao' && cf.origem_primeira === 'trial-sem-cartao', JSON.stringify(cf));
+  return 'agora=' + cf.origem + ', primeira=' + cf.origem_primeira;
+});
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nPAINEL E ROTAS');
+passo('status publico de e-mail: contagem e erro, NENHUM endereco', () => {
+  planilhaNova();
+  abas.users.appendRow(['u1', 'Davi', 'davi@x.com', ctx.hashPassword('x'), 'admin', '', true, '']);
+  S.resend = '403';
+  ctx.sendPasswordReset('davi@x.com');
+  const r = ctx.getEmailStatus();
+  const txt = JSON.stringify(r);
+  exige(r.ok && r.data.ultimas24h.total === 1 && r.data.ultimas24h.resendFalhou === 1, txt);
+  exige(!/@/.test(txt), 'vazou endereco: ' + txt);
+  exige(/not verified/.test(r.data.ultimoErroResend.erro), txt);
+  return 'dominio=' + r.data.dominio + ', erro do Resend visivel e sem e-mail';
+});
+passo('rotas novas no roteador; diagEmailSample fora', () => {
+  exige(ctx.handleRequest({ action: 'getOfertaApp' }).data.dias === 14, 'getOfertaApp');
+  exige(ctx.handleRequest({ action: 'getEmailSaude', token: 'x' }).error === 'Sem permissão.', 'getEmailSaude sem admin');
+  exige(/desconhecida/.test(ctx.handleRequest({ action: 'diagEmailSample', data: { to: 'a@b.com' } }).error), 'diagEmailSample ainda existe');
+  const code = fs.readFileSync(path.join(RAIZ, 'code.gs'), 'utf8');
+  const lista = code.slice(code.indexOf('function doPost'), code.indexOf("'Acao ou token ausente.'"));
+  exige(/'getOfertaApp'/.test(lista) && /'getEmailStatus'/.test(lista), 'faltou na lista publica');
+  exige(!/'diagEmailSample'/.test(lista) && !/'getEmailSaude'/.test(lista), 'rota errada na lista publica');
+});
+passo('painel admin: saude dos e-mails com entrega do Resend', () => {
+  S.resend = 'ok';
+  ctx.sendPasswordReset('davi@x.com');
+  const t = ctx.login('davi@x.com', 'x').token;
+  const r = ctx.getEmailSaude(t);
+  exige(r.ok && r.data.resend.dominio.status === 'verified' && r.data.gmail.conta === 'wpktavares@gmail.com', JSON.stringify(r.data.resend));
+  exige(r.data.ultimos[0].entrega === 'delivered', JSON.stringify(r.data.ultimos[0]));
+  return 'cota Gmail ' + r.data.gmail.cotaHoje + ', ultimo: ' + r.data.ultimos[0].entrega;
+});
+
+passo('chave do Resend: testa antes de guardar e nunca aceita conta errada', () => {
+  const t = ctx.login('davi@x.com', 'x').token;
+  const guardada = () => props.get('RESEND_API_KEY');
+  const antes = guardada();
+  let r = ctx.salvarResendChave(t, { chave: 'abc' });
+  exige(!r.ok && /re_/.test(r.error) && guardada() === antes, 'formato: ' + JSON.stringify(r));
+  r = ctx.salvarResendChave(t, { chave: 're_invalida_1234567890' });
+  exige(!r.ok && /recusou/.test(r.error) && guardada() === antes, 'invalida: ' + JSON.stringify(r));
+  r = ctx.salvarResendChave(t, { chave: 're_semdominio_1234567890' });
+  exige(!r.ok && /não tem o domínio/.test(r.error) && guardada() === antes, 'sem dominio: ' + JSON.stringify(r));
+  r = ctx.salvarResendChave(t, { chave: 're_soenvio_1234567890' });
+  exige(r.ok && r.soEnvio && guardada() === 're_soenvio_1234567890', 'so envio: ' + JSON.stringify(r));
+  r = ctx.salvarResendChave(t, { chave: 're_completa_1234567890' });
+  exige(r.ok && !r.soEnvio && guardada() === 're_completa_1234567890', 'completa: ' + JSON.stringify(r));
+  exige(ctx.getEmailSaude(t).data.resend.chaveMascarada === 're_••••••7890', 'mascara');
+  r = ctx.salvarResendChave(t, { remover: true });
+  exige(r.ok && !guardada(), 'remover');
+  exige(ctx.salvarResendChave('token-de-aluno', { chave: 're_completa_1234567890' }).error === 'Sem permissão.', 'sem admin salvou');
+  props.set('RESEND_API_KEY', 're_teste_nao_real');
+  return '5 casos + remover + sem permissao';
+});
+passo('sem chave do Resend (como em producao hoje): tudo pelo Gmail e o status diz isso', () => {
+  props.delete('RESEND_API_KEY'); cache.clear();
+  S.envios.length = 0;
+  const r = ctx.sendPasswordReset('davi@x.com');
+  exige(r.ok && S.envios[0].via === 'gmail', JSON.stringify(S.envios));
+  const st = ctx.getEmailStatus().data;
+  exige(st.resendConfigurado === false && st.dominio === 'sem_chave', JSON.stringify(st));
+  props.set('RESEND_API_KEY', 're_teste_nao_real');
+});
+
+console.log(falhas ? '\n' + falhas + ' FALHA(S)' : '\nOK — backend da v166 conferido por execucao');
+process.exit(falhas ? 1 : 0);

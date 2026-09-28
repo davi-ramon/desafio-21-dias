@@ -3467,14 +3467,25 @@ input[type=range].adm-slider::-webkit-slider-thumb {
 // ════════════════════════════════════════════════════════════
 var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
 
+// v166: a sessão lembrada no aparelho (localStorage) vale quando a da aba
+// (sessionStorage) não existe — é o caso do app instalado reaberto.
 (function() {
   var _u = {};
-  try { _u = JSON.parse(sessionStorage.getItem('crm_user') || '{}'); } catch(e) {}
+  try { _u = JSON.parse(sessionStorage.getItem('crm_user') || localStorage.getItem('crm_user') || '{}'); } catch(e) {}
   window._crmUser = _u;
 })();
 
 const APP = {
-  token:         (function(){ try { return sessionStorage.getItem('crm_token') || ''; } catch(e) { return ''; } })(),
+  token:         (function(){
+    try {
+      var t = sessionStorage.getItem('crm_token') || '';
+      if (!t) {
+        t = localStorage.getItem('crm_token') || '';
+        if (t) sessionStorage.setItem('crm_token', t);
+      }
+      return t;
+    } catch(e) { return ''; }
+  })(),
   userName:      (window._crmUser && window._crmUser.name)  || '',
   userEmail:     (window._crmUser && window._crmUser.email) || '',
   page:          'inicio',
@@ -3504,6 +3515,11 @@ window.addEventListener('load', function() {
   // (porque /planos nao tem sessao e o usuario cairia no login).
   try {
     var qp = new URLSearchParams(location.search);
+    // v166: lidos ANTES de limpar a barra (logo abaixo). O atalho do ícone
+    // e o destino da notificação se perdiam aqui; o boas-vindas é de quem
+    // acabou de criar a conta pelo app.
+    APP._atalho    = qp.get('atalho') || '';
+    APP._boasVindas = qp.get('boasvindas') === '1';
     var status = qp.get('checkout') || qp.get('assinatura'); // novo + legado
     var view   = qp.get('view');
     var provider = qp.get('provider') || 'stripe';
@@ -3537,6 +3553,17 @@ window.addEventListener('load', function() {
   document.getElementById('avatarEl').textContent = av;
   loadAlunoData();
   loadNotificacoesBackground();
+
+  // v166: quem acabou de criar a conta pela entrada do app
+  if (APP._boasVindas) {
+    setTimeout(function () {
+      try {
+        var pn = String(APP.userName || '').split(' ')[0];
+        toast((pn ? pn + ', seu' : 'Seu') + ' teste grátis começou! A senha provisória está no seu e-mail — ' +
+              'guarde para os próximos acessos.', 'success');
+      } catch (e) {}
+    }, 1800);
+  }
 
   // v98/v99/v149: retorno do provedor OU entrada direta em /app/billing.
   // A sessão já foi validada acima (APP.token), então não há novo login.
@@ -3648,9 +3675,19 @@ function rpc(action, data) {
 // ════════════════════════════════════════════════════════════
 // LOAD DATA
 // ════════════════════════════════════════════════════════════
+// v166: sessão lembrada que deixou de valer (saiu por outro aparelho, trocou
+// a senha, passou do limite de aparelhos) vai para o login com aviso —
+// em vez de um app vazio com um erro solto.
+function _sessaoExpirada() {
+  try { sessionStorage.removeItem('crm_token'); sessionStorage.removeItem('crm_user'); } catch (e) {}
+  try { localStorage.removeItem('crm_token'); localStorage.removeItem('crm_user'); } catch (e) {}
+  window.location.replace(location.origin + '/app/?entrar=1&expirou=1');
+}
+
 async function loadAlunoData(silent) {
   try {
     const r = await rpc('getAlunoData', {});
+    if (!r.ok && /n[aã]o autorizad/i.test(String(r.error || ''))) { _sessaoExpirada(); return; }
     if (!r.ok) { toast(r.error || 'Erro ao carregar dados.', 'error'); return; }
     APP.data = r.data;
     if (r.data && r.data.subscription) APP.subscription = r.data.subscription;
@@ -14485,6 +14522,8 @@ function pwIrPara(nome) {
 function pwAtalho() {
   var q;
   try { q = new URLSearchParams(location.search).get('atalho'); } catch (e) { return; }
+  // v166: a barra já foi limpa no load; o atalho ficou guardado em APP
+  if (!q && APP._atalho) { q = APP._atalho; APP._atalho = ''; }
   if (!q) return;
 
   // Tira o parâmetro da barra antes de agir: senão um F5 repete o

@@ -21,6 +21,20 @@
 
 var CRM_ORIGEM_CARTAO = 'trial-cartao';
 var CRM_ORIGEM_SEM    = 'trial-sem-cartao';
+var CRM_ORIGEM_APP    = 'trial-app';
+
+// v166: até aqui era `indexOf('cartao') >= 0` — e "trial-sem-cartao"
+// CONTÉM "cartao". Todo cadastro sem cartão entrava no CRM como teste
+// COM cartão. Agora a ordem das perguntas importa: app, sem cartão,
+// com cartão. Aceita tanto o código da rota quanto o caminho da página
+// (a sincronização lê a coluna Origem de trial_leads, que tem URLs).
+function _clOrigem_(bruto) {
+  var o = String(bruto || '').toLowerCase();
+  if (o === CRM_ORIGEM_APP || o.indexOf('app-') === 0 || o.indexOf('/app') === 0) return CRM_ORIGEM_APP;
+  if (o.indexOf('sem-cartao') >= 0 || o.indexOf('sem_cartao') >= 0) return CRM_ORIGEM_SEM;
+  if (o.indexOf('cartao') >= 0) return CRM_ORIGEM_CARTAO;
+  return CRM_ORIGEM_SEM;
+}
 
 function _clNorm_(e) { return String(e || '').toLowerCase().trim(); }
 function _clFone_(t)  { return String(t || '').replace(/\D/g, ''); }
@@ -71,7 +85,13 @@ function _crmUpsertLead_(d) {
     if (iCF >= 0 && d.custom) {
       var cf = {};
       try { cf = JSON.parse(String(dados[i][iCF] || '{}')); } catch (e) {}
-      Object.keys(d.custom).forEach(function (k) { if (d.custom[k] !== '' && d.custom[k] != null) cf[k] = d.custom[k]; });
+      Object.keys(d.custom).forEach(function (k) {
+        if (d.custom[k] === '' || d.custom[k] == null) return;
+        // v166: o primeiro contato não muda — é por ele que se sabe
+        // qual anúncio/rota trouxe a pessoa, mesmo que ela volte por outra
+        if (/_primeira$|^primeira_/.test(k) && cf[k]) return;
+        cf[k] = d.custom[k];
+      });
       sheet.getRange(i + 1, iCF + 1).setValue(JSON.stringify(cf));
     }
 
@@ -129,7 +149,8 @@ function _clEstagio_(estagioTrial, convertido) {
 function crmRegistrarLeadTrial_(d) {
   try {
     d = d || {};
-    var comCartao = String(d.origem || '').indexOf('cartao') >= 0;
+    var origem = _clOrigem_(d.origem);
+    var r = d.rastreio || {};
     return _crmUpsertLead_({
       name:  d.nome,
       email: d.email,
@@ -137,14 +158,26 @@ function crmRegistrarLeadTrial_(d) {
       status: _clEstagio_(d.estagio, d.convertido),
       created_at: d.criadoEm || '',
       custom: {
-        origem:      comCartao ? CRM_ORIGEM_CARTAO : CRM_ORIGEM_SEM,
-        oferta_dias: d.dias || '',
-        campanha:    d.campanha || '',
-        indicado_por: d.ref || '',
-        etapa_trial: d.estagio || '',
-        convertido:  d.convertido || 'nao'
+        origem:          origem,
+        origem_primeira: origem,              // não é sobrescrito (ver _crmUpsertLead_)
+        rota:            d.rota || '',
+        oferta_dias:     d.dias || '',
+        campanha:        d.campanha || r.utm_campaign || '',
+        utm_source:      r.utm_source || '',
+        utm_medium:      r.utm_medium || '',
+        utm_content:     r.utm_content || '',
+        utm_term:        r.utm_term || '',
+        pagina_entrada:  r.landing || '',
+        referrer:        r.referrer || '',
+        dispositivo:     r.dispositivo || '',
+        primeira_visita: r.primeira_visita || '',
+        consentimento_em: d.consentimento || '',
+        termos_versao:   d.termosVersao || '',
+        indicado_por:    d.ref || '',
+        etapa_trial:     d.estagio || '',
+        convertido:      d.convertido || 'nao'
       },
-      evento: d.evento || (comCartao
+      evento: d.evento || (origem === CRM_ORIGEM_CARTAO
         ? ('Checkout com cartão — ' + (d.estagio || 'iniciado'))
         : 'Cadastro no teste grátis')
     });

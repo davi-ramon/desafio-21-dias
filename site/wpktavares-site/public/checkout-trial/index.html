@@ -450,6 +450,21 @@ svg{display:block;flex-shrink:0}
   margin-top:5px;display:none;
 }
 .form-error.show{display:block}
+/* v166: autorização de contato (e-mail + WhatsApp) — obrigatória */
+.aceite{position:relative;display:flex;gap:11px;align-items:flex-start;cursor:pointer;margin:4px 0 14px;
+  padding:12px 13px;border:1.5px solid var(--border);border-radius:10px;background:var(--input-bg);
+  transition:border-color .2s}
+.aceite:hover{border-color:rgba(76,175,80,.4)}
+.aceite.error{border-color:var(--red)}
+.aceite input{position:absolute;opacity:0;width:1px;height:1px}
+.aceite-box{flex-shrink:0;width:20px;height:20px;border-radius:6px;border:1.5px solid rgba(110,144,112,.6);
+  display:flex;align-items:center;justify-content:center;margin-top:1px;transition:background .15s,border-color .15s}
+.aceite-box svg{opacity:0;transform:scale(.6);transition:opacity .15s,transform .15s}
+.aceite input:checked + .aceite-box{background:var(--green);border-color:var(--green)}
+.aceite input:checked + .aceite-box svg{opacity:1;transform:scale(1)}
+.aceite input:focus-visible + .aceite-box{box-shadow:0 0 0 3px rgba(76,175,80,.25)}
+.aceite-txt{font-size:12px;color:var(--muted);line-height:1.55}
+.aceite-txt a{color:var(--green-bright,#6dde71);text-decoration:underline;text-underline-offset:2px}
 .server-err{
   background:rgba(232,64,64,0.07);
   border:1px solid rgba(232,64,64,0.2);
@@ -973,6 +988,8 @@ footer{
   .topbar-headline .th-line2{font-size:16px}
 }
 </style>
+<!-- v166: de onde a pessoa veio (UTM/entrada) para o cadastro -->
+<script src="/assets/d21-rastreio.js?v=166"></script>
 </head>
 <body>
 
@@ -1124,9 +1141,17 @@ footer{
         <div class="form-error" id="waErr">Digite seu WhatsApp com DDD.</div>
         <div class="field-hint">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-          Usamos apenas para enviar seu acesso. Zero spam.
+          Para o seu acesso e os lembretes do desafio. Zero spam.
         </div>
       </div>
+
+      <!-- v166: autorização de contato — prova fica na aba consentimentos -->
+      <label class="aceite" id="aceiteBox">
+        <input type="checkbox" id="aceite">
+        <span class="aceite-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
+        <span class="aceite-txt">Autorizo o Desafio 21 Dias a falar comigo por <b>e-mail e WhatsApp</b> — acesso, lembretes da rotina e novidades. Posso sair quando quiser. Li os <a href="/termos-de-uso/" target="_blank" rel="noopener">termos</a> e a <a href="/politica-de-privacidade/" target="_blank" rel="noopener">privacidade</a>.</span>
+      </label>
+      <div class="form-error" id="aceiteErr" style="margin:-8px 0 12px">Marque a autorização para continuar.</div>
 
       <!-- CTA -->
       <button class="cta-btn" id="ctaBtn" onclick="handleSubmit()">
@@ -1774,6 +1799,11 @@ window.handleSubmit = function(){
     document.getElementById('waErr').classList.add('show');
     valid = false;
   }
+  // v166: autorização de contato é obrigatória (vai para o WhatsApp oficial)
+  var aceitou = document.getElementById('aceite').checked;
+  document.getElementById('aceiteBox').classList.toggle('error', !aceitou);
+  document.getElementById('aceiteErr').classList.toggle('show', !aceitou);
+  if(!aceitou) valid = false;
   if(!valid) return;
 
   var btn = document.getElementById('ctaBtn');
@@ -1800,7 +1830,11 @@ window.handleSubmit = function(){
       event_id:eventId, fbp:fbp, fbc:fbc,
       client_ua:navigator.userAgent,
       ref: D21_REF,
-      origem: window.location.href
+      origem: window.location.href,
+      // v166: rota + de onde veio + autorização (mesmo rito do app)
+      rota: 'checkout-sem-cartao',
+      rastreio: window.D21Rastreio ? D21Rastreio.dados() : {},
+      consentimento: true
     }})
   })
   .then(function(r){ return r.text(); })
@@ -1904,7 +1938,10 @@ function getFormData(stage){
     whatsapp: document.getElementById('whatsapp').value.replace(/\D/g,''),
     dias:     dias,
     estagio:  stage || '',
-    origem:   window.location.pathname + window.location.search
+    origem:   window.location.pathname + window.location.search +
+              // v166: a campanha do primeiro contato vale mais que a URL atual
+              ((window.D21Rastreio && D21Rastreio.dados().utm_campaign && location.search.indexOf('utm_campaign') < 0)
+                ? ' · ' + D21Rastreio.dados().utm_campaign : '')
   };
 }
 function saveIncompleteLead(stage){

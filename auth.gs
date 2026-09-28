@@ -262,13 +262,37 @@ function userExistsPublic(email) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
+// v166: SESSÕES EM VÁRIOS APARELHOS.
+// Até a v165 a coluna `token` guardava UM token: entrar no computador
+// derrubava a sessão do celular. Com o app instalado lembrando o login,
+// isso viraria "sessão expirada" a cada troca de aparelho. Agora a
+// célula guarda até SESSOES_MAX tokens separados por espaço; o mais
+// antigo sai quando entra um novo. Sair encerra só o aparelho que saiu.
+var SESSOES_MAX = 5;
+
+function _tokensDe_(celula) {
+  return String(celula || '').split(/\s+/).filter(function (t) { return !!t; });
+}
+function _tokenNaLista_(celula, token) {
+  if (!token) return false;
+  return _tokensDe_(celula).indexOf(String(token)) >= 0;
+}
+
 function logout(token) {
+  if (!token) return { ok: true };
   const sheet = getSheet(SHEET_USERS);
-  const users = sheetToObjects(sheet);
-  const user  = users.find(u => u.token === token);
-  if (user) {
-    updateUserToken(sheet, users, user.email, '');
-    logAction(user.email, 'LOGOUT', 'session', '', '');
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const tokenCol = headers.indexOf('token');
+  const emailCol = headers.indexOf('email');
+  for (let i = 1; i < data.length; i++) {
+    const lista = _tokensDe_(data[i][tokenCol]);
+    const pos = lista.indexOf(String(token));
+    if (pos < 0) continue;
+    lista.splice(pos, 1);
+    sheet.getRange(i + 1, tokenCol + 1).setValue(lista.join(' '));
+    logAction(String(data[i][emailCol] || ''), 'LOGOUT', 'session', '', '');
+    break;
   }
   return { ok: true };
 }
@@ -277,7 +301,7 @@ function getUserByToken(token) {
   if (!token) return null;
   const sheet = getSheet(SHEET_USERS);
   const users = sheetToObjects(sheet);
-  return users.find(u => u.token === token && u.active) || null;
+  return users.find(u => u.active && _tokenNaLista_(u.token, token)) || null;
 }
 
 // v127: comparação NORMALIZADA. O login() encontra o usuário com
@@ -286,6 +310,8 @@ function getUserByToken(token) {
 // que foi digitado, o login "funcionava" e o token NUNCA era gravado.
 // Toda chamada seguinte caía em "Não autorizado" e derrubava a sessão.
 // Retorna true se gravou, para o chamador poder reagir.
+// v166: token vazio limpa TODAS as sessões; token novo entra na lista
+// (os mais antigos saem quando passa de SESSOES_MAX).
 function updateUserToken(sheet, users, email, token) {
   const alvo = String(email || '').toLowerCase().trim();
   const data = sheet.getDataRange().getValues();
@@ -294,7 +320,13 @@ function updateUserToken(sheet, users, email, token) {
   const emailCol = headers.indexOf('email');
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][emailCol] || '').toLowerCase().trim() === alvo) {
-      sheet.getRange(i + 1, tokenCol).setValue(token);
+      let valor = '';
+      if (token) {
+        const lista = _tokensDe_(data[i][tokenCol - 1]).filter(t => t !== String(token));
+        lista.push(String(token));
+        valor = lista.slice(-SESSOES_MAX).join(' ');
+      }
+      sheet.getRange(i + 1, tokenCol).setValue(valor);
       return true;
     }
   }
@@ -392,12 +424,20 @@ function sendPasswordReset(email) {
   // _enviarEmailWpk_, que tenta o Resend com o domínio verificado primeiro
   // e só cai em Gmail/MailApp se ele falhar. A recuperação de senha tinha
   // ficado de fora, e é justamente o e-mail que a pessoa mais precisa receber.
+  // v166: se NENHUM canal saiu, a tela precisa saber. Antes respondia
+  // "código enviado" e a pessoa ficava esperando um e-mail que não existia.
+  var _envio = null;
   try {
-    var _envio = _enviarEmailWpk_(email, subject,
-      'Seu codigo de recuperacao e ' + code + '. Ele vale por 5 minutos.', html);
-    logAction(email, 'PASSWORD_RESET_VIA', 'user', '', (_envio && _envio.via) || 'desconhecido');
+    _envio = _enviarEmailWpk_(email, subject,
+      'Seu codigo de recuperacao e ' + code + '. Ele vale por 5 minutos.', html, 'senha');
   } catch(mailErr) {
-    return { ok: false, error: 'Erro ao enviar e-mail: ' + mailErr.message };
+    _envio = { ok: false, via: '', erro: mailErr.message };
+  }
+  logAction(email, 'PASSWORD_RESET_VIA', 'user', '',
+            (_envio && _envio.via) || ('falhou: ' + ((_envio && _envio.erro) || '')));
+  if (!_envio || !_envio.ok) {
+    return { ok: false, error: 'Não consegui enviar o e-mail agora. Tente de novo em alguns minutos — ' +
+                               'se continuar, fale com o suporte no WhatsApp.' };
   }
 
   logAction(email, 'PASSWORD_RESET_REQUEST', 'user', email, '');
@@ -451,6 +491,10 @@ function verifyAndResetPassword(email, code, newPassword) {
   for (let i = 1; i < uData.length; i++) {
     if (String(uData[i][uHeaders.indexOf('email')]).toLowerCase() === email.toLowerCase()) {
       userSheet.getRange(i + 1, hashCol).setValue(hashPassword(newPassword));
+      // v166: senha nova derruba as sessões abertas em outros aparelhos —
+      // se alguém mais estava dentro da conta, deixa de estar.
+      const tokCol = uHeaders.indexOf('token') + 1;
+      if (tokCol > 0) userSheet.getRange(i + 1, tokCol).setValue('');
       logAction(email, 'PASSWORD_RESET_SUCCESS', 'user', email, '');
       return { ok: true };
     }

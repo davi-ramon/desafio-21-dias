@@ -440,6 +440,102 @@ html, body {
   .logo-block, .form-badge, .form-title, .form-footer { max-width: 380px; }
 }
 
+/* ══════════════════════════════════════════════
+   v166 — BOAS-VINDAS + CADASTRO (entrada do app)
+══════════════════════════════════════════════ */
+.vista { width: 100%; }
+.vista.entra > * { opacity: 0; transform: translateY(12px); animation: panel-in .5s cubic-bezier(.22,1,.36,1) forwards; }
+.vista.entra > *:nth-child(2) { animation-delay: .05s; }
+.vista.entra > *:nth-child(3) { animation-delay: .10s; }
+.vista.entra > *:nth-child(4) { animation-delay: .15s; }
+.vista.entra > *:nth-child(5) { animation-delay: .20s; }
+.vista.entra > *:nth-child(6) { animation-delay: .25s; }
+.vista.entra > *:nth-child(7) { animation-delay: .30s; }
+.vista.entra > *:nth-child(n+8) { animation-delay: .34s; }
+
+.bv-titulo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px, 11vw, 52px); line-height: .95; letter-spacing: .01em;
+  color: var(--cream); text-align: center; margin-bottom: 14px;
+}
+.bv-titulo em { font-family: 'Instrument Serif', serif; font-style: italic; color: var(--green-bright); }
+.bv-sub {
+  font-size: 14px; font-weight: 300; color: #8fa891; line-height: 1.7;
+  text-align: center; margin: 0 auto 22px; max-width: 330px;
+}
+.bv-lista { list-style: none; margin: 0 auto 24px; display: grid; gap: 10px; max-width: 300px; }
+.bv-lista li { display: flex; align-items: center; gap: 11px; font-size: 13.5px; color: var(--cream); }
+.bv-ic {
+  width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  background: var(--green-dim); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+}
+.bv-ic svg { width: 12px; height: 12px; }
+
+.btn-sec {
+  width: 100%; margin-top: 10px;
+  background: transparent; color: var(--cream);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  padding: 14px 20px; border-radius: 11px;
+  border: 1px solid var(--border); cursor: pointer;
+  transition: border-color .2s, background .2s, color .2s;
+}
+.btn-sec:hover { border-color: var(--border-focus); background: var(--green-dim); color: var(--green-bright); }
+
+.link-troca { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+.link-troca button {
+  background: none; border: none; color: var(--green-bright); font: inherit; font-weight: 600;
+  cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+
+.zap-row { display: flex; }
+.zap-pre {
+  display: flex; align-items: center; padding: 0 12px;
+  background: var(--surface); border: 1px solid var(--border); border-right: none;
+  border-radius: 11px 0 0 11px; font-size: 13px; color: var(--muted); white-space: nowrap;
+}
+.zap-row input { border-radius: 0 11px 11px 0 !important; }
+.zap-row:focus-within .zap-pre { border-color: var(--border-focus); }
+
+.sugestao { font-size: 12px; color: var(--muted); margin-top: 6px; display: none; }
+.sugestao.show { display: block; }
+.sugestao button { background: none; border: none; color: var(--green-bright); font: inherit; font-weight: 600; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+
+.aceite {
+  position: relative; display: flex; gap: 11px; align-items: flex-start; cursor: pointer;
+  margin: 4px 0 6px; padding: 12px 13px; border-radius: 11px;
+  border: 1px solid var(--border); background: var(--surface); transition: border-color .2s;
+}
+.aceite:hover { border-color: rgba(76,175,80,.35); }
+.aceite.erro { border-color: rgba(232,64,64,.55); }
+.aceite input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.aceite-box {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 6px; margin-top: 1px;
+  border: 1.5px solid var(--muted); display: flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s;
+}
+.aceite-box svg { opacity: 0; transform: scale(.6); transition: opacity .15s, transform .15s; }
+.aceite input:checked + .aceite-box { background: var(--green); border-color: var(--green); }
+.aceite input:checked + .aceite-box svg { opacity: 1; transform: scale(1); }
+.aceite input:focus-visible + .aceite-box { box-shadow: 0 0 0 3px rgba(76,175,80,.25); }
+.aceite-txt { font-size: 12px; color: #8fa891; line-height: 1.55; }
+.aceite-txt a { color: var(--green-bright); text-underline-offset: 2px; }
+
+.lembrar { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--muted); margin: 2px 0 12px; cursor: pointer; }
+.lembrar input { accent-color: #4caf50; width: 15px; height: 15px; }
+
+.hp { position: absolute !important; left: -9999px !important; width: 1px; height: 1px; opacity: 0; }
+
+.msg-info {
+  background: rgba(109,222,113,.06);
+  border: 1px solid rgba(109,222,113,.2);
+  color: #b9d9ba;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vista.entra > *, .right-panel > * { animation: none !important; opacity: 1 !important; transform: none !important; }
+}
+
 /* ── Entry animations ── */
 .right-panel > * {
   opacity: 0; transform: translateY(16px);
@@ -456,6 +552,8 @@ html, body {
 
 @keyframes panel-in { to { opacity:1; transform:translateY(0); } }
 </style>
+<!-- v166: de onde a pessoa veio (UTM/entrada) para o cadastro -->
+<script src="/assets/d21-rastreio.js?v=166"></script>
 </head>
 <body>
 <script>
@@ -468,6 +566,13 @@ html, body {
 (function () {
   if (!('serviceWorker' in navigator)) return;
   navigator.serviceWorker.getRegistrations().then(function (regs) {
+    // v166: o SW das notificações (v167 do app) NÃO entra na limpeza. Ele
+    // só guarda os ícones e deixa todo o resto ir para a rede — e apagá-lo
+    // a cada abertura do app instalado desmontava o push toda vez.
+    regs = regs.filter(function (r) {
+      var w = r.active || r.waiting || r.installing;
+      return !(w && /\/firebase-messaging-sw\.js/.test(w.scriptURL || ''));
+    });
     if (!regs.length) return;
     console.warn('[App] service worker inesperado (' + regs.length + '). Removendo.');
     var jaTentou = false;
@@ -502,10 +607,79 @@ html, body {
       <div class="logo-sub">Desafio 21 Dias</div>
     </div>
 
-    <!-- ── TELA: Login ─────────────────────── -->
-    <div id="viewLogin" style="display:contents">
+    <!-- ── TELA: Boas-vindas (v166) — quem abre o app sem conta ── -->
+    <div id="viewBoasVindas" class="vista" style="display:none">
+      <div class="bv-titulo">Sua nova rotina<br>começa <em>hoje</em>.</div>
+      <p class="bv-sub">Meditação, leitura e exercício guiados, um dia de cada vez — até virar hábito.</p>
+      <ul class="bv-lista">
+        <li><span class="bv-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#6dde71" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span><span><b class="js-dias">7</b> dias grátis, sem cartão</span></li>
+        <li><span class="bv-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#6dde71" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span><span>Pronto em menos de 1 minuto</span></li>
+        <li><span class="bv-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#6dde71" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span><span>Nada é cobrado no teste</span></li>
+      </ul>
+      <button class="btn-submit" type="button" onclick="switchView('cadastro')">
+        <span class="btn-text">Começar meu teste grátis</span>
+      </button>
+      <button class="btn-sec" type="button" onclick="switchView('login')">Já sou aluno — entrar</button>
+      <div class="form-footer">
+        <p>Desafio 21 Dias · WPK Tavares</p>
+        <p style="margin-top:6px">Dúvidas? <a href="https://wa.me/559484427988" target="_blank" rel="noopener">Fale conosco</a></p>
+      </div>
+    </div>
 
-      <div class="form-badge">Área restrita — faça login</div>
+    <!-- ── TELA: Cadastro (v166) — mesmo rito do checkout sem cartão ── -->
+    <div id="viewCadastro" class="vista" style="display:none">
+      <div class="form-badge" style="display:table;margin-left:auto;margin-right:auto">Teste grátis · <span class="js-dias">7</span> dias · sem cartão</div>
+      <div class="form-title">Criar sua conta</div>
+
+      <div class="input-group">
+        <label class="input-label" for="cadNome">Seu nome</label>
+        <div class="input-field">
+          <input type="text" id="cadNome" placeholder="Como você quer ser chamado" autocomplete="given-name" maxlength="60">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="cadEmail">E-mail</label>
+        <div class="input-field">
+          <input type="email" id="cadEmail" placeholder="seu@email.com" autocomplete="email" inputmode="email" maxlength="120">
+          <span class="input-icon">✉</span>
+        </div>
+        <div class="sugestao" id="cadSugestao"></div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="cadZap">WhatsApp</label>
+        <div class="zap-row">
+          <span class="zap-pre">+55</span>
+          <div class="input-field">
+            <input type="tel" id="cadZap" placeholder="(99) 99999-9999" inputmode="numeric" autocomplete="tel-national" maxlength="15">
+          </div>
+        </div>
+      </div>
+
+      <label class="aceite" id="cadAceiteBox">
+        <input type="checkbox" id="cadAceite">
+        <span class="aceite-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
+        <span class="aceite-txt">Autorizo o Desafio 21 Dias a falar comigo por <b>e-mail e WhatsApp</b> — acesso, lembretes da rotina e novidades. Posso sair quando quiser. Li os <a href="/termos-de-uso/" target="_blank" rel="noopener">termos</a> e a <a href="/politica-de-privacidade/" target="_blank" rel="noopener">privacidade</a>.</span>
+      </label>
+      <input type="text" id="cadSite" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <button class="btn-submit" id="btnCadastro" type="button" onclick="doCadastro()">
+        <div class="btn-spinner"></div>
+        <span class="btn-text">Começar meu teste grátis</span>
+      </button>
+
+      <div class="msg msg-error" id="cadErro"></div>
+      <div class="msg msg-success" id="cadOk"></div>
+
+      <div class="link-troca">Já tem conta? <button type="button" onclick="switchView('login')">Entrar</button></div>
+    </div>
+
+    <!-- ── TELA: Login ─────────────────────── -->
+    <!-- v166: começa oculta; _entradaInicial() escolhe a primeira tela -->
+    <div id="viewLogin" style="display:none">
+
+      <div class="form-badge">Bem-vindo de volta</div>
 
       <div class="form-title">Entrar</div>
 
@@ -525,6 +699,8 @@ html, body {
         </div>
       </div>
 
+      <label class="lembrar"><input type="checkbox" id="lembrar" checked> Manter conectado neste aparelho</label>
+
       <button class="btn-submit" id="btnLogin" type="button" onclick="doLogin()">
         <div class="btn-spinner"></div>
         <span class="btn-text">Entrar</span>
@@ -536,6 +712,8 @@ html, body {
       <div style="text-align:center;margin-top:14px">
         <button onclick="switchView('forgot')" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:3px;transition:color .15s" onmouseover="this.style.color='var(--green)'" onmouseout="this.style.color='var(--muted)'">Esqueci minha senha</button>
       </div>
+
+      <div class="link-troca">Ainda não tem conta? <button type="button" onclick="switchView('cadastro')">Testar grátis</button></div>
 
       <div class="form-footer">
         <p>Acesso restrito · WPK Tavares</p>
@@ -787,27 +965,23 @@ function doLogin() {
   btn.classList.add('loading');
   btn.disabled = true;
 
-  fetch(WEBAPP, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'login', data: { email: email, password: password } })
-  })
-  .then(function(r) { return r.json(); })
+  _postPublico('login', { email: email, password: password })
   .then(function(res) {
     btn.classList.remove('loading');
     btn.disabled = false;
     if (res.ok) {
-      // Save session
-      sessionStorage.setItem('crm_token', res.token);
-      sessionStorage.setItem('crm_user', JSON.stringify(res.user));
+      // v166: lembra a sessão no aparelho (o app instalado não perde o login ao fechar)
+      _salvarSessao(res.token, res.user, document.getElementById('lembrar').checked);
+      try { localStorage.setItem('d21_ultimo_email', email); } catch (e) {}
 
-      // Salva sessão e navega para app.html (sem iframe, sem script.google.com)
       sucBox.innerHTML = '✅ Login realizado! Entrando...';
       sucBox.classList.add('show');
 
       setTimeout(function() {
-        window.location.assign('./app.html');
+        window.location.assign('./app.html' + _queryParaApp());
       }, 600);
+    } else if (res.need2fa) {
+      showErr('Esta conta usa código de verificação por e-mail. Entre pelo painel: wpktavares.com.br/admin');
     } else {
       showErr(res.error || 'E-mail ou senha incorretos.');
     }
@@ -856,24 +1030,287 @@ function showErr(msg) {
   setTimeout(function() { card.style.animation = ''; }, 400);
 }
 
-// ── TROCA DE TELA login ↔ forgot ─────────────────────────────
+// ── TROCA DE TELA: boas-vindas ↔ cadastro ↔ login ↔ esqueci ──
+var VISTAS = { boasvindas: 'viewBoasVindas', cadastro: 'viewCadastro', login: 'viewLogin', forgot: 'viewForgot' };
+
 function switchView(v) {
-  var login  = document.getElementById('viewLogin');
-  var forgot = document.getElementById('viewForgot');
+  if (!VISTAS[v]) v = 'login';
+  Object.keys(VISTAS).forEach(function (k) {
+    var el = document.getElementById(VISTAS[k]);
+    if (!el) return;
+    if (k !== v) { el.style.display = 'none'; return; }
+    el.style.display = k === 'login' ? 'contents' : (k === 'forgot' ? '' : 'block');
+    if (el.classList.contains('vista')) {
+      el.classList.remove('entra'); void el.offsetWidth; el.classList.add('entra');
+    }
+  });
   if (v === 'forgot') {
-    login.style.display  = 'none';
-    forgot.style.display = '';
     // Reseta estados
     document.getElementById('fpStep1').style.display = '';
     document.getElementById('fpStep2').style.display = 'none';
     document.getElementById('errForgot').classList.remove('show');
     document.getElementById('sucForgot').classList.remove('show');
-  } else {
-    forgot.style.display = 'none';
-    login.style.display  = 'contents';
+    var fp = document.getElementById('fpEmail');
+    if (fp && !fp.value) fp.value = document.getElementById('email').value || '';
+  } else if (v === 'login') {
     document.getElementById('msgError').classList.remove('show');
     document.getElementById('msgSuccess').classList.remove('show');
+    var em = document.getElementById('email');
+    if (!em.value) em.value = document.getElementById('cadEmail').value || _ultimoEmail();
+  } else if (v === 'cadastro') {
+    document.getElementById('cadErro').classList.remove('show');
+    document.getElementById('cadOk').classList.remove('show');
   }
+  try { document.querySelector('.right-panel').scrollTop = 0; } catch (e) {}
+}
+
+// ═════════════════════════════════════════════════════════════
+// v166 — SESSÃO LEMBRADA + ENTRADA DO APP
+// ═════════════════════════════════════════════════════════════
+
+// Pedido público resiliente: o Apps Script devolve HTML (não JSON) no
+// cold start e durante deploy. Lê como texto e tenta de novo uma vez.
+function _postPublico(action, data, tentativa) {
+  return fetch(WEBAPP, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: action, data: data })
+  })
+  .then(function (r) { return r.text(); })
+  .then(function (txt) {
+    try { return JSON.parse(txt); } catch (e) {}
+    if (!tentativa) {
+      return new Promise(function (ok) { setTimeout(ok, 1500); })
+        .then(function () { return _postPublico(action, data, 1); });
+    }
+    throw new Error('resposta invalida do servidor');
+  });
+}
+
+function _salvarSessao(token, user, lembrar) {
+  try {
+    sessionStorage.setItem('crm_token', token);
+    sessionStorage.setItem('crm_user', JSON.stringify(user || {}));
+  } catch (e) {}
+  try {
+    if (lembrar) {
+      localStorage.setItem('crm_token', token);
+      localStorage.setItem('crm_user', JSON.stringify(user || {}));
+    } else {
+      localStorage.removeItem('crm_token');
+      localStorage.removeItem('crm_user');
+    }
+  } catch (e) {}
+}
+
+function _ultimoEmail() {
+  try { return localStorage.getItem('d21_ultimo_email') || ''; } catch (e) { return ''; }
+}
+
+// Atalhos do ícone e cliques em notificação chegam como ?atalho=...
+// Antes a entrada descartava a query e o destino se perdia.
+function _queryParaApp() {
+  try {
+    var q = new URLSearchParams(location.search);
+    ['entrar', 'cadastro', 'expirou'].forEach(function (k) { q.delete(k); });
+    var s = q.toString();
+    return s ? '?' + s : '';
+  } catch (e) { return ''; }
+}
+
+function _estaInstalado() {
+  try {
+    return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) ||
+           navigator.standalone === true || /[?&]fonte=pwa/.test(location.search);
+  } catch (e) { return false; }
+}
+
+// Indicação: mesma regra do checkout (vale 30 dias)
+function _refIndicacao() {
+  try {
+    var r = (new URLSearchParams(location.search).get('ref') || '').toUpperCase().trim();
+    if (r) { localStorage.setItem('d21_ref', r); localStorage.setItem('d21_ref_em', String(Date.now())); return r; }
+    var g = localStorage.getItem('d21_ref') || '';
+    var q = parseInt(localStorage.getItem('d21_ref_em'), 10) || 0;
+    return (g && Date.now() - q < 30 * 86400000) ? g : '';
+  } catch (e) { return ''; }
+}
+
+// Quantos dias o teste do app oferece hoje (o painel troca)
+function _carregarOferta() {
+  _postPublico('getOfertaApp', {}).then(function (r) {
+    var n = r && r.ok && r.data && r.data.dias;
+    if (!n) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.js-dias'), function (el) { el.textContent = n; });
+  }).catch(function () {});
+}
+
+// ── Cadastro ────────────────────────────────────────────────
+var DOMINIOS = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'yahoo.com.br', 'icloud.com',
+                'live.com', 'bol.com.br', 'uol.com.br', 'terra.com.br', 'msn.com', 'outlook.com.br', 'hotmail.com.br'];
+
+function _distancia(a, b) {
+  var m = [], i, j;
+  for (i = 0; i <= a.length; i++) { m[i] = [i]; }
+  for (j = 0; j <= b.length; j++) { m[0][j] = j; }
+  for (i = 1; i <= a.length; i++) {
+    for (j = 1; j <= b.length; j++) {
+      m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+  }
+  return m[a.length][b.length];
+}
+
+// "fulano@gmial.com" → sugere gmail.com. Um e-mail errado aqui é uma
+// pessoa que nunca recebe a senha provisória.
+function _sugerirEmail() {
+  var el = document.getElementById('cadEmail'), box = document.getElementById('cadSugestao');
+  var v = (el.value || '').trim().toLowerCase(), p = v.split('@');
+  box.classList.remove('show'); box.innerHTML = '';
+  if (p.length !== 2 || !p[0] || !p[1] || DOMINIOS.indexOf(p[1]) >= 0) return;
+  var melhor = '', menor = 3;
+  DOMINIOS.forEach(function (d) { var x = _distancia(p[1], d); if (x < menor) { menor = x; melhor = d; } });
+  if (!melhor) return;
+  var sug = p[0] + '@' + melhor;
+  box.innerHTML = 'Você quis dizer <button type="button" id="cadSugBtn"></button>?';
+  document.getElementById('cadSugBtn').textContent = sug;
+  document.getElementById('cadSugBtn').onclick = function () { el.value = sug; box.classList.remove('show'); };
+  box.classList.add('show');
+}
+
+function _mascaraZap(el) {
+  var v = el.value.replace(/\D/g, '');
+  if (v.indexOf('55') === 0 && v.length > 11) v = v.slice(2);
+  v = v.slice(0, 11);
+  if (v.length > 7)      el.value = '(' + v.slice(0, 2) + ') ' + v.slice(2, 7) + '-' + v.slice(7);
+  else if (v.length > 2) el.value = '(' + v.slice(0, 2) + ') ' + v.slice(2);
+  else                   el.value = v;
+}
+
+function _rotaApp() { return _estaInstalado() ? 'app-instalado' : 'app-web'; }
+function _rastreio() {
+  try { return window.D21Rastreio ? window.D21Rastreio.dados() : {}; } catch (e) { return {}; }
+}
+
+// Abandono de formulário: igual ao checkout, o lead fica guardado
+// mesmo se a pessoa desistir no meio.
+var _cadSalvo = '';
+function _salvarParcial(estagio) {
+  var d = {
+    nome: document.getElementById('cadNome').value.trim(),
+    email: document.getElementById('cadEmail').value.trim(),
+    whatsapp: document.getElementById('cadZap').value.replace(/\D/g, ''),
+    estagio: 'app_' + estagio,
+    origem: _rotaApp() + (_rastreio().utm_campaign ? ' · ' + _rastreio().utm_campaign : '')
+  };
+  if (!d.email && d.whatsapp.length < 10) return;
+  var chave = d.nome + '|' + d.email + '|' + d.whatsapp;
+  if (chave === _cadSalvo) return;
+  _cadSalvo = chave;
+  try {
+    fetch(WEBAPP, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, keepalive: true,
+      body: JSON.stringify({ action: 'salvarLeadIncompleto', data: d }) }).catch(function () {});
+  } catch (e) {}
+}
+
+function _erroCad(msg, campoId) {
+  var box = document.getElementById('cadErro');
+  box.textContent = '⚠ ' + msg;
+  box.classList.add('show');
+  if (campoId) { try { document.getElementById(campoId).focus(); } catch (e) {} }
+  var card = document.querySelector('.right-panel');
+  card.style.animation = 'shake .35s ease';
+  setTimeout(function () { card.style.animation = ''; }, 400);
+}
+
+function doCadastro() {
+  var nome  = document.getElementById('cadNome').value.replace(/\s+/g, ' ').trim();
+  var email = document.getElementById('cadEmail').value.trim().toLowerCase();
+  var zap   = document.getElementById('cadZap').value.replace(/\D/g, '');
+  var aceitou = document.getElementById('cadAceite').checked;
+  var btn   = document.getElementById('btnCadastro');
+
+  document.getElementById('cadErro').classList.remove('show');
+  document.getElementById('cadOk').classList.remove('show');
+  document.getElementById('cadAceiteBox').classList.remove('erro');
+
+  if (nome.length < 2) return _erroCad('Digite seu nome.', 'cadNome');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return _erroCad('Informe um e-mail válido.', 'cadEmail');
+  if (zap.indexOf('55') === 0 && zap.length > 11) zap = zap.slice(2);
+  if (zap.length < 10 || zap.length > 11) return _erroCad('Informe seu WhatsApp com DDD.', 'cadZap');
+  if (!aceitou) {
+    document.getElementById('cadAceiteBox').classList.add('erro');
+    return _erroCad('Marque a autorização para continuar.');
+  }
+
+  btn.classList.add('loading'); btn.disabled = true;
+
+  _postPublico('registrarTrial', {
+    nome: nome, email: email, whatsapp: zap,
+    rota: _rotaApp(), rastreio: _rastreio(), consentimento: true,
+    ref: _refIndicacao(),
+    event_id: 'app_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    client_ua: navigator.userAgent,
+    origem: location.origin + '/app/',
+    website: document.getElementById('cadSite').value      // honeypot
+  })
+  .then(function (res) {
+    btn.classList.remove('loading'); btn.disabled = false;
+    if (res.ok && res.token) {
+      // Conta criada e sessão aberta: direto para o app
+      _salvarSessao(res.token, res.user, true);
+      try { localStorage.setItem('d21_ultimo_email', email); } catch (e) {}
+      var ok = document.getElementById('cadOk');
+      ok.textContent = '✅ ' + (res.message || 'Conta criada!') + ' Entrando…';
+      ok.classList.add('show');
+      setTimeout(function () { window.location.replace('./app.html?boasvindas=1'); }, 700);
+    } else if (res.ok) {
+      // Sem sessão (não deveria acontecer pelo app): o acesso foi por e-mail
+      document.getElementById('email').value = email;
+      switchView('login');
+      var s = document.getElementById('msgSuccess');
+      s.textContent = '✅ Conta criada! Enviamos sua senha para ' + email + '. Confira a caixa de entrada e o spam.';
+      s.classList.add('show');
+    } else if (res.existe) {
+      document.getElementById('email').value = email;
+      switchView('login');
+      var s2 = document.getElementById('msgSuccess');
+      s2.className = 'msg msg-info show';
+      s2.textContent = 'Você já tem conta com ' + email + '. Entre com a sua senha — ou toque em "Esqueci minha senha".';
+      setTimeout(function () { try { document.getElementById('password').focus(); } catch (e) {} }, 350);
+    } else {
+      _erroCad(res.error || 'Não consegui criar sua conta agora. Tente de novo.');
+    }
+  })
+  .catch(function () {
+    btn.classList.remove('loading'); btn.disabled = false;
+    _erroCad('Não consegui falar com o servidor agora. Aguarde alguns segundos e toque de novo.');
+  });
+}
+
+// Primeira tela: quem já entrou neste aparelho vai para o login; quem
+// nunca entrou vê as boas-vindas. Links de e-mail forçam com ?entrar=1.
+function _entradaInicial() {
+  var q = new URLSearchParams(location.search);
+  if (q.get('cadastro') === '1') switchView('cadastro');
+  else if (q.get('entrar') === '1' || _ultimoEmail()) switchView('login');
+  else switchView('boasvindas');
+
+  if (q.get('expirou') === '1') {
+    var s = document.getElementById('msgSuccess');
+    s.className = 'msg msg-info show';
+    s.textContent = 'Sua sessão terminou neste aparelho. Entre de novo para continuar.';
+  }
+
+  var zap = document.getElementById('cadZap');
+  zap.addEventListener('input', function () { _mascaraZap(zap); });
+  document.getElementById('cadEmail').addEventListener('blur', _sugerirEmail);
+  ['cadNome', 'cadEmail', 'cadZap'].forEach(function (id) {
+    var el = document.getElementById(id);
+    el.addEventListener('blur', function () { _salvarParcial(id.replace('cad', '').toLowerCase()); });
+    el.addEventListener('keydown', function (e) { if (e.key === 'Enter') doCadastro(); });
+  });
+  _carregarOferta();
 }
 
 // ── ENVIAR CÓDIGO DE RECUPERAÇÃO ─────────────────────────────
@@ -890,12 +1327,7 @@ function doSendCode() {
 
   btn.classList.add('loading'); btn.disabled = true;
 
-  fetch(WEBAPP, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'sendPasswordReset', data: { email: email } })
-  })
-  .then(function(r) { return r.json(); })
+  _postPublico('sendPasswordReset', { email: email })
   .then(function(res) {
     btn.classList.remove('loading'); btn.disabled = false;
     if (res.ok) {
@@ -932,12 +1364,7 @@ function doResetPassword() {
 
   btn.classList.add('loading'); btn.disabled = true;
 
-  fetch(WEBAPP, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'verifyAndResetPassword', data: { email, code, newPassword: newPwd } })
-  })
-  .then(function(r) { return r.json(); })
+  _postPublico('verifyAndResetPassword', { email: email, code: code, newPassword: newPwd })
   .then(function(res) {
     btn.classList.remove('loading'); btn.disabled = false;
     if (res.ok) {
@@ -1215,12 +1642,26 @@ window.addEventListener('message', function(e) {
 });
 
 // Ao carregar a página: se já tiver token → pula login, vai direto pro app.html
+// v166: a sessão lembrada (localStorage) também vale — é ela que mantém o
+// app instalado logado depois de fechar. E a query segue junto: é nela
+// que vêm os atalhos do ícone e o destino das notificações.
 (function checkExistingSession() {
   var token = _getToken();
-  if (token) {
-    console.info('[App] Token existente encontrado — redirecionando para app.html');
-    window.location.replace('./app.html');
+  if (!token) {
+    try {
+      token = localStorage.getItem('crm_token') || '';
+      if (token) {
+        sessionStorage.setItem('crm_token', token);
+        sessionStorage.setItem('crm_user', localStorage.getItem('crm_user') || '{}');
+      }
+    } catch (e) {}
   }
+  if (token) {
+    console.info('[App] Sessão encontrada — indo para app.html');
+    window.location.replace('./app.html' + _queryParaApp());
+    return;
+  }
+  _entradaInicial();
 })();
 </script>
 </body>

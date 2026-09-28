@@ -106,10 +106,14 @@ function criarContexto() {
 
 // Carrega todos os scripts inline, na ordem, no mesmo contexto — igual
 // o navegador faz. Erro de carga e reportado mas nao para os outros.
-function carregar(caminho) {
+// opts.antes(ctx): roda ANTES dos scripts — para preparar armazenamento,
+// URL, fetch ou arquivos externos (<script src>) que a pagina espera.
+function carregar(caminho, opts) {
+  opts = opts || {};
   const html = fs.readFileSync(caminho, 'utf8');
   const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
   const ctx = criarContexto();
+  if (typeof opts.antes === 'function') opts.antes(ctx, vm);
   const errosCarga = [];
   let m, n = 0;
   while ((m = re.exec(html))) {

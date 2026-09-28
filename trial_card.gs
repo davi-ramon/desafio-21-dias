@@ -98,13 +98,18 @@ function enviarCodigoTrial(data) {
     enviadoEm: Date.now()
   }), TC_OTP_TTL_SEG);
 
+  // v166: _enviarEmailWpk_ não lança erro — devolve ok. Antes a falha
+  // passava como "código enviado" e a pessoa esperava à toa.
+  var envOtp = null;
   try {
-    _enviarEmailWpk_(email, 'Seu codigo: ' + codigo,
+    envOtp = _enviarEmailWpk_(email, 'Seu codigo: ' + codigo,
       'Seu codigo de verificacao e ' + codigo + '. Ele vale por 5 minutos.',
-      _tcEmailOtpHtml_(nome.split(' ')[0] || '', codigo));
-  } catch (e) {
-    logAction(email, 'TRIAL_OTP_EMAIL_FALHOU', 'checkout', '', e.message);
-    return { ok: false, error: 'Nao consegui enviar o codigo agora. Tente de novo.' };
+      _tcEmailOtpHtml_(nome.split(' ')[0] || '', codigo), 'codigo');
+  } catch (e) { envOtp = { ok: false, erro: e.message }; }
+  if (!envOtp || !envOtp.ok) {
+    try { c.remove(_tcChaveOtp_(email)); } catch (e) {}   // sem cooldown para um código que não saiu
+    logAction(email, 'TRIAL_OTP_EMAIL_FALHOU', 'checkout', '', (envOtp && envOtp.erro) || '');
+    return { ok: false, error: 'Nao consegui enviar o codigo agora. Tente de novo em instantes.' };
   }
 
   logAction(email, 'TRIAL_OTP_ENVIADO', 'checkout', '', '');
@@ -193,7 +198,9 @@ function _tcRegistrarConsentimento_(dados) {
       String(dados.nome || ''),
       Number(dados.trialDias) || 0,
       Number(dados.valor) || 0,
-      TC_TERMOS_VERSAO,
+      // v166: o teste sem cartão e o app registram aqui a autorização de
+      // contato (e-mail + WhatsApp), com versão própria de texto
+      String(dados.versao || TC_TERMOS_VERSAO),
       nowISO(),
       String(dados.origem || ''),
       String(dados.campanha || '')
@@ -313,11 +320,15 @@ function criarCheckoutTrialCartao(data) {
   // v164: o lead entra no CRM na hora. Quem confirmou e-mail por codigo,
   // informou o WhatsApp e aceitou os termos e o melhor lead do funil —
   // ficar so numa aba de planilha era desperdicio.
+  // v166: UTMs, página de entrada e aparelho também vão (D21Rastreio)
+  var rastreioCk = (typeof _trialRastreio_ === 'function') ? _trialRastreio_(data.rastreio) : {};
   try {
     crmRegistrarLeadTrial_({
       nome: nome, email: email, whatsapp: tel.e164, dias: dias,
-      estagio: 'cartao_iniciado', origem: 'trial-cartao',
-      campanha: data.campanha || '', ref: data.ref || '', convertido: 'nao',
+      estagio: 'cartao_iniciado', origem: 'trial-cartao', rota: 'checkout-com-cartao',
+      rastreio: rastreioCk,
+      consentimento: nowISO(), termosVersao: TC_TERMOS_VERSAO,
+      campanha: data.campanha || rastreioCk.utm_campaign || '', ref: data.ref || '', convertido: 'nao',
       evento: 'Checkout com cartao iniciado (' + dias + ' dias)'
     });
   } catch (e) {}

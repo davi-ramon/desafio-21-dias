@@ -1777,6 +1777,10 @@ button,
       <span class="nav-icon"><i data-lucide="star" class="luc"></i></span>
       <span class="nav-label">Avalia&ccedil;&otilde;es</span>
     </div>
+    <div class="nav-item" data-page="emails" id="navEmails" onclick="navigate('emails')" title="E-mails — entrega e saúde">
+      <span class="nav-icon"><i data-lucide="mail-check" class="luc"></i></span>
+      <span class="nav-label">E-mails</span>
+    </div>
     <div class="nav-item" data-page="push" id="navPush" onclick="navigate('push')" title="Notificações push">
       <span class="nav-icon"><i data-lucide="bell-ring" class="luc"></i></span>
       <span class="nav-label">Notifica&ccedil;&otilde;es Push</span>
@@ -2102,6 +2106,7 @@ function navigate(page) {
     migracao:       'Migração para a conta nova',
     sono:           'Módulo do Sono — Paisagens Sonoras',
     avaliacoes:     'Avaliações da loja (página de instalação)',
+    emails:         'E-mails — entrega e saúde',
     push:           'Notificações Push e Agenda do Dia',
     leadsexport:    'Leads do Funil e Exportação',
     indicacoes:     'Indicações e Satisfação',
@@ -2132,7 +2137,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, push: renderPushAdmin, sono: renderSonoAdmin, avaliacoes: renderAvaliacoesAdmin, migracao: renderMigracao, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, push: renderPushAdmin, sono: renderSonoAdmin, avaliacoes: renderAvaliacoesAdmin, emails: renderEmailSaude, migracao: renderMigracao, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -2228,6 +2233,64 @@ function buildKanban() {
   content.innerHTML = html;
 }
 
+// ── v166: por onde a pessoa entrou (rota do teste) ───────────
+var CRM_ROTAS = {
+  'app-instalado':       'App instalado',
+  'app-web':             'App pelo navegador',
+  'checkout-sem-cartao': 'Checkout sem cartão',
+  'checkout-com-cartao': 'Checkout com cartão'
+};
+var CRM_ORIGENS = {
+  'trial-app':        ['App',        '#6dde71'],
+  'trial-sem-cartao': ['Sem cartão', '#7fb8ff'],
+  'trial-cartao':     ['Cartão',     '#f2c14e']
+};
+function _crmRotaNome(cf) {
+  cf = cf || {};
+  if (CRM_ROTAS[cf.rota]) return CRM_ROTAS[cf.rota];
+  var o = CRM_ORIGENS[cf.origem];
+  return o ? 'Teste — ' + o[0].toLowerCase() : '';
+}
+function _crmRotaBadge(cf) {
+  var o = CRM_ORIGENS[(cf || {}).origem];
+  if (!o) return '';
+  return '<span class="platform-badge" style="color:' + o[1] + ';border-color:' + o[1] + '55" title="' +
+         escHtml(_crmRotaNome(cf) + (cf.campanha ? ' · ' + cf.campanha : '')) + '">' + escHtml(o[0]) + '</span>';
+}
+function _crmAparelho(d) {
+  d = String(d || '');
+  var base = d.replace('-app', '');
+  var nome = base === 'ios' ? 'iPhone/iPad' : base === 'android' ? 'Android' : base === 'desktop' ? 'Computador' : base;
+  return nome ? nome + (d.indexOf('-app') > 0 ? ' · app instalado' : ' · navegador') : '';
+}
+function _crmRastroHtml(cf) {
+  cf = cf || {};
+  var mudou = cf.origem_primeira && cf.origem_primeira !== cf.origem;
+  var linhas = [
+    ['Entrou por', _crmRotaNome(cf)],
+    ['Primeiro contato', mudou ? (CRM_ORIGENS[cf.origem_primeira] ? 'Teste — ' + CRM_ORIGENS[cf.origem_primeira][0].toLowerCase() : cf.origem_primeira) : ''],
+    ['Campanha', cf.campanha || cf.utm_campaign],
+    ['Fonte / mídia', [cf.utm_source, cf.utm_medium].filter(Boolean).join(' / ')],
+    ['Criativo', cf.utm_content],
+    ['Termo', cf.utm_term],
+    ['Página de entrada', cf.pagina_entrada],
+    ['Veio de', cf.referrer],
+    ['Aparelho', _crmAparelho(cf.dispositivo)],
+    ['Primeira visita', cf.primeira_visita ? fmtDateFull(cf.primeira_visita) : ''],
+    ['Teste oferecido', cf.oferta_dias ? cf.oferta_dias + ' dias' : ''],
+    ['Indicado por', cf.indicado_por],
+    ['Autorizou contato', cf.consentimento_em
+        ? fmtDateFull(cf.consentimento_em) + (cf.termos_versao ? ' · ' + cf.termos_versao : '')
+        : (cf.origem ? 'Não registrado' : '')]
+  ].filter(function (l) { return l[1]; });
+  if (!linhas.length) return '';
+  return '<div class="detail-section"><div class="detail-section-title">Rastreamento</div><div class="detail-grid">' +
+    linhas.map(function (l) {
+      return '<div class="detail-item"><div class="detail-item-label">' + l[0] + '</div>' +
+             '<div class="detail-item-value" style="font-size:12.5px;word-break:break-word">' + escHtml(String(l[1])) + '</div></div>';
+    }).join('') + '</div></div>';
+}
+
 function renderCardHTML(lead, stageIdx) {
   const name    = lead.name || 'Sem nome';
   const initial = name[0].toUpperCase();
@@ -2246,7 +2309,8 @@ function renderCardHTML(lead, stageIdx) {
   const whatsappBtn = waLink
     ? '<a href="' + waLink + '" target="_blank" class="lead-phone-btn" onclick="event.stopPropagation()" title="' + escHtml(phone) + '">&#9990; WhatsApp</a>'
     : '';
-  const platformBadge = platform ? '<span class="platform-badge">' + platformIcon + ' ' + escHtml(platform) + '</span>' : '';
+  const platformBadge = platform ? '<span class="platform-badge">' + platformIcon + ' ' + escHtml(platform) + '</span>' :
+                        _crmRotaBadge(cf);
   const bgColor  = STAGE_BG[stageIdx]    || 'var(--accent-l)';
   const txColor  = STAGE_COLORS[stageIdx] || 'var(--accent)';
 
@@ -2352,6 +2416,7 @@ async function openLeadDetail(leadId) {
       '<div class="detail-item"><div class="detail-item-label">Responsavel</div><div class="detail-item-value">' + escHtml(String(lead.assigned_user||'&mdash;')) + '</div></div>' +
       '<div class="detail-item"><div class="detail-item-label">Criado em</div><div class="detail-item-value">' + fmtDateFull(lead.created_at) + '</div></div>' +
     '</div></div>' +
+    _crmRastroHtml(cf) +
     '<div class="detail-section"><div class="detail-section-title">Respostas do Formulario</div>' + formHtml + '</div>' +
     '<div class="detail-section"><div class="detail-section-title">Historico</div><div class="tl-wrap">' + tlHtml + '</div></div>';
 
@@ -4360,7 +4425,7 @@ async function renderCompradores() {
     // Tabela
     html += '<div class="card"><div class="table-wrap"><table>' +
       '<thead><tr>' +
-        '<th>Aluno</th><th>Telefone</th><th>Compra</th>' +
+        '<th>Aluno</th><th>Telefone</th><th>Origem</th><th>Compra</th>' +
         '<th>Dia</th><th>Progresso</th><th>Status</th><th>&Uacute;ltimo Check-in</th><th></th>' +
       '</tr></thead><tbody>';
 
@@ -4379,6 +4444,12 @@ async function renderCompradores() {
         '<tr>' +
           '<td><b>' + escHtml(c.nome||'&mdash;') + '</b><div style="font-size:11px;color:var(--muted)">' + escHtml(c.email||'') + '</div></td>' +
           '<td style="color:var(--muted);font-size:12px">' + escHtml(c.telefone||'&mdash;') + '</td>' +
+          // v166: por onde entrou (CRM); sem registro, deduz do produto
+          '<td style="font-size:12px" title="' + escHtml([_crmRotaNome(c), c.campanha, _crmAparelho(c.dispositivo)].filter(Boolean).join(' · ')) + '">' +
+            (_crmRotaBadge(c) || '<span style="color:var(--muted)">' +
+              (/trial/i.test(c.produto || '') ? 'Teste' : (c.produto ? 'Compra' : '&mdash;')) + '</span>') +
+            (c.campanha ? '<div style="font-size:10.5px;color:var(--muted);margin-top:3px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(c.campanha) + '</div>' : '') +
+          '</td>' +
           '<td style="color:var(--muted);font-size:12px">' + fmtDate(c.paidAt) + '</td>' +
           '<td style="font-weight:700;color:var(--accent)">' + (c.diaAtual > 21 ? '21' : c.diaAtual) + ' / 21</td>' +
           '<td style="min-width:120px">' + progBar + '</td>' +
@@ -4714,6 +4785,7 @@ var TA_FONTES = [
   ['primeiro_nome', 'Primeiro nome do cliente'],
   ['nome_completo', 'Nome completo'],
   ['dias_trial',    'Dias de teste (ex: 14)'],
+  ['fim_teste',     'Último dia do teste (data)'],
   ['data_cobranca', 'Data da 1ª cobrança'],
   ['valor',         'Valor mensal (17,00)'],
   ['email',         'E-mail do cliente']
@@ -5030,6 +5102,168 @@ async function migRecriar(botao) {
     res.innerHTML = _migLista(r.data.itens);
     return { ok: true, msg: 'Recriadas', depois: function () { setTimeout(renderMigracao, 2500); } };
   }, 'Recriando\u2026');
+}
+
+// ════════════════════════════════════════════════════════════
+// E-MAILS — ENTREGA E SAÚDE (v166)
+// Cada e-mail do sistema vira uma linha em emails_log: canal, erro
+// e, quando saiu pelo Resend, o que aconteceu depois (entregue,
+// devolvido, marcado como spam).
+// ════════════════════════════════════════════════════════════
+var EMS_ENTREGA = {
+  delivered: ['Entregue', 'var(--green)'], sent: ['Enviado', '#8fb8ff'], queued: ['Na fila', '#8fb8ff'],
+  scheduled: ['Agendado', '#8fb8ff'], delivery_delayed: ['Atrasado', '#e0a83c'], bounced: ['Devolvido', '#e2626b'],
+  complained: ['Marcado como spam', '#e2626b'], opened: ['Aberto', 'var(--green)'], clicked: ['Clicado', 'var(--green)'],
+  failed: ['Falhou', '#e2626b'], canceled: ['Cancelado', 'var(--muted)'], suppressed: ['Bloqueado pelo Resend', '#e2626b'],
+  sem_permissao: ['—', 'var(--muted)']
+};
+var EMS_DOMINIO = {
+  verified: ['Verificado', 'var(--green)'], pending: ['Aguardando DNS', '#e0a83c'], not_started: ['Não iniciado', '#e0a83c'],
+  failed: ['Falhou a verificação', '#e2626b'], nao_cadastrado: ['Não cadastrado nesta conta do Resend', '#e2626b'],
+  sem_chave: ['Sem chave do Resend', '#e2626b'], chave_so_envio: ['Chave só de envio (não consulta)', 'var(--muted)'],
+  chave_recusada: ['Chave recusada pelo Resend', '#e2626b'], erro: ['Não consegui consultar', '#e0a83c']
+};
+var EMS_TIPO = { senha: 'Recuperação de senha', '2fa': 'Código do painel', 'link-admin': 'Link do painel',
+                 codigo: 'Código do checkout', trial: 'Boas-vindas / teste', teste: 'Teste do painel', geral: 'Outros' };
+var EMS_VIA = { resend: 'Resend', 'gmail-owner': 'Gmail', 'mailapp-html': 'MailApp' };
+
+function _emsSelo(par) {
+  return '<span style="font-size:11.5px;font-weight:700;color:' + par[1] + '">' + par[0] + '</span>';
+}
+
+async function renderEmailSaude() {
+  var content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  var r;
+  try { r = await rpc('getEmailSaude', {}); } catch (e) { r = null; }
+  if (!r || !r.ok) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-title">Não consegui carregar</div>' +
+      '<div class="empty-sub">' + escHtml((r && r.error) || 'Erro de conexão.') + '</div></div>';
+    return;
+  }
+  var d = r.data, c24 = d.ultimas24h.contagem || {};
+  var dom = d.resend.dominio || {};
+  var domSelo = EMS_DOMINIO[dom.status] || [dom.status || '?', 'var(--muted)'];
+
+  var alerta = '';
+  if (c24.resendFalhou && d.ultimas24h.ultimoErroResend) {
+    alerta = '<div class="card" style="margin-bottom:16px;border-color:rgba(224,168,60,.45)">' +
+      '<div style="font-size:13px;font-weight:700;color:#e0a83c;margin-bottom:4px">O Resend recusou ' + c24.resendFalhou +
+        ' envio(s) nas últimas 24h</div>' +
+      '<div style="font-size:12px;color:var(--muted);line-height:1.6">Esses e-mails saíram pelo Gmail da conta do sistema ' +
+        '(mais chance de cair no spam). Último erro: <code>' + escHtml(d.ultimas24h.ultimoErroResend.erro) + '</code></div></div>';
+  }
+  if (c24.falhas) {
+    alerta += '<div class="card" style="margin-bottom:16px;border-color:rgba(226,98,107,.5)">' +
+      '<div style="font-size:13px;font-weight:700;color:#e2626b;margin-bottom:4px">' + c24.falhas +
+        ' e-mail(s) não saíram por nenhum canal nas últimas 24h</div>' +
+      '<div style="font-size:12px;color:var(--muted);line-height:1.6">A pessoa foi avisada na tela (não fica esperando). ' +
+        'Último erro: <code>' + escHtml((d.ultimas24h.ultimaFalha || {}).erro || '') + '</code></div></div>';
+  }
+
+  var html = '<div class="metrics-grid" style="margin-bottom:16px">' +
+    _puCard('<i data-lucide="send" class="luc"></i>', c24.total || 0, 'Enviados em 24h',
+            (c24.resend || 0) + ' Resend · ' + ((c24.gmail || 0) + (c24.mailapp || 0)) + ' Gmail') +
+    _puCard('<i data-lucide="alert-triangle" class="luc"></i>', c24.falhas || 0, 'Não saíram', 'nenhum canal funcionou') +
+    _puCard('<i data-lucide="inbox" class="luc"></i>', d.gmail.cotaHoje >= 0 ? d.gmail.cotaHoje : '?', 'Cota do Gmail hoje',
+            'reserva, se o Resend falhar') +
+  '</div>' + alerta;
+
+  // v166: sem chave, TUDO sai pelo Gmail — é a situação mais importante da tela
+  if (!d.resend.configurado) {
+    html += '<div class="card" style="margin-bottom:16px;border-color:rgba(224,168,60,.5)">' +
+      '<div style="font-size:13.5px;font-weight:800;color:#e0a83c;margin-bottom:6px">O Resend não está configurado</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);line-height:1.7">Hoje <b>todos</b> os e-mails (recuperação de senha, ' +
+        'boas-vindas, códigos) saem pelo Gmail de <code>' + escHtml(d.gmail.conta || '?') + '</code>. Funciona, mas cai mais ' +
+        'no spam e tem limite de ~100 por dia. O domínio <b>wpktavares.com.br</b> já está preparado no DNS para o Resend ' +
+        '&mdash; falta só a chave.<br><b>Onde pegar:</b> resend.com &rarr; <i>API Keys</i> &rarr; <i>Create API Key</i> ' +
+        '(permissão <i>Sending access</i> basta), na conta do Resend onde o domínio wpktavares.com.br está verificado. ' +
+        'Cole abaixo: o sistema testa antes de guardar.</div></div>';
+  }
+
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">Como os e-mails saem</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);line-height:1.8">' +
+      '<b>1º Resend</b>, remetente <code>' + escHtml(d.resend.remetente || '') + '</code> — ' +
+        (d.resend.configurado ? 'chave <code>' + escHtml(d.resend.chaveMascarada || '') + '</code>' : '<b style="color:#e2626b">sem chave</b>') +
+        ' · domínio: ' + _emsSelo(domSelo) + '<br>' +
+      '<b>2º Gmail</b> da conta que roda o sistema: <code>' + escHtml(d.gmail.conta || '?') + '</code> (só se o Resend falhar)' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center">' +
+      '<input class="form-control" id="emsChave" type="password" autocomplete="off" style="max-width:280px" placeholder="' +
+        (d.resend.configurado ? 'Trocar a chave do Resend (re_…)' : 'Cole a chave do Resend (re_…)') + '">' +
+      '<button class="btn btn-primary btn-sm" onclick="emsSalvarChave(this)">Salvar chave</button>' +
+      (d.resend.configurado ? '<button class="btn btn-ghost btn-sm" onclick="emsRemoverChave(this)">Remover chave</button>' : '') +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center">' +
+      '<input class="form-control" id="emsPara" style="max-width:280px" placeholder="E-mail para o teste (vazio = o seu)">' +
+      '<button class="btn btn-primary btn-sm" onclick="emsTestar(this)">Enviar e-mail de teste</button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="renderEmailSaude()">Atualizar</button>' +
+    '</div><div id="emsRes" style="margin-top:8px"></div></div>';
+
+  html += '<div class="card"><div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">Últimos envios</div>';
+  if (!d.ultimos.length) {
+    html += '<div style="font-size:12.5px;color:var(--muted)">Nenhum envio registrado ainda. O registro começou nesta versão.</div>';
+  } else {
+    html += '<div class="table-wrap"><table><thead><tr><th>Quando</th><th>Tipo</th><th>Para</th><th>Canal</th><th>Situação</th></tr></thead><tbody>';
+    d.ultimos.forEach(function (l) {
+      var sit = !l.ok ? _emsSelo(['Não saiu', '#e2626b'])
+              : l.entrega ? _emsSelo(EMS_ENTREGA[l.entrega] || [l.entrega, 'var(--muted)'])
+              : _emsSelo(['Aceito', 'var(--green)']);
+      var obs = l.erro ? '<div style="font-size:10.5px;color:var(--muted);margin-top:3px;max-width:320px;white-space:normal">' + escHtml(l.erro) + '</div>' : '';
+      html += '<tr>' +
+        '<td style="font-size:12px;color:var(--muted);white-space:nowrap">' + fmtDateFull(l.quando) + '</td>' +
+        '<td style="font-size:12px">' + escHtml(EMS_TIPO[l.tipo] || l.tipo) + '</td>' +
+        '<td style="font-size:12px">' + escHtml(l.para) + '</td>' +
+        '<td style="font-size:12px">' + escHtml(EMS_VIA[l.via] || l.via || '—') + '</td>' +
+        '<td>' + sit + obs + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div>';
+
+  content.innerHTML = html;
+  _processIcons && _processIcons(content);
+}
+
+async function emsSalvarChave(botao) {
+  var campo = document.getElementById('emsChave');
+  var chave = ((campo || {}).value || '').trim();
+  if (!chave) { toast('Cole a chave do Resend.', 'error'); return; }
+  return acaoBotao(botao, async function () {
+    var r = await rpc('salvarResendChave', { chave: chave });
+    if (campo) campo.value = '';     // a chave não fica na tela
+    if (!r || !r.ok) return { ok: false, msg: 'Recusada', detalhe: (r && r.error) || 'Não consegui salvar.' };
+    toast(r.message, 'success');
+    return { ok: true, msg: 'Salva', depois: renderEmailSaude };
+  }, 'Testando…');
+}
+
+async function emsRemoverChave(botao) {
+  var ok = await adminConfirmar('Remover a chave do Resend',
+    'Os e-mails voltam a sair só pelo Gmail da conta do sistema (mais chance de spam, limite de ~100/dia).',
+    'Remover', true);
+  if (!ok) return;
+  return acaoBotao(botao, async function () {
+    var r = await rpc('salvarResendChave', { remover: true });
+    if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || '' };
+    return { ok: true, msg: 'Removida', depois: renderEmailSaude };
+  }, '…');
+}
+
+async function emsTestar(botao) {
+  var para = ((document.getElementById('emsPara') || {}).value || '').trim();
+  var box = document.getElementById('emsRes');
+  return acaoBotao(botao, async function () {
+    var r = await rpc('testarEnvioEmail', para ? { para: para } : {});
+    if (!r || !r.ok) {
+      box.innerHTML = '<div style="color:#e2626b;font-size:12px">' + escHtml((r && r.error) || 'Falhou.') + '</div>';
+      return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || '' };
+    }
+    box.innerHTML = '<div style="color:var(--green);font-size:12px">✓ ' + escHtml(r.message) +
+      (r.erro ? '<div style="color:#e0a83c;margin-top:4px">Antes de sair: ' + escHtml(r.erro) + '</div>' : '') + '</div>';
+    return { ok: true, msg: 'Enviado', depois: function () { setTimeout(renderEmailSaude, 1500); } };
+  }, 'Enviando…');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -6443,8 +6677,13 @@ async function renderTrialAuto() {
         'C&oacute;digo de 6 d&iacute;gitos que expira em 5 min, antes de liberar o teste') +
       _taSwitch('ta_mailbv', c.autoEmailBoasVindas, 'E-mail de boas-vindas',
         'Enviado assim que o cart&atilde;o &eacute; aceito e o teste come&ccedil;a') +
-      _taSwitch('ta_zapbv', c.autoWhatsBoasVindas, 'WhatsApp de boas-vindas',
-        'Dispara o template escolhido abaixo') +
+      _taSwitch('ta_zapbv', c.autoWhatsBoasVindas, 'WhatsApp de boas-vindas — teste com cart&atilde;o',
+        'Dispara o template &ldquo;Boas-vindas do teste&rdquo; quando o cart&atilde;o &eacute; aceito') +
+      _taSwitch('ta_zapsc', c.autoWhatsBoasVindasSc, 'WhatsApp de boas-vindas — sem cart&atilde;o e app',
+        'Checkout sem cart&atilde;o e cadastro pelo app. S&oacute; vai para quem marcou a autoriza&ccedil;&atilde;o. ' +
+        (c.boasVindasScEfetivo
+          ? 'Usando agora: <b>' + escHtml(c.boasVindasScEfetivo.nome) + '</b>' + (c.boasVindasScEfetivo.proprio ? '' : ' (o mesmo do cart&atilde;o)')
+          : '<b style="color:#e0a83c">Nenhum template escolhido</b> &mdash; carregue da Meta e escolha abaixo')) +
       _taSwitch('ta_tg', c.autoTelegram, 'Aviso no Telegram',
         'Notifica&ccedil;&atilde;o interna para voc&ecirc; a cada nova ades&atilde;o') +
       _taSwitch('ta_lemb', c.autoLembretes, 'Lembrete antes da cobran&ccedil;a',
@@ -6456,6 +6695,22 @@ async function renderTrialAuto() {
         '<button class="btn btn-ghost btn-sm" onclick="taLembretes(&quot;ativar&quot;)">Ativar rotina di&aacute;ria</button>' +
         '<button class="btn btn-ghost btn-sm" onclick="taLembretes(&quot;rodar&quot;)">Rodar agora</button>' +
       '</div><div id="taLembRes" style="margin-top:8px"></div>' +
+    '</div>' +
+
+    // ── v166: teste grátis pelo app ──
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Teste gr&aacute;tis pelo app</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">' +
+        'Quem abre o app sem conta cria uma ali mesmo: <b>nome, e-mail, WhatsApp e autoriza&ccedil;&atilde;o</b>. ' +
+        'Entra no CRM com a rota <b>App</b>, recebe o e-mail e o WhatsApp de boas-vindas e j&aacute; cai dentro do app. ' +
+        'Conta que j&aacute; existe vai para o login &mdash; esse caminho nunca troca senha de ningu&eacute;m.</div>' +
+      '<div class="form-group" style="max-width:260px"><label class="form-label">Dias de teste</label>' +
+        '<select class="form-control" id="ta_dias_app">' +
+          [7, 14, 21].map(function (n) {
+            return '<option value="' + n + '"' + (Number(c.trialDiasApp || 7) === n ? ' selected' : '') + '>' +
+                   n + ' dias' + (n === 7 ? ' (padr&atilde;o)' : '') + '</option>';
+          }).join('') +
+        '</select></div>' +
     '</div>' +
 
     // ── Recuperação de checkout abandonado ──
@@ -6546,13 +6801,19 @@ async function taCarregarTemplates() {
     return;
   }
   box.innerHTML =
-    _taBlocoTemplate('bv', 'Boas-vindas do teste', TA.cfg.tplBoasVindas, TA.cfg.tplBoasVindasVars) +
+    _taBlocoTemplate('bv', 'Boas-vindas do teste (com cart&atilde;o)', TA.cfg.tplBoasVindas, TA.cfg.tplBoasVindasVars) +
+    '<div style="height:18px"></div>' +
+    _taBlocoTemplate('sc', 'Boas-vindas &mdash; teste sem cart&atilde;o e app (sem falar de cobran&ccedil;a)',
+                     TA.cfg.tplBoasVindasSc, TA.cfg.tplBoasVindasScVars) +
+    '<div style="font-size:11px;color:var(--muted);margin:-4px 0 0;line-height:1.55">Sem escolha aqui, usa o do cart&atilde;o ' +
+      '&mdash; mas s&oacute; se ele n&atilde;o tiver data de cobran&ccedil;a ou valor nas vari&aacute;veis.</div>' +
     '<div style="height:18px"></div>' +
     _taBlocoTemplate('lb', 'Lembrete antes da cobran&ccedil;a', TA.cfg.tplLembrete, TA.cfg.tplLembreteVars) +
     '<div style="height:18px"></div>' +
     _taBlocoTemplate('rc', 'Recupera&ccedil;&atilde;o &mdash; parou na tela do cart&atilde;o',
                      TA.cfg.tplRecuperacao, TA.cfg.tplRecuperacaoVars);
   taAoTrocarTemplate('bv');
+  taAoTrocarTemplate('sc');
   taAoTrocarTemplate('lb');
   taAoTrocarTemplate('rc');
 }
@@ -6620,6 +6881,7 @@ function _taColetarVars(pref) {
 async function taSalvar(testarConexao) {
   const bv = _taColetarVars('bv');
   const lb = _taColetarVars('lb');
+  const sc = _taColetarVars('sc');
   const cfg = {
     token:   document.getElementById('ta_token') ? document.getElementById('ta_token').value.trim() : '',
     wabaId:  document.getElementById('ta_waba').value.trim(),
@@ -6627,12 +6889,19 @@ async function taSalvar(testarConexao) {
     autoEmailOtp:        document.getElementById('ta_otp').checked,
     autoEmailBoasVindas: document.getElementById('ta_mailbv').checked,
     autoWhatsBoasVindas: document.getElementById('ta_zapbv').checked,
+    autoWhatsBoasVindasSc: document.getElementById('ta_zapsc').checked,
     autoTelegram:        document.getElementById('ta_tg').checked,
     autoLembretes:       document.getElementById('ta_lemb').checked,
-    lembreteDias:        document.getElementById('ta_dias').value.trim()
+    lembreteDias:        document.getElementById('ta_dias').value.trim(),
+    trialDiasApp:        document.getElementById('ta_dias_app').value
   };
   if (bv.nome) { cfg.tplBoasVindas = bv.nome; cfg.tplBoasVindasLang = bv.idioma; cfg.tplBoasVindasVars = bv.vars; }
   if (lb.nome) { cfg.tplLembrete   = lb.nome; cfg.tplLembreteLang   = lb.idioma; cfg.tplLembreteVars   = lb.vars; }
+  // v166: o do sem cartão pode ser zerado ("— nenhum —" = usar o do cartão),
+  // mas só quando a lista da Meta foi carregada (senão o seletor nem existe)
+  if (document.getElementById('ta_tpl_sc')) {
+    cfg.tplBoasVindasSc = sc.nome; cfg.tplBoasVindasScLang = sc.idioma; cfg.tplBoasVindasScVars = sc.vars;
+  }
 
   const res = await rpc('waSalvarConfig', { cfg: cfg });
   if (!res || !res.ok) { toast((res && res.error) || 'Erro ao salvar.', 'error'); return; }

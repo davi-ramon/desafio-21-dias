@@ -178,6 +178,8 @@
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+<!-- v166: de onde a pessoa veio (UTM/entrada) para o cadastro -->
+<script src="/assets/d21-rastreio.js?v=166"></script>
 </head>
 <body>
 <div class="wrap">
@@ -344,7 +346,16 @@
   window.addEventListener('appinstalled',function(){
     estado.instalado=true;estado.prompt=null;
     try{localStorage.setItem('d21_instalado','1');}catch(e){}
-    pintarBotao();toast('App instalado! Abra pela tela de início.');
+    pintarBotao();
+    // v166: o próximo passo, em vez de um aviso que some
+    abrirModal('<h3>Pronto, app instalado! 🎉</h3>'+
+      '<p>Abra pelo ícone <b>Desafio 21 Dias</b> na tela de início.</p>'+
+      '<ul class="m-passos">'+
+        '<li><span class="b">1</span><span><b>Primeira vez?</b> Crie sua conta grátis — nome, e-mail e WhatsApp.</span></li>'+
+        '<li><span class="b">2</span><span><b>Já é aluno?</b> Toque em “Já sou aluno” e entre com seu e-mail e senha.</span></li>'+
+      '</ul>'+
+      '<button class="btn btn-primary" style="width:100%;margin-top:6px" onclick="location.href=\'/app/?fonte=pwa\'">Abrir o app agora</button>'+
+      '<button class="m-fechar" onclick="LOJA.fecharModal()">Fechar</button>');
   });
 
   function pintarBotao(){

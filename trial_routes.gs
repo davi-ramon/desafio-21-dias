@@ -89,27 +89,91 @@ function _marcarLeadConvertido_(email, whatsapp) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// v166: PORTAS DE ENTRADA DO TESTE SEM CARTÃO
+// O mesmo rito para todas: CRM com a rota, autorização de contato
+// registrada, e-mail e WhatsApp de boas-vindas, aviso no Telegram e
+// evento na Meta. O que muda de uma porta para outra é só o nome dela
+// — e é por esse nome que se sabe por onde cada pessoa chegou.
+// ─────────────────────────────────────────────────────────────
+var TRIAL_ROTAS = {
+  'checkout-sem-cartao': 'Checkout sem cartão',
+  'app-instalado':       'App instalado',
+  'app-web':             'App pelo navegador'
+};
+var TRIAL_TERMOS_CONTATO = 'contato-2026-09-v1';
+
+// Dias do teste de quem se cadastra pelo app. Padrão 7; o painel troca.
+function _trialDiasApp_() {
+  var n = 0;
+  try { n = parseInt(getConfig_('trial_dias_app'), 10); } catch (e) {}
+  return [7, 14, 21].indexOf(n) >= 0 ? n : 7;
+}
+
+// ROTA PÚBLICA: a tela de entrada do app mostra "teste grátis de N dias"
+function getOfertaApp() {
+  return { ok: true, data: { dias: _trialDiasApp_() } };
+}
+
+// Vem do navegador — dado de terceiro. Só as chaves conhecidas, sem
+// caractere de controle, curtas, e sem virar fórmula na planilha.
+var TRIAL_RASTREIO_CAMPOS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+                             'referrer', 'landing', 'primeira_visita', 'pagina', 'dispositivo'];
+function _trialRastreio_(r) {
+  var out = {};
+  if (!r || typeof r !== 'object') return out;
+  TRIAL_RASTREIO_CAMPOS.forEach(function (k) {
+    if (r[k] == null) return;
+    var v = String(r[k]).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
+    if (/^[=+\-@]/.test(v)) v = "'" + v;
+    if (v) out[k] = v;
+  });
+  return out;
+}
+
+// ─────────────────────────────────────────────────────────────
 // ROTA PÚBLICA: registrar lead no trial gratuito
-// POST action=registrarTrial { nome, email, whatsapp, dias }
+// POST action=registrarTrial { nome, email, whatsapp, dias,
+//   rota?, rastreio?, consentimento? }
+// Pelo app (rota app-*): dias vêm do painel, WhatsApp tem que ser
+// celular válido, a autorização é obrigatória, conta que já existe
+// vai para o login e a conta nova já volta com a sessão aberta.
 // ─────────────────────────────────────────────────────────────
 function registrarTrial_(data) {
-  var nome     = String(data.nome     || '').trim();
-  var email    = String(data.email    || '').toLowerCase().trim();
-  var whatsapp = String(data.whatsapp || '').replace(/\D/g, '');
-  var dias     = parseInt(data.dias)  || 7;
+  var nome      = String(data.nome     || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  var email     = String(data.email    || '').toLowerCase().trim();
+  var whatsapp  = String(data.whatsapp || '').replace(/\D/g, '');
+  var dias      = parseInt(data.dias)  || 7;
+  var rota      = TRIAL_ROTAS[String(data.rota || '')] ? String(data.rota) : 'checkout-sem-cartao';
+  var viaApp    = rota !== 'checkout-sem-cartao';
+  var rastreio  = _trialRastreio_(data.rastreio);
+  var consentiu = data.consentimento === true || data.consentimento === 'true';
 
   // ── Validações ────────────────────────────────────────────
-  if (!nome || nome.length < 3)
+  if (viaApp) {
+    if (nome.length < 2) return { ok: false, error: 'Digite seu nome.' };
+  } else if (!nome || nome.length < 3) {
     return { ok: false, error: 'Digite seu nome completo.' };
+  }
+  nome = nome.replace(/^[=+\-@]+/, '').trim();   // nome não vira fórmula na planilha
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     return { ok: false, error: 'E-mail inválido.' };
-  if (whatsapp.length < 10 || whatsapp.length > 13)
-    return { ok: false, error: 'WhatsApp inválido. Digite com DDD (ex: 11999999999).' };
-  if ([7, 14, 21].indexOf(dias) < 0) dias = 7;
 
-  // Normaliza WhatsApp: garante código Brasil 55
-  if (!whatsapp.startsWith('55') && whatsapp.length <= 11) {
-    whatsapp = '55' + whatsapp;
+  if (viaApp) {
+    // É para esse número que vai o template de boas-vindas: tem que
+    // ser celular de verdade (mesma regra do checkout com cartão).
+    var tel = _tcE164_(data.whatsapp);
+    if (!tel.ok) return { ok: false, error: tel.erro };
+    whatsapp = tel.e164.replace(/\D/g, '');
+    dias = _trialDiasApp_();
+    if (!consentiu) return { ok: false, error: 'Marque a autorização para continuar.' };
+  } else {
+    if (whatsapp.length < 10 || whatsapp.length > 13)
+      return { ok: false, error: 'WhatsApp inválido. Digite com DDD (ex: 11999999999).' };
+    if ([7, 14, 21].indexOf(dias) < 0) dias = 7;
+    // Normaliza WhatsApp: garante código Brasil 55
+    if (!whatsapp.startsWith('55') && whatsapp.length <= 11) {
+      whatsapp = '55' + whatsapp;
+    }
   }
 
   var ss    = getSpreadsheet_();
@@ -120,6 +184,13 @@ function registrarTrial_(data) {
   var existingUser  = existingUsers.find(function(u) {
     return String(u.email || '').toLowerCase().trim() === email;
   });
+
+  // Pelo app, conta existente vai para o login. Aqui não se troca senha
+  // nem se reabre teste de ninguém: quem responde pela conta é a senha.
+  if (existingUser && viaApp) {
+    logAction(email, 'TRIAL_APP_JA_TEM_CONTA', 'user', '', rota);
+    return { ok: false, existe: true, error: 'Esse e-mail já tem uma conta. Entre com a sua senha.' };
+  }
 
   if (existingUser) {
     var assRow = _getAssinaturaRow_(email);
@@ -134,20 +205,49 @@ function registrarTrial_(data) {
     }
   }
 
+  var origemCrm = viaApp ? 'trial-app' : 'trial-sem-cartao';
+
   // v159: indicacao tambem vale no trial sem cartao
   try {
-    if (data.ref) indRegistrarConversao_(data.ref, email, nome, 'cadastro', dias, 'trial-sem-cartao');
+    if (data.ref) indRegistrarConversao_(data.ref, email, nome, 'cadastro', dias, origemCrm);
   } catch (e) {}
 
-  // v164: lead no CRM
+  var agoraIso = nowISO();
+
+  // v164: lead no CRM — v166: com a rota, UTMs, aparelho e autorização
   try {
     crmRegistrarLeadTrial_({
       nome: nome, email: email, whatsapp: whatsapp, dias: dias,
-      estagio: 'cadastrado', origem: 'trial-sem-cartao',
+      estagio: 'cadastrado', origem: origemCrm, rota: rota, rastreio: rastreio,
+      consentimento: consentiu ? agoraIso : '', termosVersao: consentiu ? TRIAL_TERMOS_CONTATO : '',
+      campanha: rastreio.utm_campaign || '',
       ref: data.ref || '', convertido: 'nao',
-      evento: 'Cadastro no teste gratis (' + dias + ' dias)'
+      evento: (viaApp ? 'Cadastro no teste grátis pelo app' : 'Cadastro no teste gratis') +
+              ' (' + dias + ' dias)'
     });
   } catch (e) {}
+
+  // v166: autorização de contato fica provada na aba consentimentos,
+  // igual à do checkout com cartão — com a versão do texto aceito.
+  if (consentiu) {
+    try {
+      _tcRegistrarConsentimento_({
+        email: email, whatsapp: '+' + whatsapp, nome: nome, trialDias: dias, valor: 0,
+        origem: rota, campanha: rastreio.utm_campaign || '', versao: TRIAL_TERMOS_CONTATO
+      });
+    } catch (e) {}
+    try { _emReativarMarketing_(email, rota); } catch (e) {}
+  }
+
+  // Pelo app pode não ter havido abandono de campo antes: garante a
+  // linha em trial_leads, com a rota como origem.
+  if (viaApp) {
+    try {
+      salvarLeadIncompleto_({ nome: nome, email: email, whatsapp: whatsapp, dias: dias,
+        estagio: 'cadastrado',
+        origem: rota + (rastreio.utm_campaign ? ' · ' + rastreio.utm_campaign : '') });
+    } catch (e) {}
+  }
 
   var now      = new Date();
   var trialFim = new Date(now.getTime() + dias * 86400000).toISOString();
@@ -161,6 +261,14 @@ function registrarTrial_(data) {
   } else {
     // Reativação (usuário lapso/expirado): reseta p/ a nova senha temporária
     _resetSenhaUsuario_(email, hash);
+  }
+
+  // Pelo app a pessoa está com o app aberto na mão: entra direto. A
+  // senha provisória segue no e-mail para os próximos acessos.
+  var tokenSessao = '';
+  if (viaApp && !existingUser) {
+    var novoToken = generateId();
+    try { if (updateUserToken(users, null, email, novoToken)) tokenSessao = novoToken; } catch (e) {}
   }
 
   // ── Cria entrada em compradores (se não existir) ──────────
@@ -182,7 +290,7 @@ function registrarTrial_(data) {
       row[COL_COMP.TELEFONE]   = '+' + whatsapp;
       row[COL_COMP.PAID_AT]    = now.toISOString();
       row[COL_COMP.CREATED_AT] = now.toISOString();
-      row[COL_COMP.PRODUTO]    = 'Desafio 21 Dias — Trial ' + dias + ' dias';
+      row[COL_COMP.PRODUTO]    = 'Desafio 21 Dias — Trial ' + dias + ' dias' + (viaApp ? ' (app)' : '');
       row[COL_COMP.DIA_ATUAL]  = 0;
       row[COL_COMP.ATIVO]      = true;
       comp.appendRow(row);
@@ -205,8 +313,9 @@ function registrarTrial_(data) {
   _syncAcesso_(email, AS.TRIAL);
 
   // ── E-mail de boas-vindas (sempre com credenciais) ────────
+  var envioEmail = null;
   try {
-    _enviarBoasVindasTrial_(email, nome, senha, dias);
+    envioEmail = _enviarBoasVindasTrial_(email, nome, senha, dias);
   } catch(e) {
     logAction('system', 'TRIAL_EMAIL_ERRO', 'user', email, e.message);
     try {
@@ -215,11 +324,41 @@ function registrarTrial_(data) {
         'E-mail: ' + email + '\nSenha provisoria: ' + senha +
         '\n\nAcesse: https://app.wpktavares.com.br',
         _optsFromWpk_({}));
+      envioEmail = { ok: true, via: 'mailapp-texto' };
     } catch(e2) {}
   }
 
+  // ── WhatsApp de boas-vindas (API oficial) — só com autorização ──
+  var envioWa = { ok: false, error: 'sem autorizacao de contato' };
+  if (consentiu) {
+    try {
+      envioWa = waBoasVindasSemCartao_({
+        nome: nome, email: email, whatsapp: whatsapp, dias: dias,
+        fimTeste: Utilities.formatDate(new Date(trialFim), 'America/Sao_Paulo', 'dd/MM/yyyy'),
+        valor: '17,00'
+      });
+    } catch (e) { envioWa = { ok: false, error: e.message }; }
+  }
+
   _marcarLeadConvertido_(email, whatsapp);
-  try { if (typeof tgNotificarTrial_ === 'function') tgNotificarTrial_(nome, email, whatsapp, dias); } catch(_t) {}
+  try {
+    if (typeof tgNotificarTrial_ === 'function') {
+      tgNotificarTrial_(nome, email, whatsapp, dias, {
+        rota: rota, rotaNome: TRIAL_ROTAS[rota], dispositivo: rastreio.dispositivo || '',
+        campanha: rastreio.utm_campaign || '', consentiu: consentiu
+      });
+    }
+  } catch(_t) {}
+
+  // O rito inteiro fica visível no histórico do lead
+  try {
+    _crmUpsertLead_({
+      email: email, phone: whatsapp,
+      evento: 'Boas-vindas: e-mail ' + (envioEmail && envioEmail.ok ? 'enviado' : 'FALHOU') +
+              ' · WhatsApp ' + (envioWa && envioWa.ok ? 'enviado'
+                               : 'não enviado (' + ((envioWa && envioWa.error) || '?') + ')')
+    });
+  } catch (e) {}
 
   // ── Meta CAPI (server-side) — Lead + CompleteRegistration ──
   try {
@@ -233,7 +372,8 @@ function registrarTrial_(data) {
         fbc:        data.fbc || '',
         client_ua:  data.client_ua || '',
         url:        data.origem || 'https://wpktavares.com.br/checkout-trial/?dias=' + dias,
-        custom:     { content_name: 'Desafio 21 Dias Trial ' + dias + ' dias', currency: 'BRL', value: 0 },
+        custom:     { content_name: 'Desafio 21 Dias Trial ' + dias + ' dias' + (viaApp ? ' (app)' : ''),
+                      currency: 'BRL', value: 0 },
       };
       enviarEventoCapi_('Lead', capiOpts);
       enviarEventoCapi_('CompleteRegistration', capiOpts);
@@ -242,8 +382,31 @@ function registrarTrial_(data) {
     logAction('system', 'TRIAL_CAPI_ERRO', 'user', email, e.message);
   }
 
-  logAction('system', 'TRIAL_CADASTRO', 'user', email, dias + ' dias — ' + orderId);
-  return { ok: true, message: 'Acesso criado! Verifique seu e-mail.' };
+  logAction('system', 'TRIAL_CADASTRO', 'user', email, dias + ' dias — ' + orderId + ' — ' + rota);
+  var resp = { ok: true, message: 'Acesso criado! Verifique seu e-mail.', dias: dias };
+  if (tokenSessao) {
+    resp.token   = tokenSessao;
+    resp.user    = { name: nome, email: email, role: 'aluno' };
+    resp.message = 'Seu teste de ' + dias + ' dias começou!';
+  }
+  return resp;
+}
+
+// Quem marcou a autorização agora e tinha pedido para sair antes volta
+// a receber. Só mexe se já existir registro — sem registro, já recebe.
+function _emReativarMarketing_(email, origem) {
+  if (typeof _emAbaOptout_ !== 'function') return;
+  var sh = _emAbaOptout_();
+  if (sh.getLastRow() < 2) return;
+  var d = sh.getDataRange().getValues();
+  for (var i = d.length - 1; i >= 1; i--) {
+    if (String(d[i][0] || '').toLowerCase().trim() !== email) continue;
+    if (String(d[i][1]) === 'nao') {
+      sh.getRange(i + 1, 2, 1, 3).setValues([['sim', nowISO(), 'cadastro:' + origem]]);
+      logAction(email, 'EMAIL_OPTIN', 'email', email, 'cadastro ' + origem);
+    }
+    return;
+  }
 }
 
 // Gera senha legível: ex. Foco#482
@@ -261,7 +424,8 @@ function _gerarSenhaTrial_() {
 // ─────────────────────────────────────────────────────────────
 function _enviarBoasVindasTrial_(email, nome, senha, dias) {
   var firstName = String(nome || '').split(' ')[0] || 'você';
-  var appUrl    = 'https://app.wpktavares.com.br';
+  // v166: ?entrar=1 abre direto no login (a entrada do app agora tem boas-vindas)
+  var appUrl    = 'https://app.wpktavares.com.br/?entrar=1';
   var planosUrl = 'https://wpktavares.com.br/planos/';
   var esc = function(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
 
@@ -317,35 +481,68 @@ function _enviarBoasVindasTrial_(email, nome, senha, dias) {
 // ENVIO ROBUSTO — o HTML bonito SEMPRE vai (nunca cai pro texto),
 // e usa o remetente WPK Tavares quando o alias estiver disponível.
 // ─────────────────────────────────────────────────────────────
-function _enviarEmailWpk_(to, subject, textoPlano, html) {
+// v166: `ok` no retorno e registro de toda tentativa (email_saude.gs).
+// Antes, quem chamava não tinha como saber que NENHUM canal tinha saído,
+// e o erro do Resend era descartado — o fallback escondia o problema.
+// `tipo` é opcional (senha, 2fa, trial...); sem ele, sai do assunto.
+var EMAIL_REMETENTE_RESEND = 'Desafio 21 Dias <suporte@wpktavares.com.br>';
+
+function _enviarEmailWpk_(to, subject, textoPlano, html, tipo) {
   var nome = 'Desafio 21 Dias - WPK Tavares';
-  var diag = { via: '', erro: '' };
+  var diag = { via: '', erro: '', id: '', ok: false };
   // 0) PREFERENCIAL: Resend do domínio wpktavares.com.br (remetente suporte@wpktavares.com.br)
-  try { if (_resendEnviar_(to, subject, html)) { diag.via = 'resend'; return diag; } } catch (e) { diag.erro += 'resend:' + e.message + ' | '; }
-  // 1) Fallback GmailApp (dono do script), HTML bonito
-  try { GmailApp.sendEmail(to, subject, textoPlano, { htmlBody: html, name: nome }); diag.via = 'gmail-owner'; return diag; } catch (e) { diag.erro += 'owner:' + e.message + ' | '; }
+  try {
+    var rs = _resendEnviarDet_(to, subject, html, textoPlano);
+    if (rs.ok) { diag.via = 'resend'; diag.id = rs.id; }
+    else if (rs.erro) diag.erro += 'resend: ' + rs.erro + ' | ';
+  } catch (e) { diag.erro += 'resend: ' + e.message + ' | '; }
+  // 1) Fallback GmailApp (conta que roda o script), HTML bonito
+  if (!diag.via) {
+    try { GmailApp.sendEmail(to, subject, textoPlano, { htmlBody: html, name: nome }); diag.via = 'gmail-owner'; }
+    catch (e) { diag.erro += 'gmail: ' + e.message + ' | '; }
+  }
   // 2) Fallback MailApp com HTML (nunca manda simples)
-  try { MailApp.sendEmail({ to: to, subject: subject, htmlBody: html, body: textoPlano, name: nome }); diag.via = 'mailapp-html'; return diag; } catch (e) { diag.erro += 'mail:' + e.message; }
+  if (!diag.via) {
+    try { MailApp.sendEmail({ to: to, subject: subject, htmlBody: html, body: textoPlano, name: nome }); diag.via = 'mailapp-html'; }
+    catch (e) { diag.erro += 'mailapp: ' + e.message; }
+  }
+  diag.ok = !!diag.via;
+  diag.erro = diag.erro.replace(/\s*\|\s*$/, '');
+  if (typeof _emailRegistrar_ === 'function') {
+    _emailRegistrar_({ tipo: tipo || _emailTipo_(subject), para: to, assunto: subject,
+                       via: diag.via, ok: diag.ok, id: diag.id, erro: diag.erro });
+  }
   return diag;
 }
 
-// Envia via Resend (domínio verificado wpktavares.com.br). Precisa da Script Property RESEND_API_KEY.
-// Retorna true se enviou. Se a chave não existir, retorna false (cai no fallback Gmail).
-function _resendEnviar_(to, subject, html) {
+// Envia via Resend (domínio verificado wpktavares.com.br). Precisa da
+// Script Property RESEND_API_KEY. Devolve { ok, id } ou { ok:false, erro }.
+// Sem chave não é erro: é o caminho normal para o fallback.
+function _resendEnviarDet_(to, subject, html, texto) {
   var key = '';
   try { key = PropertiesService.getScriptProperties().getProperty('RESEND_API_KEY') || ''; } catch (e) {}
-  if (!key) return false;
+  if (!key) return { ok: false, erro: '' };
   var payload = {
-    from: 'Desafio 21 Dias <suporte@wpktavares.com.br>',
+    from: EMAIL_REMETENTE_RESEND,
     to: [to], subject: subject, html: html, reply_to: 'wpktavares@gmail.com'
   };
+  // A parte em texto puro pesa a favor no filtro de spam
+  if (texto) payload.text = String(texto);
   var resp = UrlFetchApp.fetch('https://api.resend.com/emails', {
     method: 'post', contentType: 'application/json',
     headers: { Authorization: 'Bearer ' + key },
     payload: JSON.stringify(payload), muteHttpExceptions: true
   });
   var code = resp.getResponseCode();
-  return code >= 200 && code < 300;
+  var j = {};
+  try { j = JSON.parse(resp.getContentText()); } catch (e) {}
+  if (code >= 200 && code < 300) return { ok: true, id: String(j.id || '') };
+  return { ok: false, erro: 'HTTP ' + code + (j.message ? ' ' + String(j.message).slice(0, 200) : '') };
+}
+
+// Versão booleana mantida para quem ainda chama assim
+function _resendEnviar_(to, subject, html) {
+  return _resendEnviarDet_(to, subject, html).ok;
 }
 
 // Linha de passo do e-mail (table-based p/ compatibilidade)

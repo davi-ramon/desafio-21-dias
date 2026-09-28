@@ -153,7 +153,14 @@ function waStatus(token) {
       tplLembreteVars:    String(_waCfg_('wa_tpl_lembrete_vars', '[]')),
       tplRecuperacao:     String(_waCfg_('wa_tpl_recuperacao')),
       tplRecuperacaoLang: String(_waCfg_('wa_tpl_recuperacao_lang', 'pt_BR')),
-      tplRecuperacaoVars: String(_waCfg_('wa_tpl_recuperacao_vars', '[]'))
+      tplRecuperacaoVars: String(_waCfg_('wa_tpl_recuperacao_vars', '[]')),
+      // v166: teste sem cartão + app
+      autoWhatsBoasVindasSc: _waSemCartaoLigado_(),
+      tplBoasVindasSc:      String(_waCfg_('wa_tpl_boasvindas_sc')),
+      tplBoasVindasScLang:  String(_waCfg_('wa_tpl_boasvindas_sc_lang', 'pt_BR')),
+      tplBoasVindasScVars:  String(_waCfg_('wa_tpl_boasvindas_sc_vars', '[]')),
+      boasVindasScEfetivo:  (function () { var t = _waTplSemCartao_(); return t ? { nome: t.nome, proprio: t.proprio } : null; })(),
+      trialDiasApp:         (typeof _trialDiasApp_ === 'function') ? _trialDiasApp_() : 7
     }
   };
 }
@@ -172,9 +179,16 @@ function waSalvarConfig(token, cfg) {
   if (cfg.wabaId  !== undefined) setConfig_('wa_waba_id',  String(cfg.wabaId).trim());
   if (cfg.phoneId !== undefined) setConfig_('wa_phone_id', String(cfg.phoneId).trim());
 
+  // v166: dias do teste grátis de quem se cadastra pelo app
+  if (cfg.trialDiasApp !== undefined) {
+    var dApp = parseInt(cfg.trialDiasApp, 10);
+    if ([7, 14, 21].indexOf(dApp) >= 0) setConfig_('trial_dias_app', String(dApp));
+  }
+
   ['autoEmailOtp:auto_email_otp',
    'autoEmailBoasVindas:auto_email_boasvindas',
    'autoWhatsBoasVindas:auto_whats_boasvindas',
+   'autoWhatsBoasVindasSc:auto_whats_boasvindas_sc',
    'autoTelegram:auto_telegram',
    'autoLembretes:auto_lembretes'].forEach(function (par) {
     var p = par.split(':');
@@ -195,7 +209,9 @@ function waSalvarConfig(token, cfg) {
    ['tplBoasVindasVars','wa_tpl_boasvindas_vars'], ['tplLembrete','wa_tpl_lembrete'],
    ['tplLembreteLang','wa_tpl_lembrete_lang'], ['tplLembreteVars','wa_tpl_lembrete_vars'],
    ['tplRecuperacao','wa_tpl_recuperacao'], ['tplRecuperacaoLang','wa_tpl_recuperacao_lang'],
-   ['tplRecuperacaoVars','wa_tpl_recuperacao_vars']
+   ['tplRecuperacaoVars','wa_tpl_recuperacao_vars'],
+   ['tplBoasVindasSc','wa_tpl_boasvindas_sc'], ['tplBoasVindasScLang','wa_tpl_boasvindas_sc_lang'],
+   ['tplBoasVindasScVars','wa_tpl_boasvindas_sc_vars']
   ].forEach(function (p) {
     if (cfg[p[0]] !== undefined) setConfig_(p[1], String(cfg[p[0]]));
   });
@@ -214,6 +230,7 @@ function _waResolverVar_(fonte, ctx) {
     case 'primeiro_nome': return nome.split(/\s+/)[0] || 'Olá';
     case 'nome_completo': return nome || 'Olá';
     case 'dias_trial':    return String(ctx.dias || '');
+    case 'fim_teste':     return String(ctx.fimTeste || ctx.dataCobranca || '');
     case 'data_cobranca': return String(ctx.dataCobranca || '');
     case 'valor':         return String(ctx.valor || '17,00');
     case 'email':         return String(ctx.email || '');
@@ -272,6 +289,37 @@ function waBoasVindasTrial_(ctx) {
     _waCfg_('wa_tpl_boasvindas_lang', 'pt_BR'),
     _waParams_(_waCfg_('wa_tpl_boasvindas_vars', '[]'), ctx)
   );
+}
+
+// v166: boas-vindas de quem entrou no teste SEM cartão — checkout sem
+// cartão e cadastro pelo app. Template próprio: a mensagem do teste com
+// cartão fala de cobrança, e aqui não existe cobrança nenhuma.
+// Sem template próprio escolhido, reaproveita o do cartão SÓ se ele não
+// usar variável de cobrança (data_cobranca / valor).
+function _waTplSemCartao_() {
+  var proprio = String(_waCfg_('wa_tpl_boasvindas_sc'));
+  if (proprio) {
+    return { nome: proprio, lang: _waCfg_('wa_tpl_boasvindas_sc_lang', 'pt_BR'),
+             vars: _waCfg_('wa_tpl_boasvindas_sc_vars', '[]'), proprio: true };
+  }
+  var base = String(_waCfg_('wa_tpl_boasvindas'));
+  var vars = String(_waCfg_('wa_tpl_boasvindas_vars', '[]'));
+  if (base && !/data_cobranca|"valor"/.test(vars)) {
+    return { nome: base, lang: _waCfg_('wa_tpl_boasvindas_lang', 'pt_BR'), vars: vars, proprio: false };
+  }
+  return null;
+}
+
+// Ligado por padrão quando o do cartão estiver ligado; tem chave própria.
+function _waSemCartaoLigado_() {
+  return _waBool_('auto_whats_boasvindas_sc', _waBool_('auto_whats_boasvindas', false));
+}
+
+function waBoasVindasSemCartao_(ctx) {
+  if (!_waSemCartaoLigado_()) return { ok: false, error: 'desligado no painel' };
+  var t = _waTplSemCartao_();
+  if (!t) return { ok: false, error: 'template de boas-vindas (sem cartao) nao escolhido' };
+  return _waEnviarTemplate_(ctx.whatsapp, t.nome, t.lang, _waParams_(t.vars, ctx));
 }
 
 // Recuperação de quem parou na tela do cartão. Template separado de

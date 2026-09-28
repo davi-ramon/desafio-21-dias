@@ -717,10 +717,32 @@ function getCompradoresAdmin(token) {
   const headers = dados[0].map(h => String(h || ''));
   const pilaresColIdx = headers.indexOf(COL_PILARES_JSON);
 
+  // v166: por onde cada aluno chegou. A fonte é o CRM (custom_fields),
+  // que recebe a rota de todas as portas de entrada.
+  const origemPor = {};
+  try {
+    const crm = getSheet(SHEET_CRM).getDataRange().getValues();
+    const ch = crm[0].map(h => String(h || ''));
+    const iM = ch.indexOf('email'), iC = ch.indexOf('custom_fields');
+    if (iM >= 0 && iC >= 0) {
+      for (let k = 1; k < crm.length; k++) {
+        const em = String(crm[k][iM] || '').toLowerCase().trim();
+        if (!em) continue;
+        let cf = {};
+        try { cf = JSON.parse(String(crm[k][iC] || '{}')) || {}; } catch (e) {}
+        if (cf.origem || cf.rota) {
+          origemPor[em] = { origem: String(cf.origem || ''), rota: String(cf.rota || ''),
+                            campanha: String(cf.campanha || ''), dispositivo: String(cf.dispositivo || '') };
+        }
+      }
+    }
+  } catch (e) {}
+
   const lista = [];
   for (let i = 1; i < dados.length; i++) {
     const row = dados[i];
     if (!row[COL_COMP.ORDER_ID] && !row[COL_COMP.EMAIL]) continue;
+    const og = origemPor[String(row[COL_COMP.EMAIL] || '').toLowerCase().trim()] || {};
 
     // Pilar JSON
     let pilaresJson = {};
@@ -748,7 +770,11 @@ function getCompradoresAdmin(token) {
       concluido:      String(row[COL_COMP.DIA_CONC]  || '') !== '',
       ultimoCheckin:  String(row[COL_COMP.ULT_CHECK] || ''),
       onboarded:      row[COL_COMP.ONBOARDED] === true,
-      autoStatus:     ultStatus
+      autoStatus:     ultStatus,
+      origem:         og.origem || '',
+      rota:           og.rota || '',
+      campanha:       og.campanha || '',
+      dispositivo:    og.dispositivo || ''
     });
   }
 
