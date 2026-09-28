@@ -5308,7 +5308,7 @@ var EMS_DOMINIO = {
 };
 var EMS_TIPO = { senha: 'Recuperação de senha', '2fa': 'Código do painel', 'link-admin': 'Link do painel',
                  codigo: 'Código do checkout', trial: 'Boas-vindas / teste', teste: 'Teste do painel', geral: 'Outros' };
-var EMS_VIA = { resend: 'Resend', 'gmail-owner': 'Gmail', 'mailapp-html': 'MailApp' };
+var EMS_VIA = { resend: 'Resend', 'gmail-owner': 'Gmail (antigo)', 'mailapp-html': 'Conta Google (MailApp)' };
 
 function _emsSelo(par) {
   return '<span style="font-size:11.5px;font-weight:700;color:' + par[1] + '">' + par[0] + '</span>';
@@ -5346,7 +5346,7 @@ async function renderEmailSaude() {
 
   var html = '<div class="metrics-grid" style="margin-bottom:16px">' +
     _puCard('<i data-lucide="send" class="luc"></i>', c24.total || 0, 'Enviados em 24h',
-            (c24.resend || 0) + ' Resend · ' + ((c24.gmail || 0) + (c24.mailapp || 0)) + ' Gmail') +
+            (c24.resend || 0) + ' Resend · ' + ((c24.gmail || 0) + (c24.mailapp || 0)) + ' conta Google') +
     _puCard('<i data-lucide="alert-triangle" class="luc"></i>', c24.falhas || 0, 'Não saíram', 'nenhum canal funcionou') +
     _puCard('<i data-lucide="inbox" class="luc"></i>', d.gmail.cotaHoje >= 0 ? d.gmail.cotaHoje : '?', 'Cota do Gmail hoje',
             'reserva, se o Resend falhar') +
@@ -5370,7 +5370,7 @@ async function renderEmailSaude() {
       '<b>1º Resend</b>, remetente <code>' + escHtml(d.resend.remetente || '') + '</code> — ' +
         (d.resend.configurado ? 'chave <code>' + escHtml(d.resend.chaveMascarada || '') + '</code>' : '<b style="color:#e2626b">sem chave</b>') +
         ' · domínio: ' + _emsSelo(domSelo) + '<br>' +
-      '<b>2º Gmail</b> da conta que roda o sistema: <code>' + escHtml(d.gmail.conta || '?') + '</code> (só se o Resend falhar)' +
+      '<b>2º Conta Google</b> que roda o sistema, pelo MailApp (só enviar): <code>' + escHtml(d.gmail.conta || '?') + '</code> — só se o Resend falhar' +
     '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center">' +
       '<input class="form-control" id="emsChave" type="password" autocomplete="off" style="max-width:280px" placeholder="' +
@@ -5393,7 +5393,12 @@ async function renderEmailSaude() {
       var sit = !l.ok ? _emsSelo(['Não saiu', '#e2626b'])
               : l.entrega ? _emsSelo(EMS_ENTREGA[l.entrega] || [l.entrega, 'var(--muted)'])
               : _emsSelo(['Aceito', 'var(--green)']);
-      var obs = l.erro ? '<div style="font-size:10.5px;color:var(--muted);margin-top:3px;max-width:320px;white-space:normal">' + escHtml(l.erro) + '</div>' : '';
+      // v170: em envio que SAIU, o erro de permissão do Gmail (canal que não
+      // existe mais) era só ruído; fica o que importa, como o erro do Resend.
+      var erroMostrar = l.ok
+        ? String(l.erro || '').split(' | ').filter(function (p) { return p.indexOf('gmail:') !== 0; }).join(' | ')
+        : l.erro;
+      var obs = erroMostrar ? '<div style="font-size:10.5px;color:var(--muted);margin-top:3px;max-width:320px;white-space:normal">' + escHtml(erroMostrar) + '</div>' : '';
       html += '<tr>' +
         '<td style="font-size:12px;color:var(--muted);white-space:nowrap">' + fmtDateFull(l.quando) + '</td>' +
         '<td style="font-size:12px">' + escHtml(EMS_TIPO[l.tipo] || l.tipo) + '</td>' +

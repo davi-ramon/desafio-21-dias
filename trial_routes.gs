@@ -499,12 +499,12 @@ function _enviarEmailWpk_(to, subject, textoPlano, html, tipo) {
     if (rs.ok) { diag.via = 'resend'; diag.id = rs.id; }
     else if (rs.erro) diag.erro += 'resend: ' + rs.erro + ' | ';
   } catch (e) { diag.erro += 'resend: ' + e.message + ' | '; }
-  // 1) Fallback GmailApp (conta que roda o script), HTML bonito
-  if (!diag.via) {
-    try { GmailApp.sendEmail(to, subject, textoPlano, { htmlBody: html, name: nome }); diag.via = 'gmail-owner'; }
-    catch (e) { diag.erro += 'gmail: ' + e.message + ' | '; }
-  }
-  // 2) Fallback MailApp com HTML (nunca manda simples)
+  // 1) Reserva: MailApp, com HTML (nunca manda simples).
+  // v170: o GmailApp saiu da cadeia. Ele exige a permissão do Gmail INTEIRO
+  // (ler, enviar e apagar toda a caixa) — que a conta wpktavares@gmail.com
+  // não concedeu, e nem precisa: o sistema roda COMO essa conta, então o
+  // MailApp (só enviar) já sai com o remetente certo. Cada envio de reserva
+  // registrava um erro de permissão do Gmail antes de sair pelo MailApp.
   if (!diag.via) {
     try { MailApp.sendEmail({ to: to, subject: subject, htmlBody: html, body: textoPlano, name: nome }); diag.via = 'mailapp-html'; }
     catch (e) { diag.erro += 'mailapp: ' + e.message; }
@@ -578,15 +578,13 @@ function _resetSenhaUsuario_(email, hash) {
   return false;
 }
 
-// Opcoes de envio "como WPK Tavares" — usa o alias se estiver configurado no Gmail do script.
-// Enquanto o alias nao existir, envia normal (nao quebra).
+// Opcoes de envio "como WPK Tavares".
+// v170: o alias do Gmail era para quando o script rodava na conta do Davi.
+// Desde 2026-09-26 ele roda COMO wpktavares@gmail.com — o remetente já é
+// o certo, sem alias e sem pedir a permissão do Gmail inteiro.
 function _optsFromWpk_(extra) {
   extra = extra || {};
   if (!extra.name) extra.name = 'Desafio 21 Dias — WPK Tavares';
-  try {
-    var aliases = GmailApp.getAliases();
-    if (aliases && aliases.indexOf('wpktavares@gmail.com') !== -1) extra.from = 'wpktavares@gmail.com';
-  } catch (e) {}
   return extra;
 }
 

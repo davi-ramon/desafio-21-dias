@@ -85,6 +85,7 @@ function fetchSim(url, opts) {
     return resposta(200, { data: t ? [Object.assign({ name: nome, language: 'pt_BR' }, t)] : [] });
   }
   if (url.indexOf('graph.facebook.com') >= 0) return resposta(200, {});
+  if (url.indexOf('api.qrserver.com') >= 0) return { getResponseCode: () => 200, getContentText: () => '', getBlob: () => ({ setName: () => ({ qr: true }) }) };
   if (url.indexOf('api.telegram.org') >= 0) { S.tg.push(JSON.parse(opts.payload).text); return resposta(200, { ok: true }); }
   throw new Error('fetch inesperado: ' + url);
 }
@@ -98,11 +99,12 @@ const ctx = {
   CacheService: { getScriptCache: () => ({ get: k => (cache.has(k) ? cache.get(k) : null), put: (k, v) => cache.set(k, v), remove: k => cache.delete(k), removeAll: ks => ks.forEach(k => cache.delete(k)) }) },
   UrlFetchApp: { fetch: fetchSim, fetchAll: reqs => reqs.map(r => fetchSim(r.url, r)) },
   GmailApp: {
-    sendEmail: (to, subject) => { if (S.gmail === 'throw') throw new Error('Service invoked too many times for one day: email.'); S.envios.push({ via: 'gmail', to, subject }); },
+    sendEmail: () => { S.gmailChamado = (S.gmailChamado || 0) + 1; throw new Error('The script does not have permission to perform that action. Required permissions: (https://mail.google.com/)'); },
     getAliases: () => []
   },
   MailApp: {
-    sendEmail: o => { if (S.mailapp === 'throw') throw new Error('Service invoked too many times for one day: email.'); S.envios.push({ via: 'mailapp', to: typeof o === 'string' ? o : o.to }); },
+    sendEmail: (o, assunto, corpo, opts) => { if (S.mailapp === 'throw') throw new Error('Service invoked too many times for one day: email.');
+      S.envios.push(typeof o === 'string' ? { via: 'mailapp', to: o, subject: assunto, opts: opts || {} } : { via: 'mailapp', to: o.to, subject: o.subject, opts: o }); },
     getRemainingDailyQuota: () => 87
   },
   Utilities: {
@@ -122,7 +124,7 @@ vm.createContext(ctx);
 
 for (const f of ['code.gs', 'automation.gs', 'auth.gs', 'auth_admin.gs', 'leads.gs', 'crm_leads.gs', 'trial_routes.gs',
                  'trial_card.gs', 'whatsapp.gs', 'telegram.gs', 'email_saude.gs', 'email_layout.gs', 'modules.gs', 'setup.gs',
-                 'rito_status.gs', 'trial_auto.gs']) {
+                 'rito_status.gs', 'trial_auto.gs', 'ingressos_evento.gs']) {
   vm.runInContext(fs.readFileSync(path.join(RAIZ, f), 'utf8'), ctx, { filename: f });
 }
 
@@ -220,14 +222,14 @@ passo('Resend ok: codigo sai pelo dominio e fica registrado', () => {
   exige(log.length === 2 && log[1][1] === 'senha' && log[1][4] === 'resend' && log[1][5] === 'sim', JSON.stringify(log[1]));
   return 'via resend, tipo senha';
 });
-passo('Resend recusa: cai no Gmail e o erro do Resend fica guardado', () => {
+passo('Resend recusa: sai pelo MailApp (conta do sistema) e o erro do Resend fica guardado', () => {
   planilhaNova();
   abas.users.appendRow(['u1', 'Davi', 'davi@x.com', ctx.hashPassword('x'), 'admin', '', true, '']);
   S.resend = '403';
   const r = ctx.sendPasswordReset('davi@x.com');
-  exige(r.ok && S.envios[0].via === 'gmail', JSON.stringify(S.envios));
+  exige(r.ok && S.envios[0].via === 'mailapp' && !S.gmailChamado, JSON.stringify(S.envios) + ' gmail=' + S.gmailChamado);
   const lin = abas.emails_log.rows[1];
-  exige(lin[4] === 'gmail-owner' && /resend: HTTP 403/.test(lin[7]) && /not verified/.test(lin[7]), JSON.stringify(lin));
+  exige(lin[4] === 'mailapp-html' && /resend: HTTP 403/.test(lin[7]) && /not verified/.test(lin[7]) && !/gmail:/.test(lin[7]), JSON.stringify(lin));
   return 'erro do Resend: ' + lin[7].slice(0, 50) + '...';
 });
 passo('NENHUM canal sai: a tela recebe erro (antes dizia "enviado")', () => {
@@ -412,11 +414,12 @@ passo('chave do Resend: testa antes de guardar e nunca aceita conta errada', () 
   props.set('RESEND_API_KEY', 're_teste_nao_real');
   return '5 casos + remover + sem permissao';
 });
-passo('sem chave do Resend (como em producao hoje): tudo pelo Gmail e o status diz isso', () => {
+passo('sem chave do Resend (como em producao hoje): sai pelo MailApp, sem erro de Gmail, e o status diz isso', () => {
   props.delete('RESEND_API_KEY'); cache.clear();
   S.envios.length = 0;
   const r = ctx.sendPasswordReset('davi@x.com');
-  exige(r.ok && S.envios[0].via === 'gmail', JSON.stringify(S.envios));
+  exige(r.ok && S.envios[0].via === 'mailapp' && !S.gmailChamado, JSON.stringify(S.envios));
+  exige(!/gmail:/.test(abas.emails_log.rows[abas.emails_log.rows.length - 1][7]), 'erro de Gmail no registro');
   const st = ctx.getEmailStatus().data;
   exige(st.resendConfigurado === false && st.dominio === 'sem_chave', JSON.stringify(st));
   props.set('RESEND_API_KEY', 're_teste_nao_real');
@@ -531,6 +534,18 @@ passo('aprovado: sai com nome, dias e fim do teste nas variaveis', () => {
   exige(v[0] === 'Sara' && v[1] === '14' && /^\d\d\/\d\d\/\d{4}$/.test(v[2]), 'variaveis: ' + v);
   exige(ctx.getRitoStatus().data.pronto.semCartao === true, 'status nao ficou pronto');
   return v.join(' | ');
+});
+
+passo('v170: ingresso de evento sai pelo MailApp com o QR embutido (o GmailApp nao tem permissao)', () => {
+  planilhaNova();
+  S.gmailChamado = 0;
+  ctx.enviarEmailIngresso_({ email: 'convidado@y.com', uuid: 'u-123', nome: 'Convidado Teste', produto: 'Ingresso',
+                             codigo: 'ABC123', orderId: 'o1', cpf: '00000000000' });
+  const e = S.envios.find(x => x.to === 'convidado@y.com');
+  exige(e && e.via === 'mailapp' && /Ingresso Confirmado/.test(e.subject), JSON.stringify(S.envios));
+  exige(!S.gmailChamado, 'ainda chamou o GmailApp');
+  exige(e.opts && e.opts.htmlBody && e.opts.name && !('from' in e.opts), 'opcoes: ' + JSON.stringify(Object.keys(e.opts || {})));
+  return 'MailApp' + (e.opts.inlineImages ? ' + QR embutido' : ' + QR por link');
 });
 
 console.log(falhas ? '\n' + falhas + ' FALHA(S)' : '\nOK — backend da v166 conferido por execucao');
