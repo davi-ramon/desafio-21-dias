@@ -308,6 +308,9 @@ function handleRequest(payload) {
     case 'getEmailSaude':            return getEmailSaude(token);
     case 'testarEnvioEmail':         return testarEnvioEmail(token, data);
     case 'salvarResendChave':        return salvarResendChave(token, data);
+    // v168 — as boas-vindas estão prontas? (estado por rota, sem dado pessoal)
+    case 'getRitoStatus':            return getRitoStatus();
+    case 'waCriarTemplateSemCartao': return waCriarTemplateSemCartao(token, data);
     case 'podeAvaliar':              return podeAvaliar(token);
     case 'salvarAvaliacao':          return salvarAvaliacao(token, data);
     case 'getAvaliacoesAdmin':       return getAvaliacoesAdmin(token);

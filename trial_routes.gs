@@ -345,7 +345,10 @@ function registrarTrial_(data) {
     if (typeof tgNotificarTrial_ === 'function') {
       tgNotificarTrial_(nome, email, whatsapp, dias, {
         rota: rota, rotaNome: TRIAL_ROTAS[rota], dispositivo: rastreio.dispositivo || '',
-        campanha: rastreio.utm_campaign || '', consentiu: consentiu
+        campanha: rastreio.utm_campaign || '', consentiu: consentiu,
+        // v168: o resultado das boas-vindas vai junto no aviso
+        emailOk: !!(envioEmail && envioEmail.ok), emailVia: (envioEmail && envioEmail.via) || '',
+        waOk: !!(envioWa && envioWa.ok), waErro: (envioWa && envioWa.error) || ''
       });
     }
   } catch(_t) {}

@@ -438,7 +438,10 @@ function doPost(e) {
       // v166 — a entrada do app mostra os dias do teste antes do login;
       // o status de e-mail so tem contagem e estado do canal (sem endereco)
       payload.action === 'getOfertaApp'           ||
-      payload.action === 'getEmailStatus'
+      payload.action === 'getEmailStatus'         ||
+      // v168 — se as boas-vindas (e-mail + WhatsApp) estao prontas, por
+      // rota: so estados e nomes de template, nenhum dado pessoal
+      payload.action === 'getRitoStatus'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

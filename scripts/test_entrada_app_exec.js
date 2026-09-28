@@ -67,7 +67,22 @@ function fetchSim(url, opts) {
   }
   if (url.indexOf('api.resend.com/emails/') >= 0) return resposta(200, { last_event: 'delivered' });
   if (url.indexOf('graph.facebook.com') >= 0 && url.indexOf('/messages') >= 0) {
+    S.waTentativas = (S.waTentativas || 0) + 1;
+    if (S.waFalhas && S.waFalhas.length) {           // fila de falhas simuladas (ex.: [500] ou [400])
+      const code = S.waFalhas.shift();
+      return resposta(code, { error: { message: code === 400 ? '(#132001) Template name does not exist in the translation' : 'Service temporarily unavailable' } });
+    }
     S.wa.push(JSON.parse(opts.payload)); return resposta(200, { messages: [{ id: 'wamid.' + S.wa.length }] });
+  }
+  if (url.indexOf('graph.facebook.com') >= 0 && url.indexOf('/message_templates') >= 0 && opts.method === 'post') {
+    const p = JSON.parse(opts.payload);
+    S.templateCriado = p;
+    return resposta(200, { id: 'tpl_1', status: 'PENDING', category: p.category });
+  }
+  if (url.indexOf('graph.facebook.com') >= 0 && url.indexOf('/message_templates') >= 0) {
+    const nome = decodeURIComponent((/[?&]name=([^&]+)/.exec(url) || [])[1] || '');
+    const t = (S.templatesMeta || {})[nome];
+    return resposta(200, { data: t ? [Object.assign({ name: nome, language: 'pt_BR' }, t)] : [] });
   }
   if (url.indexOf('graph.facebook.com') >= 0) return resposta(200, {});
   if (url.indexOf('api.telegram.org') >= 0) { S.tg.push(JSON.parse(opts.payload).text); return resposta(200, { ok: true }); }
@@ -99,13 +114,15 @@ const ctx = {
   Session: { getEffectiveUser: () => ({ getEmail: () => 'wpktavares@gmail.com' }) },
   LockService: { getScriptLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }) },
   Logger: { log() {} },
-  ScriptApp: { getProjectTriggers: () => [] }
+  ScriptApp: { getProjectTriggers: () => (S.gatilhos || []).map(h => ({ getHandlerFunction: () => h })) }
 };
+ctx.Utilities.sleep = () => {};
 ctx.globalThis = ctx;
 vm.createContext(ctx);
 
 for (const f of ['code.gs', 'automation.gs', 'auth.gs', 'auth_admin.gs', 'leads.gs', 'crm_leads.gs', 'trial_routes.gs',
-                 'trial_card.gs', 'whatsapp.gs', 'telegram.gs', 'email_saude.gs', 'email_layout.gs', 'modules.gs', 'setup.gs']) {
+                 'trial_card.gs', 'whatsapp.gs', 'telegram.gs', 'email_saude.gs', 'email_layout.gs', 'modules.gs', 'setup.gs',
+                 'rito_status.gs', 'trial_auto.gs']) {
   vm.runInContext(fs.readFileSync(path.join(RAIZ, f), 'utf8'), ctx, { filename: f });
 }
 
@@ -123,6 +140,7 @@ vm.runInContext(`
   function _twofaAtivo_() { return false; }
   function _rateLimit_() { return false; }
   function logAction(u, a, en, id, det) { __logs.push(a + ' ' + (det || '')); }
+  function _capiHash_(s) { return String(s).split('').reduce(function (h, c) { return ((h << 5) - h + c.charCodeAt(0)) | 0; }, 7).toString(16) + 'abcdef0123456789abcdef0123456789'; }
 `, Object.assign(ctx, { __ass: assinaturas, __capi: S.capi, __logs: S.logs }));
 props.set('TG_TOKEN', 'tg_teste');
 
@@ -143,6 +161,10 @@ function planilhaNova() {
   Object.keys(assinaturas).forEach(k => delete assinaturas[k]);
   S.envios.length = 0; S.wa.length = 0; S.tg.length = 0; S.logs.length = 0; S.capi.length = 0;
   S.resend = 'ok'; S.gmail = 'ok'; S.mailapp = 'ok';
+  // Meta: os templates configurados existem e estão aprovados (cada teste muda o que precisar)
+  S.templatesMeta = { bv_teste_gratis: { status: 'APPROVED', category: 'UTILITY' },
+                      bv_cartao: { status: 'APPROVED', category: 'UTILITY' } };
+  S.waFalhas = []; S.waTentativas = 0; S.gatilhos = ['stripeBuscarEventos'];
 }
 function usuario(email) { return ctx.sheetToObjects(abas.users).find(u => u.email === email); }
 function leadCrm(email) {
@@ -321,7 +343,7 @@ passo('pagina antiga em cache (sem aceite): cadastra, mas NAO manda WhatsApp', (
   const r = ctx.registrarTrial_({ nome: 'Fabi Rocha', email: 'fabi@y.com', whatsapp: '94993334444', dias: 7 });
   exige(r.ok, JSON.stringify(r));
   exige(S.wa.length === 1, 'mandou WhatsApp sem autorizacao');
-  exige(S.tg.some(t => /Sem autorização/.test(t)), 'Telegram nao avisou a falta de autorizacao');
+  exige(S.tg.some(t => /WhatsApp NÃO enviado — a pessoa não marcou a autorização/.test(t)), 'Telegram nao avisou a falta de autorizacao');
 });
 passo('classificacao de origem (inclusive historico de trial_leads)', () => {
   const casos = { 'trial-sem-cartao': 'trial-sem-cartao', 'trial-cartao': 'trial-cartao', 'trial-cartao-14d': 'trial-cartao',
@@ -398,6 +420,117 @@ passo('sem chave do Resend (como em producao hoje): tudo pelo Gmail e o status d
   const st = ctx.getEmailStatus().data;
   exige(st.resendConfigurado === false && st.dominio === 'sem_chave', JSON.stringify(st));
   props.set('RESEND_API_KEY', 're_teste_nao_real');
+});
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nV168 — BOAS-VINDAS GARANTIDAS OU AVISADAS');
+function configRito(pares) {
+  const cfg = abas.config;
+  pares.forEach(p => {
+    const i = cfg.rows.findIndex(r => r[0] === p[0]);
+    if (i >= 0) cfg.rows[i][1] = p[1]; else cfg.appendRow([p[0], p[1], '']);
+  });
+  cache.clear();
+}
+passo('status: tudo configurado e aprovado -> pronto nas duas rotas', () => {
+  planilhaNova();
+  S.templatesMeta = { bv_teste_gratis: { status: 'APPROVED', category: 'UTILITY' }, bv_cartao: { status: 'APPROVED', category: 'UTILITY' } };
+  S.gatilhos = ['stripeBuscarEventos'];
+  const d = ctx.getRitoStatus().data;
+  exige(d.pronto.semCartao && d.pronto.cartao, JSON.stringify(d));
+  exige(d.whatsapp.semCartao.template === 'bv_teste_gratis' && d.whatsapp.semCartao.proprio, JSON.stringify(d.whatsapp.semCartao));
+  exige(!/tok|@/.test(JSON.stringify(d)), 'vazou credencial/e-mail: ' + JSON.stringify(d));
+  return 'e-mail via ' + d.email.canal + ', WhatsApp pronto';
+});
+passo('status: cada coisa que falta aparece com o motivo', () => {
+  S.templatesMeta = { bv_teste_gratis: { status: 'PENDING', category: 'MARKETING' } };
+  S.gatilhos = [];
+  configRito([['auto_whats_boasvindas', 'false'], ['auto_whats_boasvindas_sc', 'true']]);
+  const d = ctx.getRitoStatus().data;
+  exige(!d.pronto.semCartao && d.whatsapp.semCartao.faltas.indexOf('template_nao_aprovado') >= 0, JSON.stringify(d.whatsapp.semCartao));
+  exige(d.whatsapp.semCartao.meta.categoria === 'MARKETING', 'categoria');
+  const fc = d.whatsapp.cartao.faltas;
+  exige(fc.indexOf('automacao_desligada') >= 0 && fc.indexOf('template_nao_existe') >= 0 && fc.indexOf('rotina_stripe_parada') >= 0, JSON.stringify(fc));
+  return 'sem cartao: ' + d.whatsapp.semCartao.faltas.join(',') + ' | cartao: ' + fc.join(',');
+});
+passo('cadastro: o aviso do Telegram traz o resultado das boas-vindas', () => {
+  planilhaNova();
+  ctx.registrarTrial_({ nome: 'Gabi', email: 'gabi@y.com', whatsapp: '94991230000', rota: 'app-instalado', consentimento: true });
+  const m = S.tg[S.tg.length - 1];
+  exige(/✅ E-mail enviado/.test(m) && /✅ WhatsApp \(template\) enviado/.test(m) && !/Fale com a pessoa/.test(m), m);
+  return 'tudo saiu, sem alarme';
+});
+passo('WhatsApp desligado no painel: o grupo e avisado com o motivo e o link da pessoa', () => {
+  configRito([['auto_whats_boasvindas_sc', 'false']]);
+  ctx.registrarTrial_({ nome: 'Hugo', email: 'hugo@y.com', whatsapp: '94991230001', rota: 'app-web', consentimento: true });
+  const m = S.tg[S.tg.length - 1];
+  exige(/❌ WhatsApp NÃO enviado — automação desligada no painel/.test(m), m);
+  exige(/wa\.me\/5594991230001/.test(m), 'sem link da pessoa: ' + m);
+  const tl = leadCrm('hugo@y.com').tl.map(t => t.action).join(' / ');
+  exige(/WhatsApp não enviado \(desligado no painel\)/.test(tl), 'CRM: ' + tl);
+});
+passo('falha passageira da Meta (500): tenta de novo e entrega', () => {
+  planilhaNova();
+  S.waTentativas = 0; S.waFalhas = [500];
+  ctx.registrarTrial_({ nome: 'Iara', email: 'iara@y.com', whatsapp: '94991230002', rota: 'app-web', consentimento: true });
+  exige(S.waTentativas === 2 && S.wa.length === 1, 'tentativas=' + S.waTentativas + ' enviados=' + S.wa.length);
+  exige(/✅ WhatsApp/.test(S.tg[S.tg.length - 1]), S.tg[S.tg.length - 1]);
+});
+passo('erro de configuracao (400): nao insiste, avisa com a mensagem da Meta', () => {
+  S.waTentativas = 0; S.waFalhas = [400];
+  ctx.registrarTrial_({ nome: 'Joao', email: 'joao@y.com', whatsapp: '94991230003', rota: 'app-web', consentimento: true });
+  exige(S.waTentativas === 1, 'repetiu erro de configuracao: ' + S.waTentativas);
+  const m = S.tg[S.tg.length - 1];
+  exige(/❌ WhatsApp NÃO enviado — a Meta recusou: .*132001/.test(m), m);
+});
+passo('com cartao: e-mail com resultado REAL e aviso completo no Telegram', () => {
+  planilhaNova();
+  ctx._tcRegistrarConsentimento_({ email: 'lia@y.com', whatsapp: '+5594991230004', nome: 'Lia Souza', trialDias: 14, valor: 17 });
+  S.gatilhos = ['stripeBuscarEventos'];
+  let r = ctx.dispararAutomacoesTrial_('lia@y.com', { id: 'sub_1', trial_end: Math.floor(Date.now() / 1000) + 14 * 86400 });
+  exige(r.ok && r.resultado.email.ok && r.resultado.email.via === 'resend', 'email: ' + JSON.stringify(r.resultado.email));
+  exige(r.resultado.whatsapp.ok && S.wa[0].template.name === 'bv_cartao', 'whatsapp: ' + JSON.stringify(r.resultado.whatsapp));
+  const m = S.tg[S.tg.length - 1];
+  exige(/Checkout com cartão/.test(m) && /✅ E-mail enviado/.test(m) && /✅ WhatsApp/.test(m), m);
+  // todos os canais de e-mail fora: o aviso diz que NAO saiu (antes dizia ok sempre)
+  S.resend = '403'; S.gmail = 'throw'; S.mailapp = 'throw'; cache.clear();
+  r = ctx.dispararAutomacoesTrial_('lia@y.com', { id: 'sub_2', trial_end: Math.floor(Date.now() / 1000) + 14 * 86400 });
+  exige(!r.resultado.email.ok && /❌ E-mail NÃO saiu/.test(S.tg[S.tg.length - 1]), S.tg[S.tg.length - 1]);
+  return 'cartao ok + falha de e-mail avisada';
+});
+
+passo('criar template do sem cartao: vai para a Meta como UTILITY e ja fica escolhido', () => {
+  planilhaNova();
+  configRito([['wa_tpl_boasvindas_sc', '']]);           // como em producao: sem template proprio
+  abas.users.appendRow(['u1', 'Davi', 'davi@x.com', ctx.hashPassword('x'), 'admin', '', true, '']);
+  const t = ctx.login('davi@x.com', 'x').token;
+  exige(ctx.waCriarTemplateSemCartao('tok-aluno', {}).error === 'Sem permissão.', 'sem admin criou');
+  const r = ctx.waCriarTemplateSemCartao(t, {});
+  exige(r.ok && r.status === 'PENDING' && r.nome === 'desafio21_boasvindas_teste_gratis', JSON.stringify(r));
+  const p = S.templateCriado;
+  exige(p.category === 'UTILITY' && p.language === 'pt_BR' && /\{\{3\}\}/.test(p.components[0].text), JSON.stringify(p));
+  exige(p.components[0].example.body_text[0].length === 3 && p.components[1].buttons[0].type === 'URL', 'exemplo/botao');
+  exige(!/cobran/i.test(p.components[0].text), 'texto fala de cobranca');
+  exige(ctx.getConfig_('wa_tpl_boasvindas_sc') === 'desafio21_boasvindas_teste_gratis' &&
+        ctx.getConfig_('wa_tpl_boasvindas_sc_vars') === '["primeiro_nome","dias_trial","fim_teste"]', 'nao ficou escolhido');
+  return 'categoria ' + p.category + ', 3 variaveis, botao Abrir o app';
+});
+passo('template em analise: nao tenta mandar, e o aviso diz o estado real', () => {
+  S.templatesMeta = { desafio21_boasvindas_teste_gratis: { status: 'PENDING', category: 'UTILITY' } };
+  cache.clear(); S.wa.length = 0;
+  ctx.registrarTrial_({ nome: 'Rafa', email: 'rafa@y.com', whatsapp: '94991230009', rota: 'app-web', consentimento: true });
+  exige(S.wa.length === 0, 'tentou mandar template pendente');
+  exige(/❌ WhatsApp NÃO enviado — template desafio21_boasvindas_teste_gratis ainda em análise na Meta/.test(S.tg[S.tg.length - 1]), S.tg[S.tg.length - 1]);
+});
+passo('aprovado: sai com nome, dias e fim do teste nas variaveis', () => {
+  S.templatesMeta = { desafio21_boasvindas_teste_gratis: { status: 'APPROVED', category: 'UTILITY' } };
+  cache.clear();
+  ctx.registrarTrial_({ nome: 'Sara Lima', email: 'sara@y.com', whatsapp: '94991230010', rota: 'app-instalado', consentimento: true });
+  exige(S.wa.length === 1 && S.wa[0].template.name === 'desafio21_boasvindas_teste_gratis', JSON.stringify(S.wa));
+  const v = S.wa[0].template.components[0].parameters.map(x => x.text);
+  exige(v[0] === 'Sara' && v[1] === '14' && /^\d\d\/\d\d\/\d{4}$/.test(v[2]), 'variaveis: ' + v);
+  exige(ctx.getRitoStatus().data.pronto.semCartao === true, 'status nao ficou pronto');
+  return v.join(' | ');
 });
 
 console.log(falhas ? '\n' + falhas + ' FALHA(S)' : '\nOK — backend da v166 conferido por execucao');

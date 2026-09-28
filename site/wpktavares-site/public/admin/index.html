@@ -6649,6 +6649,10 @@ async function renderTrialAuto() {
       'color:var(--muted);line-height:1.6;margin:9px 0;white-space:pre-wrap}' +
     '</style>' +
 
+    // ── v168: as boas-vindas estão prontas? (o servidor confere) ──
+    '<div id="taRitoBox"><div class="card" style="margin-bottom:16px;font-size:12px;color:var(--muted)">' +
+      'Conferindo as boas-vindas&hellip;</div></div>' +
+
     // ── Credenciais ──
     '<div class="card" style="margin-bottom:16px">' +
       '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">Conex&atilde;o com a Meta</div>' +
@@ -6770,8 +6774,9 @@ async function renderTrialAuto() {
         '<div class="form-group"><label class="form-label">Seu WhatsApp</label>' +
           '<input class="form-control" id="ta_teste_num" placeholder="(94) 99123-4567"></div>' +
         '<div class="form-group"><label class="form-label">&nbsp;</label>' +
-          '<button class="btn btn-primary" style="width:100%" onclick="taTestar()">Enviar teste</button></div>' +
+          '<button class="btn btn-primary" style="width:100%" onclick="taTestar()">Testar boas-vindas &mdash; com cart&atilde;o</button></div>' +
       '</div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="taTestarSc()">Testar boas-vindas &mdash; sem cart&atilde;o e app</button>' +
       '<div id="taTesteRes" style="margin-top:8px"></div>' +
     '</div>' +
 
@@ -6781,6 +6786,7 @@ async function renderTrialAuto() {
   taRenderCapi();
   loteCarregar();
   recupCarregar();
+  taRitoCarregar();
 
   _processIcons && _processIcons(content);
 }
@@ -6925,6 +6931,150 @@ async function taTestar() {
     : '<div style="color:#e2626b;font-size:12px">✕ ' + escHtml((r && r.error) || 'Erro.') + '</div>';
 }
 
+
+// ── v168: quadro "o que cada pessoa recebe" ──────────────────
+var TA_FALTAS = {
+  whatsapp_sem_credenciais: 'Preencha token, WABA ID e Phone Number ID em &ldquo;Conex&atilde;o com a Meta&rdquo;.',
+  whatsapp_nao_conecta:     'A Meta n&atilde;o aceitou as credenciais &mdash; confira o token (usu&aacute;rio do sistema) e o Phone Number ID.',
+  automacao_desligada:      'A chave &ldquo;WhatsApp de boas-vindas&rdquo; desta rota est&aacute; desligada (logo abaixo).',
+  template_nao_escolhido:   'Nenhum template escolhido: clique em &ldquo;Carregar da Meta&rdquo; e escolha o desta rota.',
+  template_nao_existe:      'O template escolhido n&atilde;o existe mais na Meta &mdash; escolha outro.',
+  template_nao_aprovado:    'O template ainda n&atilde;o foi aprovado pela Meta.',
+  meta_nao_respondeu:       'A Meta n&atilde;o respondeu agora &mdash; atualize em alguns minutos.',
+  rotina_stripe_parada:     'A rotina que busca os eventos do Stripe n&atilde;o est&aacute; rodando nesta conta &mdash; use &ldquo;Recriar rotinas&rdquo; em Migra&ccedil;&atilde;o de conta.'
+};
+
+function _taRitoColuna(titulo, sub, emailOk, emailTxt, wa) {
+  var ok = '<span style="color:var(--green);font-weight:800">&#10003;</span>';
+  var no = '<span style="color:#e2626b;font-weight:800">&#10007;</span>';
+  var waOk = !wa.faltas.length;
+  var tpl = wa.template ? '<code>' + escHtml(wa.template) + '</code>' + (wa.proprio === false && wa.template ? ' (o do cart&atilde;o)' : '') : '';
+  var cat = wa.meta && wa.meta.categoria;
+  var h = '<div style="flex:1;min-width:250px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:11px;padding:13px 14px">' +
+    '<div style="font-size:12.5px;font-weight:800;color:var(--text)">' + titulo + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin:2px 0 10px">' + sub + '</div>' +
+    '<div style="font-size:12.5px;line-height:1.9">' +
+      (emailOk ? ok : no) + ' E-mail de boas-vindas <span style="color:var(--muted)">' + emailTxt + '</span><br>' +
+      (waOk ? ok : no) + ' Template de WhatsApp ' + (tpl ? '<span style="color:var(--muted)">' + tpl + '</span>' : '') +
+    '</div>';
+  if (!waOk) {
+    h += '<div style="margin-top:8px;font-size:11.5px;color:#e0a83c;line-height:1.6">' +
+         wa.faltas.map(function (f) { return '&bull; ' + (TA_FALTAS[f] || escHtml(f)); }).join('<br>') + '</div>';
+  }
+  if (cat === 'MARKETING') {
+    h += '<div style="margin-top:8px;font-size:11.5px;color:#e0a83c;line-height:1.6">&bull; Categoria <b>MARKETING</b>: a Meta limita ' +
+         'quantas mensagens desse tipo cada pessoa recebe e pode segurar a entrega. Para boas-vindas, use um template <b>UTILITY</b>.</div>';
+  }
+  return h + '</div>';
+}
+
+async function taRitoCarregar() {
+  var box = document.getElementById('taRitoBox');
+  if (!box) return;
+  var r;
+  try { r = await rpc('getRitoStatus', {}); } catch (e) { r = null; }
+  if (!r || !r.ok) { box.innerHTML = ''; return; }
+  var d = r.data, canal = d.email.canal === 'resend' ? '(Resend)' : '(pelo Gmail &mdash; cole a chave do Resend em E-mails)';
+  var tudoOk = d.pronto.semCartao && d.pronto.cartao;
+  box.innerHTML = '<div class="card" style="margin-bottom:16px;border-color:' + (tudoOk ? 'rgba(76,175,80,.4)' : 'rgba(224,168,60,.5)') + '">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px">' +
+      '<div style="font-size:13.5px;font-weight:800;color:' + (tudoOk ? 'var(--green)' : '#e0a83c') + '">' +
+        (tudoOk ? 'Boas-vindas prontas nas duas rotas' : 'Boas-vindas: falta configurar') + '</div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="taRitoCarregar()">Conferir de novo</button>' +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.6">O que cada pessoa recebe ao concluir o cadastro. ' +
+      'Quando algo n&atilde;o sai, o grupo do Telegram &eacute; avisado na hora, com o motivo e o link do WhatsApp da pessoa.</div>' +
+    '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+      _taRitoColuna('Sem cart&atilde;o e app', 'Sai na hora, ao concluir o cadastro. S&oacute; para quem marcou a autoriza&ccedil;&atilde;o.',
+                    true, canal, d.whatsapp.semCartao) +
+      _taRitoColuna('Com cart&atilde;o', 'Sai quando o cart&atilde;o &eacute; aceito (em at&eacute; ~5 min).',
+                    d.email.cartao, d.email.cartao ? canal : '(desligado abaixo)', d.whatsapp.cartao) +
+    '</div>' +
+    // v168: sem template para o sem cartão → cria e manda para aprovação
+    (_taPrecisaTemplateSc(d)
+      ? '<div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+          '<button class="btn btn-primary btn-sm" onclick="taCriarTemplateSc()">Criar o template do sem cart&atilde;o e mandar para a Meta</button>' +
+          '<span style="font-size:11.5px;color:var(--muted)">Texto de confirma&ccedil;&atilde;o de conta, sem falar de cobran&ccedil;a. Voc&ecirc; revisa antes de enviar.</span>' +
+        '</div>'
+      : '') +
+    '</div>';
+}
+
+function _taPrecisaTemplateSc(d) {
+  var sc = d && d.whatsapp && d.whatsapp.semCartao;
+  if (!sc || !d.whatsapp.credenciais) return false;
+  var f = sc.faltas || [];
+  return f.indexOf('template_nao_escolhido') >= 0 || f.indexOf('template_nao_existe') >= 0 ||
+         !!(sc.meta && sc.meta.status === 'REJECTED');
+}
+
+var TA_TPL_SC_TEXTO =
+  'Olá, {{1}}! Sua conta no Desafio 21 Dias foi criada e o seu acesso de {{2}} dias grátis ' +
+  'já está liberado, até {{3}}.\n\n' +
+  'Para entrar, abra o app com o e-mail que você cadastrou. A senha provisória foi enviada para o seu e-mail.\n\n' +
+  'Ficou com alguma dúvida? É só responder esta mensagem.';
+
+function taCriarTemplateSc() {
+  var body =
+    '<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:12px">Vai para a Meta aprovar e j&aacute; fica ' +
+      'escolhido como boas-vindas do <b>sem cart&atilde;o e app</b>. Vari&aacute;veis: <code>{{1}}</code> primeiro nome, ' +
+      '<code>{{2}}</code> dias de teste, <code>{{3}}</code> &uacute;ltimo dia do teste. Leva um bot&atilde;o &ldquo;Abrir o app&rdquo;.</div>' +
+    '<div class="form-group"><label class="form-label">Nome do template</label>' +
+      '<input class="form-control" id="tsc_nome" value="desafio21_boasvindas_teste_gratis"></div>' +
+    '<div class="form-group"><label class="form-label">Categoria</label>' +
+      '<select class="form-control" id="tsc_cat">' +
+        '<option value="UTILITY" selected>UTILITY &mdash; confirma&ccedil;&atilde;o de conta (entrega mais confi&aacute;vel)</option>' +
+        '<option value="MARKETING">MARKETING</option>' +
+      '</select></div>' +
+    '<div class="form-group"><label class="form-label">Texto</label>' +
+      '<textarea class="form-control" id="tsc_texto" rows="8"></textarea>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:4px">Para ser aprovado como UTILITY, mantenha sobre a conta e o acesso &mdash; sem promo&ccedil;&atilde;o.</div></div>' +
+    '<div id="tsc_res"></div>';
+  openModal('Template de boas-vindas &mdash; sem cart&atilde;o e app', body, [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Enviar para aprova&ccedil;&atilde;o', action: taEnviarTemplateSc, cls: 'btn-primary' }
+  ]);
+  var t = document.getElementById('tsc_texto');
+  if (t) t.value = TA_TPL_SC_TEXTO;     // .value: o texto não passa por HTML
+}
+
+async function taEnviarTemplateSc() {
+  var res = document.getElementById('tsc_res');
+  var dados = {
+    nome: (document.getElementById('tsc_nome').value || '').trim(),
+    categoria: document.getElementById('tsc_cat').value,
+    texto: (document.getElementById('tsc_texto').value || '').trim()
+  };
+  if (res) res.innerHTML = '<div style="font-size:12px;color:var(--muted)">Enviando para a Meta&hellip;</div>';
+  var r;
+  try { r = await rpc('waCriarTemplateSemCartao', dados); } catch (e) { r = { ok: false, error: e.message }; }
+  if (!r || !r.ok) {
+    if (res) res.innerHTML = '<div style="font-size:12px;color:#e2626b;line-height:1.6">' + escHtml((r && r.error) || 'Falhou.') + '</div>';
+    return;
+  }
+  closeModal();
+  toast(r.message, 'success');
+  taRitoCarregar();
+}
+
+async function taTestarSc() {
+  const box = document.getElementById('taTesteRes');
+  const num = document.getElementById('ta_teste_num').value.trim();
+  if (!num) { toast('Informe seu WhatsApp.', 'error'); return; }
+  let t = _taColetarVars('sc');
+  if (!t.nome) t = { nome: TA.cfg.tplBoasVindasSc || '', idioma: TA.cfg.tplBoasVindasScLang || 'pt_BR', vars: TA.cfg.tplBoasVindasScVars || '[]' };
+  if (!t.nome && TA.cfg.boasVindasScEfetivo) {
+    t = { nome: TA.cfg.boasVindasScEfetivo.nome, idioma: TA.cfg.tplBoasVindasLang || 'pt_BR', vars: TA.cfg.tplBoasVindasVars || '[]' };
+  }
+  if (!t.nome) { toast('Escolha o template de boas-vindas sem cartão primeiro.', 'error'); return; }
+  box.innerHTML = '<div style="font-size:12px;color:var(--muted)">Enviando&hellip;</div>';
+  let r;
+  try { r = await rpc('waTestar', { numero: num, template: t.nome, idioma: t.idioma, vars: t.vars, dias: TA.cfg.trialDiasApp || 7 }); }
+  catch (e) { box.innerHTML = '<div style="color:#e2626b;font-size:12px">Falha: ' + escHtml(e.message) + '</div>'; return; }
+  box.innerHTML = (r && r.ok)
+    ? '<div style="color:var(--green);font-size:12px">✓ ' + escHtml(r.message) + ' (template ' + escHtml(t.nome) + ')</div>'
+    : '<div style="color:#e2626b;font-size:12px">✕ ' + escHtml((r && r.error) || 'Erro.') + '</div>';
+}
 
 // ── Pixel + Conversions API (v144) ──────────────────────────
 async function taRenderCapi() {

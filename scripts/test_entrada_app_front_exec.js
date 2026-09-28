@@ -310,6 +310,53 @@ function abrir(rel, cfg) {
     exige(A.__el('emsChave').value === '', 'a chave ficou na tela');
   });
 
+  await passo('v168: quadro "o que cada pessoa recebe" com o que falta, e teste do sem cartao', async () => {
+    let testado = null;
+    A.rpc = async (acao, dados) => {
+      if (acao === 'getRitoStatus') return { ok: true, data: {
+        email: { canal: 'gmail', semCartao: true, cartao: true },
+        whatsapp: { credenciais: true, conectado: true,
+          semCartao: { ligado: true, template: 'bv_teste_gratis', proprio: true, meta: { status: 'APPROVED', categoria: 'MARKETING' }, faltas: [] },
+          cartao: { ligado: false, template: '', meta: null, faltas: ['automacao_desligada', 'template_nao_escolhido'] } },
+        rotinaStripe: true, pronto: { semCartao: true, cartao: false } } };
+      if (acao === 'waTestar') { testado = dados; return { ok: true, message: 'Enviado para +5594991234567' }; }
+      return { ok: true, data: {} };
+    };
+    A.__ler('(function(){ rpc = globalThis.rpc; })()');
+    A.__el('taRitoBox').innerHTML = '';
+    await A.taRitoCarregar();
+    const h = A.__el('taRitoBox').innerHTML;
+    ['falta configurar', 'Sem cart&atilde;o e app', 'Com cart&atilde;o', 'bv_teste_gratis', 'est&aacute; desligada', 'Nenhum template escolhido', 'MARKETING', 'pelo Gmail']
+      .forEach(t => exige(h.indexOf(t) >= 0, 'faltou "' + t + '"'));
+    A.__ler('TA').cfg = { tplBoasVindasSc: 'bv_teste_gratis', tplBoasVindasScVars: '["primeiro_nome","fim_teste"]', trialDiasApp: 7 };
+    A.__el('ta_teste_num').value = '(94) 99123-4567';
+    await A.taTestarSc();
+    exige(testado && testado.template === 'bv_teste_gratis' && testado.vars === '["primeiro_nome","fim_teste"]', JSON.stringify(testado));
+  });
+
+  await passo('v168: sem template do sem cartao -> botao cria e manda para a Meta', async () => {
+    let criado = null;
+    A.rpc = async (acao, dados) => {
+      if (acao === 'getRitoStatus') return { ok: true, data: {
+        email: { canal: 'gmail', semCartao: true, cartao: true },
+        whatsapp: { credenciais: true, conectado: true,
+          semCartao: { ligado: true, template: '', proprio: false, meta: null, faltas: ['template_nao_escolhido'] },
+          cartao: { ligado: true, template: 'desafio21_trial_boasvindas_mkt', meta: { status: 'APPROVED', categoria: 'MARKETING' }, faltas: [] } },
+        rotinaStripe: true, pronto: { semCartao: false, cartao: true } } };
+      if (acao === 'waCriarTemplateSemCartao') { criado = dados; return { ok: true, status: 'PENDING', message: 'Enviado para a Meta aprovar.' }; }
+      return { ok: true, data: {} };
+    };
+    A.__ler('(function(){ rpc = globalThis.rpc; })()');
+    await A.taRitoCarregar();
+    exige(/Criar o template do sem cart/.test(A.__el('taRitoBox').innerHTML), 'sem botao de criar');
+    A.taCriarTemplateSc();
+    exige(/Sua conta no Desafio 21 Dias foi criada/.test(A.__el('tsc_texto').value), 'texto padrao nao carregou');
+    A.__el('tsc_nome').value = 'desafio21_boasvindas_teste_gratis';
+    A.__el('tsc_cat').value = 'UTILITY';
+    await A.taEnviarTemplateSc();
+    exige(criado && criado.categoria === 'UTILITY' && /\{\{1\}\}/.test(criado.texto) && criado.nome === 'desafio21_boasvindas_teste_gratis', JSON.stringify(criado));
+  });
+
   console.log(falhas ? '\n' + falhas + ' FALHA(S)' : '\nOK — front da v166 conferido por execucao');
   process.exit(falhas ? 1 : 0);
 })();

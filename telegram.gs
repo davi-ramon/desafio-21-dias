@@ -77,19 +77,36 @@ function _tgPlanoNome_(plan) {
 // Novo trial gratuito (chamado por registrarTrial_)
 // v166: `extra` opcional diz por onde a pessoa entrou (rota, aparelho,
 // campanha) e se autorizou contato. Sem ele, a mensagem é a de sempre.
+// v168: e o RESULTADO das boas-vindas — se o e-mail e o WhatsApp saíram.
+// Quando algo não sai, o grupo fica sabendo na hora, com o motivo e o
+// link para falar com a pessoa na mão. Nada falha em silêncio.
 function tgNotificarTrial_(nome, email, whatsapp, dias, extra) {
+  var fone = String(whatsapp || '').replace(/\D/g, '');
   var origem = '';
   if (extra && extra.rota) {
     origem = '🧭 ' + _tgEsc_(extra.rotaNome || extra.rota) +
              (extra.dispositivo ? ' · ' + _tgEsc_(extra.dispositivo) : '') + '\n' +
-             (extra.campanha ? '📣 ' + _tgEsc_(extra.campanha) + '\n' : '') +
-             (extra.consentiu ? '' : '⚠️ Sem autorização de contato — WhatsApp não enviado\n');
+             (extra.campanha ? '📣 ' + _tgEsc_(extra.campanha) + '\n' : '');
+  }
+  var rito = '';
+  if (extra && (extra.emailOk !== undefined || extra.waOk !== undefined)) {
+    var motivo = (typeof ritoMotivo_ === 'function') ? ritoMotivo_(extra.waErro) : String(extra.waErro || '');
+    rito = '\n<b>Boas-vindas</b>\n' +
+           (extra.emailOk ? '✅ E-mail enviado' + (extra.emailVia && extra.emailVia !== 'resend' ? ' (pelo Gmail)' : '')
+                          : extra.emailDesligado ? '⏸ E-mail de boas-vindas desligado no painel'
+                          : '❌ E-mail NÃO saiu') + '\n' +
+           (extra.waOk ? '✅ WhatsApp (template) enviado'
+                       : '❌ WhatsApp NÃO enviado — ' + _tgEsc_(motivo)) + '\n' +
+           (!extra.waOk || (!extra.emailOk && !extra.emailDesligado)
+             ? '👉 Fale com a pessoa: https://wa.me/' + fone + '\n' : '');
+  } else if (extra && extra.rota && !extra.consentiu) {
+    rito = '⚠️ Sem autorização de contato — WhatsApp não enviado\n';
   }
   tgEnviar_('🎁 <b>Novo Trial — ' + dias + ' dias grátis</b>\n' +
             '👤 ' + _tgEsc_(nome) + '\n' +
             '📧 ' + _tgEsc_(email) + '\n' +
-            '📱 +' + _tgEsc_(String(whatsapp || '').replace(/^\+/, '')) + '\n' +
-            origem +
+            '📱 +' + _tgEsc_(fone) + '\n' +
+            origem + rito +
             '<i>' + _tgAgora_() + '</i>');
 }
 

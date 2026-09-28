@@ -196,7 +196,15 @@ function dispararAutomacoesTrial_(email, sub) {
   if (_taBool_('auto_telegram', true)) {
     try {
       if (typeof tgNotificarTrial_ === 'function') {
-        tgNotificarTrial_(ctx.nome, ctx.email, ctx.whatsapp, ctx.dias);
+        // v168: com o resultado das boas-vindas — o grupo vê na hora se
+        // o e-mail e o WhatsApp saíram, e por que não, quando não saem
+        tgNotificarTrial_(ctx.nome, ctx.email, ctx.whatsapp, ctx.dias, {
+          rota: 'checkout-com-cartao', rotaNome: 'Checkout com cartão', consentiu: true,
+          emailOk: !!(r.email && r.email.ok), emailVia: (r.email && r.email.via) || '',
+          emailDesligado: r.email === null,
+          waOk: !!(r.whatsapp && r.whatsapp.ok),
+          waErro: (r.whatsapp && r.whatsapp.error) || ''
+        });
         r.telegram = { ok: true };
       }
     } catch (e) { r.telegram = { ok: false, error: e.message }; }
@@ -248,10 +256,10 @@ function _taEmailBoasVindas_(ctx) {
     '</div>' +
   '</div>';
 
-  _enviarEmailWpk_(ctx.email, 'Seu teste do Desafio 21 Dias comecou',
+  // v168: devolve o resultado REAL (antes era sempre { ok: true })
+  return _enviarEmailWpk_(ctx.email, 'Seu teste do Desafio 21 Dias comecou',
     'Seu periodo de teste esta ativo. Primeira cobranca em ' + (ctx.dataCobranca || '-') +
-    ', R$ ' + ctx.valor + ',00/mes. Cancele pelo app antes disso se nao quiser continuar.', html);
-  return { ok: true };
+    ', R$ ' + ctx.valor + ',00/mes. Cancele pelo app antes disso se nao quiser continuar.', html, 'trial');
 }
 
 // ═════════════════════════════════════════════════════════════

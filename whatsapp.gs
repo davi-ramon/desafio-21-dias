@@ -217,6 +217,7 @@ function waSalvarConfig(token, cfg) {
   });
 
   logAction(user.email, 'WA_CONFIG_SALVA', 'config', '', '');
+  if (typeof _ritoLimparCache_ === 'function') _ritoLimparCache_();
   return { ok: true };
 }
 
@@ -270,7 +271,15 @@ function _waEnviarTemplate_(paraE164, nomeTpl, idioma, params) {
     corpo.template.components = [{ type: 'body', parameters: params }];
   }
 
-  var r = _waCall_('post', '/' + encodeURIComponent(_waPhone_()) + '/messages', corpo);
+  var caminho = '/' + encodeURIComponent(_waPhone_()) + '/messages';
+  var r = _waCall_('post', caminho, corpo);
+  // v168: falha passageira (rede, instabilidade da Meta, limite de taxa)
+  // ganha uma segunda tentativa. Erro de configuração (4xx) não: repetir
+  // não muda nada, e o motivo precisa chegar a quem pode corrigir.
+  if (r._error && (!r.code || r.code >= 500 || r.code === 429)) {
+    try { Utilities.sleep(1500); } catch (e) {}
+    r = _waCall_('post', caminho, corpo);
+  }
   if (r._error) {
     logAction(destino, 'WA_ENVIO_FALHOU', 'whatsapp', nomeTpl, r.message);
     return { ok: false, error: r.message };
@@ -319,7 +328,81 @@ function waBoasVindasSemCartao_(ctx) {
   if (!_waSemCartaoLigado_()) return { ok: false, error: 'desligado no painel' };
   var t = _waTplSemCartao_();
   if (!t) return { ok: false, error: 'template de boas-vindas (sem cartao) nao escolhido' };
+  // v168: template ainda em análise (ou recusado) na Meta não é enviado:
+  // o aviso diz o estado real, em vez de um erro genérico da API.
+  try {
+    var st = (typeof _ritoTemplateMeta_ === 'function') ? _ritoTemplateMeta_(t.nome) : null;
+    if (st && /^(PENDING|REJECTED|DISABLED|PAUSED|NAO_EXISTE)$/.test(st.status)) {
+      return { ok: false, error: 'template ' + t.nome + ' ' + _waStatusNome_(st.status) };
+    }
+  } catch (e) {}
   return _waEnviarTemplate_(ctx.whatsapp, t.nome, t.lang, _waParams_(t.vars, ctx));
+}
+
+function _waStatusNome_(s) {
+  return ({ PENDING: 'ainda em análise na Meta', REJECTED: 'foi recusado pela Meta', DISABLED: 'foi desativado pela Meta',
+            PAUSED: 'está pausado pela Meta', NAO_EXISTE: 'não existe na Meta' })[s] || s;
+}
+
+// ─────────────────────────────────────────────────────────────
+// v168 — ROTA ADMIN: waCriarTemplateSemCartao
+// Manda para a Meta aprovar o template de boas-vindas de quem entra
+// SEM cartão (checkout sem cartão e app). Texto de confirmação de
+// conta, categoria UTILITY: a Meta entrega esse tipo com mais
+// confiança do que MARKETING, que tem limite por pessoa.
+// Já deixa escolhido no painel, com as variáveis na ordem do texto.
+// ─────────────────────────────────────────────────────────────
+var WA_TPL_SC_NOME  = 'desafio21_boasvindas_teste_gratis';
+var WA_TPL_SC_TEXTO =
+  'Olá, {{1}}! Sua conta no Desafio 21 Dias foi criada e o seu acesso de {{2}} dias grátis ' +
+  'já está liberado, até {{3}}.\n\n' +
+  'Para entrar, abra o app com o e-mail que você cadastrou. A senha provisória foi enviada para o seu e-mail.\n\n' +
+  'Ficou com alguma dúvida? É só responder esta mensagem.';
+var WA_TPL_SC_VARS  = ['primeiro_nome', 'dias_trial', 'fim_teste'];
+
+function waCriarTemplateSemCartao(token, data) {
+  var user = getUserByToken(token);
+  if (!user || user.role !== 'admin') return { ok: false, error: 'Sem permissão.' };
+  if (!_waPronto_()) return { ok: false, error: 'Configure a conexão com a Meta antes.' };
+  data = data || {};
+
+  var nome = String(data.nome || WA_TPL_SC_NOME).toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 60);
+  var texto = String(data.texto || WA_TPL_SC_TEXTO).trim();
+  var categoria = String(data.categoria) === 'MARKETING' ? 'MARKETING' : 'UTILITY';
+  if (!nome || texto.length < 20) return { ok: false, error: 'Preencha o nome e o texto do template.' };
+  if (texto.length > 1024) return { ok: false, error: 'O texto passou de 1024 caracteres.' };
+
+  var n = _waContarVars_([{ type: 'BODY', text: texto }]);
+  var exemplos = ['Ana', '7', '05/10/2026', 'ana@email.com', '17,00'];
+  if (n > exemplos.length) return { ok: false, error: 'Use no máximo ' + exemplos.length + ' variáveis.' };
+
+  var corpo = {
+    name: nome, language: 'pt_BR', category: categoria,
+    components: [{ type: 'BODY', text: texto }]
+  };
+  if (n) corpo.components[0].example = { body_text: [exemplos.slice(0, n)] };
+  corpo.components.push({ type: 'BUTTONS', buttons: [
+    { type: 'URL', text: 'Abrir o app', url: 'https://app.wpktavares.com.br/?entrar=1' }
+  ] });
+
+  var r = _waCall_('post', '/' + encodeURIComponent(_waWaba_()) + '/message_templates', corpo);
+  if (r._error) {
+    logAction(user.email, 'WA_TPL_CRIAR_FALHOU', 'whatsapp', nome, r.message);
+    return { ok: false, error: 'A Meta recusou: ' + r.message };
+  }
+
+  // Já escolhido no painel: as variáveis seguem a ordem do texto padrão
+  // ({{1}} nome, {{2}} dias, {{3}} fim do teste). Texto editado com outra
+  // ordem: o admin ajusta o mapeamento na lista de templates.
+  setConfig_('wa_tpl_boasvindas_sc', nome);
+  setConfig_('wa_tpl_boasvindas_sc_lang', 'pt_BR');
+  setConfig_('wa_tpl_boasvindas_sc_vars', JSON.stringify(WA_TPL_SC_VARS.slice(0, n)));
+  try { CacheService.getScriptCache().remove('rito_tpl_' + nome); } catch (e) {}
+  if (typeof _ritoLimparCache_ === 'function') _ritoLimparCache_();
+
+  logAction(user.email, 'WA_TPL_CRIADO', 'whatsapp', nome, (r.status || '') + ' ' + (r.category || categoria));
+  return { ok: true, nome: nome, status: String(r.status || 'PENDING'), categoria: String(r.category || categoria),
+           message: 'Enviado para a Meta aprovar. Costuma levar de minutos a algumas horas — o quadro no topo fica verde quando aprovar.' };
 }
 
 // Recuperação de quem parou na tela do cartão. Template separado de
