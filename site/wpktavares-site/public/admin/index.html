@@ -1773,6 +1773,10 @@ button,
       <span class="nav-icon"><i data-lucide="moon" class="luc"></i></span>
       <span class="nav-label">M&oacute;dulo do Sono</span>
     </div>
+    <div class="nav-item" data-page="avaliacoes" id="navAvaliacoes" onclick="navigate('avaliacoes')" title="Avaliações da loja">
+      <span class="nav-icon"><i data-lucide="star" class="luc"></i></span>
+      <span class="nav-label">Avalia&ccedil;&otilde;es</span>
+    </div>
     <div class="nav-item" data-page="push" id="navPush" onclick="navigate('push')" title="Notificações push">
       <span class="nav-icon"><i data-lucide="bell-ring" class="luc"></i></span>
       <span class="nav-label">Notifica&ccedil;&otilde;es Push</span>
@@ -2097,6 +2101,7 @@ function navigate(page) {
     mural:          'Mural dos Sonhos',
     migracao:       'Migração para a conta nova',
     sono:           'Módulo do Sono — Paisagens Sonoras',
+    avaliacoes:     'Avaliações da loja (página de instalação)',
     push:           'Notificações Push e Agenda do Dia',
     leadsexport:    'Leads do Funil e Exportação',
     indicacoes:     'Indicações e Satisfação',
@@ -2127,7 +2132,7 @@ function navigate(page) {
     }
   }, 12000);
 
-  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, push: renderPushAdmin, sono: renderSonoAdmin, migracao: renderMigracao, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
+  var pages = { pipeline: renderPipeline, dashboard: renderDashboard, contacts: renderContacts, sync: renderSync, users: renderUsers, automacoes: renderAutomacoes, compradores: renderCompradores, log: renderLog, audios21: renderAudios21, mural: renderMuralConfig, trialauto: renderTrialAuto, indicacoes: renderIndicacoesAdmin, leadsexport: renderLeadsExport, push: renderPushAdmin, sono: renderSonoAdmin, avaliacoes: renderAvaliacoesAdmin, migracao: renderMigracao, notificacoes: renderNotificacoes, usercontent: renderUserContentModeration, configuracoes: renderConfiguracoes };
   console.info('[navigate]', page);
   if (pages[page]) {
     pages[page]();
@@ -5025,6 +5030,112 @@ async function migRecriar(botao) {
     res.innerHTML = _migLista(r.data.itens);
     return { ok: true, msg: 'Recriadas', depois: function () { setTimeout(renderMigracao, 2500); } };
   }, 'Recriando\u2026');
+}
+
+// ════════════════════════════════════════════════════════════
+// AVALIAÇÕES DA LOJA (v165) — responder e moderar
+// ════════════════════════════════════════════════════════════
+var AVA = { lista: [] };
+
+function _avaEstrelas(n){ var s=''; for(var i=1;i<=5;i++) s+=(i<=n?'\u2605':'\u2606'); return s; }
+
+async function renderAvaliacoesAdmin() {
+  var content = document.getElementById('content');
+  content.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  var r;
+  try { r = await rpc('getAvaliacoesAdmin', {}); } catch (e) { r = null; }
+  if (!r || !r.ok) {
+    content.innerHTML = '<div class="empty-state"><div class="empty-title">Não consegui carregar</div>' +
+      '<div class="empty-sub">' + escHtml((r && r.error) || 'Erro de conexão.') + '</div></div>';
+    return;
+  }
+  AVA.lista = r.data.avaliacoes || [];
+  var d = r.data;
+
+  var html = '<div class="metrics-grid" style="margin-bottom:18px">' +
+    _puCard('<i data-lucide="star" class="luc"></i>', (d.media || 0).toFixed(1).replace('.', ','), 'Nota média', d.total + ' avaliação(ões)') +
+    _puCard('<i data-lucide="message-square" class="luc"></i>', d.semResposta || 0, 'Sem resposta', 'aguardando você') +
+    _puCard('<i data-lucide="eye-off" class="luc"></i>', d.ocultas || 0, 'Ocultas', 'não aparecem na loja') +
+  '</div>';
+
+  html += '<div class="card" style="margin-bottom:16px">' +
+    '<div style="font-size:12.5px;color:var(--muted);line-height:1.7">' +
+      'Estas são as avaliações da página de instalação (<code>/instalar/</code>). ' +
+      'Você responde como desenvolvedor — a resposta aparece embaixo da avaliação, na loja. ' +
+      'Ocultar tira da loja sem apagar.</div></div>';
+
+  if (!AVA.lista.length) {
+    html += '<div class="empty-state"><div class="empty-title">Nenhuma avaliação ainda</div>' +
+      '<div class="empty-sub">Elas aparecem aqui quando os alunos avaliarem, a partir do 7º dia.</div></div>';
+    content.innerHTML = html;
+    _processIcons && _processIcons(content);
+    return;
+  }
+
+  AVA.lista.forEach(function (a) {
+    html += '<div class="card" style="margin-bottom:12px' + (a.visivel ? '' : ';opacity:.6') + '" id="ava_' + escHtml(a.id) + '">' +
+      '<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+        '<div><span style="color:#f2c14e;font-size:14px">' + _avaEstrelas(a.nota) + '</span> ' +
+          '<b style="color:var(--text);font-size:13.5px;margin-left:6px">' + escHtml(a.nome) + '</b>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + escHtml(a.emailParcial) +
+          ' · ' + escHtml(a.quando) + (a.dia ? ' · dia ' + a.dia : '') +
+          (a.visivel ? '' : ' · <span style="color:#e0a83c">oculta</span>') + '</div></div>' +
+        '<button class="btn btn-ghost btn-sm" data-id="' + escHtml(a.id) + '" data-vis="' + (a.visivel ? '1' : '0') +
+          '" onclick="avaModerar(this)">' + (a.visivel ? 'Ocultar' : 'Mostrar') + '</button>' +
+      '</div>' +
+      (a.texto ? '<div style="font-size:13.5px;color:#cfe0cf;margin-top:9px;white-space:pre-line">' + escHtml(a.texto) + '</div>' : '') +
+      (a.fotoUrl ? '<img src="' + escHtml(a.fotoUrl) + '" alt="" style="max-width:150px;border-radius:10px;margin-top:9px;border:1px solid var(--border)" onerror="this.style.display=\'none\'">' : '') +
+      '<div style="margin-top:11px;padding-top:11px;border-top:1px solid var(--border)">' +
+        '<div style="font-size:11px;color:var(--muted);margin-bottom:5px">Sua resposta' +
+          (a.resposta ? ' (publicada)' : '') + '</div>' +
+        '<textarea class="form-control" id="avaResp_' + escHtml(a.id) + '" rows="2" ' +
+          'placeholder="Responder como WPK Tavares…">' + escHtml(a.resposta || '') + '</textarea>' +
+        '<div style="display:flex;gap:8px;margin-top:8px">' +
+          '<button class="btn btn-primary btn-sm" data-id="' + escHtml(a.id) + '" onclick="avaResponder(this)">' +
+            (a.resposta ? 'Atualizar resposta' : 'Publicar resposta') + '</button>' +
+          (a.resposta ? '<button class="btn btn-ghost btn-sm" data-id="' + escHtml(a.id) + '" onclick="avaLimparResp(this)">Remover resposta</button>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  });
+
+  content.innerHTML = html;
+  _processIcons && _processIcons(content);
+}
+
+async function avaResponder(botao) {
+  var id = botao.dataset.id;
+  var txt = (document.getElementById('avaResp_' + id) || {}).value || '';
+  if (!txt.trim()) { toast('Escreva a resposta.', 'error'); return; }
+  return acaoBotao(botao, async function () {
+    var r = await rpc('responderAvaliacao', { id: id, resposta: txt });
+    if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'Não consegui salvar.' };
+    return { ok: true, msg: 'Publicada', depois: renderAvaliacoesAdmin };
+  }, 'Publicando\u2026');
+}
+
+async function avaLimparResp(botao) {
+  var id = botao.dataset.id;
+  var ok = await adminConfirmar('Remover resposta', 'Sua resposta sai da loja. A avaliação continua.', 'Remover', true);
+  if (!ok) return;
+  return acaoBotao(botao, async function () {
+    var r = await rpc('responderAvaliacao', { id: id, resposta: '' });
+    if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'Não consegui.' };
+    return { ok: true, msg: 'Removida', depois: renderAvaliacoesAdmin };
+  }, 'Removendo\u2026');
+}
+
+async function avaModerar(botao) {
+  var id = botao.dataset.id, mostrarAgora = botao.dataset.vis !== '1';
+  if (!mostrarAgora) {
+    var ok = await adminConfirmar('Ocultar avaliação', 'Ela sai da loja, mas não é apagada. Dá para mostrar de novo depois.', 'Ocultar', true);
+    if (!ok) return;
+  }
+  return acaoBotao(botao, async function () {
+    var r = await rpc('moderarAvaliacao', { id: id, visivel: mostrarAgora });
+    if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'Não consegui.' };
+    return { ok: true, msg: mostrarAgora ? 'Visível' : 'Oculta', depois: renderAvaliacoesAdmin };
+  }, '\u2026');
 }
 
 // ════════════════════════════════════════════════════════════

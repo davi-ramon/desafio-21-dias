@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Desafio 21 Dias — Instalar o app</title>
+<meta name="description" content="Instale o app Desafio 21 Dias no seu celular ou computador. Meditação, leitura, exercício, áudios e sono — sua rotina de alta performance na palma da mão.">
+<meta name="theme-color" content="#07090a">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="21 Dias">
+<meta property="og:title" content="Desafio 21 Dias — Instalar o app">
+<meta property="og:description" content="Instale o app direto pelo navegador. Sem loja, sem custo.">
+<meta property="og:image" content="/icons/og-image.jpg">
+<meta property="og:type" content="website">
+<style>
+  :root{
+    --bg:#07090a; --surface:#0f1412; --card:#141c18; --card2:#18231c;
+    --text:#e6efe6; --muted:#8fa891; --muted2:#5f7561; --border:#203023;
+    --green:#4caf50; --green-l:#6dde71; --green-d:#2e6b31; --cream:#eeeadc;
+    --star:#f2c14e;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:'Segoe UI',Roboto,system-ui,-apple-system,sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%;display:block}
+  .wrap{max-width:920px;margin:0 auto}
+
+  /* Barra topo */
+  .topo{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;
+    padding:12px 16px calc(12px);background:rgba(7,9,10,.86);
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border)}
+  .topo .seta{font-size:22px;color:var(--muted);width:26px}
+  .topo .marca{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px}
+  .topo .marca img{width:24px;height:24px;border-radius:6px}
+  .topo .g{color:var(--green)}
+
+  /* Hero */
+  .hero{padding:22px 16px 6px;display:flex;gap:16px;align-items:flex-start}
+  .hero .icone{width:76px;height:76px;border-radius:18px;flex-shrink:0;
+    box-shadow:0 6px 22px rgba(0,0,0,.5);border:1px solid var(--border)}
+  @media(min-width:600px){ .hero .icone{width:112px;height:112px;border-radius:24px} }
+  .hero .cab h1{font-size:22px;font-weight:800;margin:0 0 2px;letter-spacing:-.01em}
+  @media(min-width:600px){ .hero .cab h1{font-size:30px} }
+  .hero .dev{color:var(--green-l);font-weight:600;font-size:13.5px}
+  .hero .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .hero .selo{display:inline-block;margin-top:6px;font-size:11px;color:var(--muted);
+    border:1px solid var(--border);border-radius:6px;padding:2px 7px}
+
+  /* Métricas */
+  .metricas{display:flex;padding:18px 4px;margin:12px 16px 0;border-radius:14px;
+    background:var(--surface);border:1px solid var(--border)}
+  .metrica{flex:1;text-align:center;position:relative;padding:0 6px}
+  .metrica + .metrica::before{content:'';position:absolute;left:0;top:12%;height:76%;
+    width:1px;background:var(--border)}
+  .metrica .v{font-size:15px;font-weight:700;display:flex;align-items:center;
+    justify-content:center;gap:4px}
+  .metrica .l{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.3}
+  .metrica .ic{width:15px;height:15px;fill:var(--muted)}
+
+  /* Botões */
+  .cta-area{padding:18px 16px 6px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    padding:13px;border:none;border-radius:10px;font-family:inherit;font-size:15px;
+    font-weight:700;cursor:pointer;transition:filter .15s,opacity .15s}
+  .btn-primary{background:var(--green);color:#04140a}
+  .btn-primary:hover{filter:brightness(1.08)}
+  .btn-primary:disabled{opacity:.55;cursor:default}
+  .btn-sec{background:transparent;color:var(--green-l);border:1px solid var(--border)}
+  .btn-row{display:flex;gap:10px;margin-top:10px}
+  .btn-row .btn{font-size:13px;padding:10px}
+  .btn-spin{width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;
+    border-radius:50%;animation:gira .7s linear infinite}
+  @keyframes gira{to{transform:rotate(360deg)}}
+  .aviso-inst{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.5}
+
+  /* Prints */
+  .secao{padding:24px 0 6px}
+  .secao h2{font-size:18px;font-weight:800;margin:0 16px 2px}
+  .secao .link{color:var(--green-l);font-size:13px;font-weight:600}
+  .prints{display:flex;gap:12px;overflow-x:auto;padding:14px 16px 6px;
+    scroll-snap-type:x mandatory;scrollbar-width:none}
+  .prints::-webkit-scrollbar{display:none}
+  .print{flex:0 0 auto;width:150px;aspect-ratio:9/19.5;border-radius:16px;overflow:hidden;
+    border:1px solid var(--border);background:#0b1110;scroll-snap-align:start;position:relative}
+  @media(min-width:600px){ .print{width:190px} }
+  .print svg,.print img{width:100%;height:100%;object-fit:cover}
+
+  /* Sobre */
+  .sobre{padding:6px 16px 0;color:#cfe0cf;font-size:14px}
+  .sobre p{margin:0 0 12px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+  .chip{font-size:11.5px;color:var(--muted);border:1px solid var(--border);
+    border-radius:99px;padding:5px 11px}
+  .grid-info{display:grid;grid-template-columns:1fr 1fr;gap:14px 10px;
+    padding:16px;margin:16px;border-radius:14px;background:var(--surface);
+    border:1px solid var(--border)}
+  @media(min-width:600px){ .grid-info{grid-template-columns:repeat(4,1fr)} }
+  .info .l{font-size:11px;color:var(--muted)}
+  .info .v{font-size:13.5px;font-weight:600;margin-top:2px}
+
+  /* Avaliações */
+  .rate-topo{display:flex;gap:22px;align-items:center;padding:8px 16px 0;flex-wrap:wrap}
+  .rate-num{text-align:center}
+  .rate-num .n{font-size:52px;font-weight:800;line-height:1}
+  .rate-num .e{color:var(--star);font-size:13px;letter-spacing:2px;margin-top:4px}
+  .rate-num .t{color:var(--muted);font-size:12px;margin-top:4px}
+  .rate-barras{flex:1;min-width:180px}
+  .barra{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .barra .k{font-size:11px;color:var(--muted);width:8px;text-align:right}
+  .barra .trilho{flex:1;height:8px;border-radius:99px;background:var(--border);overflow:hidden}
+  .barra .cheio{height:100%;background:var(--green);width:0}
+  .ordenar{display:flex;gap:8px;padding:16px 16px 4px;flex-wrap:wrap}
+  .ordenar button{font-size:12px;color:var(--muted);background:transparent;
+    border:1px solid var(--border);border-radius:99px;padding:6px 13px;cursor:pointer;font-family:inherit}
+  .ordenar button.on{color:#04140a;background:var(--green);border-color:var(--green);font-weight:700}
+
+  .review{padding:16px;border-top:1px solid var(--border)}
+  .review .cab{display:flex;align-items:center;gap:11px;margin-bottom:8px}
+  .review .av{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;
+    align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#04140a;
+    background:linear-gradient(135deg,var(--green-l),var(--green-d))}
+  .review .nome{font-size:13.5px;font-weight:600}
+  .review .meta{font-size:11px;color:var(--muted)}
+  .review .estrelas{color:var(--star);font-size:12px;letter-spacing:1px;margin-bottom:6px}
+  .review .txt{font-size:13.5px;color:#cfe0cf;white-space:pre-line}
+  .review .foto{margin-top:10px;border-radius:10px;max-width:180px;border:1px solid var(--border)}
+  .review .util{margin-top:10px;font-size:12px;color:var(--muted)}
+  .resposta{margin:12px 0 2px;padding:12px 13px;background:var(--card);border-radius:10px;
+    border:1px solid var(--border)}
+  .resposta .cab{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;
+    color:var(--green-l);margin-bottom:4px}
+  .resposta .cab img{width:18px;height:18px;border-radius:4px}
+  .resposta .txt{font-size:12.5px;color:#c2d4c2;white-space:pre-line}
+  .resposta .q{font-size:10.5px;color:var(--muted);margin-top:5px}
+  .mais-wrap{padding:16px;text-align:center}
+
+  /* Modal */
+  .m-fundo{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.7);
+    backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center;padding:0}
+  .m-fundo.on{display:flex}
+  @media(min-width:600px){ .m-fundo{align-items:center;padding:16px} }
+  .m-cx{background:var(--surface);border:1px solid var(--border);width:100%;max-width:440px;
+    border-radius:20px 20px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom));
+    animation:sobe .32s cubic-bezier(.16,1,.3,1)}
+  @media(min-width:600px){ .m-cx{border-radius:20px} }
+  @keyframes sobe{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+  .m-cx h3{margin:0 0 4px;font-size:18px;font-weight:800}
+  .m-cx p{margin:0 0 16px;font-size:13.5px;color:var(--muted);line-height:1.6}
+  .m-passos{list-style:none;padding:0;margin:0 0 16px}
+  .m-passos li{display:flex;gap:11px;padding:9px 0;font-size:13.5px;align-items:flex-start}
+  .m-passos .b{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--green);
+    color:#04140a;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
+  .campo{width:100%;padding:12px 13px;border-radius:10px;border:1px solid var(--border);
+    background:#0a1210;color:var(--text);font-family:inherit;font-size:14px;margin-bottom:10px}
+  .campo:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(76,175,80,.15)}
+  .estrelas-pick{display:flex;gap:8px;justify-content:center;margin:6px 0 16px}
+  .estrelas-pick span{font-size:34px;color:var(--border);cursor:pointer;transition:transform .1s}
+  .estrelas-pick span.on{color:var(--star)}
+  .estrelas-pick span:active{transform:scale(1.2)}
+  .m-erro{font-size:12.5px;color:#ef6b6b;margin:2px 0 12px;min-height:1px}
+  .m-ok{font-size:12.5px;color:var(--green-l);margin:2px 0 12px}
+  .m-fechar{width:100%;background:none;border:none;color:var(--muted);font-family:inherit;
+    font-size:13px;padding:12px;margin-top:4px;cursor:pointer}
+  .foto-prev{max-width:120px;border-radius:10px;margin:0 0 10px;border:1px solid var(--border)}
+
+  .rodape{padding:30px 16px 50px;text-align:center;color:var(--muted2);font-size:11.5px;line-height:1.7}
+  .rodape a{color:var(--muted)}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:var(--card2);border:1px solid var(--border);color:var(--text);padding:12px 18px;
+    border-radius:12px;font-size:13.5px;z-index:200;opacity:0;transition:.25s;max-width:90%;text-align:center}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topo">
+    <div class="seta">‹</div>
+    <div class="marca"><img src="/icons/icon-192.png" alt=""> Desafio 21 Dias</div>
+  </div>
+
+  <div class="hero">
+    <img class="icone" src="/icons/icon-512.png" alt="Ícone do app Desafio 21 Dias">
+    <div class="cab">
+      <h1>Desafio 21 Dias</h1>
+      <div class="dev">WPK Tavares</div>
+      <div class="sub">Bem-estar · Hábitos · Alta performance</div>
+      <span class="selo">Livre</span>
+    </div>
+  </div>
+
+  <div class="metricas">
+    <div class="metrica">
+      <div class="v" id="mMedia">—
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 2l3 6.9 7.6.6-5.8 5 1.8 7.4L12 17.9 5.4 21.9l1.8-7.4-5.8-5 7.6-.6z"/></svg>
+      </div>
+      <div class="l" id="mTotal">avaliações</div>
+    </div>
+    <div class="metrica">
+      <div class="v">4 MB</div>
+      <div class="l">Tamanho</div>
+    </div>
+    <div class="metrica">
+      <div class="v">Livre</div>
+      <div class="l">Classificação</div>
+    </div>
+    <div class="metrica">
+      <div class="v" id="mInst">—</div>
+      <div class="l">Instalações</div>
+    </div>
+  </div>
+
+  <div class="cta-area">
+    <button class="btn btn-primary" id="btnInstalar" onclick="LOJA.instalar(this)">Instalar</button>
+    <div class="btn-row">
+      <button class="btn btn-sec" onclick="LOJA.compartilhar()">Compartilhar</button>
+      <button class="btn btn-sec" onclick="location.href='/app'">Abrir no navegador</button>
+    </div>
+    <div class="aviso-inst" id="avisoInst"></div>
+  </div>
+
+  <div class="secao">
+    <div class="prints" id="prints"></div>
+  </div>
+
+  <div class="secao">
+    <h2>Sobre este app</h2>
+    <div class="sobre">
+      <p>O <b>Desafio 21 Dias</b> é o seu treino diário de disciplina e bem-estar. Todos os dias, quatro pilares guiam a sua manhã: <b>meditação</b> guiada, <b>leitura</b>, <b>exercício</b> e o <b>áudio do dia</b> — com check-in e uma sequência que cresce quando você não falha.</p>
+      <p>À noite, o <b>módulo do sono</b> te acompanha com paisagens sonoras para dormir e um ciclo que desliga sozinho. Durante o dia, lembretes na hora certa funcionam como um coach no seu bolso — e param de cobrar o que você já fez.</p>
+      <p>Ainda tem o <b>Mural dos Sonhos</b>, a comunidade, ferramentas de foco e uma biblioteca onde você adiciona os seus próprios livros. Tudo numa experiência leve, que abre como aplicativo de verdade — sem loja, sem custo.</p>
+      <div class="chips">
+        <span class="chip">Meditação</span><span class="chip">Sono</span>
+        <span class="chip">Hábitos</span><span class="chip">Leitura</span>
+        <span class="chip">Foco</span><span class="chip">Comunidade</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-info">
+    <div class="info"><div class="l">Atualizado em</div><div class="v" id="iAtualizado">—</div></div>
+    <div class="info"><div class="l">Tamanho</div><div class="v">~4 MB</div></div>
+    <div class="info"><div class="l">Instala como</div><div class="v">App (PWA)</div></div>
+    <div class="info"><div class="l">Oferece</div><div class="v">Assinatura</div></div>
+  </div>
+
+  <div class="secao">
+    <h2>Avaliações e opiniões</h2>
+    <div class="rate-topo">
+      <div class="rate-num">
+        <div class="n" id="rNum">—</div>
+        <div class="e" id="rEstrelas">★★★★★</div>
+        <div class="t" id="rTotal">—</div>
+      </div>
+      <div class="rate-barras" id="rBarras"></div>
+    </div>
+    <div class="ordenar" id="ordenar">
+      <button data-o="recentes" class="on" onclick="LOJA.ordenar('recentes')">Mais recentes</button>
+      <button data-o="uteis" onclick="LOJA.ordenar('uteis')">Mais úteis</button>
+      <button data-o="nota" onclick="LOJA.ordenar('nota')">Maior nota</button>
+    </div>
+    <div class="cta-area" style="padding-top:6px">
+      <button class="btn btn-sec" onclick="LOJA.abrirAvaliar()">Escrever uma avaliação</button>
+    </div>
+    <div id="reviews"></div>
+    <div class="mais-wrap" id="maisWrap" style="display:none">
+      <button class="btn btn-sec" onclick="LOJA.maisReviews()">Ver mais avaliações</button>
+    </div>
+  </div>
+
+  <div class="rodape">
+    Desafio 21 Dias · WPK Tavares<br>
+    Este app é instalado direto pelo navegador (PWA). Não está nas lojas oficiais e não tem custo de instalação.<br>
+    <a href="/politica-de-privacidade/">Privacidade</a> · <a href="/termos-de-uso/">Termos</a>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="m-fundo" id="mFundo" onclick="if(event.target===this)LOJA.fecharModal()">
+  <div class="m-cx" id="mCx"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+  var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+
+  var estado = {
+    prompt: null, ios: false, standalone: false, instalado: false,
+    ordenar: 'recentes', offset: 0, token: '', avaliacoes: []
+  };
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function id(x){return document.getElementById(x);}
+  function estrelas(n){var s='';for(var i=1;i<=5;i++)s+=(i<=n?'★':'☆');return s;}
+
+  function toast(msg){
+    var t=id('toast');t.textContent=msg;t.classList.add('on');
+    clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on');},3200);
+  }
+
+  // ── RPC resiliente: lê como texto e só trata como falha se não for JSON.
+  // Mesma lição do checkout — o Apps Script às vezes devolve HTML no
+  // cold start, e r.json() direto quebrava na cara do usuário.
+  function rpc(action, data){
+    return fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify({action:action,token:estado.token||'',data:data||{}}),redirect:'follow'})
+      .then(function(r){return r.text();})
+      .then(function(txt){var j=null;try{j=JSON.parse(txt);}catch(e){}
+        if(!j)throw new Error('resposta invalida');return j;});
+  }
+
+  function getToken(){
+    try{
+      var u=new URLSearchParams(location.search).get('token');
+      if(u)return u;
+      return JSON.parse(sessionStorage.getItem('app_token')||'null')
+          || JSON.parse(sessionStorage.getItem('crm_token_admin')||'null')||'';
+    }catch(e){return '';}
+  }
+
+  // ══════════════ INSTALAÇÃO (PWA de verdade) ══════════════
+  function detectar(){
+    var ua=navigator.userAgent;
+    estado.ios=/iphone|ipad|ipod/i.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1);
+    estado.standalone=window.matchMedia('(display-mode: standalone)').matches
+      ||window.navigator.standalone===true;
+    try{if(localStorage.getItem('d21_instalado')==='1')estado.instalado=true;}catch(e){}
+  }
+
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault();estado.prompt=e;pintarBotao();
+  });
+  window.addEventListener('appinstalled',function(){
+    estado.instalado=true;estado.prompt=null;
+    try{localStorage.setItem('d21_instalado','1');}catch(e){}
+    pintarBotao();toast('App instalado! Abra pela tela de início.');
+  });
+
+  function pintarBotao(){
+    var b=id('btnInstalar'),aviso=id('avisoInst');
+    if(estado.standalone){
+      b.textContent='Abrir';b.onclick=function(){location.href='/app';};
+      aviso.textContent='Você já está no app instalado.';return;
+    }
+    if(estado.instalado){
+      b.textContent='Abrir app';b.onclick=function(){location.href='/app';};
+      aviso.textContent='Já instalado neste aparelho.';return;
+    }
+    b.textContent='Instalar';b.onclick=function(){LOJA.instalar(b);};
+    if(estado.ios)
+      aviso.innerHTML='No iPhone/iPad a instalação é pelo botão <b>Compartilhar</b> do Safari. Toque em Instalar que eu te mostro.';
+    else if(estado.prompt)
+      aviso.textContent='Instala como aplicativo, em segundos. Sem loja, sem custo.';
+    else
+      aviso.textContent='Abre em tela cheia, como um app. Toque em Instalar.';
+  }
+
+  function passosModal(titulo, subt, passos, nota){
+    var h='<h3>'+esc(titulo)+'</h3><p>'+esc(subt)+'</p><ul class="m-passos">';
+    passos.forEach(function(p,i){h+='<li><span class="b">'+(i+1)+'</span><span>'+p+'</span></li>';});
+    h+='</ul>'+(nota?'<p style="margin-top:-4px">'+nota+'</p>':'')+
+       '<button class="m-fechar" onclick="LOJA.fecharModal()">Fechar</button>';
+    abrirModal(h);
+  }
+
+  var LOJA={
+    instalar:function(btn){
+      detectar();
+      if(estado.standalone||estado.instalado){location.href='/app';return;}
+      if(estado.prompt){
+        estado.prompt.prompt();
+        estado.prompt.userChoice.then(function(r){
+          if(r&&r.outcome==='accepted')toast('Instalando…');
+          estado.prompt=null;
+        }).catch(function(){});
+        return;
+      }
+      if(estado.ios){
+        passosModal('Instalar no iPhone / iPad',
+          'Em poucos segundos o app fica na sua tela de início:',
+          ['Toque no botão <b>Compartilhar</b> (o quadrado com a seta ↑), na barra do Safari',
+           'Role e escolha <b>“Adicionar à Tela de Início”</b>',
+           'Confirme em <b>Adicionar</b>, no canto superior'],
+          'Depois é só abrir pelo ícone — e as notificações passam a funcionar.');
+        return;
+      }
+      // Desktop / Android sem prompt (ex.: Firefox)
+      passosModal('Instalar o app',
+        'Seu navegador instala assim:',
+        ['Abra o menu do navegador (⋮ ou ☰)',
+         'Procure <b>“Instalar aplicativo”</b> ou <b>“Adicionar à tela inicial”</b>',
+         'Confirme'],
+        'No Chrome/Edge costuma aparecer um ícone de instalar na barra de endereço.');
+    },
+    compartilhar:function(){
+      var url=location.origin+'/instalar/';
+      var dados={title:'Desafio 21 Dias',text:'Instale o app Desafio 21 Dias:',url:url};
+      if(navigator.share){navigator.share(dados).catch(function(){});return;}
+      try{navigator.clipboard.writeText(url);toast('Link copiado!');}
+      catch(e){toast(url);}
+    },
+    ordenar:function(o){
+      if(estado.ordenar===o)return;
+      estado.ordenar=o;estado.offset=0;
+      var bs=id('ordenar').children;
+      for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-o')===o);
+      id('reviews').innerHTML='<div class="mais-wrap">Carregando…</div>';
+      carregarReviews(true);
+    },
+    maisReviews:function(){carregarReviews(false);},
+    abrirModal:abrirModal, fecharModal:fecharModal,
+    abrirAvaliar:abrirAvaliar,
+    _submitAvaliacao:submitAvaliacao,
+    _login:loginParaAvaliar,
+    _setNota:function(n){formNota=n;pintarNota();}
+  };
+  window.LOJA=LOJA;
+
+  function abrirModal(html){id('mCx').innerHTML=html;id('mFundo').classList.add('on');}
+  function fecharModal(){id('mFundo').classList.remove('on');}
+
+  // ══════════════ AVALIAÇÕES — leitura pública ══════════════
+  function carregarReviews(reset){
+    if(reset){estado.offset=0;estado.avaliacoes=[];}
+    rpc('getAvaliacoesPublicas',{limite:10,offset:estado.offset,ordenar:estado.ordenar})
+      .then(function(r){
+        if(!r||!r.ok)throw new Error('falhou');
+        var d=r.data;
+        pintarResumo(d.resumo);
+        if(reset)id('reviews').innerHTML='';
+        estado.offset+=(d.avaliacoes||[]).length;
+        renderReviews(d.avaliacoes||[]);
+        id('maisWrap').style.display=d.temMais?'block':'none';
+        if(estado.offset===0&&reset)
+          id('reviews').innerHTML='<div class="mais-wrap" style="color:var(--muted)">Ainda não há avaliações. Seja o primeiro no seu 7º dia.</div>';
+      })
+      .catch(function(){
+        if(reset)id('reviews').innerHTML='<div class="mais-wrap" style="color:var(--muted)">Não consegui carregar as avaliações agora.</div>';
+      });
+  }
+
+  function pintarResumo(res){
+    if(!res)return;
+    id('rNum').textContent=res.total?res.media.toFixed(1).replace('.',','):'—';
+    id('mMedia').childNodes[0].nodeValue=res.total?res.media.toFixed(1).replace('.',',')+' ':'— ';
+    id('rEstrelas').textContent=estrelas(Math.round(res.media));
+    id('rTotal').textContent=(res.total||0)+(res.total===1?' avaliação':' avaliações');
+    id('mTotal').textContent=(res.total||0)+(res.total===1?' avaliação':' avaliações');
+    var dist=res.distribuicao||{},max=1;
+    for(var k=1;k<=5;k++)max=Math.max(max,dist[k]||0);
+    var h='';
+    for(var s=5;s>=1;s--){
+      var pct=Math.round(((dist[s]||0)/max)*100);
+      h+='<div class="barra"><span class="k">'+s+'</span>'+
+         '<span class="trilho"><span class="cheio" style="width:'+pct+'%"></span></span></div>';
+    }
+    id('rBarras').innerHTML=h;
+  }
+
+  function renderReviews(lista){
+    var wrap=id('reviews'),h='';
+    lista.forEach(function(a){
+      var inicial=(a.nome||'A').charAt(0).toUpperCase();
+      h+='<div class="review"><div class="cab">'+
+        '<div class="av">'+esc(inicial)+'</div>'+
+        '<div><div class="nome">'+esc(a.nome)+'</div>'+
+        '<div class="meta">'+esc(a.quando)+(a.dia?' · dia '+a.dia+' da jornada':'')+'</div></div></div>'+
+        '<div class="estrelas">'+estrelas(a.nota)+'</div>'+
+        (a.texto?'<div class="txt">'+esc(a.texto)+'</div>':'')+
+        (a.fotoUrl?'<img class="foto" loading="lazy" src="'+esc(a.fotoUrl)+'" alt="Foto da avaliação" onerror="this.style.display=\'none\'">':'')+
+        (a.resposta?'<div class="resposta"><div class="cab"><img src="/icons/icon-192.png" alt="">Resposta do desenvolvedor</div>'+
+          '<div class="txt">'+esc(a.resposta)+'</div>'+
+          (a.respostaQuando?'<div class="q">'+esc(a.respostaQuando)+'</div>':'')+'</div>':'')+
+        '</div>';
+    });
+    wrap.insertAdjacentHTML('beforeend',h);
+  }
+
+  // ══════════════ ESCREVER AVALIAÇÃO (com trava dos 7 dias) ══════════════
+  var formNota=0, formFotoB64='', formFotoMime='', formRemoverFoto=false;
+
+  function abrirAvaliar(){
+    estado.token=getToken();
+    if(!estado.token){ telaLogin(); return; }
+    abrirModal('<h3>Um instante…</h3><p>Verificando seu acesso.</p>');
+    rpc('podeAvaliar',{}).then(function(r){
+      if(!r||!r.ok){toast('Não consegui verificar agora.');fecharModal();return;}
+      if(r.pode){ telaForm(r.minha); return; }
+      if(r.motivo==='login'){ telaLogin(); return; }
+      if(r.motivo==='admin'){
+        passosModal('Você entrou como admin','Administradores respondem às avaliações pelo painel, não avaliam o próprio app.',
+          ['Abra o painel admin','Vá em “Avaliações”','Responda por lá'],''); return;
+      }
+      if(r.motivo==='sem_acesso'){
+        abrirModal('<h3>Avaliação é para alunos</h3><p>Só quem tem acesso ao app pode avaliar. Se você já é aluno, entre com o mesmo e-mail do app.</p>'+
+          '<button class="btn btn-primary" onclick="LOJA.abrirAvaliar()">Entrar com outra conta</button>'+
+          '<button class="m-fechar" onclick="LOJA.fecharModal()">Fechar</button>');
+        try{sessionStorage.removeItem('app_token');}catch(e){}estado.token='';return;
+      }
+      if(r.motivo==='jornada_curta'){
+        abrirModal('<h3>Falta pouco 💪</h3><p>As avaliações abrem no <b>7º dia</b> de jornada — assim, quem opina realmente usou o app. '+
+          'Você está no <b>dia '+r.dia+'</b>. Faltam <b>'+r.faltam+' dia(s)</b>.</p>'+
+          '<button class="btn btn-primary" onclick="location.href=\'/app\'">Continuar meu desafio</button>'+
+          '<button class="m-fechar" onclick="LOJA.fecharModal()">Fechar</button>');
+        return;
+      }
+      fecharModal();
+    }).catch(function(){toast('Erro de conexão.');fecharModal();});
+  }
+
+  function telaLogin(){
+    abrirModal(
+      '<h3>Entrar para avaliar</h3><p>Use o mesmo e-mail e senha do app. Só quem usa há 7 dias ou mais pode avaliar.</p>'+
+      '<input class="campo" id="avEmail" type="email" placeholder="Seu e-mail" autocomplete="email">'+
+      '<input class="campo" id="avSenha" type="password" placeholder="Sua senha" autocomplete="current-password">'+
+      '<div class="m-erro" id="avErro"></div>'+
+      '<button class="btn btn-primary" id="avBtnLogin" onclick="LOJA._login(this)">Entrar</button>'+
+      '<button class="m-fechar" onclick="LOJA.fecharModal()">Agora não</button>');
+  }
+
+  function loginParaAvaliar(btn){
+    var email=(id('avEmail')||{}).value||'', senha=(id('avSenha')||{}).value||'';
+    if(!email||!senha){id('avErro').textContent='Preencha e-mail e senha.';return;}
+    var orig=btn.innerHTML;btn.disabled=true;btn.innerHTML='<span class="btn-spin"></span> Entrando…';
+    rpc('login',{email:email,password:senha}).then(function(r){
+      if(r&&r.need2fa){id('avErro').textContent='Esta conta tem verificação em duas etapas. Avalie pelo painel.';
+        btn.disabled=false;btn.innerHTML=orig;return;}
+      if(!r||!r.ok||!r.token){id('avErro').textContent=(r&&r.error)||'E-mail ou senha inválidos.';
+        btn.disabled=false;btn.innerHTML=orig;return;}
+      estado.token=r.token;
+      try{sessionStorage.setItem('app_token',JSON.stringify(r.token));}catch(e){}
+      abrirAvaliar();
+    }).catch(function(){id('avErro').textContent='Erro de conexão.';
+      btn.disabled=false;btn.innerHTML=orig;});
+  }
+
+  function telaForm(minha){
+    minha=minha||{};
+    formNota=minha.nota||0;formFotoB64='';formFotoMime='';formRemoverFoto=false;
+    var temFoto=!!minha.fotoUrl;
+    abrirModal(
+      '<h3>'+(minha.nota?'Editar sua avaliação':'Avaliar o app')+'</h3>'+
+      '<p>Sua nota aparece na loja com seu primeiro nome. Seja sincero — ajuda outras pessoas.</p>'+
+      '<div class="estrelas-pick" id="pickNota">'+
+        '12345'.split('').map(function(n){return '<span data-n="'+n+'" onclick="LOJA._setNota('+n+')">★</span>';}).join('')+
+      '</div>'+
+      '<textarea class="campo" id="avTexto" rows="4" maxlength="1000" placeholder="Conte como foi a sua experiência (opcional)">'+esc(minha.texto||'')+'</textarea>'+
+      (temFoto?'<img class="foto-prev" id="avFotoAtual" src="'+esc(minha.fotoUrl)+'" alt="">'+
+        '<label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);margin-bottom:10px">'+
+        '<input type="checkbox" id="avRemFoto" onchange="LOJA&&0"> Remover a foto atual</label>':'')+
+      '<label class="btn btn-sec" style="margin-bottom:10px;cursor:pointer">'+
+        '<span id="avFotoLbl">'+(temFoto?'Trocar foto (opcional)':'Adicionar foto (opcional)')+'</span>'+
+        '<input type="file" accept="image/*" style="display:none" id="avFoto" onchange="window.LOJA&&0"></label>'+
+      '<div class="m-erro" id="avErro"></div>'+
+      '<button class="btn btn-primary" id="avEnviar" onclick="LOJA._submitAvaliacao(this)">Publicar avaliação</button>'+
+      '<button class="m-fechar" onclick="LOJA.fecharModal()">Cancelar</button>');
+    pintarNota();
+    var fInput=id('avFoto');
+    if(fInput)fInput.addEventListener('change',function(ev){
+      var f=ev.target.files&&ev.target.files[0];if(!f)return;
+      if(f.size>3*1024*1024){id('avErro').textContent='A foto passa de 3 MB.';return;}
+      var fr=new FileReader();
+      fr.onload=function(){formFotoB64=fr.result;formFotoMime=f.type||'image/jpeg';
+        id('avFotoLbl').textContent='Foto escolhida ✓';};
+      fr.readAsDataURL(f);
+    });
+  }
+
+  function pintarNota(){
+    var p=id('pickNota');if(!p)return;
+    var sp=p.children;for(var i=0;i<sp.length;i++)sp[i].classList.toggle('on',(i+1)<=formNota);
+  }
+
+  function submitAvaliacao(btn){
+    if(!formNota){id('avErro').textContent='Escolha de 1 a 5 estrelas.';return;}
+    var rem=id('avRemFoto');formRemoverFoto=!!(rem&&rem.checked);
+    var payload={nota:formNota,texto:(id('avTexto')||{}).value||'',
+      plataforma:estado.standalone?'app':(estado.ios?'ios':'web')};
+    if(formFotoB64){payload.fotoBase64=formFotoB64;payload.fotoMime=formFotoMime;}
+    if(formRemoverFoto)payload.removerFoto=true;
+    var orig=btn.innerHTML;btn.disabled=true;btn.innerHTML='<span class="btn-spin"></span> Publicando…';
+    rpc('salvarAvaliacao',payload).then(function(r){
+      if(!r||!r.ok){id('avErro').textContent=(r&&r.error)||'Não consegui publicar.';
+        btn.disabled=false;btn.innerHTML=orig;return;}
+      fecharModal();toast(r.atualizada?'Avaliação atualizada. Obrigado!':'Avaliação publicada. Obrigado!');
+      estado.ordenar='recentes';
+      var bs=id('ordenar').children;for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-o')==='recentes');
+      carregarReviews(true);
+    }).catch(function(){id('avErro').textContent='Erro de conexão.';
+      btn.disabled=false;btn.innerHTML=orig;});
+  }
+
+  // ══════════════ PRINTS (trocáveis por imagens reais) ══════════════
+  // Cada item: {img:'/media/loja/1.jpg'} OU {svg:'chave'} para o
+  // placeholder desenhado. Troque por prints reais quando tiver.
+  var PRINTS=[{svg:'pilares'},{svg:'sono'},{svg:'audios'},{svg:'mural'},{svg:'foco'}];
+  function svgPrint(chave){
+    var ceus={pilares:['#0b1f16','#12402f'],sono:['#050a18','#1d3157'],
+      audios:['#2a1b4d','#6d3f8c'],mural:['#12233d','#2d6f8e'],foco:['#1a0e06','#6b2f0d']};
+    var titulos={pilares:'Seus Pilares de Hoje',sono:'Boa noite',audios:'Áudio do dia',
+      mural:'Mural dos Sonhos',foco:'Ferramentas de Foco'};
+    var c=ceus[chave]||['#0b1110','#12402f'];
+    return '<svg viewBox="0 0 150 325" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">'+
+      '<defs><linearGradient id="g_'+chave+'" x1="0" y1="0" x2="0" y2="1">'+
+      '<stop offset="0" stop-color="'+c[0]+'"/><stop offset="1" stop-color="'+c[1]+'"/></linearGradient></defs>'+
+      '<rect width="150" height="325" fill="url(#g_'+chave+')"/>'+
+      '<circle cx="118" cy="42" r="16" fill="#ffffff" opacity="0.14"/>'+
+      '<rect x="14" y="20" width="70" height="8" rx="4" fill="#ffffff" opacity="0.5"/>'+
+      '<rect x="14" y="34" width="46" height="6" rx="3" fill="#ffffff" opacity="0.28"/>'+
+      '<rect x="14" y="64" width="122" height="52" rx="10" fill="#ffffff" opacity="0.07"/>'+
+      '<rect x="14" y="124" width="122" height="52" rx="10" fill="#ffffff" opacity="0.07"/>'+
+      '<rect x="14" y="184" width="122" height="52" rx="10" fill="#ffffff" opacity="0.07"/>'+
+      '<circle cx="30" cy="90" r="10" fill="#4caf50" opacity="0.8"/>'+
+      '<circle cx="30" cy="150" r="10" fill="#4caf50" opacity="0.55"/>'+
+      '<circle cx="30" cy="210" r="10" fill="#4caf50" opacity="0.35"/>'+
+      '<rect x="48" y="84" width="70" height="7" rx="3" fill="#eeeadc" opacity="0.7"/>'+
+      '<rect x="48" y="96" width="42" height="5" rx="2" fill="#eeeadc" opacity="0.35"/>'+
+      '<rect x="48" y="144" width="66" height="7" rx="3" fill="#eeeadc" opacity="0.7"/>'+
+      '<rect x="48" y="204" width="60" height="7" rx="3" fill="#eeeadc" opacity="0.7"/>'+
+      '<rect x="14" y="286" width="122" height="26" rx="13" fill="#4caf50"/>'+
+      '<rect x="52" y="296" width="46" height="7" rx="3" fill="#04140a"/>'+
+      '<text x="14" y="270" fill="#eeeadc" opacity="0.85" font-family="sans-serif" font-size="9" font-weight="700">'+titulos[chave]+'</text>'+
+      '</svg>';
+  }
+  function pintarPrints(){
+    id('prints').innerHTML=PRINTS.map(function(p){
+      return '<div class="print">'+(p.img?'<img loading="lazy" src="'+esc(p.img)+'" alt="Tela do app">':svgPrint(p.svg))+'</div>';
+    }).join('');
+  }
+
+  // ══════════════ BOOT ══════════════
+  detectar();pintarBotao();pintarPrints();
+  estado.token=getToken();
+  id('iAtualizado').textContent=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+  id('mInst').textContent='PWA';
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/firebase-messaging-sw.js',{scope:'/'}).catch(function(){});
+  }
+  carregarReviews(true);
+})();
+</script>
+</body>
+</html>

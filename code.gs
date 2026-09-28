@@ -433,7 +433,9 @@ function doPost(e) {
       payload.action === 'registrarCliqueIndicacao' ||
       // migracao — so booleanos (nenhum e-mail sai); confere a troca de
       // conta de fora, antes de mexer no endereco de producao
-      payload.action === 'getMigracaoStatus'
+      payload.action === 'getMigracaoStatus' ||
+      // v165 — leitura publica das avaliacoes da loja (sem dado pessoal)
+      payload.action === 'getAvaliacoesPublicas'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

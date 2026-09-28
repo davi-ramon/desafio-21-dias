@@ -300,6 +300,13 @@ function handleRequest(payload) {
     // v151 — prova social com dados reais (publica, sem token)
     case 'getAtividadeReal':         return getAtividadeReal(data);
     case 'getMigracaoStatus':        return getMigracaoStatus();
+    // v165 — avaliacoes da loja (pagina estilo Play Store)
+    case 'getAvaliacoesPublicas':    return getAvaliacoesPublicas(data);
+    case 'podeAvaliar':              return podeAvaliar(token);
+    case 'salvarAvaliacao':          return salvarAvaliacao(token, data);
+    case 'getAvaliacoesAdmin':       return getAvaliacoesAdmin(token);
+    case 'responderAvaliacao':       return responderAvaliacao(token, data);
+    case 'moderarAvaliacao':         return moderarAvaliacao(token, data);
     // v154 — pos-checkout do trial com cartao
     case 'statusTrialCartao':        return statusTrialCartao(data);
     case 'preferenciasEmail':        return preferenciasEmail(data);
