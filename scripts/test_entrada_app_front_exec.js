@@ -471,6 +471,28 @@ function abrir(rel, cfg) {
     exige(criado && criado.categoria === 'UTILITY' && /\{\{1\}\}/.test(criado.texto), JSON.stringify(criado));
   });
 
+  await passo('v171: detalhe do lead tem "Reenviar boas-vindas (WhatsApp)" e chama o servidor', async () => {
+    let botoes = null, pedido = null;
+    const modalOrig = A.__ler('openModal');
+    A.__ler('(function(){ openModal = function (t, b, bt) { __botoes(bt); }; })()'.replace('__botoes(bt)', 'globalThis.__capt(bt)'));
+    A.__capt = bt => { botoes = bt; };
+    A.rpc = async (acao, dados) => {
+      if (acao === 'getLead') return { ok: true, data: { id: 'l1', name: 'Salomão', email: 'salomao@y.com', phone: '+5591985858577',
+        status: 'Interessado', custom_fields: JSON.stringify({ origem: 'trial-sem-cartao', consentimento_em: '2026-09-30T21:38:00Z' }),
+        form_answers: '{}', timeline: '[]' } };
+      if (acao === 'waReenviarBoasVindas') { pedido = dados; return { ok: true, message: 'Boas-vindas enviadas.' }; }
+      return { ok: true, data: {} };
+    };
+    A.__ler('(function(){ rpc = globalThis.rpc; })()');
+    await A.openLeadDetail('l1');
+    const b = (botoes || []).find(x => /Reenviar boas-vindas/.test(x.label));
+    exige(b, 'sem botao de reenvio: ' + JSON.stringify((botoes || []).map(x => x.label)));
+    await b.action();
+    await ticks();
+    exige(pedido && pedido.email === 'salomao@y.com', JSON.stringify(pedido));
+    A.__ler('(function (f) { openModal = f; })')(modalOrig);
+  });
+
   await passo('v169: login do admin le a resposta da recuperacao (antes ignorava)', () => {
     const src = fs.readFileSync(path.join(PUB, 'admin', 'index.html'), 'utf8');
     const i = src.indexOf('function _lgSubmitRecuperar');

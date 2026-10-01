@@ -224,19 +224,142 @@ function waSalvarConfig(token, cfg) {
 // ─────────────────────────────────────────────────────────────
 // Fontes de variável — o que o admin pode plugar em cada {{n}}
 // ─────────────────────────────────────────────────────────────
+// v171: NUNCA devolve vazio. A Meta recusa parâmetro em branco com #131008
+// "Required parameter is missing" — foi o que travou o WhatsApp do sem
+// cartão: o template do cartão usa {{3}} = data da cobrança ("Até {{3}} é
+// tudo por nossa conta"), e quem entrou sem cartão não tem cobrança. Para
+// essa pessoa, a data que faz sentido é o último dia do teste.
 function _waResolverVar_(fonte, ctx) {
   ctx = ctx || {};
   var nome = String(ctx.nome || '').trim();
+  var dias = Number(ctx.dias) || 7;
+  var fimDoTeste = function () {
+    return String(ctx.fimTeste || ctx.dataCobranca ||
+      Utilities.formatDate(new Date(Date.now() + dias * 86400000), 'America/Sao_Paulo', 'dd/MM/yyyy'));
+  };
   switch (String(fonte)) {
     case 'primeiro_nome': return nome.split(/\s+/)[0] || 'Olá';
     case 'nome_completo': return nome || 'Olá';
-    case 'dias_trial':    return String(ctx.dias || '');
-    case 'fim_teste':     return String(ctx.fimTeste || ctx.dataCobranca || '');
-    case 'data_cobranca': return String(ctx.dataCobranca || '');
+    case 'dias_trial':    return String(dias);
+    case 'fim_teste':     return fimDoTeste();
+    case 'data_cobranca': return String(ctx.dataCobranca || fimDoTeste());
     case 'valor':         return String(ctx.valor || '17,00');
-    case 'email':         return String(ctx.email || '');
-    default:              return String(fonte || '');   // texto fixo
+    case 'email':         return String(ctx.email || '').trim() || '-';
+    default:              return String(fonte || '').trim() || '-';   // texto fixo
   }
+}
+
+// Fonte padrão para uma variável sem mapeamento salvo (inclusive as com
+// NOME, como {{nome}} ou {{data_fim}}): adivinha pelo nome, nunca vazio.
+function _waFontePadrao_(varNome, pos) {
+  var n = String(varNome || '').toLowerCase();
+  if (/nome/.test(n))                 return 'primeiro_nome';
+  if (/dia/.test(n))                  return 'dias_trial';
+  if (/data|fim|ate|prazo/.test(n))   return 'fim_teste';
+  if (/valor|preco|mensal/.test(n))   return 'valor';
+  if (/mail/.test(n))                 return 'email';
+  return pos === 0 ? 'primeiro_nome' : '-';
+}
+
+var WA_IMAGEM_PADRAO = 'https://wpktavares.com.br/icons/icon-512.png';
+
+// Monta TUDO o que o template exige, a partir da estrutura lida na Meta.
+// mapa: array (variáveis numeradas, na ordem) ou objeto { nomeDaVar: fonte }
+function _waComponentes_(est, mapaJson, ctx) {
+  var mapa;
+  try { mapa = JSON.parse(mapaJson || '[]'); } catch (e) { mapa = []; }
+  var nomeado = est.formato === 'NAMED';
+  var fonte = function (v, i) {
+    var f = Array.isArray(mapa) ? mapa[i] : (mapa && mapa[v]);
+    return f || _waFontePadrao_(v, i);
+  };
+  var param = function (v, i, fonteFixa) {
+    var p = { type: 'text', text: _waResolverVar_(fonteFixa || fonte(v, i), ctx) };
+    if (nomeado) p.parameter_name = v;
+    return p;
+  };
+  var comps = [];
+
+  if (est.header) {
+    var f = est.header.formato;
+    if (f === 'TEXT' && est.header.vars && est.header.vars.length) {
+      comps.push({ type: 'header', parameters: est.header.vars.map(function (v, i) { return param(v, i, 'primeiro_nome'); }) });
+    } else if (f === 'IMAGE' || f === 'VIDEO' || f === 'DOCUMENT') {
+      var link = String(_waCfg_('wa_header_midia_url')).trim() || (f === 'IMAGE' ? WA_IMAGEM_PADRAO : '');
+      if (link) {
+        var tipo = f.toLowerCase(), pm = { type: tipo };
+        pm[tipo] = { link: link };
+        comps.push({ type: 'header', parameters: [pm] });
+      }
+    }
+  }
+
+  var vars = (est.corpo && est.corpo.vars) || [];
+  if (vars.length) comps.push({ type: 'body', parameters: vars.map(function (v, i) { return param(v, i); }) });
+
+  (est.botoes || []).forEach(function (b) {
+    if (b.tipo === 'URL' && b.temVar) {
+      comps.push({ type: 'button', sub_type: 'url', index: String(b.indice),
+                   parameters: [{ type: 'text', text: String(_waCfg_('wa_botao_sufixo', '?entrar=1')) }] });
+    } else if (b.tipo === 'COPY_CODE') {
+      comps.push({ type: 'button', sub_type: 'copy_code', index: String(b.indice),
+                   parameters: [{ type: 'coupon_code', coupon_code: String(_waCfg_('wa_cupom', 'DESAFIO21')) }] });
+    }
+  });
+  return comps;
+}
+
+// ─────────────────────────────────────────────────────────────
+// v171 — ESTRUTURA DO TEMPLATE (o que ele EXIGE no envio)
+// A Meta recusa com #131008 "Required parameter is missing" quando falta
+// qualquer parte variável: cabeçalho com imagem/vídeo/documento ou texto
+// com {{1}}, botão de link com parte variável, código de cupom — ou
+// variável com NOME ({{nome}}) em vez de número. Até a v170 o envio só
+// preenchia o corpo com variáveis numeradas.
+// ─────────────────────────────────────────────────────────────
+function _waEstrutura_(nome, idioma) {
+  if (!nome || !_waPronto_()) return null;
+  var c = CacheService.getScriptCache(), k = 'wa_est_' + nome + '_' + (idioma || '');
+  var g = c.get(k);
+  if (g) { try { return JSON.parse(g); } catch (e) {} }
+  var r = _waCall_('get', '/' + encodeURIComponent(_waWaba_()) + '/message_templates?name=' + encodeURIComponent(nome) +
+                   '&fields=name,status,category,language,components,parameter_format&limit=20');
+  if (r._error) return { erro: String(r.message || '').slice(0, 200) };
+  var lista = (r.data || []).filter(function (x) { return String(x.name) === nome; });
+  var t = lista.filter(function (x) { return x.status === 'APPROVED' && (!idioma || x.language === idioma); })[0] ||
+          lista.filter(function (x) { return x.status === 'APPROVED'; })[0] || lista[0];
+  if (!t) return { status: 'NAO_EXISTE' };
+
+  var nomeados = String(t.parameter_format || '').toUpperCase() === 'NAMED';
+  var est = { status: String(t.status || ''), categoria: String(t.category || ''), idioma: String(t.language || ''),
+              formato: nomeados ? 'NAMED' : 'POSITIONAL', header: null, corpo: { vars: [] }, botoes: [] };
+  (t.components || []).forEach(function (comp) {
+    var tipo = String(comp.type || '').toUpperCase();
+    if (tipo === 'HEADER') {
+      var fmt = String(comp.format || 'TEXT').toUpperCase();
+      est.header = { formato: fmt, vars: fmt === 'TEXT' ? _waVarsDoTexto_(comp.text) : [] };
+    } else if (tipo === 'BODY') {
+      est.corpo = { vars: _waVarsDoTexto_(comp.text), texto: String(comp.text || '').slice(0, 400) };
+    } else if (tipo === 'BUTTONS') {
+      (comp.buttons || []).forEach(function (b, i) {
+        var bt = String(b.type || '').toUpperCase();
+        est.botoes.push({ tipo: bt, indice: i, url: String(b.url || ''),
+                          temVar: bt === 'URL' && /\{\{[^}]+\}\}/.test(String(b.url || '')) });
+      });
+    }
+  });
+  try { c.put(k, JSON.stringify(est), 600); } catch (e) {}
+  return est;
+}
+
+// Variáveis de um texto, na ordem: ['1','2'] (numeradas) ou ['nome','data'] (com nome)
+function _waVarsDoTexto_(texto) {
+  var vistas = [], m, re = /\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g;
+  while ((m = re.exec(String(texto || '')))) { if (vistas.indexOf(m[1]) < 0) vistas.push(m[1]); }
+  if (vistas.length && vistas.every(function (v) { return /^\d+$/.test(v); })) {
+    vistas.sort(function (a, b) { return Number(a) - Number(b); });
+  }
+  return vistas;
 }
 
 // Monta os parâmetros do BODY na ordem que a Meta espera
@@ -251,7 +374,10 @@ function _waParams_(mapaJson, ctx) {
 // ─────────────────────────────────────────────────────────────
 // Envio de template
 // ─────────────────────────────────────────────────────────────
-function _waEnviarTemplate_(paraE164, nomeTpl, idioma, params) {
+// v171: `extras` = { mapaJson, ctx } → monta o envio pela ESTRUTURA do
+// template (cabeçalho, corpo, botões, variáveis com nome). Sem `extras`, ou
+// se a Meta não responder a estrutura, cai no envio antigo (só o corpo).
+function _waEnviarTemplate_(paraE164, nomeTpl, idioma, params, extras) {
   if (!_waPronto_()) return { ok: false, error: 'WhatsApp não configurado.' };
   if (!nomeTpl)      return { ok: false, error: 'Template não escolhido.' };
 
@@ -267,7 +393,14 @@ function _waEnviarTemplate_(paraE164, nomeTpl, idioma, params) {
       language: { code: idioma || 'pt_BR' }
     }
   };
-  if (params && params.length) {
+  var comps = null;
+  if (extras && extras.mapaJson !== undefined) {
+    var est = _waEstrutura_(nomeTpl, idioma);
+    if (est && !est.erro && est.status !== 'NAO_EXISTE') comps = _waComponentes_(est, extras.mapaJson, extras.ctx || {});
+  }
+  if (comps) {
+    if (comps.length) corpo.template.components = comps;
+  } else if (params && params.length) {
     corpo.template.components = [{ type: 'body', parameters: params }];
   }
 
@@ -292,11 +425,12 @@ function _waEnviarTemplate_(paraE164, nomeTpl, idioma, params) {
 // Boas-vindas do trial — chamado pela automação pós-adesão
 function waBoasVindasTrial_(ctx) {
   if (!_waBool_('auto_whats_boasvindas', false)) return { ok: false, error: 'desligado' };
+  var varsBv = _waCfg_('wa_tpl_boasvindas_vars', '[]');
   return _waEnviarTemplate_(
     ctx.whatsapp,
     _waCfg_('wa_tpl_boasvindas'),
     _waCfg_('wa_tpl_boasvindas_lang', 'pt_BR'),
-    _waParams_(_waCfg_('wa_tpl_boasvindas_vars', '[]'), ctx)
+    _waParams_(varsBv, ctx), { mapaJson: varsBv, ctx: ctx }
   );
 }
 
@@ -336,7 +470,78 @@ function waBoasVindasSemCartao_(ctx) {
       return { ok: false, error: 'template ' + t.nome + ' ' + _waStatusNome_(st.status) };
     }
   } catch (e) {}
-  return _waEnviarTemplate_(ctx.whatsapp, t.nome, t.lang, _waParams_(t.vars, ctx));
+  return _waEnviarTemplate_(ctx.whatsapp, t.nome, t.lang, _waParams_(t.vars, ctx), { mapaJson: t.vars, ctx: ctx });
+}
+
+// ─────────────────────────────────────────────────────────────
+// v171 — ROTA ADMIN: waReenviarBoasVindas
+// Para quem se cadastrou e NÃO recebeu o WhatsApp de boas-vindas (o aviso
+// do Telegram mostra ❌). Monta os dados igual ao cadastro da pessoa —
+// nome e WhatsApp do CRM, dias e fim do teste da assinatura — e usa o
+// template da rota dela. Só envia para quem autorizou contato.
+// Manual = vale mesmo com a automação desligada no painel.
+// ─────────────────────────────────────────────────────────────
+function waReenviarBoasVindas(token, data) {
+  var user = getUserByToken(token);
+  if (!user || user.role !== 'admin') return { ok: false, error: 'Sem permissão.' };
+  if (typeof _rateLimit_ === 'function' && _rateLimit_('wa_reenvio', String(user.id || user.email), 30, 3600)) {
+    return { ok: false, error: 'Muitos reenvios seguidos. Aguarde um pouco.' };
+  }
+  var email = String((data && data.email) || '').toLowerCase().trim();
+  if (!email) return { ok: false, error: 'Lead sem e-mail.' };
+
+  // Pessoa no CRM: nome, WhatsApp, origem, autorização
+  var lead = null;
+  try {
+    var d = getSheet(SHEET_CRM).getDataRange().getValues(), cab = d[0].map(String);
+    var iM = cab.indexOf('email'), iN = cab.indexOf('name'), iF = cab.indexOf('phone'), iC = cab.indexOf('custom_fields');
+    for (var i = 1; i < d.length; i++) {
+      if (String(d[i][iM] || '').toLowerCase().trim() !== email) continue;
+      var cf = {};
+      try { cf = JSON.parse(String(d[i][iC] || '{}')) || {}; } catch (e) {}
+      lead = { nome: String(d[i][iN] || ''), fone: String(d[i][iF] || '').replace(/\D/g, ''), cf: cf };
+      break;
+    }
+  } catch (e) {}
+  if (!lead) return { ok: false, error: 'Não achei essa pessoa no CRM.' };
+  if (lead.fone.length < 12) return { ok: false, error: 'O WhatsApp dessa pessoa está incompleto no CRM.' };
+
+  var cartao = lead.cf.origem === 'trial-cartao';
+  if (!cartao && !lead.cf.consentimento_em) {
+    return { ok: false, error: 'Essa pessoa não marcou a autorização de contato — o WhatsApp não pode ir.' };
+  }
+
+  var dias = Number(lead.cf.oferta_dias) || 7, fim = '';
+  try {
+    var row = _getAssinaturaRow_(email);
+    if (row) {
+      dias = Number(row[_ASS_.TRIAL_DAYS]) || dias;
+      var te = row[_ASS_.TRIAL_END];
+      if (te) fim = Utilities.formatDate(new Date(te), 'America/Sao_Paulo', 'dd/MM/yyyy');
+    }
+  } catch (e) {}
+
+  var ctx = { nome: lead.nome, email: email, whatsapp: lead.fone, dias: dias, valor: '17,00' };
+  if (cartao) { if (fim) ctx.dataCobranca = fim; } else if (fim) ctx.fimTeste = fim;
+
+  var t;
+  if (cartao) {
+    var vb = _waCfg_('wa_tpl_boasvindas_vars', '[]');
+    t = { nome: String(_waCfg_('wa_tpl_boasvindas')), lang: _waCfg_('wa_tpl_boasvindas_lang', 'pt_BR'), vars: vb };
+  } else {
+    t = _waTplSemCartao_();
+  }
+  if (!t || !t.nome) return { ok: false, error: 'Nenhum template de boas-vindas escolhido para essa rota.' };
+
+  var r = _waEnviarTemplate_(lead.fone, t.nome, t.lang, _waParams_(t.vars, ctx), { mapaJson: t.vars, ctx: ctx });
+  try {
+    _crmUpsertLead_({ email: email, evento: 'WhatsApp de boas-vindas reenviado pelo painel: ' +
+                      (r.ok ? 'enviado' : 'falhou (' + (typeof ritoMotivo_ === 'function' ? ritoMotivo_(r.error) : r.error) + ')') });
+  } catch (e) {}
+  logAction(user.email, 'WA_REENVIO_BOASVINDAS', 'whatsapp', email, r.ok ? (r.id || 'ok') : r.error);
+  return r.ok
+    ? { ok: true, message: 'Boas-vindas enviadas para +' + lead.fone + ' (template ' + t.nome + ').' }
+    : { ok: false, error: (typeof ritoMotivo_ === 'function') ? ritoMotivo_(r.error) : r.error };
 }
 
 function _waStatusNome_(s) {
@@ -411,22 +616,24 @@ function waCriarTemplateSemCartao(token, data) {
 function waRecuperarCheckout_(ctx) {
   var tpl = _waCfg_('wa_tpl_recuperacao');
   if (!tpl) return { ok: false, error: 'template de recuperacao nao escolhido' };
+  var varsRc = _waCfg_('wa_tpl_recuperacao_vars', '[]');
   return _waEnviarTemplate_(
     ctx.whatsapp,
     tpl,
     _waCfg_('wa_tpl_recuperacao_lang', 'pt_BR'),
-    _waParams_(_waCfg_('wa_tpl_recuperacao_vars', '[]'), ctx)
+    _waParams_(varsRc, ctx), { mapaJson: varsRc, ctx: ctx }
   );
 }
 
 // Lembrete antes da cobrança
 function waLembreteTrial_(ctx) {
   if (!_waBool_('auto_lembretes', true)) return { ok: false, error: 'desligado' };
+  var varsLb = _waCfg_('wa_tpl_lembrete_vars', '[]');
   return _waEnviarTemplate_(
     ctx.whatsapp,
     _waCfg_('wa_tpl_lembrete'),
     _waCfg_('wa_tpl_lembrete_lang', 'pt_BR'),
-    _waParams_(_waCfg_('wa_tpl_lembrete_vars', '[]'), ctx)
+    _waParams_(varsLb, ctx), { mapaJson: varsLb, ctx: ctx }
   );
 }
 
@@ -441,19 +648,22 @@ function waTestar(token, data) {
   var tel = _tcE164_(data.numero);
   if (!tel.ok) return { ok: false, error: tel.erro };
 
+  // v171: o teste monta os dados IGUAL ao cadastro real da rota. Antes ele
+  // sempre tinha "data da cobrança" — que quem entra SEM cartão não tem —,
+  // então passava no teste e falhava no cadastro de verdade (#131008).
+  var dias = Number(data.dias) || 14;
+  var fim = Utilities.formatDate(new Date(Date.now() + dias * 86400000), 'America/Sao_Paulo', 'dd/MM/yyyy');
   var ctx = {
     nome: data.nome || user.name || 'Teste',
     email: user.email,
-    dias: data.dias || 14,
-    dataCobranca: Utilities.formatDate(
-      new Date(Date.now() + (Number(data.dias) || 14) * 86400000),
-      'America/Sao_Paulo', 'dd/MM/yyyy'),
+    dias: dias,
     valor: '17,00',
     whatsapp: tel.e164
   };
+  if (String(data.rota || '') === 'sc') ctx.fimTeste = fim; else ctx.dataCobranca = fim;
 
-  var r = _waEnviarTemplate_(tel.e164, data.template,
-            data.idioma || 'pt_BR', _waParams_(data.vars || '[]', ctx));
+  var r = _waEnviarTemplate_(tel.e164, data.template, data.idioma || 'pt_BR',
+            _waParams_(data.vars || '[]', ctx), { mapaJson: data.vars || '[]', ctx: ctx });
   if (!r.ok) return r;
   return { ok: true, message: 'Enviado para ' + tel.e164, id: r.id };
 }

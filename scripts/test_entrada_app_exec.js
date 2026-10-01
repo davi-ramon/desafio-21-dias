@@ -48,6 +48,40 @@ const props = new Map([['RESEND_API_KEY', 're_teste_nao_real']]);
 const cache = new Map();
 const S = { resend: 'ok', gmail: 'ok', mailapp: 'ok', envios: [], wa: [], tg: [], logs: [], capi: [] };
 
+// O que a Meta exige do envio, a partir dos componentes do template simulado
+function validarEnvioMeta(p) {
+  const t = (S.templatesMeta || {})[p.template && p.template.name];
+  if (!t || !t.components) return null;                    // template sem estrutura simulada: aceita
+  const comps = p.template.components || [];
+  const achar = tipo => comps.find(c => c.type === tipo);
+  const nomeado = t.parameter_format === 'NAMED';
+  for (const c of t.components) {
+    if (c.type === 'BODY') {
+      const vars = (String(c.text).match(/\{\{\s*[A-Za-z0-9_]+\s*\}\}/g) || []).map(v => v.replace(/[{}\s]/g, ''));
+      const unicas = vars.filter((v, i) => vars.indexOf(v) === i);
+      if (!unicas.length) continue;
+      const b = achar('body');
+      if (!b || b.parameters.length !== unicas.length) return '(#132000) Number of parameters does not match';
+      if (b.parameters.some(x => !String(x.text || '').trim())) return '(#131008) Required parameter is missing';
+      if (nomeado && b.parameters.some(x => unicas.indexOf(x.parameter_name) < 0)) return '(#131008) Required parameter is missing';
+    }
+    if (c.type === 'HEADER' && /IMAGE|VIDEO|DOCUMENT/.test(c.format)) {
+      const h = achar('header');
+      const tipo = c.format.toLowerCase();
+      if (!h || !h.parameters[0] || !h.parameters[0][tipo] || !h.parameters[0][tipo].link) return '(#131008) Required parameter is missing';
+    }
+    if (c.type === 'BUTTONS') {
+      for (let i = 0; i < c.buttons.length; i++) {
+        if (c.buttons[i].type === 'URL' && /\{\{/.test(c.buttons[i].url || '')) {
+          const bt = comps.find(x => x.type === 'button' && String(x.index) === String(i));
+          if (!bt || !bt.parameters[0] || !bt.parameters[0].text) return '(#131008) Required parameter is missing';
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function resposta(code, obj) { return { getResponseCode: () => code, getContentText: () => JSON.stringify(obj) }; }
 function fetchSim(url, opts) {
   opts = opts || {};
@@ -68,6 +102,9 @@ function fetchSim(url, opts) {
   if (url.indexOf('api.resend.com/emails/') >= 0) return resposta(200, { last_event: 'delivered' });
   if (url.indexOf('graph.facebook.com') >= 0 && url.indexOf('/messages') >= 0) {
     S.waTentativas = (S.waTentativas || 0) + 1;
+    // v171: valida como a Meta — parte exigida faltando ou variável vazia = #131008
+    const erroMeta = validarEnvioMeta(JSON.parse(opts.payload));
+    if (erroMeta) return resposta(400, { error: { message: erroMeta } });
     if (S.waFalhas && S.waFalhas.length) {           // fila de falhas simuladas (ex.: [500] ou [400])
       const code = S.waFalhas.shift();
       return resposta(code, { error: { message: code === 400 ? '(#132001) Template name does not exist in the translation' : 'Service temporarily unavailable' } });
@@ -164,8 +201,14 @@ function planilhaNova() {
   S.envios.length = 0; S.wa.length = 0; S.tg.length = 0; S.logs.length = 0; S.capi.length = 0;
   S.resend = 'ok'; S.gmail = 'ok'; S.mailapp = 'ok';
   // Meta: os templates configurados existem e estão aprovados (cada teste muda o que precisar)
-  S.templatesMeta = { bv_teste_gratis: { status: 'APPROVED', category: 'UTILITY' },
-                      bv_cartao: { status: 'APPROVED', category: 'UTILITY' } };
+  S.templatesMeta = {
+    bv_teste_gratis: { status: 'APPROVED', category: 'UTILITY',
+                       components: [{ type: 'BODY', text: 'Oi {{1}}, seu teste vai até {{2}}.' }] },
+    bv_cartao:       { status: 'APPROVED', category: 'UTILITY',
+                       components: [{ type: 'BODY', text: 'Oi {{1}}, primeira cobrança em {{2}}.' }] },
+    desafio21_boasvindas_teste_gratis: { status: 'APPROVED', category: 'UTILITY',
+                       components: [{ type: 'BODY', text: 'Olá, {{1}}! {{2}} dias grátis, até {{3}}.' }] }
+  };
   S.waFalhas = []; S.waTentativas = 0; S.gatilhos = ['stripeBuscarEventos'];
 }
 function usuario(email) { return ctx.sheetToObjects(abas.users).find(u => u.email === email); }
@@ -437,7 +480,7 @@ function configRito(pares) {
 }
 passo('status: tudo configurado e aprovado -> pronto nas duas rotas', () => {
   planilhaNova();
-  S.templatesMeta = { bv_teste_gratis: { status: 'APPROVED', category: 'UTILITY' }, bv_cartao: { status: 'APPROVED', category: 'UTILITY' } };
+  S.templatesMeta = { bv_teste_gratis: { status: 'APPROVED', category: 'UTILITY', components: [{ type: 'BODY', text: 'Oi {{1}}, seu teste vai até {{2}}.' }] }, bv_cartao: { status: 'APPROVED', category: 'UTILITY', components: [{ type: 'BODY', text: 'Oi {{1}}, primeira cobrança em {{2}}.' }] } };
   S.gatilhos = ['stripeBuscarEventos'];
   const d = ctx.getRitoStatus().data;
   exige(d.pronto.semCartao && d.pronto.cartao, JSON.stringify(d));
@@ -446,7 +489,7 @@ passo('status: tudo configurado e aprovado -> pronto nas duas rotas', () => {
   return 'e-mail via ' + d.email.canal + ', WhatsApp pronto';
 });
 passo('status: cada coisa que falta aparece com o motivo', () => {
-  S.templatesMeta = { bv_teste_gratis: { status: 'PENDING', category: 'MARKETING' } };
+  S.templatesMeta = { bv_teste_gratis: { status: 'PENDING', category: 'MARKETING', components: [{ type: 'BODY', text: 'Oi {{1}}, seu teste vai até {{2}}.' }] } };
   S.gatilhos = [];
   configRito([['auto_whats_boasvindas', 'false'], ['auto_whats_boasvindas_sc', 'true']]);
   const d = ctx.getRitoStatus().data;
@@ -484,7 +527,7 @@ passo('erro de configuracao (400): nao insiste, avisa com a mensagem da Meta', (
   ctx.registrarTrial_({ nome: 'Joao', email: 'joao@y.com', whatsapp: '94991230003', rota: 'app-web', consentimento: true });
   exige(S.waTentativas === 1, 'repetiu erro de configuracao: ' + S.waTentativas);
   const m = S.tg[S.tg.length - 1];
-  exige(/❌ WhatsApp NÃO enviado — a Meta recusou: .*132001/.test(m), m);
+  exige(/❌ WhatsApp NÃO enviado — o template não existe nesse idioma/.test(m), m);
 });
 passo('com cartao: e-mail com resultado REAL e aviso completo no Telegram', () => {
   planilhaNova();
@@ -519,14 +562,14 @@ passo('criar template do sem cartao: vai para a Meta como UTILITY e ja fica esco
   return 'categoria ' + p.category + ', 3 variaveis, botao Abrir o app';
 });
 passo('template em analise: nao tenta mandar, e o aviso diz o estado real', () => {
-  S.templatesMeta = { desafio21_boasvindas_teste_gratis: { status: 'PENDING', category: 'UTILITY' } };
+  S.templatesMeta = { desafio21_boasvindas_teste_gratis: { status: 'PENDING', category: 'UTILITY', components: [{ type: 'BODY', text: 'Olá, {{1}}! {{2}} dias grátis, até {{3}}.' }] } };
   cache.clear(); S.wa.length = 0;
   ctx.registrarTrial_({ nome: 'Rafa', email: 'rafa@y.com', whatsapp: '94991230009', rota: 'app-web', consentimento: true });
   exige(S.wa.length === 0, 'tentou mandar template pendente');
   exige(/❌ WhatsApp NÃO enviado — template desafio21_boasvindas_teste_gratis ainda em análise na Meta/.test(S.tg[S.tg.length - 1]), S.tg[S.tg.length - 1]);
 });
 passo('aprovado: sai com nome, dias e fim do teste nas variaveis', () => {
-  S.templatesMeta = { desafio21_boasvindas_teste_gratis: { status: 'APPROVED', category: 'UTILITY' } };
+  S.templatesMeta = { desafio21_boasvindas_teste_gratis: { status: 'APPROVED', category: 'UTILITY', components: [{ type: 'BODY', text: 'Olá, {{1}}! {{2}} dias grátis, até {{3}}.' }] } };
   cache.clear();
   ctx.registrarTrial_({ nome: 'Sara Lima', email: 'sara@y.com', whatsapp: '94991230010', rota: 'app-instalado', consentimento: true });
   exige(S.wa.length === 1 && S.wa[0].template.name === 'desafio21_boasvindas_teste_gratis', JSON.stringify(S.wa));
@@ -534,6 +577,84 @@ passo('aprovado: sai com nome, dias e fim do teste nas variaveis', () => {
   exige(v[0] === 'Sara' && v[1] === '14' && /^\d\d\/\d\d\/\d{4}$/.test(v[2]), 'variaveis: ' + v);
   exige(ctx.getRitoStatus().data.pronto.semCartao === true, 'status nao ficou pronto');
   return v.join(' | ');
+});
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nV171 — O #131008 DOS LEADS DE 30/09');
+const TPL_MKT = {
+  status: 'APPROVED', category: 'MARKETING',
+  components: [
+    { type: 'BODY', text: 'Chegou a sua vez, {{1}}! Seus {{2}} dias de acesso completo já estão liberados. ' +
+                          'Até {{3}} é tudo por nossa conta. Depois disso, a mensalidade fica R$ {{4}}.' },
+    { type: 'BUTTONS', buttons: [{ type: 'URL', text: 'Abrir', url: 'https://app.wpktavares.com.br' },
+                                 { type: 'QUICK_REPLY', text: 'Tenho dúvida' }] }
+  ]
+};
+passo('o caso real: template do cartao no sem cartao, {{3}} = data da cobranca -> agora sai com o fim do teste', () => {
+  planilhaNova();
+  S.templatesMeta.desafio21_trial_boasvindas_mkt = TPL_MKT;
+  configRito([['wa_tpl_boasvindas_sc', 'desafio21_trial_boasvindas_mkt'],
+              ['wa_tpl_boasvindas_sc_vars', '["primeiro_nome","dias_trial","data_cobranca","valor"]']]);
+  const r = ctx.registrarTrial_({ nome: 'Salomão Ribeiro', email: 'salomao@y.com', whatsapp: '91985858577', dias: 7,
+    consentimento: true, rota: 'checkout-sem-cartao', rastreio: { utm_campaign: '120246976328420179' } });
+  exige(r.ok, JSON.stringify(r));
+  exige(S.wa.length === 1, 'WhatsApp nao saiu: ' + S.tg[S.tg.length - 1]);
+  const v = S.wa[0].template.components.find(c => c.type === 'body').parameters.map(p => p.text);
+  exige(v[0] === 'Salomão' && v[1] === '7' && /^\d\d\/\d\d\/\d{4}$/.test(v[2]) && v[3] === '17,00', 'variaveis: ' + v);
+  exige(/✅ WhatsApp \(template\) enviado/.test(S.tg[S.tg.length - 1]), S.tg[S.tg.length - 1]);
+  return 'Até ' + v[2] + ' é tudo por nossa conta';
+});
+passo('o teste do painel agora monta os dados como o cadastro real da rota', () => {
+  abas.users.appendRow(['u9', 'Davi', 'davi@x.com', ctx.hashPassword('x'), 'admin', '', true, '']);
+  const t = ctx.login('davi@x.com', 'x').token;
+  S.wa.length = 0;
+  const vars = '["primeiro_nome","dias_trial","data_cobranca","valor"]';
+  const r1 = ctx.waTestar(t, { numero: '63992998814', template: 'desafio21_trial_boasvindas_mkt', vars: vars, dias: 7, rota: 'sc' });
+  const r2 = ctx.waTestar(t, { numero: '63992998814', template: 'desafio21_trial_boasvindas_mkt', vars: vars, dias: 14, rota: 'bv' });
+  exige(r1.ok && r2.ok && S.wa.length === 2, JSON.stringify([r1, r2]));
+  return 'sem cartao e com cartao: os dois sairam';
+});
+passo('estrutura: cabecalho com imagem, botao com link variavel e variaveis com NOME', () => {
+  S.templatesMeta.tpl_completo = {
+    status: 'APPROVED', category: 'UTILITY', parameter_format: 'NAMED',
+    components: [
+      { type: 'HEADER', format: 'IMAGE' },
+      { type: 'BODY', text: 'Oi {{nome}}, seu acesso vai até {{data_fim}}.' },
+      { type: 'BUTTONS', buttons: [{ type: 'URL', text: 'Entrar', url: 'https://app.wpktavares.com.br/{{1}}' }] }
+    ]
+  };
+  S.wa.length = 0; cache.clear();
+  const r = ctx._waEnviarTemplate_('5594991230000', 'tpl_completo', 'pt_BR', [], { mapaJson: '{}', ctx: { nome: 'Lia Souza', dias: 7, fimTeste: '07/10/2026' } });
+  exige(r.ok, JSON.stringify(r));
+  const c = S.wa[0].template.components;
+  const body = c.find(x => x.type === 'body').parameters;
+  exige(body[0].parameter_name === 'nome' && body[0].text === 'Lia' && body[1].parameter_name === 'data_fim' && body[1].text === '07/10/2026', JSON.stringify(body));
+  exige(c.find(x => x.type === 'header').parameters[0].image.link, 'sem imagem no cabecalho');
+  exige(c.find(x => x.type === 'button').parameters[0].text === '?entrar=1', 'sem sufixo no botao');
+  return 'cabecalho + {{nome}}/{{data_fim}} + botao';
+});
+passo('status: simula o cadastro real e acusa variavel sem mapeamento', () => {
+  configRito([['wa_tpl_boasvindas_sc', 'desafio21_trial_boasvindas_mkt'], ['wa_tpl_boasvindas_sc_vars', '["primeiro_nome","dias_trial"]']]);
+  const d = ctx.getRitoStatus().data;
+  exige(d.whatsapp.semCartao.faltas.indexOf('variavel_sem_mapeamento') >= 0 && !d.pronto.semCartao, JSON.stringify(d.whatsapp.semCartao.faltas));
+  configRito([['wa_tpl_boasvindas_sc_vars', '["primeiro_nome","dias_trial","data_cobranca","valor"]']]);
+  const d2 = ctx.getRitoStatus().data;
+  exige(d2.pronto.semCartao && d2.whatsapp.semCartao.estrutura.corpoVars.length === 4, JSON.stringify(d2.whatsapp.semCartao));
+  return 'mapeamento incompleto vira falta; completo fica pronto';
+});
+passo('reenvio pelo painel: so com autorizacao, com o fim do teste da pessoa', () => {
+  const t = ctx.login('davi@x.com', 'x').token;
+  S.wa.length = 0;
+  let r = ctx.waReenviarBoasVindas(t, { email: 'salomao@y.com' });
+  exige(r.ok && S.wa.length === 1 && /\+5591985858577/.test(r.message), JSON.stringify(r));
+  const tl = leadCrm('salomao@y.com').tl.map(x => x.action).join(' / ');
+  exige(/reenviado pelo painel: enviado/.test(tl), tl);
+  ctx.registrarTrial_({ nome: 'Sem Aceite', email: 'semaceite@y.com', whatsapp: '91985850000', dias: 7 });
+  r = ctx.waReenviarBoasVindas(t, { email: 'semaceite@y.com' });
+  exige(!r.ok && /autorização/.test(r.error), JSON.stringify(r));
+  exige(ctx.waReenviarBoasVindas('token-aluno', { email: 'salomao@y.com' }).error === 'Sem permissão.', 'sem admin reenviou');
+  exige(ctx.ritoMotivo_('(#131008) Required parameter is missing') === 'faltou um dado que o template exige (variável vazia, imagem do cabeçalho ou botão)', 'motivo');
+  return 'reenviou para o Salomao; recusou quem nao autorizou';
 });
 
 passo('v170: ingresso de evento sai pelo MailApp com o QR embutido (o GmailApp nao tem permissao)', () => {

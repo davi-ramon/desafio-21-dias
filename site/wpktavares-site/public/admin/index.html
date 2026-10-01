@@ -2591,10 +2591,25 @@ async function openLeadDetail(leadId) {
     '<div class="detail-section"><div class="detail-section-title">Respostas do Formulario</div>' + formHtml + '</div>' +
     '<div class="detail-section"><div class="detail-section-title">Historico</div><div class="tl-wrap">' + tlHtml + '</div></div>';
 
-  openModal('Lead: ' + (lead.name||'Sem nome'), body, [
-    { label: 'Editar',  action: function(){ closeModal(); openEditLead(leadId); }, cls: 'btn-ghost' },
-    { label: 'Fechar',  action: closeModal, cls: 'btn-primary' }
-  ]);
+  // v171: lead de teste (qualquer rota) com WhatsApp ganha o reenvio das boas-vindas
+  const botoes = [];
+  if (phone.replace(/\D/g, '').length >= 12 && CRM_ORIGENS[cf.origem] && lead.email) {
+    botoes.push({ label: 'Reenviar boas-vindas (WhatsApp)', cls: 'btn-ghost',
+                  action: function () { leadReenviarBoasVindas(String(lead.email)); } });
+  }
+  botoes.push({ label: 'Editar',  action: function(){ closeModal(); openEditLead(leadId); }, cls: 'btn-ghost' });
+  botoes.push({ label: 'Fechar',  action: closeModal, cls: 'btn-primary' });
+  openModal('Lead: ' + (lead.name||'Sem nome'), body, botoes);
+}
+
+// v171: reenvia o template de boas-vindas da rota da pessoa (o botão
+// ganha carregando → ✓/✕ sozinho, pelo retorno automático do rpc)
+async function leadReenviarBoasVindas(email) {
+  var r;
+  try { r = await rpc('waReenviarBoasVindas', { email: email }); }
+  catch (e) { r = { ok: false, error: e.message }; }
+  if (r && r.ok) toast(r.message, 'success');
+  else toast((r && r.error) || 'Não consegui reenviar.', 'error');
 }
 
 function openCreateLead() {
@@ -7096,7 +7111,11 @@ var TA_FALTAS = {
   template_nao_existe:      'O template escolhido n&atilde;o existe mais na Meta &mdash; escolha outro.',
   template_nao_aprovado:    'O template ainda n&atilde;o foi aprovado pela Meta.',
   meta_nao_respondeu:       'A Meta n&atilde;o respondeu agora &mdash; toque em &ldquo;Conferir de novo&rdquo; em alguns minutos.',
-  rotina_stripe_parada:     'A rotina que busca os eventos do Stripe n&atilde;o est&aacute; rodando nesta conta &mdash; use &ldquo;Recriar rotinas&rdquo; em Migra&ccedil;&atilde;o de conta.'
+  rotina_stripe_parada:     'A rotina que busca os eventos do Stripe n&atilde;o est&aacute; rodando nesta conta &mdash; use &ldquo;Recriar rotinas&rdquo; em Migra&ccedil;&atilde;o de conta.',
+  // v171: o que a simulação de um cadastro real encontrou
+  variavel_sem_mapeamento:  'Tem vari&aacute;vel do template sem nada escolhido &mdash; escolha o que entra em cada uma e toque em Salvar.',
+  cabecalho_sem_midia:      'O template tem v&iacute;deo ou documento no cabe&ccedil;alho e falta o link do arquivo.',
+  parametro_vazio:          'Alguma vari&aacute;vel sairia vazia e a Meta recusaria o envio.'
 };
 
 // Avisos do template escolhido: fala de cobrança (sem cartão) e MARKETING
@@ -7240,7 +7259,8 @@ async function taRitoTestar(botao) {
   if (!t.nome) { toast('Escolha o template desta rota primeiro.', 'error'); return; }
   var dias = pref === 'sc' ? ((TA.cfg && TA.cfg.trialDiasApp) || 7) : 14;
   return acaoBotao(botao, async function () {
-    var r = await rpc('waTestar', { numero: num, template: t.nome, idioma: t.idioma, vars: t.vars, dias: dias });
+    // v171: `rota` faz o teste montar os dados IGUAL ao cadastro real da rota
+    var r = await rpc('waTestar', { numero: num, template: t.nome, idioma: t.idioma, vars: t.vars, dias: dias, rota: pref });
     if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'A Meta recusou o envio.' };
     toast('Template ' + t.nome + ' enviado para ' + num + '. Confira o WhatsApp.', 'success');
     return { ok: true, msg: 'Enviado' };
