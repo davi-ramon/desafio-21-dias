@@ -348,7 +348,8 @@ function registrarTrial_(data) {
         campanha: rastreio.utm_campaign || '', consentiu: consentiu,
         // v168: o resultado das boas-vindas vai junto no aviso
         emailOk: !!(envioEmail && envioEmail.ok), emailVia: (envioEmail && envioEmail.via) || '',
-        waOk: !!(envioWa && envioWa.ok), waErro: (envioWa && envioWa.error) || ''
+        waOk: !!(envioWa && envioWa.ok), waErro: (envioWa && envioWa.error) || '',
+        waMsgId: (envioWa && envioWa.id) || ''   // v173: o aviso muda quando a Meta confirmar a entrega
       });
     }
   } catch(_t) {}
@@ -358,7 +359,7 @@ function registrarTrial_(data) {
     _crmUpsertLead_({
       email: email, phone: whatsapp,
       evento: 'Boas-vindas: e-mail ' + (envioEmail && envioEmail.ok ? 'enviado' : 'FALHOU') +
-              ' · WhatsApp ' + (envioWa && envioWa.ok ? 'enviado'
+              ' · WhatsApp ' + (envioWa && envioWa.ok ? 'aceito pela Meta'
                                : 'não enviado (' + ((envioWa && envioWa.error) || '?') + ')')
     });
   } catch (e) {}

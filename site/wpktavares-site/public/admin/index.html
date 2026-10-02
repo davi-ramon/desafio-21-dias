@@ -3151,8 +3151,8 @@ async function leadTplDisparar(botao) {
     var r = await rpc('crmEnviarTemplate', { leadId: LD.lead.id, template: LD.tpl.template, idioma: LD.tpl.idioma, valores: valores });
     leadRecarregarHistorico();
     if (!r || !r.ok) return { ok: false, msg: 'Não saiu', detalhe: (r && r.error) || 'A Meta recusou o envio.' };
-    toast(r.message || 'Template enviado.', 'success');
-    return { ok: true, msg: 'Enviado' };
+    toast(r.message || 'Aceito pela Meta. A entrega aparece no histórico.', 'success');
+    return { ok: true, msg: 'Aceito' };
   }, 'Enviando…');
 }
 
@@ -3190,8 +3190,8 @@ async function leadBoasVindasZap(botao) {
     var r = await rpc('waReenviarBoasVindas', { email: String(LD.lead.email || '') });
     leadRecarregarHistorico();
     if (!r || !r.ok) return { ok: false, msg: 'Não saiu', detalhe: (r && r.error) || 'Não consegui reenviar.' };
-    toast(r.message || 'Boas-vindas enviadas.', 'success');
-    return { ok: true, msg: 'Enviado' };
+    toast(r.message || 'Aceito pela Meta. A entrega aparece no histórico.', 'success');
+    return { ok: true, msg: 'Aceito' };
   }, 'Enviando…');
 }
 
@@ -7459,6 +7459,8 @@ async function renderTrialAuto() {
     // ── v168: as boas-vindas estão prontas? (o servidor confere) ──
     '<div id="taRitoBox"><div class="card" style="margin-bottom:16px;font-size:12px;color:var(--muted)">' +
       'Conferindo as boas-vindas&hellip;</div></div>' +
+    // ── v173: aceito pela Meta não é entregue — o que chegou de verdade ──
+    '<div id="taWaBox"></div>' +
 
     // ── Credenciais ──
     '<div class="card" style="margin-bottom:16px">' +
@@ -7581,8 +7583,162 @@ async function renderTrialAuto() {
   loteCarregar();
   recupCarregar();
   taRitoCarregar();
+  taWaCarregar();
 
   _processIcons && _processIcons(content);
+}
+
+// ══ v173: o WhatsApp está ENTREGANDO? ══════════════════════════
+// "Aceito" pela Meta não é "entregue". Este quadro mostra o que a Meta
+// diz de verdade: se o número pode enviar, aceitas x enviadas x
+// entregues por dia, os últimos envios com o estado real, e o que falta
+// para o sistema receber os avisos de entrega (webhook).
+var TW = { saude: null, envios: null, hook: null };
+
+async function taWaCarregar(forcar) {
+  var box = document.getElementById('taWaBox');
+  if (!box) return;
+  if (!TW.saude || forcar) {
+    box.innerHTML = '<div class="card" style="margin-bottom:16px;font-size:12px;color:var(--muted)">Perguntando à Meta se o WhatsApp está entregando&hellip;</div>';
+  }
+  var falhou = function (e) { return { ok: false, error: (e && e.message) || 'falhou' }; };
+  var r = await Promise.all([
+    rpc('waSaude', { forcar: !!forcar }).catch(falhou),
+    rpc('waEnvios', { limite: 15 }).catch(falhou),
+    rpc('waWebhookInfo', {}).catch(falhou)
+  ]);
+  TW.saude = (r[0] && r[0].ok) ? r[0].data : null;
+  TW.envios = (r[1] && r[1].ok) ? r[1] : null;
+  TW.hook = (r[2] && r[2].ok) ? r[2].data : null;
+  box.innerHTML = _taWaHtml((r[0] && !r[0].ok) ? r[0].error : '');
+}
+
+var TW_ST = {
+  aceito:    ['sem confirmação', '#9aa59c', 'rgba(255,255,255,.07)'],
+  sent:      ['saiu da Meta', '#7fb8ff', 'rgba(127,184,255,.12)'],
+  delivered: ['entregue', '#4ade80', 'rgba(74,222,128,.12)'],
+  read:      ['lido', '#4ade80', 'rgba(74,222,128,.18)'],
+  failed:    ['não chegou', '#f87171', 'rgba(248,113,113,.13)']
+};
+
+function _taWaHtml(erro) {
+  var s = TW.saude, h = '';
+  h += '<div class="card" style="margin-bottom:16px">' +
+       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">' +
+         '<div style="font-size:13px;font-weight:700;color:var(--text);flex:1">WhatsApp &mdash; está chegando de verdade?</div>' +
+         '<button class="btn btn-ghost btn-sm" onclick="taWaCarregar(true)">Atualizar</button></div>' +
+       '<div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">' +
+         '&ldquo;Aceito&rdquo; quer dizer só que a Meta recebeu o pedido. Aqui está o que ela diz que <b>chegou</b> no celular das pessoas.</div>';
+  if (!s) {
+    return h + '<div class="ta-status erro">Não consegui falar com a Meta: ' + escHtml(erro || 'tente Atualizar') + '</div></div>';
+  }
+
+  // 1) O número pode enviar?
+  var pode = String(s.podeEnviar || '');
+  var cls = pode === 'AVAILABLE' ? 'ok' : pode === 'BLOCKED' ? 'erro' : 'neutro';
+  var txt = pode === 'AVAILABLE' ? '✓ A conta pode enviar normalmente'
+          : pode === 'LIMITED'   ? 'A conta pode enviar, mas com limite'
+          : pode === 'BLOCKED'   ? '✕ A Meta BLOQUEOU os envios desta conta'
+          : 'A Meta não informou se a conta pode enviar';
+  h += '<div class="ta-status ' + cls + '" style="margin-bottom:10px">' + txt + '</div>';
+  var bloq = (s.bloqueios || []).filter(function (b) { return !/SIP|calling/i.test(String(b.detalhe || b.motivo)); });
+  if (bloq.length) {
+    h += '<ul style="margin:0 0 12px 18px;padding:0;font-size:12px;color:var(--muted);line-height:1.7">' +
+      bloq.map(function (b) { return '<li><b style="color:var(--text)">' + escHtml(b.onde) + ':</b> ' + escHtml(b.motivo) + '</li>'; }).join('') + '</ul>';
+  }
+
+  // 2) Aceitas x enviadas x entregues por dia
+  var dias = (s.entregas && s.entregas.dias) || [];
+  var hoje = (function () { var d = new Date(); return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2); })();
+  if (dias.length) {
+    var perdidas = 0;
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text);margin:6px 0 6px">Por dia (últimos 14)</div>' +
+         '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px">' +
+         '<tr style="color:var(--muted);text-align:left"><th style="padding:5px 6px">Dia</th><th>Aceitas pela Meta</th><th>Saíram</th><th>Chegaram</th><th></th></tr>';
+    dias.slice().reverse().forEach(function (d) {
+      var ac = Number(d.aceitas || 0), ent = Number(d.entregues || 0);
+      var faltou = d.dia !== hoje && ac > ent ? ac - ent : 0;
+      perdidas += faltou;
+      h += '<tr style="border-top:1px solid var(--border)' + (faltou ? ';background:rgba(248,113,113,.07)' : '') + '">' +
+        '<td style="padding:6px">' + escHtml(d.dia) + '</td><td>' + ac + '</td><td>' + Number(d.enviadas || 0) + '</td><td>' + ent + '</td>' +
+        '<td style="font-size:11px;color:' + (faltou ? '#f87171' : 'var(--muted)') + '">' +
+          (faltou ? faltou + ' não chegaram' : (d.dia === hoje && ac > ent ? 'a Meta atualiza com atraso' : '')) + '</td></tr>';
+    });
+    h += '</table>';
+    if (perdidas) {
+      h += '<div style="font-size:11.5px;color:#f87171;margin-bottom:12px">' + perdidas + ' mensagem(ns) aceitas pela Meta não chegaram nos dias fechados. ' +
+           'O motivo de cada uma só aparece quando o sistema receber os avisos de entrega (abaixo).</div>';
+    }
+  }
+
+  // 3) Últimos envios com o estado real
+  var env = (TW.envios && TW.envios.data) || [];
+  if (env.length) {
+    h += '<div style="font-size:12px;font-weight:700;color:var(--text);margin:10px 0 6px">Últimos envios</div>';
+    env.slice(0, 12).forEach(function (e) {
+      var st = TW_ST[e.status] || TW_ST.aceito;
+      var quando = '';
+      try { quando = new Date(e.quando).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); } catch (x) {}
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">' +
+        '<span style="color:var(--muted);width:78px;flex-shrink:0">' + escHtml(quando) + '</span>' +
+        '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+          escHtml(e.nome || ('+' + e.para)) + ' <span style="color:var(--muted)">· ' + escHtml(e.tipo || e.template) + '</span></span>' +
+        '<span title="' + escHtml(e.motivo || '') + '" style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;color:' + st[1] + ';background:' + st[2] + '">' +
+          escHtml(st[0]) + '</span></div>' +
+        (e.status === 'failed' && e.motivo ? '<div style="font-size:11px;color:#f87171;margin:-2px 0 4px 86px">' + escHtml(e.motivo) + '</div>' : '');
+    });
+  }
+
+  // 4) Os avisos de entrega (webhook)
+  var hk = TW.hook || {};
+  var appToken = (s.webhook && s.webhook.nossoApp) || '';
+  if (hk.ativo) {
+    h += '<div class="ta-status ok" style="margin-top:14px">✓ O sistema recebe os avisos de entrega da Meta' +
+         (hk.ultimoAviso ? ' (último: ' + escHtml(new Date(hk.ultimoAviso).toLocaleString('pt-BR')) + ')' : '') + '</div>';
+  } else {
+    h += '<div style="margin-top:14px;padding:13px 14px;border-radius:10px;border:1px dashed rgba(224,168,60,.45);background:rgba(224,168,60,.06)">' +
+      '<div style="font-size:12.5px;font-weight:700;color:#e0a83c;margin-bottom:6px">O sistema ainda não recebe os avisos de entrega</div>' +
+      '<div style="font-size:12px;color:var(--muted);line-height:1.65">' +
+        (appToken ? 'O token usado aqui é do app <b style="color:var(--text)">' + escHtml(appToken) + '</b>: ' : '') +
+        'os avisos de &ldquo;entregue&rdquo;, &ldquo;não chegou&rdquo; e as respostas das pessoas vão para esse app, não para cá. Para receber aqui:' +
+        '<ol style="margin:8px 0 8px 18px;padding:0">' +
+          '<li>Em <b>developers.facebook.com</b>, abra o app da WPK (ou crie um, tipo <i>Empresa</i>) e adicione o produto <b>WhatsApp</b>.</li>' +
+          '<li>WhatsApp &rarr; Configuração &rarr; Webhook &rarr; <b>Editar</b>: cole a URL e o token abaixo e clique em <b>Verificar e salvar</b>.</li>' +
+          '<li>Em <b>Campos do webhook</b>, assine <b>messages</b>.</li>' +
+          '<li>No Business Manager &rarr; Usuários do sistema: dê ao usuário acesso a esse app e à conta do WhatsApp, gere um token permanente com ' +
+            '<code>whatsapp_business_messaging</code> e <code>whatsapp_business_management</code> e cole no campo <b>Token</b> desta tela (Salvar).</li>' +
+          '<li>Volte aqui e clique em <b>Ligar avisos de entrega</b>.</li>' +
+        '</ol></div>' +
+      _taWaCampo('URL do webhook', hk.url || '') +
+      _taWaCampo('Token de verificação', hk.verifyToken || '') +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' +
+        '<button class="btn btn-primary btn-sm" onclick="taWaAssinar(this)">Ligar avisos de entrega</button>' +
+        (hk.verificadoEm ? '<span style="font-size:11.5px;color:var(--green);align-self:center">✓ A Meta já confirmou a URL</span>' : '') +
+      '</div></div>';
+  }
+  return h + '</div>';
+}
+
+function _taWaCampo(rotulo, valor) {
+  return '<div style="margin-top:8px"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">' + escHtml(rotulo) + '</div>' +
+    '<div style="display:flex;gap:6px"><input class="form-control" readonly value="' + escHtml(valor) + '" style="font-size:11.5px;font-family:monospace">' +
+    '<button class="btn btn-ghost btn-sm" data-fb-off="1" data-v="' + escHtml(valor) + '" onclick="taWaCopiar(this)">Copiar</button></div></div>';
+}
+
+function taWaCopiar(btn) {
+  var v = btn.dataset.v || '';
+  var ok = function () { toast('Copiado.', 'success'); };
+  try { navigator.clipboard.writeText(v).then(ok, function () { toast('Não consegui copiar — selecione e copie.', 'error'); }); }
+  catch (e) { toast('Não consegui copiar — selecione e copie.', 'error'); }
+}
+
+async function taWaAssinar(botao) {
+  return acaoBotao(botao, async function () {
+    var r = await rpc('waWebhookAssinar', {});
+    if (!r || !r.ok) return { ok: false, msg: 'Não ligou', detalhe: (r && r.error) || 'A Meta recusou.' };
+    toast(r.message || 'Ligado.', 'success');
+    return { ok: true, msg: 'Ligado', depois: function () { taWaCarregar(true); } };
+  }, 'Ligando…');
 }
 
 async function taCarregarTemplates() {
@@ -7866,8 +8022,8 @@ async function taRitoTestar(botao) {
     // v171: `rota` faz o teste montar os dados IGUAL ao cadastro real da rota
     var r = await rpc('waTestar', { numero: num, template: t.nome, idioma: t.idioma, vars: t.vars, dias: dias, rota: pref });
     if (!r || !r.ok) return { ok: false, msg: 'Falhou', detalhe: (r && r.error) || 'A Meta recusou o envio.' };
-    toast('Template ' + t.nome + ' enviado para ' + num + '. Confira o WhatsApp.', 'success');
-    return { ok: true, msg: 'Enviado' };
+    toast('Template ' + t.nome + ' aceito pela Meta para ' + num + '. Confira se chegou no WhatsApp — o quadro de entrega mostra o resultado.', 'success');
+    return { ok: true, msg: 'Aceito', depois: function () { setTimeout(function () { taWaCarregar(true); }, 4000); } };
   }, 'Enviando…');
 }
 

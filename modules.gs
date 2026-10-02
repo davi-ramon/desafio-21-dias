@@ -312,6 +312,12 @@ function handleRequest(payload) {
     case 'getRitoStatus':            return getRitoStatus();
     case 'waCriarTemplateSemCartao': return waCriarTemplateSemCartao(token, data);
     case 'waReenviarBoasVindas':     return waReenviarBoasVindas(token, data);
+    // v173 — o WhatsApp está entregando? (saúde da conta na Meta)
+    case 'getWaSaude':               return getWaSaude();
+    case 'waSaude':                  return waSaude(token, data);
+    case 'waEnvios':                 return waEnvios(token, data);
+    case 'waWebhookInfo':            return waWebhookInfo(token);
+    case 'waWebhookAssinar':         return waWebhookAssinar(token);
     // v172 — CRM: etapas configuráveis e ações no lead
     case 'crmGetEtapas':             return crmGetEtapas(token);
     case 'crmSalvarEtapas':          return crmSalvarEtapas(token, data);

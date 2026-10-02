@@ -161,12 +161,15 @@ function crmEnviarTemplate(token, data) {
   else mapa = vars.map(function (v, i) { return literal(v, i); });
 
   var ctx = _crmCtxDoLead_(lead);
-  var r = _waEnviarTemplate_(fone, nome, idioma, [], { mapaJson: JSON.stringify(mapa), ctx: ctx });
+  var r = _waEnviarTemplate_(fone, nome, idioma, [], { mapaJson: JSON.stringify(mapa), ctx: ctx,
+                                                       tipo: 'CRM (manual)', leadId: lead.id });
   var motivo = r.ok ? '' : ((typeof ritoMotivo_ === 'function') ? ritoMotivo_(r.error) : r.error);
-  _crmHistorico_(achado.linha, r.ok ? 'WhatsApp: template "' + nome + '" enviado'
+  // v173: "aceito" não é "entregue" — a entrega entra no histórico quando a Meta avisar
+  _crmHistorico_(achado.linha, r.ok ? 'WhatsApp: template "' + nome + '" aceito pela Meta'
                                     : 'WhatsApp: template "' + nome + '" não saiu — ' + motivo, user.email);
   logAction(user.email, r.ok ? 'CRM_WA_ENVIADO' : 'CRM_WA_FALHOU', 'lead', lead.id, nome + (r.ok ? '' : ' | ' + r.error));
-  return r.ok ? { ok: true, message: 'Template enviado para +' + fone + '.' } : { ok: false, error: motivo };
+  return r.ok ? { ok: true, id: r.id, message: 'Aceito pela Meta para +' + fone + '. A entrega aparece no histórico do lead.' }
+              : { ok: false, error: motivo };
 }
 
 // ─────────────────────────────────────────────────────────────

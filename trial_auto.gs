@@ -203,7 +203,8 @@ function dispararAutomacoesTrial_(email, sub) {
           emailOk: !!(r.email && r.email.ok), emailVia: (r.email && r.email.via) || '',
           emailDesligado: r.email === null,
           waOk: !!(r.whatsapp && r.whatsapp.ok),
-          waErro: (r.whatsapp && r.whatsapp.error) || ''
+          waErro: (r.whatsapp && r.whatsapp.error) || '',
+          waMsgId: (r.whatsapp && r.whatsapp.id) || ''
         });
         r.telegram = { ok: true };
       }

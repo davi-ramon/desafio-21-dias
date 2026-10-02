@@ -23,6 +23,10 @@ function getSpreadsheet_() {
 
 // ── Web App Entry Point (GET) ────────────────────────────────
 function doGet(e) {
+  // v173: a Meta confirma o webhook do WhatsApp com ?hub.mode=subscribe
+  if (e && e.parameter && e.parameter['hub.mode'] && typeof waWebhookVerificar_ === 'function') {
+    return waWebhookVerificar_(e);
+  }
   var page  = e.parameter.page  || 'login';
   var token = e.parameter.token || '';
 
@@ -318,6 +322,11 @@ function doPost(e) {
       return processStripeEvent_(raw);
     }
 
+    // ── WhatsApp Cloud API webhook (entrega + respostas) — v173 ──
+    if (raw && raw.object === 'whatsapp_business_account' && Array.isArray(raw.entry)) {
+      return waWebhookProcessar_(raw);
+    }
+
     // ── Cakto webhook formato PLANO (produção real) ──────────
     // Formato real: { event, secret, data:{ id, customer, product, subscription?,… } }
     if (raw && !Array.isArray(raw) && raw.data && raw.data.id && raw.event) {
@@ -441,7 +450,9 @@ function doPost(e) {
       payload.action === 'getEmailStatus'         ||
       // v168 — se as boas-vindas (e-mail + WhatsApp) estao prontas, por
       // rota: so estados e nomes de template, nenhum dado pessoal
-      payload.action === 'getRitoStatus'
+      payload.action === 'getRitoStatus'          ||
+      // v173 — saude do WhatsApp na Meta: so estados e contagens (cache 5 min)
+      payload.action === 'getWaSaude'
     ) {
       // BLINDAGEM: rate-limit + honeypot nas rotas públicas
       var _gate = _gatePublico_(payload);

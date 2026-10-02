@@ -121,9 +121,21 @@ function fetchSim(url, opts) {
     const t = (S.templatesMeta || {})[nome];
     return resposta(200, { data: t ? [Object.assign({ name: nome, language: 'pt_BR' }, t)] : [] });
   }
+  // v173: saúde da conta na Meta — S.metaSaude = { 'trecho da url': resposta | código de erro }
+  if (url.indexOf('graph.facebook.com') >= 0 && S.metaSaude) {
+    for (const trecho of Object.keys(S.metaSaude)) {
+      if (url.indexOf(trecho) < 0) continue;
+      const v = S.metaSaude[trecho];
+      return typeof v === 'number' ? resposta(v, { error: { message: '(#100) erro ' + v } }) : resposta(200, v);
+    }
+  }
   if (url.indexOf('graph.facebook.com') >= 0) return resposta(200, {});
   if (url.indexOf('api.qrserver.com') >= 0) return { getResponseCode: () => 200, getContentText: () => '', getBlob: () => ({ setName: () => ({ qr: true }) }) };
-  if (url.indexOf('api.telegram.org') >= 0) { S.tg.push(JSON.parse(opts.payload).text); return resposta(200, { ok: true }); }
+  if (url.indexOf('api.telegram.org') >= 0) {
+    const p = JSON.parse(opts.payload);
+    if (url.indexOf('/editMessageText') >= 0) { (S.tgEdit = S.tgEdit || []).push({ id: p.message_id, text: p.text }); return resposta(200, { ok: true }); }
+    S.tg.push(p.text); return resposta(200, { ok: true, result: { message_id: 1000 + S.tg.length } });
+  }
   throw new Error('fetch inesperado: ' + url);
 }
 
@@ -152,6 +164,8 @@ const ctx = {
   },
   Session: { getEffectiveUser: () => ({ getEmail: () => 'wpktavares@gmail.com' }) },
   LockService: { getScriptLock: () => ({ waitLock() {}, tryLock: () => true, releaseLock() {} }) },
+  ContentService: { MimeType: { JSON: 'json', TEXT: 'text' },
+                    createTextOutput: t => { const o = { conteudo: t === undefined ? '' : String(t), setMimeType() { return o; }, setContent(c) { o.conteudo = String(c); return o; }, getContent() { return o.conteudo; } }; return o; } },
   Logger: { log() {} },
   ScriptApp: { getProjectTriggers: () => (S.gatilhos || []).map(h => ({ getHandlerFunction: () => h })) }
 };
@@ -161,7 +175,7 @@ vm.createContext(ctx);
 
 for (const f of ['code.gs', 'automation.gs', 'auth.gs', 'auth_admin.gs', 'leads.gs', 'crm_leads.gs', 'trial_routes.gs',
                  'trial_card.gs', 'whatsapp.gs', 'telegram.gs', 'email_saude.gs', 'email_layout.gs', 'modules.gs', 'setup.gs',
-                 'rito_status.gs', 'trial_auto.gs', 'ingressos_evento.gs', 'crm_etapas.gs', 'crm_acoes.gs']) {
+                 'rito_status.gs', 'trial_auto.gs', 'ingressos_evento.gs', 'crm_etapas.gs', 'crm_acoes.gs', 'wa_saude.gs', 'wa_webhook.gs']) {
   vm.runInContext(fs.readFileSync(path.join(RAIZ, f), 'utf8'), ctx, { filename: f });
 }
 
@@ -340,7 +354,7 @@ passo('rito: e-mail de boas-vindas + WhatsApp (template do sem cartao) + Telegra
   exige(S.tg.length === 1 && /App instalado/.test(S.tg[0]) && /roteiro-05/.test(S.tg[0]), S.tg[0]);
   exige(S.capi.indexOf('Lead') >= 0 && S.capi.indexOf('CompleteRegistration') >= 0, 'CAPI: ' + S.capi);
   const tl = leadCrm('carla@y.com').tl.map(t => t.action);
-  exige(tl.some(a => /Boas-vindas: e-mail enviado · WhatsApp enviado/.test(a)), 'historico: ' + tl.join(' / '));
+  exige(tl.some(a => /Boas-vindas: e-mail enviado · WhatsApp aceito pela Meta/.test(a)), 'historico: ' + tl.join(' / '));
   return 'fim do teste no WhatsApp: ' + vars[1];
 });
 passo('trial_leads com a rota e sem formula vinda de fora', () => {
@@ -503,8 +517,10 @@ passo('cadastro: o aviso do Telegram traz o resultado das boas-vindas', () => {
   planilhaNova();
   ctx.registrarTrial_({ nome: 'Gabi', email: 'gabi@y.com', whatsapp: '94991230000', rota: 'app-instalado', consentimento: true });
   const m = S.tg[S.tg.length - 1];
-  exige(/✅ E-mail enviado/.test(m) && /✅ WhatsApp \(template\) enviado/.test(m) && !/Fale com a pessoa/.test(m), m);
-  return 'tudo saiu, sem alarme';
+  // v173: "aceito" não é "entregue" — o aviso não promete o que não sabe, e sempre traz o link da conversa
+  exige(/✅ E-mail enviado/.test(m) && /📤 WhatsApp aceito pela Meta/.test(m) && !/WhatsApp \(template\) enviado/.test(m) && !/❌/.test(m), m);
+  exige(/Conversar: https:\/\/wa\.me\/5594991230000/.test(m), 'sem link da conversa: ' + m);
+  return 'aceito (sem prometer entrega) + link da conversa';
 });
 passo('WhatsApp desligado no painel: o grupo e avisado com o motivo e o link da pessoa', () => {
   configRito([['auto_whats_boasvindas_sc', 'false']]);
@@ -520,7 +536,7 @@ passo('falha passageira da Meta (500): tenta de novo e entrega', () => {
   S.waTentativas = 0; S.waFalhas = [500];
   ctx.registrarTrial_({ nome: 'Iara', email: 'iara@y.com', whatsapp: '94991230002', rota: 'app-web', consentimento: true });
   exige(S.waTentativas === 2 && S.wa.length === 1, 'tentativas=' + S.waTentativas + ' enviados=' + S.wa.length);
-  exige(/✅ WhatsApp/.test(S.tg[S.tg.length - 1]), S.tg[S.tg.length - 1]);
+  exige(/📤 WhatsApp aceito pela Meta/.test(S.tg[S.tg.length - 1]), S.tg[S.tg.length - 1]);
 });
 passo('erro de configuracao (400): nao insiste, avisa com a mensagem da Meta', () => {
   S.waTentativas = 0; S.waFalhas = [400];
@@ -537,7 +553,7 @@ passo('com cartao: e-mail com resultado REAL e aviso completo no Telegram', () =
   exige(r.ok && r.resultado.email.ok && r.resultado.email.via === 'resend', 'email: ' + JSON.stringify(r.resultado.email));
   exige(r.resultado.whatsapp.ok && S.wa[0].template.name === 'bv_cartao', 'whatsapp: ' + JSON.stringify(r.resultado.whatsapp));
   const m = S.tg[S.tg.length - 1];
-  exige(/Checkout com cartão/.test(m) && /✅ E-mail enviado/.test(m) && /✅ WhatsApp/.test(m), m);
+  exige(/Checkout com cartão/.test(m) && /✅ E-mail enviado/.test(m) && /📤 WhatsApp aceito pela Meta/.test(m), m);
   // todos os canais de e-mail fora: o aviso diz que NAO saiu (antes dizia ok sempre)
   S.resend = '403'; S.gmail = 'throw'; S.mailapp = 'throw'; cache.clear();
   r = ctx.dispararAutomacoesTrial_('lia@y.com', { id: 'sub_2', trial_end: Math.floor(Date.now() / 1000) + 14 * 86400 });
@@ -601,7 +617,7 @@ passo('o caso real: template do cartao no sem cartao, {{3}} = data da cobranca -
   exige(S.wa.length === 1, 'WhatsApp nao saiu: ' + S.tg[S.tg.length - 1]);
   const v = S.wa[0].template.components.find(c => c.type === 'body').parameters.map(p => p.text);
   exige(v[0] === 'Salomão' && v[1] === '7' && /^\d\d\/\d\d\/\d{4}$/.test(v[2]) && v[3] === '17,00', 'variaveis: ' + v);
-  exige(/✅ WhatsApp \(template\) enviado/.test(S.tg[S.tg.length - 1]), S.tg[S.tg.length - 1]);
+  exige(/📤 WhatsApp aceito pela Meta/.test(S.tg[S.tg.length - 1]), S.tg[S.tg.length - 1]);
   return 'Até ' + v[2] + ' é tudo por nossa conta';
 });
 passo('o teste do painel agora monta os dados como o cadastro real da rota', () => {
@@ -648,7 +664,7 @@ passo('reenvio pelo painel: so com autorizacao, com o fim do teste da pessoa', (
   let r = ctx.waReenviarBoasVindas(t, { email: 'salomao@y.com' });
   exige(r.ok && S.wa.length === 1 && /\+5591985858577/.test(r.message), JSON.stringify(r));
   const tl = leadCrm('salomao@y.com').tl.map(x => x.action).join(' / ');
-  exige(/reenviado pelo painel: enviado/.test(tl), tl);
+  exige(/reenviado pelo painel: aceito pela Meta/.test(tl), tl);
   ctx.registrarTrial_({ nome: 'Sem Aceite', email: 'semaceite@y.com', whatsapp: '91985850000', dias: 7 });
   r = ctx.waReenviarBoasVindas(t, { email: 'semaceite@y.com' });
   exige(!r.ok && /autorização/.test(r.error), JSON.stringify(r));
@@ -743,7 +759,7 @@ passo('acoes: template com os valores editados no painel (variaveis com NOME)', 
   const b = S.wa[0].template.components.find(c => c.type === 'body').parameters;
   exige(b[0].text === 'Aninha' && b[0].parameter_name === 'nome' && b[1].text === 'segunda às 10h', JSON.stringify(b));
   exige(S.wa[0].to === '5594991230000', 'numero: ' + S.wa[0].to);
-  exige(historico('L1').some(a => /WhatsApp: template "tpl_crm" enviado/.test(a)), historico('L1').join(' / '));
+  exige(historico('L1').some(a => /WhatsApp: template "tpl_crm" aceito pela Meta/.test(a)), historico('L1').join(' / '));
   return 'enviado com "Aninha" e "segunda às 10h"';
 });
 passo('acoes: sem WhatsApp valido ou sem permissao, nao dispara', () => {
@@ -789,6 +805,152 @@ passo('v170: ingresso de evento sai pelo MailApp com o QR embutido (o GmailApp n
   exige(!S.gmailChamado, 'ainda chamou o GmailApp');
   exige(e.opts && e.opts.htmlBody && e.opts.name && !('from' in e.opts), 'opcoes: ' + JSON.stringify(Object.keys(e.opts || {})));
   return 'MailApp' + (e.opts.inlineImages ? ' + QR embutido' : ' + QR por link');
+});
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nV173 — O WHATSAPP ESTA ENTREGANDO?');
+const SAUDE_BLOQUEADA = {
+  'fields=verified_name': { verified_name: 'WPK Tavares', display_phone_number: '+55 94 99999-0000', name_status: 'APPROVED',
+    quality_rating: 'GREEN', messaging_limit_tier: 'TIER_250', platform_type: 'CLOUD_API', status: 'CONNECTED',
+    code_verification_status: 'VERIFIED', account_mode: 'LIVE' },
+  'fields=is_on_biz_app': { is_on_biz_app: true },
+  'fields=health_status': { health_status: { can_send_message: 'BLOCKED', entities: [
+    { entity_type: 'PHONE_NUMBER', can_send_message: 'AVAILABLE' },
+    { entity_type: 'WABA', can_send_message: 'BLOCKED', errors: [{ error_code: 141006,
+      error_description: 'There is an error with the payment method attached to the WhatsApp Business Account', possible_solution: 'Add a valid payment method' }] }] } },
+  'fields=account_review_status': { account_review_status: 'APPROVED', business_verification_status: 'unverified' },
+  '/subscribed_apps': { data: [] },
+  'analytics.start': { analytics: { data_points: [{ start: 1759363200, end: 1759449600, sent: 3, delivered: 0 },
+                                                  { start: 1759276800, end: 1759363200, sent: 0, delivered: 0 }] } }
+};
+passo('saude: bloqueio da Meta traduzido, entregas por dia e webhook sem ninguem — publico sem telefone', () => {
+  planilhaNova();
+  S.metaSaude = SAUDE_BLOQUEADA;
+  // a aba "log" como o logAction de verdade grava (no teste o logAction é simulado)
+  const aLog = ctx.getSheet('log'), agoraIso = new Date().toISOString();
+  aLog.appendRow(['id', 'user', 'action', 'entity', 'entity_id', 'details', 'timestamp']);
+  aLog.appendRow(['1', '5563992196929', 'WA_ENVIADO', 'whatsapp', 'tpl', 'wamid.a', agoraIso]);
+  aLog.appendRow(['2', '5594991230000', 'WA_ENVIADO', 'whatsapp', 'tpl', 'wamid.b', agoraIso]);
+  aLog.appendRow(['3', '5594991230001', 'WA_ENVIO_FALHOU', 'whatsapp', 'tpl', '(#131008) erro', agoraIso]);
+  aLog.appendRow(['4', 'davi@x.com', 'LOGIN', 'user', '', '', agoraIso]);
+  const r = ctx.getWaSaude();
+  const d = r.data;
+  const hoje = d.entregas.dias.find(x => x.aceitas);
+  exige(hoje && hoje.aceitas === 2 && hoje.recusadas === 1, 'aceitas pelo log: ' + JSON.stringify(d.entregas.dias));
+  exige(r.ok && d.podeEnviar === 'BLOCKED', JSON.stringify(d));
+  exige(d.bloqueios.length === 1 && d.bloqueios[0].codigo === 141006 && /Forma de pagamento/.test(d.bloqueios[0].motivo) && d.bloqueios[0].onde === 'Conta WhatsApp',
+        JSON.stringify(d.bloqueios));
+  exige(d.entregas.enviadas === 3 && d.entregas.entregues === 0 && d.entregas.dias.length === 2, JSON.stringify(d.entregas));
+  exige(d.webhook.assinado === false && d.numero.noAppBusiness === true && d.numero.qualidade === 'GREEN', JSON.stringify(d.webhook) + JSON.stringify(d.numero));
+  exige(!JSON.stringify(d).includes('99999') && !JSON.stringify(d).includes('WPK Tavares'), 'publico vazou telefone/nome');
+  const adm = ctx.waSaude(ctx.login('davi@x.com', 'x').token || '', {});
+  exige(adm.ok === false || /99999/.test(JSON.stringify(adm.data)), 'admin');
+  return 'BLOCKED: ' + d.bloqueios[0].motivo;
+});
+passo('saude: campo que a versao da API nao conhece nao derruba o resto (fica em falhas)', () => {
+  cache.clear();
+  S.metaSaude = Object.assign({}, SAUDE_BLOQUEADA, { 'fields=is_on_biz_app': 400, 'analytics.start': 403 });
+  const d = ctx.getWaSaude().data;
+  exige(d.numero.noAppBusiness === null && d.falhas.some(f => f.onde === 'entregas') && d.podeEnviar === 'BLOCKED', JSON.stringify(d));
+  S.metaSaude = null;
+});
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nV173 — WEBHOOK: ENTREGUE, NAO CHEGOU E RESPOSTA DA PESSOA');
+const postWa = corpo => ctx.doPost({ postData: { contents: JSON.stringify(corpo), type: 'application/json' }, parameter: {} });
+const avisoWa = (statuses, messages, pid) => ({ object: 'whatsapp_business_account', entry: [{ id: '1', changes: [{ field: 'messages',
+  value: { messaging_product: 'whatsapp', metadata: { phone_number_id: pid || '2', display_phone_number: '559400000000' },
+           statuses: statuses || [], messages: messages || [],
+           contacts: (messages || []).map(m => ({ wa_id: m.from, profile: { name: 'Perfil ' + m.from } })) } }] }] });
+const linhaEnvio = wamid => (abas.wa_envios ? abas.wa_envios.rows.find(r => r[1] === wamid) : null);
+const ultimoEnvio = () => abas.wa_envios.rows[abas.wa_envios.rows.length - 1];
+const agoraSeg = () => String(Math.floor(Date.now() / 1000));
+const TPL_SC = { status: 'APPROVED', category: 'UTILITY', components: [{ type: 'BODY', text: 'Oi {{1}}, seu teste vai até {{2}}.' }] };
+
+passo('webhook: a Meta so confirma o endereco com o token certo', () => {
+  planilhaNova();
+  props.delete('WA_WEBHOOK_VERIFY'); props.delete('WA_WEBHOOK_ULTIMO');
+  const hub = t => ctx.doGet({ parameter: { 'hub.mode': 'subscribe', 'hub.verify_token': t, 'hub.challenge': '4242' } }).getContent();
+  exige(hub('qualquer') === 'forbidden', 'sem token configurado aceitou');
+  abas.users.appendRow(['ua', 'Davi', 'davi@x.com', ctx.hashPassword('x'), 'admin', '', true, '']);
+  const info = ctx.waWebhookInfo(ctx.login('davi@x.com', 'x').token).data;
+  exige(/\/exec$/.test(info.url) && info.verifyToken.length > 20 && info.ativo === false, JSON.stringify(info));
+  exige(hub('errado') === 'forbidden' && hub(info.verifyToken) === '4242', 'verificacao');
+  return 'URL + token para colar na Meta';
+});
+passo('webhook: envio aceito vira linha; ENTREGUE muda o aviso do Telegram e entra no historico', () => {
+  S.templatesMeta.bv_teste_gratis = TPL_SC; S.tgEdit = [];
+  ctx.registrarTrial_({ nome: 'Fabiana Lima', email: 'faby@y.com', whatsapp: '63992196929', rota: 'app-web', consentimento: true });
+  const aviso = S.tg[S.tg.length - 1];
+  exige(/entrega NÃO confirmada/.test(aviso), 'antes de qualquer aviso da Meta o Telegram nao pode prometer entrega: ' + aviso);
+  const env = ultimoEnvio();
+  exige(env[9] === 'aceito' && env[5] === 'boas-vindas (sem cartão)' && env[6] === 'faby@y.com' && env[7] === 'Fabiana Lima' && env[13],
+        JSON.stringify(env));
+  const wamid = env[1];
+  postWa(avisoWa([{ id: wamid, status: 'sent', timestamp: agoraSeg(), recipient_id: '556392196929' }]));
+  postWa(avisoWa([{ id: wamid, status: 'delivered', timestamp: agoraSeg(), recipient_id: '556392196929' }]));
+  exige(linhaEnvio(wamid)[9] === 'delivered' && linhaEnvio(wamid)[3] === '556392196929', JSON.stringify(linhaEnvio(wamid)));
+  const ed = S.tgEdit[S.tgEdit.length - 1];
+  exige(ed && String(ed.id) === String(env[13]) && /✅ WhatsApp ENTREGUE/.test(ed.text) && /Conversar/.test(ed.text) && !/\{\{WA\}\}/.test(ed.text),
+        JSON.stringify(ed));
+  const tl = leadCrm('faby@y.com').tl.map(t => t.action).join(' / ');
+  exige(/ENTREGUE/.test(tl) && !/saiu da Meta/.test(tl), tl);
+  return 'aceito → saiu → ENTREGUE (aviso editado, historico)';
+});
+passo('webhook: NAO CHEGOU — motivo em portugues, alerta novo no Telegram e historico', () => {
+  ctx.registrarTrial_({ nome: 'Rui Alves', email: 'rui@y.com', whatsapp: '91985858577', rota: 'app-web', consentimento: true });
+  exige(/confirmando a entrega/.test(S.tg[S.tg.length - 1]), 'com o webhook ativo o aviso diz que vai confirmar: ' + S.tg[S.tg.length - 1]);
+  const wamid = ultimoEnvio()[1], antes = S.tg.length;
+  postWa(avisoWa([{ id: wamid, status: 'failed', timestamp: agoraSeg(), recipient_id: '5591985858577',
+                    errors: [{ code: 131026, title: 'Message undeliverable', message: 'Message undeliverable', error_data: { details: 'Message Undeliverable.' } }] }]));
+  const l = linhaEnvio(wamid);
+  exige(l[9] === 'failed' && String(l[11]) === '131026' && /não recebe mensagens no WhatsApp/.test(l[12]), JSON.stringify(l));
+  const alerta = S.tg[S.tg.length - 1];
+  exige(S.tg.length === antes + 1 && /WhatsApp NÃO chegou/.test(alerta) && /Rui Alves/.test(alerta) && /wa\.me\/5591985858577/.test(alerta), alerta);
+  exige(/❌ WhatsApp NÃO chegou/.test(S.tgEdit[S.tgEdit.length - 1].text), 'o aviso original nao mudou');
+  exige(/NÃO chegou — esse número não recebe/.test(leadCrm('rui@y.com').tl.map(t => t.action).join(' / ')), 'historico');
+  return l[12];
+});
+passo('webhook: a Meta reenvia o mesmo aviso (o Apps Script responde 302) — nada duplica nem volta para tras', () => {
+  const wamid = ultimoEnvio()[1];
+  const n0 = leadCrm('rui@y.com').tl.length, t0 = S.tg.length;
+  const falha = avisoWa([{ id: wamid, status: 'failed', timestamp: agoraSeg(), errors: [{ code: 131026, title: 'x' }] }]);
+  postWa(falha); postWa(falha);
+  postWa(avisoWa([{ id: wamid, status: 'sent', timestamp: agoraSeg() }]));   // atrasado
+  exige(leadCrm('rui@y.com').tl.length === n0 && S.tg.length === t0 && linhaEnvio(wamid)[9] === 'failed',
+        'duplicou: ' + (leadCrm('rui@y.com').tl.length - n0) + ' historico, ' + (S.tg.length - t0) + ' telegram, status ' + linhaEnvio(wamid)[9]);
+});
+passo('webhook: so vale o NOSSO numero e mensagem que NOS mandamos', () => {
+  const t0 = S.tg.length;
+  postWa(avisoWa([{ id: 'wamid.de.outro.app', status: 'failed', errors: [{ code: 131026 }] }]));
+  postWa(avisoWa([], [{ from: '5591985858577', id: 'in.outro', type: 'text', text: { body: 'oi' } }], '999'));
+  exige(S.tg.length === t0, 'aceitou aviso que nao e nosso: ' + S.tg.slice(t0).join(' | '));
+});
+passo('webhook: a resposta da pessoa avisa o grupo UMA vez e entra no historico (wa_id sem o 9 acha o lead)', () => {
+  const t0 = S.tg.length;
+  postWa(avisoWa([], [{ from: '556392196929', id: 'in.2', timestamp: agoraSeg(), type: 'text', text: { body: 'Oi! Quero saber mais' } }]));
+  postWa(avisoWa([], [{ from: '556392196929', id: 'in.3', timestamp: agoraSeg(), type: 'text', text: { body: 'Como funciona?' } }]));
+  exige(S.tg.length === t0 + 1, 'avisos: ' + (S.tg.length - t0));
+  const m = S.tg[S.tg.length - 1];
+  exige(/Fabiana Lima respondeu no WhatsApp/.test(m) && /Quero saber mais/.test(m) && /wa\.me\/556392196929/.test(m), m);
+  exige(/respondeu — "Oi! Quero saber mais"/.test(leadCrm('faby@y.com').tl.map(t => t.action).join(' / ')), 'historico');
+});
+passo('webhook: o aviso de entrega chegou ANTES do Telegram — o aviso ja sai com o estado real', () => {
+  const r = ctx._waEnviarTemplate_('5594991230009', 'bv_teste_gratis', 'pt_BR', [],
+    { mapaJson: '["primeiro_nome","fim_teste"]', ctx: { nome: 'Teo', email: 'teo@y.com', fimTeste: '09/10/2026' }, tipo: 'teste' });
+  exige(r.ok && r.id, JSON.stringify(r));
+  postWa(avisoWa([{ id: r.id, status: 'read', timestamp: agoraSeg() }]));
+  S.tgEdit = [];
+  ctx._waEnvioVincularTg_(r.id, 777, 'Aviso {{WA}}');
+  exige(S.tgEdit.length === 1 && S.tgEdit[0].id === 777 && /entregue e LIDO/.test(S.tgEdit[0].text), JSON.stringify(S.tgEdit));
+});
+passo('painel: ultimos envios com o estado real', () => {
+  const r = ctx.waEnvios(ctx.login('davi@x.com', 'x').token, { limite: 10 });
+  exige(r.ok && r.webhookAtivo === true && r.data.length >= 3, JSON.stringify(r).slice(0, 300));
+  const st = r.data.map(e => e.status).join(',');
+  exige(/read/.test(st) && /failed/.test(st) && /delivered/.test(st), st);
+  exige(r.data.find(e => e.status === 'failed').motivo, 'sem motivo');
+  return st;
 });
 
 console.log(falhas ? '\n' + falhas + ' FALHA(S)' : '\nOK — backend da v166 conferido por execucao');

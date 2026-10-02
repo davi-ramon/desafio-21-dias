@@ -664,6 +664,40 @@ function abrir(rel, cfg) {
     exige(pedido && pedido.tipo === 'recuperacao' && pedido.leadId === 'a1b2c3', JSON.stringify(pedido));
   });
 
+  // ── v173: o WhatsApp está chegando de verdade? ───────────────
+  await passo('v173: quadro de entrega — limite, aceitas x chegaram, estado real e como ligar os avisos', async () => {
+    let assinou = false;
+    const SAUDE = { podeEnviar: 'LIMITED', bloqueios: [
+        { onde: 'Empresa (Meta)', motivo: 'Verificação da empresa pendente no Gerenciador de Negócios da Meta.', detalhe: 'The Business has not passed business verification.' },
+        { onde: 'App da Meta', motivo: 'This app cannot use SIP for WhatsApp Business calling', detalhe: 'This app cannot use SIP for WhatsApp Business calling' }],
+      entregas: { dias: [{ dia: '30/09', aceitas: 1, enviadas: 1, entregues: 1 }, { dia: '01/10', aceitas: 4, enviadas: 1, entregues: 1 }] },
+      webhook: { nossoApp: 'GPT Maker', apps: [{ nome: 'GPT Maker' }] } };
+    const ENVIOS = [{ quando: '2026-10-02T15:13:00Z', para: '5563992196929', nome: 'Fabiana Lima', tipo: 'boas-vindas (sem cartão)', status: 'failed', motivo: 'esse número não recebe mensagens no WhatsApp (#131026)' },
+                    { quando: '2026-10-02T13:23:00Z', para: '5594991230000', nome: 'Gabi', tipo: 'boas-vindas (sem cartão)', status: 'aceito', motivo: '' }];
+    const HOOK = { url: 'https://script.google.com/macros/s/X/exec', verifyToken: 'wpk123', ativo: false, verificadoEm: '' };
+    A.rpc = async (acao) => {
+      if (acao === 'waSaude') return { ok: true, data: SAUDE };
+      if (acao === 'waEnvios') return { ok: true, data: ENVIOS, webhookAtivo: HOOK.ativo };
+      if (acao === 'waWebhookInfo') return { ok: true, data: HOOK };
+      if (acao === 'waWebhookAssinar') { assinou = true; return { ok: true, message: 'Ligado.' }; }
+      return { ok: true, data: {} };
+    };
+    A.acaoBotao = async (b, fn) => { const r = await fn(); if (r && r.depois) r.depois(); return r; };
+    A.__ler('(function(){ rpc = globalThis.rpc; acaoBotao = globalThis.acaoBotao; })()');
+    await A.taWaCarregar();
+    const h = A.__el('taWaBox').innerHTML;
+    exige(/pode enviar, mas com limite/.test(h) && /Verificação da empresa pendente/.test(h) && !/SIP/.test(h), 'limite/motivos');
+    exige(/3 não chegaram/.test(h) && /3 mensagem\(ns\) aceitas pela Meta não chegaram/.test(h), 'tabela por dia');
+    exige(/Fabiana Lima/.test(h) && /não chegou/.test(h) && /#131026/.test(h) && /sem confirmação/.test(h), 'ultimos envios');
+    exige(/app <b[^>]*>GPT Maker<\/b>/.test(h) && /value="wpk123"/.test(h) && /Ligar avisos de entrega/.test(h), 'passos do webhook');
+    await A.taWaAssinar({});
+    exige(assinou, 'nao chamou o servidor');
+    HOOK.ativo = true; HOOK.ultimoAviso = '2026-10-02T16:00:00Z';
+    await A.taWaCarregar(true);
+    exige(/O sistema recebe os avisos de entrega/.test(A.__el('taWaBox').innerHTML) && !/Ligar avisos/.test(A.__el('taWaBox').innerHTML), 'webhook ativo');
+    return 'limite + 3 perdidas + estado real + passos';
+  });
+
   await passo('v169: login do admin le a resposta da recuperacao (antes ignorava)', () => {
     const src = fs.readFileSync(path.join(PUB, 'admin', 'index.html'), 'utf8');
     const i = src.indexOf('function _lgSubmitRecuperar');

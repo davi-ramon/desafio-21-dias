@@ -34,11 +34,13 @@ function _tgChat_()  { return PropertiesService.getScriptProperties().getPropert
 // ─────────────────────────────────────────────────────────────
 // ENVIO de mensagem (HTML)
 // ─────────────────────────────────────────────────────────────
+// v173: devolve o id da mensagem — o aviso de trial é editado depois,
+// quando a Meta disser se o WhatsApp chegou (wa_webhook.gs)
 function tgEnviar_(texto, chatId) {
   try {
     var token = _tgToken_();
     if (!token) return;
-    UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+    var resp = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
       method: 'post',
       contentType: 'application/json',
       payload: JSON.stringify({
@@ -49,7 +51,22 @@ function tgEnviar_(texto, chatId) {
       }),
       muteHttpExceptions: true,
     });
+    try { var j = JSON.parse(resp.getContentText()); return (j && j.result && j.result.message_id) || ''; } catch (e2) { return ''; }
   } catch(e) { /* nunca quebra o fluxo principal por causa de notificação */ }
+}
+
+// Troca o texto de uma mensagem já enviada (sem notificar de novo)
+function tgEditar_(msgId, texto, chatId) {
+  try {
+    var token = _tgToken_();
+    if (!token || !msgId) return false;
+    var r = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/editMessageText', {
+      method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      payload: JSON.stringify({ chat_id: chatId || _tgChat_(), message_id: Number(msgId) || msgId, text: texto,
+                                parse_mode: 'HTML', disable_web_page_preview: true })
+    });
+    return r.getResponseCode() < 300;
+  } catch (e) { return false; }
 }
 
 // Notificação de ERRO (usada nos catch do sistema)
@@ -95,19 +112,26 @@ function tgNotificarTrial_(nome, email, whatsapp, dias, extra) {
            (extra.emailOk ? '✅ E-mail enviado' + (extra.emailVia && extra.emailVia !== 'resend' ? ' (pelo Gmail)' : '')
                           : extra.emailDesligado ? '⏸ E-mail de boas-vindas desligado no painel'
                           : '❌ E-mail NÃO saiu') + '\n' +
-           (extra.waOk ? '✅ WhatsApp (template) enviado'
+           // v173: "aceito" não é "entregue" — a linha muda sozinha quando a
+           // Meta avisar (✅ entregue / ❌ não chegou + motivo)
+           (extra.waOk ? '{{WA}}'
                        : '❌ WhatsApp NÃO enviado — ' + _tgEsc_(motivo)) + '\n' +
-           (!extra.waOk || (!extra.emailOk && !extra.emailDesligado)
-             ? '👉 Fale com a pessoa: https://wa.me/' + fone + '\n' : '');
+           // sempre: o Wagner abre a conversa pelo WhatsApp Business num toque
+           '👉 Conversar: https://wa.me/' + fone + '\n';
   } else if (extra && extra.rota && !extra.consentiu) {
     rito = '⚠️ Sem autorização de contato — WhatsApp não enviado\n';
   }
-  tgEnviar_('🎁 <b>Novo Trial — ' + dias + ' dias grátis</b>\n' +
-            '👤 ' + _tgEsc_(nome) + '\n' +
-            '📧 ' + _tgEsc_(email) + '\n' +
-            '📱 +' + _tgEsc_(fone) + '\n' +
-            origem + rito +
-            '<i>' + _tgAgora_() + '</i>');
+  var texto = '🎁 <b>Novo Trial — ' + dias + ' dias grátis</b>\n' +
+              '👤 ' + _tgEsc_(nome) + '\n' +
+              '📧 ' + _tgEsc_(email) + '\n' +
+              '📱 +' + _tgEsc_(fone) + '\n' +
+              origem + rito +
+              '<i>' + _tgAgora_() + '</i>';
+  var linhaWa = (typeof _waLinhaTg_ === 'function') ? _waLinhaTg_('aceito') : '📤 WhatsApp aceito pela Meta';
+  var msgId = tgEnviar_(texto.replace('{{WA}}', linhaWa));
+  if (extra && extra.waOk && extra.waMsgId && msgId && typeof _waEnvioVincularTg_ === 'function') {
+    _waEnvioVincularTg_(extra.waMsgId, msgId, texto);
+  }
 }
 
 // Eventos de assinatura (chamado por processWebhookAssinatura_)

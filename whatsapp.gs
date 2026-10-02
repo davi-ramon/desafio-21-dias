@@ -421,8 +421,21 @@ function _waEnviarTemplate_(paraE164, nomeTpl, idioma, params, extras) {
     return { ok: false, error: r.message };
   }
   var id = (r.messages && r.messages[0] && r.messages[0].id) || '';
-  logAction(destino, 'WA_ENVIADO', 'whatsapp', nomeTpl, id);
-  return { ok: true, id: id };
+  // v173: "aceito" não é "entregue". Guarda o número como o WhatsApp o
+  // reconhece (wa_id — no Brasil pode vir sem o 9) e o estado que a Meta
+  // devolveu (ex.: held_for_quality_assessment), para a investigação.
+  var waId   = (r.contacts && r.contacts[0] && r.contacts[0].wa_id) || '';
+  var stMeta = (r.messages && r.messages[0] && r.messages[0].message_status) || '';
+  logAction(destino, 'WA_ENVIADO', 'whatsapp', nomeTpl,
+            id + (waId && waId !== destino ? ' | wa_id=' + waId : '') + (stMeta ? ' | ' + stMeta : ''));
+  // Cada envio aceito vira uma linha em wa_envios: é ela que o webhook
+  // atualiza (entregue / lido / não chegou) — ver wa_webhook.gs
+  var cx = (extras && extras.ctx) || {};
+  if (typeof _waEnvioRegistrar_ === 'function') {
+    _waEnvioRegistrar_({ wamid: id, para: destino, waId: waId, template: nomeTpl, tipo: (extras && extras.tipo) || '',
+                         email: cx.email || '', nome: cx.nome || '', leadId: (extras && extras.leadId) || '' });
+  }
+  return { ok: true, id: id, waId: waId, statusMeta: stMeta };
 }
 
 // Boas-vindas do trial — chamado pela automação pós-adesão
@@ -433,7 +446,7 @@ function waBoasVindasTrial_(ctx) {
     ctx.whatsapp,
     _waCfg_('wa_tpl_boasvindas'),
     _waCfg_('wa_tpl_boasvindas_lang', 'pt_BR'),
-    _waParams_(varsBv, ctx), { mapaJson: varsBv, ctx: ctx }
+    _waParams_(varsBv, ctx), { mapaJson: varsBv, ctx: ctx, tipo: 'boas-vindas (cartão)' }
   );
 }
 
@@ -473,7 +486,7 @@ function waBoasVindasSemCartao_(ctx) {
       return { ok: false, error: 'template ' + t.nome + ' ' + _waStatusNome_(st.status) };
     }
   } catch (e) {}
-  return _waEnviarTemplate_(ctx.whatsapp, t.nome, t.lang, _waParams_(t.vars, ctx), { mapaJson: t.vars, ctx: ctx });
+  return _waEnviarTemplate_(ctx.whatsapp, t.nome, t.lang, _waParams_(t.vars, ctx), { mapaJson: t.vars, ctx: ctx, tipo: 'boas-vindas (sem cartão)' });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -536,14 +549,14 @@ function waReenviarBoasVindas(token, data) {
   }
   if (!t || !t.nome) return { ok: false, error: 'Nenhum template de boas-vindas escolhido para essa rota.' };
 
-  var r = _waEnviarTemplate_(lead.fone, t.nome, t.lang, _waParams_(t.vars, ctx), { mapaJson: t.vars, ctx: ctx });
+  var r = _waEnviarTemplate_(lead.fone, t.nome, t.lang, _waParams_(t.vars, ctx), { mapaJson: t.vars, ctx: ctx, tipo: 'reenvio de boas-vindas' });
   try {
     _crmUpsertLead_({ email: email, evento: 'WhatsApp de boas-vindas reenviado pelo painel: ' +
-                      (r.ok ? 'enviado' : 'falhou (' + (typeof ritoMotivo_ === 'function' ? ritoMotivo_(r.error) : r.error) + ')') });
+                      (r.ok ? 'aceito pela Meta' : 'falhou (' + (typeof ritoMotivo_ === 'function' ? ritoMotivo_(r.error) : r.error) + ')') });
   } catch (e) {}
   logAction(user.email, 'WA_REENVIO_BOASVINDAS', 'whatsapp', email, r.ok ? (r.id || 'ok') : r.error);
   return r.ok
-    ? { ok: true, message: 'Boas-vindas enviadas para +' + lead.fone + ' (template ' + t.nome + ').' }
+    ? { ok: true, id: r.id, message: 'Aceito pela Meta para +' + lead.fone + ' (template ' + t.nome + '). A entrega aparece no histórico do lead.' }
     : { ok: false, error: (typeof ritoMotivo_ === 'function') ? ritoMotivo_(r.error) : r.error };
 }
 
@@ -624,7 +637,7 @@ function waRecuperarCheckout_(ctx) {
     ctx.whatsapp,
     tpl,
     _waCfg_('wa_tpl_recuperacao_lang', 'pt_BR'),
-    _waParams_(varsRc, ctx), { mapaJson: varsRc, ctx: ctx }
+    _waParams_(varsRc, ctx), { mapaJson: varsRc, ctx: ctx, tipo: 'recuperação de checkout' }
   );
 }
 
@@ -636,7 +649,7 @@ function waLembreteTrial_(ctx) {
     ctx.whatsapp,
     _waCfg_('wa_tpl_lembrete'),
     _waCfg_('wa_tpl_lembrete_lang', 'pt_BR'),
-    _waParams_(varsLb, ctx), { mapaJson: varsLb, ctx: ctx }
+    _waParams_(varsLb, ctx), { mapaJson: varsLb, ctx: ctx, tipo: 'lembrete' }
   );
 }
 
@@ -666,7 +679,7 @@ function waTestar(token, data) {
   if (String(data.rota || '') === 'sc') ctx.fimTeste = fim; else ctx.dataCobranca = fim;
 
   var r = _waEnviarTemplate_(tel.e164, data.template, data.idioma || 'pt_BR',
-            _waParams_(data.vars || '[]', ctx), { mapaJson: data.vars || '[]', ctx: ctx });
+            _waParams_(data.vars || '[]', ctx), { mapaJson: data.vars || '[]', ctx: ctx, tipo: 'teste do painel' });
   if (!r.ok) return r;
-  return { ok: true, message: 'Enviado para ' + tel.e164, id: r.id };
+  return { ok: true, message: 'Aceito pela Meta para ' + tel.e164 + ' — confira se chegou no celular.', id: r.id };
 }
