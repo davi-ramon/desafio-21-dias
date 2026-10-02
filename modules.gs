@@ -312,6 +312,12 @@ function handleRequest(payload) {
     case 'getRitoStatus':            return getRitoStatus();
     case 'waCriarTemplateSemCartao': return waCriarTemplateSemCartao(token, data);
     case 'waReenviarBoasVindas':     return waReenviarBoasVindas(token, data);
+    // v172 — CRM: etapas configuráveis e ações no lead
+    case 'crmGetEtapas':             return crmGetEtapas(token);
+    case 'crmSalvarEtapas':          return crmSalvarEtapas(token, data);
+    case 'crmPrepararTemplate':      return crmPrepararTemplate(token, data);
+    case 'crmEnviarTemplate':        return crmEnviarTemplate(token, data);
+    case 'crmEnviarEmail':           return crmEnviarEmail(token, data);
     case 'podeAvaliar':              return podeAvaliar(token);
     case 'salvarAvaliacao':          return salvarAvaliacao(token, data);
     case 'getAvaliacoesAdmin':       return getAvaliacoesAdmin(token);

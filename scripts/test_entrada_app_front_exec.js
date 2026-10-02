@@ -471,11 +471,11 @@ function abrir(rel, cfg) {
     exige(criado && criado.categoria === 'UTILITY' && /\{\{1\}\}/.test(criado.texto), JSON.stringify(criado));
   });
 
-  await passo('v171: detalhe do lead tem "Reenviar boas-vindas (WhatsApp)" e chama o servidor', async () => {
-    let botoes = null, pedido = null;
+  await passo('v171/v172: lead de teste tem "Boas-vindas" na barra de acoes e chama o reenvio', async () => {
+    let corpo = '', pedido = null;
     const modalOrig = A.__ler('openModal');
-    A.__ler('(function(){ openModal = function (t, b, bt) { __botoes(bt); }; })()'.replace('__botoes(bt)', 'globalThis.__capt(bt)'));
-    A.__capt = bt => { botoes = bt; };
+    A.__ler('(function(){ openModal = function (t, b) { __corpo(b); }; })()');
+    A.__corpo = b => { corpo = b; };
     A.rpc = async (acao, dados) => {
       if (acao === 'getLead') return { ok: true, data: { id: 'l1', name: 'Salomão', email: 'salomao@y.com', phone: '+5591985858577',
         status: 'Interessado', custom_fields: JSON.stringify({ origem: 'trial-sem-cartao', consentimento_em: '2026-09-30T21:38:00Z' }),
@@ -483,14 +483,185 @@ function abrir(rel, cfg) {
       if (acao === 'waReenviarBoasVindas') { pedido = dados; return { ok: true, message: 'Boas-vindas enviadas.' }; }
       return { ok: true, data: {} };
     };
-    A.__ler('(function(){ rpc = globalThis.rpc; })()');
+    A.acaoBotao = async (b, fn) => fn();
+    A.__ler('(function(){ rpc = globalThis.rpc; acaoBotao = globalThis.acaoBotao; })()');
     await A.openLeadDetail('l1');
-    const b = (botoes || []).find(x => /Reenviar boas-vindas/.test(x.label));
-    exige(b, 'sem botao de reenvio: ' + JSON.stringify((botoes || []).map(x => x.label)));
-    await b.action();
-    await ticks();
+    exige(/leadBoasVindasZap\(this\)/.test(corpo), 'sem botao de boas-vindas na barra');
+    await A.leadBoasVindasZap({});
     exige(pedido && pedido.email === 'salomao@y.com', JSON.stringify(pedido));
     A.__ler('(function (f) { openModal = f; })')(modalOrig);
+  });
+
+  // ── v172: CRM ────────────────────────────────────────────────
+  const ETAPAS = [
+    { id: 'interessado', nome: 'Interessado', cor: '#4caf50', papel: 'entrada' },
+    { id: 'contato', nome: 'Contato feito', cor: '#a855f7', papel: '' },
+    { id: 'qualificado', nome: 'Qualificado', cor: '#3b82f6', papel: 'qualificado' },
+    { id: 'fechado', nome: 'Fechado', cor: '#6dde71', papel: 'fechado' }
+  ];
+  const LEADS = [
+    { id: 'a1b2c3', name: "Tereza D'Ávila", email: 'tekadavila@hotmail.com', phone: '5579999828295', status: 'Interessado', custom_fields: '{}' },
+    { id: 'd4e5f6', name: 'Israel Custódio', email: 'israel@gmail.com', phone: '5511988887777', status: 'Contato feito', custom_fields: '{}' },
+    { id: 'g7h8i9', name: 'Cleide', email: 'cleide@gmail.com', phone: '', status: 'Fechado', custom_fields: '{}' }
+  ];
+  await passo('v172: quadro com as etapas do servidor, barra de busca e "Nova etapa"', () => {
+    const CRMo = A.__ler('CRM');
+    CRMo.user = { role: 'admin', email: 'davi@x.com' };
+    CRMo.leads = LEADS.slice();
+    A._crmAplicarEtapas(ETAPAS);
+    const orig = A.document.getElementById;
+    A.document.getElementById = id => (id === 'pipBarra' ? null : orig(id));
+    A.buildKanban();
+    A.document.getElementById = orig;
+    const barra = A.__el('content').innerHTML, quadro = A.__el('kanbanBoard').innerHTML;
+    exige(/id="pipBusca"/.test(barra) && /crmGerenciarEtapas\(\)/.test(barra), 'sem barra');
+    exige(/Contato feito/.test(quadro) && /Nova etapa/.test(quadro) && /onDrop\(event, STAGES\[this\.dataset\.i\]\)/.test(quadro), 'quadro');
+    exige((quadro.match(/class="kanban-col"/g) || []).length === 4, 'colunas: ' + (quadro.match(/class="kanban-col"/g) || []).length);
+  });
+  await passo('v172: busca sem acento, por e-mail, telefone e codigo — e abre o lead', () => {
+    let aberto = null;
+    const abrirOrig = A.__ler('openLeadDetail');
+    A.__ler('(function(){ openLeadDetail = function (id) { globalThis.__aberto(id); }; })()'.replace('globalThis.__aberto(id)', '__aberto(id)'));
+    A.__aberto = id => { aberto = id; };
+    const buscar = q => { A.__el('pipBusca').value = q; A.__ler('_crmBuscar')(); return A.__ler('PIP').res.map(l => l.id); };
+    exige(buscar('tereza davila')[0] === 'a1b2c3', 'sem acento: ' + buscar('tereza davila'));
+    exige(/<mark>/.test(A.__el('pipRes').innerHTML), 'sem destaque');
+    exige(buscar('israel@')[0] === 'd4e5f6', 'e-mail');
+    exige(buscar('98282')[0] === 'a1b2c3', 'telefone');
+    // telefone digitado com máscara: acha e destaca só os dígitos certos
+    exige(buscar('(79) 99982-8295')[0] === 'a1b2c3', 'telefone com mascara');
+    exige(/55<mark>79999828295<\/mark>/.test(A.__el('pipRes').innerHTML), 'destaque do telefone: ' + A.__el('pipRes').innerHTML);
+    exige(buscar('g7h8')[0] === 'g7h8i9', 'codigo');
+    exige(buscar('zzzz').length === 0 && /Nenhum lead/.test(A.__el('pipRes').innerHTML), 'vazio');
+    buscar('cleide');
+    A.crmBuscaEscolher(0);
+    exige(aberto === 'g7h8i9', 'abriu: ' + aberto);
+    A.__ler('(function (f) { openLeadDetail = f; })')(abrirOrig);
+    return '5 tipos de busca';
+  });
+  await passo('v172: arrastar o fundo do quadro rola para os lados (card nao)', () => {
+    const L = {}, cls = new Set();
+    const quadro = { dataset: {}, scrollLeft: 100, classList: { add: c => cls.add(c), remove: c => cls.delete(c) },
+                     addEventListener: (t, f) => { L[t] = f; } };
+    const antes = (adm.env.listeners.pointermove || []).length;
+    A._crmArrastoHorizontal(quadro);
+    const mover = adm.env.listeners.pointermove.slice(antes), soltar = adm.env.listeners.pointerup.slice(-1)[0];
+    L.pointerdown({ button: 0, pointerType: 'mouse', clientX: 300, target: { closest: () => null } });
+    mover.forEach(f => f({ clientX: 180, preventDefault() {} }));
+    exige(quadro.scrollLeft === 220 && cls.has('arrastando'), 'scroll=' + quadro.scrollLeft);
+    soltar();
+    exige(!cls.has('arrastando'), 'nao soltou');
+    L.pointerdown({ button: 0, pointerType: 'mouse', clientX: 300, target: { closest: () => ({}) } });   // em cima de um card
+    mover.forEach(f => f({ clientX: 100, preventDefault() {} }));
+    exige(quadro.scrollLeft === 220, 'arrastou o quadro pelo card');
+    let prevenido = false;
+    L.wheel({ deltaY: 120, deltaX: 0, target: { closest: () => null }, preventDefault() { prevenido = true; } });
+    exige(quadro.scrollLeft === 340 && prevenido, 'roda nao rolou para o lado');
+  });
+  await passo('v172: gerenciar etapas — cria, renomeia, reordena e apaga movendo os leads', async () => {
+    let pedido = null;
+    A.rpc = async (acao, d) => { if (acao === 'crmSalvarEtapas') { pedido = d; return { ok: true, migrados: 1 }; } return { ok: true, data: [], etapas: ETAPAS }; };
+    A.__ler('(function(){ rpc = globalThis.rpc; })()');
+    A.__ler('CRM').etapas = ETAPAS;
+    A.crmGerenciarEtapas();
+    const ETP = A.__ler('ETP');
+    exige(ETP.lista.length === 4 && ETP.lista[1].qtd === 1, 'lista: ' + JSON.stringify(ETP.lista));
+    A.crmEtapaNova();
+    A.crmEtapaCampo({ dataset: { i: '4', campo: 'nome' }, value: 'Follow-up' });
+    A.crmEtapaMover({ dataset: { i: '4', d: '-1' } });                 // Follow-up antes de Fechado
+    A.crmEtapaApagar({ dataset: { i: '0' } });                        // Interessado (automação) — ignorado
+    exige(ETP.lista.length === 5 && ETP.lista[0].nome === 'Interessado', 'apagou etapa de automacao');
+    A.crmEtapaApagar({ dataset: { i: '1' } });                        // Contato feito (1 lead)
+    const kDe = nome => ETP.lista.find(e => e.nome === nome).k;
+    exige(ETP.removidas[0].destinoK === kDe('Interessado'), 'destino padrao nao e a entrada');
+    A.crmEtapaDestino({ dataset: { j: '0' }, value: kDe('Qualificado') });
+    // renomeia o destino DEPOIS de escolher: os leads seguem para ele
+    A.crmEtapaCampo({ dataset: { i: '1', campo: 'nome' }, value: '  Qualificado   (SQL) ' });
+    exige(/selected>Qualificado \(SQL\)</.test(A._crmEtapasMoverHtml()), 'destino sem o nome novo: ' + A._crmEtapasMoverHtml());
+    await A.crmSalvarEtapas();
+    exige(pedido && pedido.etapas.map(e => e.nome).join('|') === 'Interessado|Qualificado (SQL)|Follow-up|Fechado', JSON.stringify(pedido));
+    exige(pedido.mover.contato === 'Qualificado (SQL)', 'mover: ' + JSON.stringify(pedido.mover));
+    // destino escolhido e depois apagado: os leads voltam para a entrada
+    pedido = null;
+    A.crmGerenciarEtapas();
+    A.crmEtapaNova();
+    A.crmEtapaCampo({ dataset: { i: '4', campo: 'nome' }, value: 'Follow-up' });
+    A.crmEtapaApagar({ dataset: { i: '1' } });                        // Contato feito
+    A.crmEtapaDestino({ dataset: { j: '0' }, value: kDe('Follow-up') });
+    A.crmEtapaApagar({ dataset: { i: '3' } });                        // o próprio Follow-up
+    await A.crmSalvarEtapas();
+    exige(pedido && pedido.mover.contato === 'Interessado', 'destino apagado: ' + JSON.stringify(pedido && pedido.mover));
+    return 'Interessado > Qualificado (SQL) > Follow-up > Fechado; destino renomeado e destino apagado';
+  });
+  await passo('v172: detalhe do lead — barra de acoes liga so o que o lead permite', async () => {
+    let corpo = '';
+    const modalOrig = A.__ler('openModal');
+    A.__ler('(function(){ openModal = function (t, b) { __corpo(b); }; })()');
+    A.__corpo = b => { corpo = b; };
+    const leadCom = { id: 'a1b2c3', name: "Tereza D'Ávila", email: 'tekadavila@hotmail.com', phone: '5579999828295',
+                      status: 'Interessado', custom_fields: '{}', form_answers: '{}', timeline: '[]', temConta: false };
+    A.rpc = async (acao) => acao === 'getLead' ? { ok: true, data: leadCom } : { ok: true, data: {} };
+    A.__ler('(function(){ rpc = globalThis.rpc; })()');
+    await A.openLeadDetail('a1b2c3');
+    exige(/la-btn zap" data-p="tpl"/.test(corpo) && /wa\.me\/5579999828295/.test(corpo) && /data-p="mail"/.test(corpo), 'acoes ligadas');
+    exige(!/la-btn off/.test(corpo), 'algo desligado sem motivo');
+    exige(/<svg/.test(corpo) && !/[\u{1F300}-\u{1FAFF}]/u.test(corpo.split('id="leadPainel"')[0]), 'icones');
+    // mesma tabela do teste do servidor (_crmZap_)
+    const ZAP_CASOS = { '(94) 99123-0000': '5594991230000', '+55 94 99123-0000': '5594991230000', '9491230000': '5594991230000',
+                        '9488887777': '', '1234': '', '': '', '0044 7911 123456': '447911123456', '+44 7911 123456': '447911123456' };
+    const errados = Object.keys(ZAP_CASOS).filter(k => A._crmZapValido(k) !== ZAP_CASOS[k]).map(k => k + ' -> ' + A._crmZapValido(k));
+    exige(!errados.length, 'regra do WhatsApp diverge do servidor: ' + errados.join(' | '));
+    leadCom.phone = '123'; leadCom.email = 'invalido';
+    await A.openLeadDetail('a1b2c3');
+    exige((corpo.match(/la-btn off/g) || []).length === 3, 'desligados: ' + (corpo.match(/la-btn off/g) || []).length);
+    A.__ler('(function (f) { openModal = f; })')(modalOrig);
+  });
+  await passo('v172: disparar template do lead — escolhe, ve a previa, edita e dispara', async () => {
+    let enviado = null;
+    const leadCom = { id: 'a1b2c3', name: 'Tereza', email: 'tekadavila@hotmail.com', phone: '5579999828295',
+                      status: 'Interessado', custom_fields: '{}', form_answers: '{}', timeline: '[]', temConta: true };
+    A.rpc = async (acao, d) => {
+      if (acao === 'getLead') return { ok: true, data: leadCom };
+      if (acao === 'waListarTemplates') return { ok: true, data: [{ nome: 'tpl_um', idioma: 'pt_BR', categoria: 'UTILITY' }] };
+      if (acao === 'crmPrepararTemplate') return { ok: true, data: { template: 'tpl_um', idioma: 'pt_BR', categoria: 'UTILITY', formato: 'POSITIONAL',
+        texto: 'Oi {{1}}, até {{2}}!', vars: [{ nome: '1', fonte: 'primeiro_nome', valor: 'Tereza' }, { nome: '2', fonte: 'fim_teste', valor: '07/10/2026' }] } };
+      if (acao === 'crmEnviarTemplate') { enviado = d; return { ok: true, message: 'Template enviado.' }; }
+      return { ok: true, data: {} };
+    };
+    A.acaoBotao = async (b, fn) => fn();
+    A.__ler('(function(){ rpc = globalThis.rpc; acaoBotao = globalThis.acaoBotao; })()');
+    A.__ler('CRM').templates = [];
+    await A.openLeadDetail('a1b2c3');
+    await A.leadPainel({ dataset: { p: 'tpl' }, classList: { add() {}, remove() {} } });
+    exige(/tpl_um/.test(A.__el('laTpl').innerHTML), 'templates nao listados');
+    await A.leadTplEscolher({ value: '0' });
+    exige(/la-var-n/.test(A.__el('laTplCorpo').innerHTML) && /value="Tereza"/.test(A.__el('laTplCorpo').innerHTML), 'variaveis');
+    const inputs = [{ dataset: { i: '0' }, value: 'Tê' }, { dataset: { i: '1' }, value: '07/10/2026' }];
+    const qsa = A.document.querySelectorAll;
+    A.document.querySelectorAll = sel => (/la-var input/.test(sel) ? inputs : qsa(sel));
+    A.leadTplPrevia();
+    exige(/Oi <b>Tê<\/b>, até <b>07\/10\/2026<\/b>!/.test(A.__el('laPrev').innerHTML), 'previa: ' + A.__el('laPrev').innerHTML);
+    await A.leadTplDisparar({});
+    A.document.querySelectorAll = qsa;
+    exige(enviado && enviado.leadId === 'a1b2c3' && enviado.template === 'tpl_um' && enviado.valores['1'] === 'Tê', JSON.stringify(enviado));
+    // e-mail: com conta, os dois botões ligados — e o detalhe rolado lá
+    // embaixo sobe até o painel (antes o clique parecia não fazer nada)
+    const mb = A.__el('modalBody');
+    let rolou = null;
+    mb.scrollTop = 480;
+    mb.scrollTo = o => { rolou = o; mb.scrollTop = o.top; };
+    await A.leadPainel({ dataset: { p: 'mail' }, classList: { add() {}, remove() {} } });
+    const mail = A.__el('leadPainel').innerHTML;
+    exige(/acesso ao app/.test(mail) && /data-t="recuperacao"/.test(mail), 'painel de e-mail');
+    exige(rolou && rolou.top === 0 && mb.scrollTop === 0, 'painel abriu fora da vista: ' + JSON.stringify(rolou));
+    return 'previa ao vivo + disparo com o valor editado + painel a vista';
+  });
+  await passo('v172: e-mail do lead manda o tipo escolhido', async () => {
+    let pedido = null;
+    A.rpc = async (acao, d) => { if (acao === 'crmEnviarEmail') { pedido = d; return { ok: true, message: 'ok' }; } return { ok: true, data: { timeline: '[]' } }; };
+    A.__ler('(function(){ rpc = globalThis.rpc; })()');
+    await A.leadEmail({ dataset: { t: 'recuperacao' } });
+    exige(pedido && pedido.tipo === 'recuperacao' && pedido.leadId === 'a1b2c3', JSON.stringify(pedido));
   });
 
   await passo('v169: login do admin le a resposta da recuperacao (antes ignorava)', () => {

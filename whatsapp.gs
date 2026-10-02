@@ -91,7 +91,8 @@ function _waTextoBody_(componentes) {
 // ─────────────────────────────────────────────────────────────
 function waListarTemplates(token) {
   var user = getUserByToken(token);
-  if (!user || user.role !== 'admin') return { ok: false, error: 'Sem permissão.' };
+  // v172: quem usa o CRM (admin e usuário de CRM) dispara templates do lead
+  if (!user || (user.role !== 'admin' && user.role !== 'user')) return { ok: false, error: 'Sem permissão.' };
   if (!_waPronto_()) return { ok: false, error: 'Configure token, WABA ID e Phone ID antes de listar.' };
 
   var r = _waCall_('get', '/' + encodeURIComponent(_waWaba_()) +
@@ -237,6 +238,8 @@ function _waResolverVar_(fonte, ctx) {
     return String(ctx.fimTeste || ctx.dataCobranca ||
       Utilities.formatDate(new Date(Date.now() + dias * 86400000), 'America/Sao_Paulo', 'dd/MM/yyyy'));
   };
+  // v172: "txt:..." = texto literal (digitado no CRM), nunca interpretado
+  if (String(fonte).indexOf('txt:') === 0) return String(fonte).slice(4).trim() || '-';
   switch (String(fonte)) {
     case 'primeiro_nome': return nome.split(/\s+/)[0] || 'Olá';
     case 'nome_completo': return nome || 'Olá';
@@ -339,7 +342,7 @@ function _waEstrutura_(nome, idioma) {
       var fmt = String(comp.format || 'TEXT').toUpperCase();
       est.header = { formato: fmt, vars: fmt === 'TEXT' ? _waVarsDoTexto_(comp.text) : [] };
     } else if (tipo === 'BODY') {
-      est.corpo = { vars: _waVarsDoTexto_(comp.text), texto: String(comp.text || '').slice(0, 400) };
+      est.corpo = { vars: _waVarsDoTexto_(comp.text), texto: String(comp.text || '').slice(0, 1100) };
     } else if (tipo === 'BUTTONS') {
       (comp.buttons || []).forEach(function (b, i) {
         var bt = String(b.type || '').toUpperCase();

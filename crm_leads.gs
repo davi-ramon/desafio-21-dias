@@ -77,7 +77,8 @@ function _crmUpsertLead_(d) {
     // pode voltar para "Interessado" porque uma rotina rodou de novo.
     if (d.status && iSt >= 0) {
       var atual = String(dados[i][iSt] || '');
-      if (STAGES.indexOf(d.status) > STAGES.indexOf(atual)) {
+      var ordemEtapas = _crmNomesEtapas_();   // v172: ordem configurável
+      if (ordemEtapas.indexOf(d.status) > ordemEtapas.indexOf(atual)) {
         sheet.getRange(i + 1, iSt + 1).setValue(d.status);
       }
     }
@@ -118,7 +119,7 @@ function _crmUpsertLead_(d) {
   if (iMail >= 0) linha[iMail] = email;
   if (iFone >= 0) linha[iFone] = fone ? ('+' + fone) : '';
   if (iResp >= 0) linha[iResp] = '';
-  if (iSt   >= 0) linha[iSt]   = d.status || STAGES[0];
+  if (iSt   >= 0) linha[iSt]   = d.status || _crmEtapaPorPapel_('entrada');
   if (iCri  >= 0) linha[iCri]  = d.created_at || agora;
   if (iUpd  >= 0) linha[iUpd]  = agora;
   if (iUser >= 0) linha[iUser] = '';
@@ -134,13 +135,14 @@ function _crmUpsertLead_(d) {
 
 // Traduz o que a pessoa fez no funil para o estágio do CRM.
 function _clEstagio_(estagioTrial, convertido) {
-  if (String(convertido).toLowerCase() === 'sim') return 'Fechado';
+  if (String(convertido).toLowerCase() === 'sim') return _crmEtapaPorPapel_('fechado');
   // Quem foi até o cartão confirmou e-mail por código, informou o WhatsApp
   // e aceitou os termos. É outro patamar de intenção que quem só deixou
   // o nome numa página.
-  if (String(estagioTrial) === 'cartao_iniciado')   return 'Qualificado';
-  if (String(estagioTrial) === 'cartao_confirmado') return 'Fechado';
-  return 'Interessado';
+  // v172: pelo PAPEL da etapa — o nome pode ter sido trocado no painel
+  if (String(estagioTrial) === 'cartao_iniciado')   return _crmEtapaPorPapel_('qualificado');
+  if (String(estagioTrial) === 'cartao_confirmado') return _crmEtapaPorPapel_('fechado');
+  return _crmEtapaPorPapel_('entrada');
 }
 
 // ─────────────────────────────────────────────────────────────

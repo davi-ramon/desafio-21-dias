@@ -410,6 +410,79 @@ body {
   border-radius: 8px;
 }
 
+/* ═══ v172 — PIPELINE: busca, arrastar, etapas e ações no lead ═══ */
+.pip-barra { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; flex-shrink: 0; }
+.pip-busca { position: relative; flex: 1; min-width: 240px; max-width: 540px; }
+.pip-busca input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 11px;
+  padding: 10px 14px 10px 38px; color: var(--text); font: inherit; font-size: 13px; outline: none;
+  transition: border-color .15s, box-shadow .15s; }
+.pip-busca input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(76,175,80,.15); }
+.pip-busca .pip-lupa { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted);
+  width: 16px; height: 16px; pointer-events: none; }
+.pip-res { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 60; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 18px 40px rgba(0,0,0,.45);
+  max-height: 380px; overflow-y: auto; display: none; padding: 6px; }
+.pip-res.on { display: block; animation: pipCai .14s ease; }
+@keyframes pipCai { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.pip-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; cursor: pointer; }
+.pip-item:hover, .pip-item.ativo { background: var(--surface2); }
+.pip-av { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; flex-shrink: 0; }
+.pip-item-txt { flex: 1; min-width: 0; }
+.pip-item-nome { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pip-item-sub { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pip-item mark { background: rgba(76,175,80,.28); color: inherit; border-radius: 3px; padding: 0 1px; }
+.pip-etapa { font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 100px; white-space: nowrap; }
+.pip-vazio { padding: 14px; font-size: 12.5px; color: var(--muted); text-align: center; }
+.pip-dica { font-size: 11px; color: var(--muted2); }
+.kanban-board { cursor: grab; }
+.kanban-board.arrastando { cursor: grabbing; user-select: none; }
+.kanban-board.arrastando .lead-card { pointer-events: none; }
+.lead-card.destaque { border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(76,175,80,.35), 0 8px 26px rgba(0,0,0,.4) !important; animation: pipPulsa 1.2s ease 2; }
+@keyframes pipPulsa { 50% { box-shadow: 0 0 0 7px rgba(76,175,80,.12), 0 8px 26px rgba(0,0,0,.4); } }
+.kanban-col.col-nova { min-width: 190px; width: 190px; border-style: dashed; background: transparent; align-items: center;
+  justify-content: center; min-height: 110px; cursor: pointer; color: var(--muted); font-size: 12.5px; font-weight: 600;
+  gap: 6px; transition: color .15s, border-color .15s; }
+.kanban-col.col-nova:hover { color: var(--accent); border-color: var(--accent); }
+
+/* gerenciar etapas */
+.et-linha { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--border);
+  border-radius: 11px; background: var(--surface2); margin-bottom: 8px; }
+.et-linha input[type=text] { flex: 1; min-width: 0; }
+.et-cor { width: 34px; height: 34px; border: none; border-radius: 8px; padding: 0; background: none; cursor: pointer; flex-shrink: 0; }
+.et-mini { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; flex-shrink: 0; }
+.et-mini:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+.et-mini:disabled { opacity: .35; cursor: not-allowed; }
+.et-qtd { font-size: 11px; color: var(--muted); white-space: nowrap; min-width: 58px; text-align: right; }
+.et-papel { font-size: 10px; color: #e0a83c; display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.et-mover { font-size: 12px; color: var(--muted); margin: -2px 0 10px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ações no lead — barra fixa no topo do detalhe */
+.lead-acoes { position: sticky; top: -20px; z-index: 5; margin: -20px -24px 16px; padding: 14px 24px 12px;
+  background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+.la-btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 13px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text); font: inherit; font-size: 12.5px;
+  font-weight: 700; cursor: pointer; text-decoration: none; transition: transform .15s, border-color .15s, background .15s, box-shadow .15s; }
+.la-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.la-btn:hover:not(:disabled):not(.off) { transform: translateY(-1px); border-color: var(--accent); box-shadow: 0 6px 16px rgba(0,0,0,.3); }
+.la-btn:hover:not(:disabled):not(.off) svg { animation: laIcone .5s ease; }
+@keyframes laIcone { 40% { transform: scale(1.18) rotate(-8deg); } }
+.la-btn.zap { background: rgba(37,211,102,.12); border-color: rgba(37,211,102,.35); color: #4ade80; }
+.la-btn.on { border-color: var(--accent); background: rgba(76,175,80,.16); }
+.la-btn:disabled, .la-btn.off { opacity: .4; cursor: not-allowed; }
+.la-painel { border: 1px solid var(--border); border-radius: 12px; background: var(--surface2); padding: 14px;
+  margin-bottom: 16px; animation: pipCai .16s ease; }
+.la-prev { white-space: pre-wrap; font-size: 12.5px; line-height: 1.6; color: var(--text2); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px; padding: 11px 13px; margin: 10px 0; }
+.la-prev b { color: var(--accent); }
+.la-var { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.la-var-n { min-width: 46px; font-size: 11px; font-weight: 800; color: var(--accent); background: rgba(76,175,80,.12);
+  border-radius: 6px; padding: 6px 4px; text-align: center; }
+.la-var-f { font-size: 10.5px; color: var(--muted); min-width: 92px; }
+@media (prefers-reduced-motion: reduce) { .la-btn:hover svg, .lead-card.destaque, .pip-res.on, .la-painel { animation: none !important; } }
+
 /* Lead card */
 .lead-card {
   background: var(--surface);
@@ -1985,9 +2058,23 @@ const CRM = {
   sidebarCollapsed: false,
 };
 
-const STAGES = ['Interessado', 'Qualificado', 'Em Atendimento', 'Proposta Enviada', 'Fechado'];
-const STAGE_COLORS = ['#4caf50','#3b82f6','#f59e0b','#e84040','#6dde71'];
-const STAGE_BG     = ['rgba(76,175,80,0.14)','rgba(59,130,246,0.14)','rgba(245,158,11,0.14)','rgba(232,64,64,0.14)','rgba(109,222,113,0.14)'];
+// v172: as etapas vêm do servidor (pipelines_config) — estes são o padrão
+// de fábrica até a primeira resposta. `var` porque _crmAplicarEtapas troca.
+var STAGES = ['Interessado', 'Qualificado', 'Em Atendimento', 'Proposta Enviada', 'Fechado'];
+var STAGE_COLORS = ['#4caf50','#3b82f6','#f59e0b','#e84040','#6dde71'];
+var STAGE_BG     = ['rgba(76,175,80,0.14)','rgba(59,130,246,0.14)','rgba(245,158,11,0.14)','rgba(232,64,64,0.14)','rgba(109,222,113,0.14)'];
+
+function _crmCorFundo(hex) {
+  var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex || ''));
+  return m ? 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',0.14)' : 'rgba(138,154,142,0.14)';
+}
+function _crmAplicarEtapas(etapas) {
+  if (!Array.isArray(etapas) || !etapas.length) return;
+  CRM.etapas = etapas;
+  STAGES = etapas.map(function (e) { return e.nome; });
+  STAGE_COLORS = etapas.map(function (e) { return e.cor || '#8a9a8e'; });
+  STAGE_BG = etapas.map(function (e) { return _crmCorFundo(e.cor); });
+}
 
 // ══════════════════════════════════════════════════════════
 // INIT
@@ -2364,6 +2451,7 @@ async function renderPipeline() {
       return;
     }
     CRM.leads = res.data || [];
+    _crmAplicarEtapas(res.etapas);     // v172: etapas configuráveis
     buildKanban();
   } catch(e) {
     const errMsg = (e && e.message) ? e.message : String(e);
@@ -2375,33 +2463,346 @@ async function renderPipeline() {
   }
 }
 
+// v172: a barra de cima (busca + etapas) é desenhada uma vez só — redesenhar
+// o quadro depois de arrastar um card não pode apagar o que foi digitado.
 function buildKanban() {
   const content = document.getElementById('content');
   content.style.cssText = 'padding:20px; display:flex; flex-direction:column; height:100%; box-sizing:border-box;';
-  var html = '<div class="kanban-board" id="kanbanBoard">';
+  if (!document.getElementById('pipBarra')) {
+    content.innerHTML =
+      '<div class="pip-barra" id="pipBarra">' +
+        '<div class="pip-busca">' +
+          '<svg class="pip-lupa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>' +
+          '<input id="pipBusca" type="search" autocomplete="off" spellcheck="false" ' +
+            'placeholder="Buscar no pipeline: nome, e-mail, telefone ou código do lead" ' +
+            'oninput="crmBuscaDigitou()" onkeydown="crmBuscaTecla(event)" onfocus="crmBuscaDigitou()">' +
+          '<div class="pip-res" id="pipRes"></div>' +
+        '</div>' +
+        '<span class="pip-dica">Arraste o fundo do quadro para os lados</span>' +
+        (CRM.user && CRM.user.role === 'admin'
+          ? '<button class="btn btn-ghost btn-sm" data-fb-off="1" onclick="crmGerenciarEtapas()">' +
+              '<i data-lucide="columns-3" class="luc"></i> Etapas</button>' : '') +
+      '</div>' +
+      '<div class="kanban-board" id="kanbanBoard"></div>';
+    _processIcons && _processIcons(content);
+  }
+  const board = document.getElementById('kanbanBoard');
+  var html = '';
   STAGES.forEach(function(stage, i) {
     var cards = CRM.leads.filter(function(l) { return l.status === stage; });
     var emptySlot = cards.length
       ? cards.map(function(c) { return renderCardHTML(c, i); }).join('')
       : '<div style="text-align:center;padding:24px 12px;color:var(--muted2);font-size:12px">Nenhum lead</div>';
     html +=
-      '<div class="kanban-col" data-stage="' + stage + '">' +
+      '<div class="kanban-col" data-stage="' + escHtml(stage) + '">' +
         '<div class="kanban-col-header">' +
           '<div class="col-stripe" style="background:' + (STAGE_COLORS[i] || '#aaa') + '"></div>' +
-          '<div class="col-title">' + stage + '</div>' +
+          '<div class="col-title">' + escHtml(stage) + '</div>' +
           '<div class="col-count">' + cards.length + '</div>' +
         '</div>' +
-        '<div class="kanban-cards" id="col-' + i + '"' +
+        '<div class="kanban-cards" id="col-' + i + '" data-i="' + i + '"' +
           ' ondragover="onDragOver(event)"' +
-          ' ondrop="onDrop(event,\'' + stage + '\')"' +
+          ' ondrop="onDrop(event, STAGES[this.dataset.i])"' +
           ' ondragenter="this.classList.add(\'drag-over\')"' +
           ' ondragleave="this.classList.remove(\'drag-over\')">' +
           emptySlot +
         '</div>' +
       '</div>';
   });
-  html += '</div>';
-  content.innerHTML = html;
+  if (CRM.user && CRM.user.role === 'admin') {
+    html += '<div class="kanban-col col-nova" data-fb-off="1" onclick="crmGerenciarEtapas(true)">' +
+              '<i data-lucide="plus" class="luc"></i> Nova etapa</div>';
+  }
+  board.innerHTML = html;
+  _processIcons && _processIcons(board);
+  _crmArrastoHorizontal(board);
+}
+
+// ── v172: arrastar o quadro com o mouse ──────────────────────
+// Clicar no fundo (fora de um card) e arrastar rola o pipeline para os
+// lados — sem shift + roda. Os cards continuam arrastáveis entre etapas.
+// A roda do mouse no fundo também rola para os lados.
+function _crmArrastoHorizontal(board) {
+  if (!board || board.dataset.arrasto === '1') return;
+  board.dataset.arrasto = '1';
+  var ativo = false, moveu = false, x0 = 0, s0 = 0;
+  board.addEventListener('pointerdown', function (e) {
+    if (e.button !== 0 || e.pointerType === 'touch') return;
+    if (e.target.closest && e.target.closest('.lead-card, button, a, input, select, textarea, .col-nova')) return;
+    ativo = true; moveu = false; x0 = e.clientX; s0 = board.scrollLeft;
+  });
+  window.addEventListener('pointermove', function (e) {
+    if (!ativo) return;
+    var dx = e.clientX - x0;
+    if (!moveu) {
+      if (Math.abs(dx) < 5) return;
+      moveu = true;
+      board.classList.add('arrastando');
+      try { window.getSelection().removeAllRanges(); } catch (er) {}   // arrastar não seleciona texto
+    }
+    board.scrollLeft = s0 - dx;
+    e.preventDefault();
+  });
+  window.addEventListener('pointerup', function () {
+    if (!ativo) return;
+    ativo = false;
+    board.classList.remove('arrastando');
+  });
+  board.addEventListener('wheel', function (e) {
+    if (e.target.closest && e.target.closest('.kanban-cards')) return;   // dentro da coluna: rola a coluna
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { board.scrollLeft += e.deltaY; e.preventDefault(); }
+  }, { passive: false });
+}
+
+// ── v172: busca no pipeline ──────────────────────────────────
+// Nome, e-mail, telefone (só os dígitos) ou código do lead. Sem acento
+// e sem maiúscula: "tereza davila" acha "Tereza D'Ávila".
+var PIP = { res: [], ativo: -1, t: 0 };
+
+// Sem acento, sem maiúscula e sem pontuação de nome (D'Ávila = davila).
+// Guarda de onde veio cada letra, para o destaque cair no lugar certo.
+function _crmNormMapa(s) {
+  var orig = String(s || ''), norm = '', mapa = [];
+  for (var i = 0; i < orig.length; i++) {
+    var c = orig.charAt(i).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if (/^['’`´"\-]$/.test(c)) continue;
+    for (var k = 0; k < c.length; k++) { norm += c.charAt(k); mapa.push(i); }
+  }
+  return { norm: norm, mapa: mapa };
+}
+function _crmNorm(s) { return _crmNormMapa(s).norm; }
+
+function crmBuscaDigitou() {
+  clearTimeout(PIP.t);
+  PIP.t = setTimeout(_crmBuscar, 110);
+}
+
+function _crmBuscar() {
+  var campo = document.getElementById('pipBusca'), box = document.getElementById('pipRes');
+  if (!campo || !box) return;
+  var q = String(campo.value || '').trim();
+  if (q.length < 2) { box.classList.remove('on'); box.innerHTML = ''; PIP.res = []; return; }
+  var qn = _crmNorm(q), qd = q.replace(/\D/g, '');
+  var achados = [];
+  (CRM.leads || []).forEach(function (l) {
+    var nome = _crmNorm(l.name), mail = _crmNorm(l.email), fone = String(l.phone || '').replace(/\D/g, '');
+    var pts = 0;
+    if (nome.indexOf(qn) === 0) pts = 100;
+    else if (nome.split(/\s+/).some(function (p) { return p.indexOf(qn) === 0; })) pts = 80;
+    else if (nome.indexOf(qn) >= 0) pts = 60;
+    else if (mail.indexOf(qn) >= 0) pts = 50;
+    else if (qd.length >= 3 && fone.indexOf(qd) >= 0) pts = 45;
+    else if (String(l.id || '').toLowerCase().indexOf(q.toLowerCase()) === 0) pts = 40;
+    if (pts) achados.push({ l: l, pts: pts });
+  });
+  achados.sort(function (a, b) { return b.pts - a.pts || String(a.l.name).localeCompare(String(b.l.name)); });
+  PIP.res = achados.slice(0, 8).map(function (a) { return a.l; });
+  PIP.ativo = PIP.res.length ? 0 : -1;
+  _crmBuscaDesenhar(q, achados.length);
+}
+
+function _crmMarcar(texto, q) {
+  var t = String(texto || ''), m = _crmNormMapa(t), qn = _crmNorm(q);
+  var i = qn ? m.norm.indexOf(qn) : -1;
+  if (i < 0) return escHtml(t);
+  var de = m.mapa[i], ate = m.mapa[i + qn.length - 1] + 1;
+  return escHtml(t.slice(0, de)) + '<mark>' + escHtml(t.slice(de, ate)) + '</mark>' + escHtml(t.slice(ate));
+}
+
+// Telefone: o destaque segue só os dígitos — "(13) 98888-2222" marca o
+// trecho certo em "5513988882222", com ou sem máscara dos dois lados.
+function _crmMarcarDigitos(texto, qd) {
+  var t = String(texto || ''), dig = '', mapa = [];
+  for (var i = 0; i < t.length; i++) if (/\d/.test(t.charAt(i))) { dig += t.charAt(i); mapa.push(i); }
+  var k = dig.indexOf(qd);
+  if (k < 0) return escHtml(t);
+  var de = mapa[k], ate = mapa[k + qd.length - 1] + 1;
+  return escHtml(t.slice(0, de)) + '<mark>' + escHtml(t.slice(de, ate)) + '</mark>' + escHtml(t.slice(ate));
+}
+
+function _crmBuscaDesenhar(q, total) {
+  var box = document.getElementById('pipRes');
+  if (!PIP.res.length) {
+    box.innerHTML = '<div class="pip-vazio">Nenhum lead encontrado para “' + escHtml(q) + '”.</div>';
+    box.classList.add('on');
+    return;
+  }
+  box.innerHTML = PIP.res.map(function (l, i) {
+    var idx = STAGES.indexOf(l.status);
+    var cor = STAGE_COLORS[idx] || '#8a9a8e';
+    var qd = q.replace(/\D/g, ''), sub = [];
+    if (l.email) sub.push(_crmMarcar(l.email, q));
+    if (l.phone) sub.push(qd.length >= 3 ? _crmMarcarDigitos(l.phone, qd) : _crmMarcar(l.phone, q));
+    sub = sub.join(' · ');
+    return '<div class="pip-item' + (i === PIP.ativo ? ' ativo' : '') + '" data-i="' + i + '" ' +
+             'onmousedown="crmBuscaEscolher(this.dataset.i); event.preventDefault()">' +
+      '<div class="pip-av" style="background:' + _crmCorFundo(cor) + ';color:' + cor + '">' +
+        escHtml(String(l.name || '?').charAt(0).toUpperCase()) + '</div>' +
+      '<div class="pip-item-txt"><div class="pip-item-nome">' + _crmMarcar(l.name || 'Sem nome', q) + '</div>' +
+        '<div class="pip-item-sub">' + (sub || '&nbsp;') + '</div></div>' +
+      '<span class="pip-etapa" style="background:' + _crmCorFundo(cor) + ';color:' + cor + '">' + escHtml(l.status || '—') + '</span>' +
+    '</div>';
+  }).join('') + (total > PIP.res.length
+    ? '<div class="pip-vazio" style="padding:8px">+' + (total - PIP.res.length) + ' — refine a busca</div>' : '');
+  box.classList.add('on');
+}
+
+function crmBuscaTecla(e) {
+  var box = document.getElementById('pipRes');
+  if (e.key === 'Escape') { box.classList.remove('on'); e.target.blur(); return; }
+  if (!PIP.res.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    PIP.ativo = (PIP.ativo + (e.key === 'ArrowDown' ? 1 : -1) + PIP.res.length) % PIP.res.length;
+    Array.prototype.forEach.call(box.querySelectorAll('.pip-item'), function (el, i) { el.classList.toggle('ativo', i === PIP.ativo); });
+    e.preventDefault();
+  } else if (e.key === 'Enter' && PIP.ativo >= 0) {
+    crmBuscaEscolher(PIP.ativo);
+    e.preventDefault();
+  }
+}
+
+function crmBuscaEscolher(i) {
+  var l = PIP.res[Number(i)];
+  if (!l) return;
+  var box = document.getElementById('pipRes');
+  if (box) box.classList.remove('on');
+  // destaca o card no quadro e abre o detalhe
+  var card = document.getElementById('card-' + l.id);
+  if (card) {
+    try { card.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }); } catch (e) {}
+    card.classList.add('destaque');
+    setTimeout(function () { card.classList.remove('destaque'); }, 2600);
+  }
+  openLeadDetail(l.id);
+}
+
+document.addEventListener('click', function (e) {
+  var box = document.getElementById('pipRes');
+  if (box && !e.target.closest('.pip-busca')) box.classList.remove('on');
+});
+
+// ── v172: gerenciar etapas (admin) ───────────────────────────
+var ETP = { lista: [], removidas: [], seq: 0 };
+var ETP_PAPEL = { entrada: 'onde os leads novos caem', qualificado: 'quem chega ao cartão', fechado: 'quem vira cliente' };
+var ETP_CORES = ['#4caf50', '#3b82f6', '#f59e0b', '#e84040', '#6dde71', '#a855f7', '#14b8a6', '#ec4899', '#f97316', '#64748b'];
+
+function crmGerenciarEtapas(novaJa) {
+  var qtd = {};
+  (CRM.leads || []).forEach(function (l) { qtd[l.status] = (qtd[l.status] || 0) + 1; });
+  var base = (CRM.etapas && CRM.etapas.length) ? CRM.etapas
+           : STAGES.map(function (n, i) { return { id: '', nome: n, cor: STAGE_COLORS[i], papel: '' }; });
+  ETP.lista = base.map(function (e) { return _etpItem({ id: e.id, nome: e.nome, cor: e.cor, papel: e.papel || '', qtd: qtd[e.nome] || 0, original: e.nome }); });
+  ETP.removidas = [];
+  if (novaJa) ETP.lista.push(_etpItem({ id: '', nome: '', cor: ETP_CORES[ETP.lista.length % ETP_CORES.length], papel: '', qtd: 0, nova: true }));
+  openModal('Etapas do pipeline', '<div id="etpCorpo"></div>', [
+    { label: 'Cancelar', action: closeModal, cls: 'btn-ghost' },
+    { label: 'Salvar etapas', action: crmSalvarEtapas, cls: 'btn-primary' }
+  ]);
+  _crmEtapasDesenhar(novaJa);
+}
+
+// Cada etapa ganha uma chave que não muda enquanto o editor está aberto:
+// o destino dos leads de uma etapa apagada aponta para ela, não para o
+// nome — renomear o destino depois de escolher não pode mandar os leads
+// para outro lugar.
+function _etpItem(o) { o.k = 'k' + (++ETP.seq); return o; }
+function _etpNome(s) { return String(s || '').replace(/\s+/g, ' ').trim(); }
+function _etpEntradaK() {
+  var ent = ETP.lista.filter(function (x) { return x.papel === 'entrada'; })[0] || ETP.lista[0];
+  return ent ? ent.k : '';
+}
+
+function _crmEtapasMoverHtml() {
+  var destinos = ETP.lista.filter(function (e) { return _etpNome(e.nome); });
+  return ETP.removidas.map(function (r, j) {
+    if (!r.qtd) return '';
+    return '<div class="et-mover">Os ' + r.qtd + ' lead(s) de <b style="color:var(--text)">' + escHtml(r.original) + '</b> vão para ' +
+      '<select class="form-control" style="width:auto;padding:5px 9px;font-size:12px" data-j="' + j + '" onchange="crmEtapaDestino(this)">' +
+      destinos.map(function (d) { return '<option value="' + d.k + '"' + (d.k === r.destinoK ? ' selected' : '') + '>' + escHtml(_etpNome(d.nome)) + '</option>'; }).join('') +
+      '</select></div>';
+  }).join('');
+}
+
+function _crmEtapasDesenhar(focarUltima) {
+  var corpo = document.getElementById('etpCorpo');
+  if (!corpo) return;
+  var h ='<div style="font-size:12.5px;color:var(--muted);line-height:1.6;margin-bottom:14px">' +
+    'Arrume a ordem com as setas, troque nome e cor, crie e apague etapas. ' +
+    'As marcadas com <span class="et-papel">&#128274; automação</span> são usadas pelo sistema: podem mudar de nome e de lugar, mas não podem ser apagadas.</div>';
+  ETP.lista.forEach(function (e, i) {
+    h += '<div class="et-linha">' +
+      '<input type="color" class="et-cor" value="' + escHtml(e.cor || '#8a9a8e') + '" data-i="' + i + '" data-campo="cor" oninput="crmEtapaCampo(this)" title="Cor">' +
+      '<input type="text" class="form-control" maxlength="40" placeholder="Nome da etapa" value="' + escHtml(e.nome) + '" data-i="' + i + '" data-campo="nome" oninput="crmEtapaCampo(this)">' +
+      (e.papel ? '<span class="et-papel" title="' + escHtml(ETP_PAPEL[e.papel] || '') + '">&#128274; automação</span>' : '') +
+      '<span class="et-qtd">' + e.qtd + ' lead' + (e.qtd === 1 ? '' : 's') + '</span>' +
+      '<button class="et-mini" data-i="' + i + '" data-d="-1" onclick="crmEtapaMover(this)" ' + (i === 0 ? 'disabled' : '') + ' title="Subir">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 15l6-6 6 6"/></svg></button>' +
+      '<button class="et-mini" data-i="' + i + '" data-d="1" onclick="crmEtapaMover(this)" ' + (i === ETP.lista.length - 1 ? 'disabled' : '') + ' title="Descer">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>' +
+      '<button class="et-mini" data-i="' + i + '" onclick="crmEtapaApagar(this)" ' + (e.papel ? 'disabled title="Usada pelas automações"' : 'title="Apagar etapa"') + '>' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3"/></svg></button>' +
+    '</div>';
+  });
+  h += '<div id="etpMover">' + _crmEtapasMoverHtml() + '</div>';
+  h += '<button class="btn btn-ghost btn-sm" data-fb-off="1" onclick="crmEtapaNova()" style="margin-top:4px">' +
+         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Adicionar etapa</button>';
+  corpo.innerHTML = h;
+  if (focarUltima) {
+    var campos = corpo.querySelectorAll('input[type=text]');
+    var ult = campos[campos.length - 1];
+    if (ult) setTimeout(function () { try { ult.focus(); } catch (e) {} }, 60);
+  }
+}
+
+function crmEtapaCampo(el) {
+  var e = ETP.lista[Number(el.dataset.i)];
+  if (!e || (el.dataset.campo !== 'cor' && el.dataset.campo !== 'nome')) return;
+  e[el.dataset.campo] = el.value;
+  // o nome novo já aparece nos destinos (só essa parte redesenha: o
+  // campo que está sendo digitado não perde o foco)
+  if (el.dataset.campo === 'nome') {
+    var mv = document.getElementById('etpMover');
+    if (mv) mv.innerHTML = _crmEtapasMoverHtml();
+  }
+}
+function crmEtapaMover(el) {
+  var i = Number(el.dataset.i), d = Number(el.dataset.d), j = i + d;
+  if (j < 0 || j >= ETP.lista.length) return;
+  var t = ETP.lista[i]; ETP.lista[i] = ETP.lista[j]; ETP.lista[j] = t;
+  _crmEtapasDesenhar();
+}
+function crmEtapaNova() {
+  ETP.lista.push(_etpItem({ id: '', nome: '', cor: ETP_CORES[ETP.lista.length % ETP_CORES.length], papel: '', qtd: 0, nova: true }));
+  _crmEtapasDesenhar(true);
+}
+function crmEtapaApagar(el) {
+  var i = Number(el.dataset.i), e = ETP.lista[i];
+  if (!e || e.papel) return;
+  ETP.lista.splice(i, 1);
+  // quem ia para a etapa que acabou de ser apagada volta para a de entrada
+  ETP.removidas.forEach(function (r) { if (r.destinoK === e.k) r.destinoK = _etpEntradaK(); });
+  if (!e.nova) ETP.removidas.push({ id: e.id, original: e.original || e.nome, qtd: e.qtd, destinoK: _etpEntradaK() });
+  _crmEtapasDesenhar();
+}
+function crmEtapaDestino(el) {
+  var r = ETP.removidas[Number(el.dataset.j)];
+  if (r) r.destinoK = el.value;
+}
+
+async function crmSalvarEtapas() {
+  var etapas = ETP.lista.map(function (e) { return { id: e.id, nome: _etpNome(e.nome), cor: e.cor }; });
+  if (etapas.some(function (e) { return !e.nome; })) { toast('Dê um nome para toda etapa (ou apague a vazia).', 'error'); return; }
+  // o destino vai pelo nome FINAL da etapa escolhida (pode ter sido renomeada)
+  var nomePorK = {};
+  ETP.lista.forEach(function (e) { nomePorK[e.k] = _etpNome(e.nome); });
+  var mover = {};
+  ETP.removidas.forEach(function (r) { if (r.id) mover[r.id] = nomePorK[r.destinoK] || nomePorK[_etpEntradaK()] || ''; });
+  var r;
+  try { r = await rpc('crmSalvarEtapas', { etapas: etapas, mover: mover }); } catch (e) { r = { ok: false, error: e.message }; }
+  if (!r || !r.ok) { toast((r && r.error) || 'Não consegui salvar as etapas.', 'error'); return; }
+  closeModal();
+  toast('Etapas salvas' + (r.migrados ? ' — ' + r.migrados + ' lead(s) acompanharam a mudança.' : '.'), 'success');
+  renderPipeline();
 }
 
 // ── v166: por onde a pessoa entrou (rota do teste) ───────────
@@ -2528,6 +2929,49 @@ async function onDrop(e, stage) {
 // ══════════════════════════════════════════════════════════
 // LEAD DETAIL MODAL — lazy load via getLead (dados completos)
 // ══════════════════════════════════════════════════════════
+// ══ v172: detalhe do lead com AÇÕES (WhatsApp, conversa, e-mail) ══
+// O lead aberto fica em LD para os painéis de ação.
+var LD = { lead: null, cf: {}, zap: '', tpl: null, aberto: '' };
+
+var LA_ICO = {
+  enviar:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>',
+  conversa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z"/></svg>',
+  mail:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  estrela:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg>',
+  chave:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3L21 2M16 7l3 3M18 5l2 2"/></svg>',
+  coracao:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>'
+};
+
+// WhatsApp válido — a MESMA regra do servidor (_crmZap_): só dígitos, com DDI.
+function _crmZapBr(d) {
+  var n = (d.length >= 12 && d.indexOf('55') === 0) ? d.slice(2) : d;
+  if (n.length !== 10 && n.length !== 11) return '';
+  var ddd = parseInt(n.slice(0, 2), 10);
+  if (ddd < 11 || ddd > 99) return '';
+  if (n.length === 10) { if (n.charAt(2) !== '9') return ''; n = n.slice(0, 2) + '9' + n.slice(2); }
+  if (n.charAt(2) !== '9') return '';
+  return '55' + n;
+}
+function _crmZapValido(fone) {
+  var d = String(fone || '').replace(/\D/g, '');
+  if (d.indexOf('00') === 0) d = d.slice(2);
+  var br = _crmZapBr(d);
+  if (br) return br;
+  if (d.indexOf('55') !== 0 && d.length >= 11 && d.length <= 15) return d;   // fora do Brasil
+  return '';
+}
+
+function _leadTlHtml(timeline) {
+  var h = '';
+  (timeline || []).slice().reverse().forEach(function (t) {
+    h += '<div class="tl-item"><div class="tl-dot">&#10022;</div><div>' +
+      '<div class="tl-text">' + escHtml(t.action || '') + '</div>' +
+      '<div class="tl-meta">' + escHtml(t.user || '') + ' &middot; ' + (t.timestamp ? fmtDateFull(t.timestamp) : '') + '</div>' +
+      '</div></div>';
+  });
+  return h || '<div style="color:var(--muted);font-size:12px">Sem historico.</div>';
+}
+
 async function openLeadDetail(leadId) {
   openModal('Carregando...', '<div class="loading-center" style="height:180px"><div class="spinner"></div></div>', []);
   let lead;
@@ -2547,63 +2991,223 @@ async function openLeadDetail(leadId) {
   const stageIdx = STAGES.indexOf(lead.status);
   // phone pode vir como número do Sheets — converte para string
   const phone    = String(lead.phone || '');
-  const waLink   = phone ? 'https://wa.me/' + phone.replace(/\D/g,'') : '';
-  const waBtn    = waLink
-    ? '<div style="margin-bottom:16px"><a href="' + waLink + '" target="_blank" class="btn btn-whatsapp">&#9990; Abrir WhatsApp &mdash; ' + escHtml(phone) + '</a></div>'
-    : '';
+  LD = { lead: lead, cf: cf, zap: _crmZapValido(phone), tpl: null, aberto: '' };
+  const temEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(lead.email || '').trim());
+  const ehTeste  = !!CRM_ORIGENS[cf.origem];
 
-  const formKeys = Object.entries(formAnswers).filter(function(kv){ return kv[1] && !['Campanha','Anuncio','Plataforma','An\u00FAncio'].includes(kv[0]); });
+  // Barra de ações: fica fixa no topo enquanto o detalhe rola
+  const acoes =
+    '<div class="lead-acoes" id="leadAcoes">' +
+      (LD.zap
+        ? '<button class="la-btn zap" data-p="tpl" data-fb-off="1" onclick="leadPainel(this)">' + LA_ICO.enviar + ' Template WhatsApp</button>' +
+          '<a class="la-btn" href="https://wa.me/' + LD.zap + '" target="_blank" rel="noopener">' + LA_ICO.conversa + ' Conversa</a>'
+        : '<button class="la-btn off" disabled title="Este lead não tem um WhatsApp válido">' + LA_ICO.enviar + ' Template WhatsApp</button>' +
+          '<button class="la-btn off" disabled title="Este lead não tem um WhatsApp válido">' + LA_ICO.conversa + ' Conversa</button>') +
+      (temEmail
+        ? '<button class="la-btn" data-p="mail" data-fb-off="1" onclick="leadPainel(this)">' + LA_ICO.mail + ' E-mail</button>'
+        : '<button class="la-btn off" disabled title="Este lead não tem um e-mail válido">' + LA_ICO.mail + ' E-mail</button>') +
+      (ehTeste && LD.zap && temEmail
+        ? '<button class="la-btn" onclick="leadBoasVindasZap(this)" title="Template de boas-vindas da rota dele, com os dados do teste">' +
+            LA_ICO.estrela + ' Boas-vindas</button>' : '') +
+    '</div>' +
+    '<div id="leadPainel"></div>';
+
+  const formKeys = Object.entries(formAnswers).filter(function(kv){ return kv[1] && !['Campanha','Anuncio','Plataforma','Anúncio'].includes(kv[0]); });
   let formHtml = '';
   formKeys.forEach(function(kv) {
     formHtml += '<div class="answer-card"><div class="answer-q">' + escHtml(kv[0]) + '</div><div class="answer-a">' + escHtml(String(kv[1])) + '</div></div>';
   });
   if (!formHtml) formHtml = '<div style="color:var(--muted);font-size:13px">Sem respostas registradas.</div>';
 
-  let tlHtml = '';
-  timeline.slice().reverse().forEach(function(t) {
-    tlHtml += '<div class="tl-item"><div class="tl-dot">&#10022;</div><div>' +
-      '<div class="tl-text">' + escHtml(t.action||'') + '</div>' +
-      '<div class="tl-meta">' + escHtml(t.user||'') + ' &middot; ' + (t.timestamp ? fmtDateFull(t.timestamp) : '') + '</div>' +
-      '</div></div>';
-  });
-  if (!tlHtml) tlHtml = '<div style="color:var(--muted);font-size:12px">Sem historico.</div>';
-
   const bgColor  = STAGE_BG[stageIdx]    || 'var(--accent-l)';
   const txColor  = STAGE_COLORS[stageIdx] || 'var(--accent)';
   const body =
+    acoes +
     '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">' +
-      '<div style="width:48px;height:48px;border-radius:14px;background:' + bgColor + ';color:' + txColor + ';display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;flex-shrink:0">' + (lead.name||'?')[0].toUpperCase() + '</div>' +
+      '<div style="width:48px;height:48px;border-radius:14px;background:' + bgColor + ';color:' + txColor + ';display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;flex-shrink:0">' + escHtml(String(lead.name||'?')[0].toUpperCase()) + '</div>' +
       '<div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:800;color:var(--text)">' + escHtml(String(lead.name||'Sem nome')) + '</div>' +
       '<div style="font-size:12px;color:var(--muted)">' + escHtml(String(lead.email||'')) + '</div></div>' +
-      '<span class="tag tag-' + stageIdx + '">' + lead.status + '</span>' +
+      '<span class="tag" style="background:' + bgColor + ';color:' + txColor + '">' + escHtml(String(lead.status || '')) + '</span>' +
     '</div>' +
-    waBtn +
     '<div class="detail-section"><div class="detail-section-title">Dados do Lead</div>' +
     '<div class="detail-grid">' +
-      '<div class="detail-item"><div class="detail-item-label">Telefone</div><div class="detail-item-value">' + escHtml(phone||'&mdash;') + '</div></div>' +
-      '<div class="detail-item"><div class="detail-item-label">Origem</div><div class="detail-item-value">' + escHtml(String(cf.platform||formAnswers['Plataforma']||'&mdash;')) + '</div></div>' +
-      '<div class="detail-item"><div class="detail-item-label">Campanha</div><div class="detail-item-value" style="font-size:12px">' + escHtml(String(cf.campaign_name||formAnswers['Campanha']||'&mdash;')) + '</div></div>' +
-      '<div class="detail-item"><div class="detail-item-label">Anuncio</div><div class="detail-item-value" style="font-size:12px">' + escHtml(String(cf.ad_name||formAnswers['Anuncio']||formAnswers['An\u00FAncio']||'&mdash;')) + '</div></div>' +
-      '<div class="detail-item"><div class="detail-item-label">Responsavel</div><div class="detail-item-value">' + escHtml(String(lead.assigned_user||'&mdash;')) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Telefone</div><div class="detail-item-value">' + escHtml(phone||'—') +
+        (phone && !LD.zap ? ' <span style="font-size:10.5px;color:#e0a83c">(não é um WhatsApp válido)</span>' : '') + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Origem</div><div class="detail-item-value">' + escHtml(String(cf.platform||formAnswers['Plataforma']||'—')) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Campanha</div><div class="detail-item-value" style="font-size:12px">' + escHtml(String(cf.campaign_name||formAnswers['Campanha']||'—')) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Anuncio</div><div class="detail-item-value" style="font-size:12px">' + escHtml(String(cf.ad_name||formAnswers['Anuncio']||formAnswers['Anúncio']||'—')) + '</div></div>' +
+      '<div class="detail-item"><div class="detail-item-label">Responsavel</div><div class="detail-item-value">' + escHtml(String(lead.assigned_user||'—')) + '</div></div>' +
       '<div class="detail-item"><div class="detail-item-label">Criado em</div><div class="detail-item-value">' + fmtDateFull(lead.created_at) + '</div></div>' +
     '</div></div>' +
     _crmRastroHtml(cf) +
     '<div class="detail-section"><div class="detail-section-title">Respostas do Formulario</div>' + formHtml + '</div>' +
-    '<div class="detail-section"><div class="detail-section-title">Historico</div><div class="tl-wrap">' + tlHtml + '</div></div>';
+    '<div class="detail-section"><div class="detail-section-title">Historico</div><div class="tl-wrap" id="leadTl">' + _leadTlHtml(timeline) + '</div></div>';
 
-  // v171: lead de teste (qualquer rota) com WhatsApp ganha o reenvio das boas-vindas
-  const botoes = [];
-  if (phone.replace(/\D/g, '').length >= 12 && CRM_ORIGENS[cf.origem] && lead.email) {
-    botoes.push({ label: 'Reenviar boas-vindas (WhatsApp)', cls: 'btn-ghost',
-                  action: function () { leadReenviarBoasVindas(String(lead.email)); } });
-  }
-  botoes.push({ label: 'Editar',  action: function(){ closeModal(); openEditLead(leadId); }, cls: 'btn-ghost' });
-  botoes.push({ label: 'Fechar',  action: closeModal, cls: 'btn-primary' });
-  openModal('Lead: ' + (lead.name||'Sem nome'), body, botoes);
+  openModal('Lead: ' + (lead.name||'Sem nome'), body, [
+    { label: 'Editar',  action: function(){ closeModal(); openEditLead(leadId); }, cls: 'btn-ghost' },
+    { label: 'Fechar',  action: closeModal, cls: 'btn-primary' }
+  ]);
 }
 
-// v171: reenvia o template de boas-vindas da rota da pessoa (o botão
-// ganha carregando → ✓/✕ sozinho, pelo retorno automático do rpc)
+// Abre/fecha o painel da ação (mesmo botão de novo = fecha)
+function leadPainel(btn) {
+  var p = btn.dataset.p, alvo = document.getElementById('leadPainel');
+  if (!alvo) return;
+  Array.prototype.forEach.call(document.querySelectorAll('#leadAcoes .la-btn'), function (b) { b.classList.remove('on'); });
+  if (LD.aberto === p) { LD.aberto = ''; alvo.innerHTML = ''; return; }
+  LD.aberto = p;
+  btn.classList.add('on');
+  // O detalhe pode estar rolado lá embaixo (histórico): o painel abre logo
+  // abaixo da barra — sem rolar para cima, o clique parecia não fazer nada.
+  var corpo = document.getElementById('modalBody');
+  if (corpo && corpo.scrollTop > 0) { try { corpo.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { corpo.scrollTop = 0; } }
+  if (p === 'tpl') return _leadPainelTemplate(alvo);
+  if (p === 'mail') return _leadPainelEmail(alvo);
+}
+
+async function _leadPainelTemplate(alvo) {
+  alvo.innerHTML = '<div class="la-painel">' +
+    '<div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:8px">Disparar template de WhatsApp para +' + escHtml(LD.zap) + '</div>' +
+    '<select class="form-control" id="laTpl" onchange="leadTplEscolher(this)"><option value="">Carregando templates da Meta…</option></select>' +
+    '<div id="laTplCorpo"></div></div>';
+  if (!CRM.templates || !CRM.templates.length) {
+    var r = null;
+    try { r = await rpc('waListarTemplates', {}); } catch (e) {}
+    if (!r || !r.ok) {
+      var s0 = document.getElementById('laTpl');
+      if (s0) s0.innerHTML = '<option value="">Não consegui listar os templates: ' + escHtml((r && r.error) || 'tente de novo') + '</option>';
+      return;
+    }
+    CRM.templates = r.data || [];
+  }
+  var sel = document.getElementById('laTpl');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Escolha o template…</option>' + CRM.templates.map(function (t, i) {
+    return '<option value="' + i + '">' + escHtml(t.nome) + '  ·  ' + escHtml(t.categoria) + '  ·  ' + escHtml(t.idioma) + '</option>';
+  }).join('');
+}
+
+async function leadTplEscolher(sel) {
+  var corpo = document.getElementById('laTplCorpo');
+  var t = CRM.templates[Number(sel.value)];
+  LD.tpl = null;
+  if (!t || sel.value === '') { corpo.innerHTML = ''; return; }
+  corpo.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-top:10px">Preparando com os dados do lead…</div>';
+  var r = null;
+  try { r = await rpc('crmPrepararTemplate', { leadId: LD.lead.id, template: t.nome, idioma: t.idioma }); } catch (e) {}
+  if (!r || !r.ok) { corpo.innerHTML = '<div style="font-size:12px;color:#e2626b;margin-top:10px">' + escHtml((r && r.error) || 'Falhou.') + '</div>'; return; }
+  LD.tpl = r.data;
+  var d = r.data, h = '';
+  if (d.vars.length) {
+    h += '<div style="font-size:11.5px;color:var(--muted);margin:12px 0 7px">Variáveis — já preenchidas com os dados do lead; pode editar:</div>';
+    d.vars.forEach(function (v, i) {
+      h += '<div class="la-var"><div class="la-var-n">{{' + escHtml(v.nome) + '}}</div>' +
+        '<input class="form-control" data-i="' + i + '" value="' + escHtml(v.valor) + '" oninput="leadTplPrevia()">' +
+        '<div class="la-var-f">' + escHtml(_laFonteNome(v.fonte)) + '</div></div>';
+    });
+  }
+  h += '<div class="la-prev" id="laPrev"></div>';
+  if (d.header && /IMAGE|VIDEO|DOCUMENT/.test(d.header.formato)) {
+    h += '<div style="font-size:11px;color:var(--muted);margin-top:-4px">O cabeçalho do template tem ' +
+         (d.header.formato === 'IMAGE' ? 'imagem' : d.header.formato === 'VIDEO' ? 'vídeo' : 'documento') + ' — vai a configurada no sistema.</div>';
+  }
+  if (String(d.categoria).toUpperCase() === 'MARKETING') {
+    h += '<div style="font-size:11px;color:#e0a83c;margin-top:4px">Template MARKETING: a Meta pode segurar a entrega se a pessoa já recebeu muitas mensagens assim.</div>';
+  }
+  h += '<div style="display:flex;justify-content:flex-end;margin-top:12px">' +
+         '<button class="btn btn-primary btn-sm" onclick="leadTplDisparar(this)">' + LA_ICO.enviar.replace('<svg ', '<svg width="15" height="15" ') + ' Disparar</button></div>';
+  corpo.innerHTML = h;
+  leadTplPrevia();
+}
+
+var LA_FONTES = { primeiro_nome: 'primeiro nome', nome_completo: 'nome completo', dias_trial: 'dias de teste',
+                  fim_teste: 'fim do teste', data_cobranca: 'data da cobrança', valor: 'valor', email: 'e-mail' };
+function _laFonteNome(f) { return LA_FONTES[f] || (String(f).indexOf('txt:') === 0 ? 'texto fixo' : (f === '-' ? 'preencha' : 'texto fixo')); }
+
+function leadTplPrevia() {
+  var prev = document.getElementById('laPrev');
+  if (!prev || !LD.tpl) return;
+  var valores = {};
+  Array.prototype.forEach.call(document.querySelectorAll('#laTplCorpo .la-var input'), function (inp) {
+    var v = LD.tpl.vars[Number(inp.dataset.i)];
+    if (v) valores[v.nome] = inp.value;
+  });
+  var texto = escHtml(LD.tpl.texto || '(template sem corpo)');
+  texto = texto.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, function (m, nome) {
+    var val = valores[nome];
+    return '<b>' + escHtml(val != null && String(val).trim() ? val : '{{' + nome + '}}') + '</b>';
+  });
+  prev.innerHTML = texto;
+}
+
+async function leadTplDisparar(botao) {
+  if (!LD.tpl) return;
+  var valores = {};
+  Array.prototype.forEach.call(document.querySelectorAll('#laTplCorpo .la-var input'), function (inp) {
+    var v = LD.tpl.vars[Number(inp.dataset.i)];
+    if (v) valores[v.nome] = inp.value;
+  });
+  return acaoBotao(botao, async function () {
+    var r = await rpc('crmEnviarTemplate', { leadId: LD.lead.id, template: LD.tpl.template, idioma: LD.tpl.idioma, valores: valores });
+    leadRecarregarHistorico();
+    if (!r || !r.ok) return { ok: false, msg: 'Não saiu', detalhe: (r && r.error) || 'A Meta recusou o envio.' };
+    toast(r.message || 'Template enviado.', 'success');
+    return { ok: true, msg: 'Enviado' };
+  }, 'Enviando…');
+}
+
+function _leadPainelEmail(alvo) {
+  var temConta = !!(LD.lead && LD.lead.temConta);
+  alvo.innerHTML = '<div class="la-painel">' +
+    '<div style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:4px">Enviar e-mail para ' + escHtml(LD.lead.email) + '</div>' +
+    '<div style="font-size:11.5px;color:var(--muted);margin-bottom:12px">' +
+      (temConta ? 'Tem conta no app.' : 'Ainda não tem conta no app — as boas-vindas vão como convite para o teste grátis.') +
+      ' Fica registrado no histórico.</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button class="la-btn" data-t="boas_vindas" onclick="leadEmail(this)">' + LA_ICO.coracao +
+        (temConta ? ' Boas-vindas (acesso ao app)' : ' Boas-vindas (convite para o teste)') + '</button>' +
+      (temConta
+        ? '<button class="la-btn" data-t="recuperacao" onclick="leadEmail(this)">' + LA_ICO.chave + ' Recuperação de senha</button>'
+        : '<button class="la-btn off" disabled title="Esse e-mail não tem conta no app">' + LA_ICO.chave + ' Recuperação de senha</button>') +
+    '</div></div>';
+}
+
+async function leadEmail(botao) {
+  var tipo = botao.dataset.t;
+  return acaoBotao(botao, async function () {
+    var r = await rpc('crmEnviarEmail', { leadId: LD.lead.id, tipo: tipo });
+    leadRecarregarHistorico();
+    if (!r || !r.ok) return { ok: false, msg: 'Não saiu', detalhe: (r && r.error) || 'Não consegui enviar.' };
+    toast(r.message || 'E-mail enviado.', 'success');
+    return { ok: true, msg: 'Enviado' };
+  }, 'Enviando…');
+}
+
+// v171→v172: boas-vindas da ROTA do lead, com os dados reais do teste
+async function leadBoasVindasZap(botao) {
+  if (!LD.lead) return;
+  return acaoBotao(botao, async function () {
+    var r = await rpc('waReenviarBoasVindas', { email: String(LD.lead.email || '') });
+    leadRecarregarHistorico();
+    if (!r || !r.ok) return { ok: false, msg: 'Não saiu', detalhe: (r && r.error) || 'Não consegui reenviar.' };
+    toast(r.message || 'Boas-vindas enviadas.', 'success');
+    return { ok: true, msg: 'Enviado' };
+  }, 'Enviando…');
+}
+
+// O histórico do modal se atualiza depois de cada ação
+async function leadRecarregarHistorico() {
+  if (!LD.lead) return;
+  try {
+    var r = await rpc('getLead', { id: LD.lead.id });
+    var tl = [];
+    try { tl = JSON.parse(String((r && r.ok && r.data.timeline) || '[]')); } catch (e) {}
+    var box = document.getElementById('leadTl');
+    if (box && r && r.ok) box.innerHTML = _leadTlHtml(tl);
+  } catch (e) {}
+}
+
+// Mantida para quem ainda chama pelo e-mail (atalho antigo)
 async function leadReenviarBoasVindas(email) {
   var r;
   try { r = await rpc('waReenviarBoasVindas', { email: email }); }

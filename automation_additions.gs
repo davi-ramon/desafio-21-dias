@@ -239,7 +239,9 @@ function getDashboardFull(token, opts) {
     }
   }
 
-  const fechadosKey = STAGES_LIST[STAGES_LIST.length - 1];
+  // v172: a etapa de conversão é a que tem o papel "fechado" (pode não ser a última)
+  const fechadoCfg  = (stagesConfig || []).filter(e => e.papel === 'fechado')[0];
+  const fechadosKey = fechadoCfg ? fechadoCfg.nome : STAGES_LIST[STAGES_LIST.length - 1];
   const convRate = total > 0 ? ((byStage[fechadosKey] / total) * 100).toFixed(1) : 0;
 
   // Alunos / compradores (não filtrados por período — mostrar total)

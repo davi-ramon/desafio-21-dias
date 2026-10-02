@@ -3,6 +3,8 @@
 // Versão: 3.0 — getLeadsLite + Cache + Date fix
 // ============================================================
 
+// v172: as etapas vivem em pipelines_config (crm_etapas.gs). STAGES fica só
+// como o padrão de fábrica, para quem ainda o referencie.
 var STAGES = ['Interessado', 'Qualificado', 'Em Atendimento', 'Proposta Enviada', 'Fechado'];
 
 // ── Campos retornados para o Kanban (payload pequeno = rápido) ─
@@ -21,12 +23,12 @@ function getLeadsLite(token) {
   var cached   = null;
   try { cached = cache.get('leads_lite'); } catch(e) {}
   if (cached) {
-    try { return { ok: true, data: JSON.parse(cached), cached: true }; } catch(e) {}
+    try { return { ok: true, data: JSON.parse(cached), cached: true, etapas: _crmEtapas_() }; } catch(e) {}
   }
 
   var sheet = getSheet(SHEET_CRM);
   var data  = sheet.getDataRange().getValues();
-  if (data.length < 2) return { ok: true, data: [] };
+  if (data.length < 2) return { ok: true, data: [], etapas: _crmEtapas_() };
 
   var headers = data[0].map(function(h) { return String(h); });
   var idxMap  = {};
@@ -59,7 +61,7 @@ function getLeadsLite(token) {
     if (json.length < 90000) cache.put('leads_lite', json, 30);
   } catch(e) {}
 
-  return { ok: true, data: leads };
+  return { ok: true, data: leads, etapas: _crmEtapas_() };
 }
 
 // ── getLead (único, dados completos) ─────────────────────────
@@ -84,6 +86,8 @@ function getLead(token, leadId) {
         else if (v === null || v === undefined)  obj[h] = '';
         else                                     obj[h] = v;
       });
+      // v172: o detalhe do lead mostra "recuperação de senha" só para quem tem conta
+      try { obj.temConta = !!(typeof _crmContaDoEmail_ === 'function' && _crmContaDoEmail_(obj.email)); } catch (e) { obj.temConta = false; }
       return { ok: true, data: obj };
     }
   }
@@ -112,7 +116,7 @@ function createLead(token, leadData) {
     leadData.email        || '',
     leadData.phone        || '',
     leadData.form_answers || '',
-    leadData.status       || STAGES[0],
+    leadData.status       || _crmEtapaPorPapel_('entrada'),
     now, now,
     leadData.assigned_user || user.email,
     leadData.custom_fields || '{}',
@@ -195,7 +199,7 @@ function receiveMetaLead(data) {
       data.full_name || data.name || '',
       data.email || '',
       data.phone_number || data.phone || '',
-      formAnswers, STAGES[0],
+      formAnswers, _crmEtapaPorPapel_('entrada'),
       now, now, 'meta_ads', '{}', timeline
     ]);
     invalidateLeadsCache_();
@@ -215,7 +219,7 @@ function getDashboardMetrics(token) {
   var sheet   = getSheet(SHEET_CRM);
   var data    = sheet.getDataRange().getValues();
   if (data.length < 2) {
-    return { ok: true, data: { total: 0, byStage: {}, byDay: {}, conversionRate: 0, stages: STAGES } };
+    return { ok: true, data: { total: 0, byStage: {}, byDay: {}, conversionRate: 0, stages: _crmNomesEtapas_() } };
   }
 
   var headers   = data[0].map(function(h){ return String(h); });
@@ -224,7 +228,8 @@ function getDashboardMetrics(token) {
 
   var total = 0;
   var byStage = {};
-  STAGES.forEach(function(s) { byStage[s] = 0; });
+  var etapasAtuais = _crmNomesEtapas_();
+  etapasAtuais.forEach(function(s) { byStage[s] = 0; });
   var byDay = {};
   var now = new Date();
   var thirtyAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
@@ -244,8 +249,8 @@ function getDashboardMetrics(token) {
     }
   }
 
-  var conversionRate = total > 0 ? ((byStage['Fechado'] / total) * 100).toFixed(1) : 0;
-  return { ok: true, data: { total: total, byStage: byStage, byDay: byDay, conversionRate: conversionRate, stages: STAGES } };
+  var conversionRate = total > 0 ? (((byStage[_crmEtapaPorPapel_('fechado')] || 0) / total) * 100).toFixed(1) : 0;
+  return { ok: true, data: { total: total, byStage: byStage, byDay: byDay, conversionRate: conversionRate, stages: etapasAtuais } };
 }
 
 // ── Limpar colunas extras da aba CRM ────────────────────────

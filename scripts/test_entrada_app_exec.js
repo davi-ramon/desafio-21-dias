@@ -161,7 +161,7 @@ vm.createContext(ctx);
 
 for (const f of ['code.gs', 'automation.gs', 'auth.gs', 'auth_admin.gs', 'leads.gs', 'crm_leads.gs', 'trial_routes.gs',
                  'trial_card.gs', 'whatsapp.gs', 'telegram.gs', 'email_saude.gs', 'email_layout.gs', 'modules.gs', 'setup.gs',
-                 'rito_status.gs', 'trial_auto.gs', 'ingressos_evento.gs']) {
+                 'rito_status.gs', 'trial_auto.gs', 'ingressos_evento.gs', 'crm_etapas.gs', 'crm_acoes.gs']) {
   vm.runInContext(fs.readFileSync(path.join(RAIZ, f), 'utf8'), ctx, { filename: f });
 }
 
@@ -655,6 +655,128 @@ passo('reenvio pelo painel: so com autorizacao, com o fim do teste da pessoa', (
   exige(ctx.waReenviarBoasVindas('token-aluno', { email: 'salomao@y.com' }).error === 'Sem permissão.', 'sem admin reenviou');
   exige(ctx.ritoMotivo_('(#131008) Required parameter is missing') === 'faltou um dado que o template exige (variável vazia, imagem do cabeçalho ou botão)', 'motivo');
   return 'reenviou para o Salomao; recusou quem nao autorizou';
+});
+
+// ═════════════════════════════════════════════════════════════
+console.log('\nV172 — ETAPAS DO PIPELINE E ACOES NO LEAD');
+function leadNoCrm(id, nome, email, fone, status, cf) {
+  abas.CRM.appendRow([id, nome, email, fone, '{}', status, '2026-10-01T10:00:00Z', '', 'x', JSON.stringify(cf || {}), '[]']);
+}
+const statusDe = id => abas.CRM.rows.find(r => r[0] === id)[5];
+const historico = id => JSON.parse(abas.CRM.rows.find(r => r[0] === id)[10] || '[]').map(t => t.action);
+let tokAdmin = '';
+passo('etapas: padrao de fabrica e getLeadsLite traz as etapas', () => {
+  planilhaNova();
+  abas.users.appendRow(['ua', 'Davi', 'davi@x.com', ctx.hashPassword('x'), 'admin', '', true, '']);
+  abas.users.appendRow(['ub', 'Aluno', 'aluno@x.com', ctx.hashPassword('x'), 'aluno', '', true, '']);
+  tokAdmin = ctx.login('davi@x.com', 'x').token;
+  leadNoCrm('L1', 'Ana', 'ana@y.com', '+5594991230000', 'Em Atendimento');
+  leadNoCrm('L2', 'Bia', 'bia@y.com', '+5594991230001', 'Proposta Enviada');
+  leadNoCrm('L3', 'Caio', 'caio@y.com', '', 'Fechado');
+  const r = ctx.getLeadsLite(tokAdmin);
+  exige(r.ok && r.etapas.length === 5 && r.etapas[0].papel === 'entrada' && r.etapas[4].papel === 'fechado', JSON.stringify(r.etapas));
+  return r.etapas.map(e => e.nome).join(' > ');
+});
+passo('etapas: cria, renomeia (leads acompanham) e apaga movendo os leads', () => {
+  const at = ctx.crmGetEtapas(tokAdmin).data;
+  const nova = [at[0], { nome: 'Contato feito', cor: '#a855f7' }, at[1],
+                { id: at[2].id, nome: 'Negociação', cor: at[2].cor }, at[4]];   // apaga "Proposta Enviada"
+  const r = ctx.crmSalvarEtapas(tokAdmin, { etapas: nova, mover: { [at[3].id]: 'Negociação' } });
+  exige(r.ok, JSON.stringify(r));
+  const nomes = r.data.map(e => e.nome);
+  exige(nomes.join('|') === 'Interessado|Contato feito|Qualificado|Negociação|Fechado', nomes.join('|'));
+  exige(statusDe('L1') === 'Negociação', 'renomear nao migrou: ' + statusDe('L1'));
+  exige(statusDe('L2') === 'Negociação', 'apagar nao moveu: ' + statusDe('L2'));
+  exige(r.migrados === 2, 'migrados=' + r.migrados);
+  return nomes.join(' > ') + ' | 2 leads migrados';
+});
+passo('etapas: as de automacao nao somem; renomear "Fechado" mantem o papel', () => {
+  let at = ctx.crmGetEtapas(tokAdmin).data;
+  let r = ctx.crmSalvarEtapas(tokAdmin, { etapas: at.filter(e => e.papel !== 'fechado') });
+  exige(!r.ok && /automações/.test(r.error), JSON.stringify(r));
+  r = ctx.crmSalvarEtapas(tokAdmin, { etapas: at.map(e => e.papel === 'fechado' ? Object.assign({}, e, { nome: 'Cliente' }) : e) });
+  exige(r.ok && statusDe('L3') === 'Cliente', JSON.stringify(r) + ' L3=' + statusDe('L3'));
+  exige(ctx._clEstagio_('cartao_confirmado', 'nao') === 'Cliente' && ctx._clEstagio_('', 'sim') === 'Cliente', 'automacao nao seguiu o nome novo');
+  exige(ctx._crmEtapaPorPapel_('entrada') === 'Interessado', 'entrada');
+  return 'Fechado -> Cliente, automacao acompanhou';
+});
+passo('etapas: nome repetido, vazio, papel vindo do navegador e quem nao e admin', () => {
+  const at = ctx.crmGetEtapas(tokAdmin).data;
+  exige(/Duas etapas/.test(ctx.crmSalvarEtapas(tokAdmin, { etapas: at.concat([{ nome: 'cliente' }]) }).error), 'duplicada');
+  exige(/nome/.test(ctx.crmSalvarEtapas(tokAdmin, { etapas: at.concat([{ nome: '  ' }]) }).error), 'vazia');
+  const r = ctx.crmSalvarEtapas(tokAdmin, { etapas: at.concat([{ nome: 'Falsa', papel: 'fechado' }]) });
+  exige(r.ok && r.data.filter(e => e.papel === 'fechado').length === 1, 'papel aceito do navegador');
+  const tokAluno = ctx.login('aluno@x.com', 'x').token;
+  exige(ctx.crmSalvarEtapas(tokAluno, { etapas: at }).error === 'Sem permissão.', 'aluno salvou');
+  exige(ctx.crmGetEtapas(tokAluno).ok === false, 'aluno leu as etapas');
+});
+passo('etapas: o funil so anda para frente na ordem NOVA', () => {
+  ctx.crmRegistrarLeadTrial_({ nome: 'Duda', email: 'duda@y.com', whatsapp: '94991230005', estagio: 'cadastrado' });
+  const id = abas.CRM.rows.find(r => r[2] === 'duda@y.com')[0];
+  exige(statusDe(id) === 'Interessado', 'entrou em ' + statusDe(id));
+  ctx.crmRegistrarLeadTrial_({ email: 'duda@y.com', estagio: 'cartao_iniciado', origem: 'trial-cartao' });
+  exige(statusDe(id) === 'Qualificado', 'nao avancou: ' + statusDe(id));
+  ctx.crmRegistrarLeadTrial_({ email: 'duda@y.com', estagio: 'cadastrado' });
+  exige(statusDe(id) === 'Qualificado', 'voltou para tras: ' + statusDe(id));
+});
+passo('etapas: destino com outra caixa/espacos acha a etapa; destino que nao existe vai para a entrada', () => {
+  const at = ctx.crmGetEtapas(tokAdmin).data;
+  const falsa = at.find(e => e.nome === 'Falsa'), contato = at.find(e => e.nome === 'Contato feito');
+  exige(falsa && contato, 'etapas do passo anterior: ' + at.map(e => e.nome).join('|'));
+  leadNoCrm('L4', 'Davi', 'davi4@y.com', '', 'Falsa');
+  leadNoCrm('L5', 'Edu', 'edu@y.com', '', 'Contato feito');
+  const r = ctx.crmSalvarEtapas(tokAdmin, { etapas: at.filter(e => e !== falsa && e !== contato),
+    mover: { [falsa.id]: '  negociação  ', [contato.id]: 'Etapa que não existe' } });
+  exige(r.ok, JSON.stringify(r));
+  exige(statusDe('L4') === 'Negociação', 'caixa/espacos nao acharam o destino: ' + statusDe('L4'));
+  exige(statusDe('L5') === 'Interessado', 'destino inexistente nao caiu na entrada: ' + statusDe('L5'));
+  return 'Falsa -> Negociação, Contato feito -> Interessado';
+});
+passo('acoes: template com os valores editados no painel (variaveis com NOME)', () => {
+  S.templatesMeta.tpl_crm = { status: 'APPROVED', category: 'MARKETING', parameter_format: 'NAMED',
+    components: [{ type: 'BODY', text: 'Oi {{nome}}! Tudo certo para {{dia}}?' }] };
+  cache.clear(); S.wa.length = 0;
+  const p = ctx.crmPrepararTemplate(tokAdmin, { leadId: 'L1', template: 'tpl_crm' });
+  exige(p.ok && p.data.vars[0].nome === 'nome' && p.data.vars[0].valor === 'Ana', JSON.stringify(p));
+  const r = ctx.crmEnviarTemplate(tokAdmin, { leadId: 'L1', template: 'tpl_crm', valores: { nome: 'Aninha', dia: 'segunda às 10h' } });
+  exige(r.ok, JSON.stringify(r));
+  const b = S.wa[0].template.components.find(c => c.type === 'body').parameters;
+  exige(b[0].text === 'Aninha' && b[0].parameter_name === 'nome' && b[1].text === 'segunda às 10h', JSON.stringify(b));
+  exige(S.wa[0].to === '5594991230000', 'numero: ' + S.wa[0].to);
+  exige(historico('L1').some(a => /WhatsApp: template "tpl_crm" enviado/.test(a)), historico('L1').join(' / '));
+  return 'enviado com "Aninha" e "segunda às 10h"';
+});
+passo('acoes: sem WhatsApp valido ou sem permissao, nao dispara', () => {
+  exige(/WhatsApp válido/.test(ctx.crmEnviarTemplate(tokAdmin, { leadId: 'L3', template: 'tpl_crm', valores: {} }).error), 'L3 sem fone');
+  const tokAluno = ctx.login('aluno@x.com', 'x').token;
+  exige(ctx.crmEnviarTemplate(tokAluno, { leadId: 'L1', template: 'tpl_crm' }).error === 'Sem permissão.', 'aluno disparou');
+  S.waFalhas = [400];
+  const r = ctx.crmEnviarTemplate(tokAdmin, { leadId: 'L1', template: 'tpl_crm', valores: { nome: 'Ana', dia: 'hoje' } });
+  exige(!r.ok && historico('L1').some(a => /não saiu/.test(a)), 'falha nao foi para o historico');
+});
+// A MESMA tabela roda no teste do front (_crmZapValido): as duas regras não podem divergir
+const ZAP_CASOS = { '(94) 99123-0000': '5594991230000', '+55 94 99123-0000': '5594991230000', '9491230000': '5594991230000',
+                    '9488887777': '', '1234': '', '': '', '0044 7911 123456': '447911123456', '+44 7911 123456': '447911123456' };
+passo('acoes: WhatsApp valido — mesma regra do front (celular BR, 10 digitos, DDI, 00 internacional)', () => {
+  const errados = Object.keys(ZAP_CASOS).filter(k => ctx._crmZap_(k) !== ZAP_CASOS[k]).map(k => k + ' -> ' + ctx._crmZap_(k));
+  exige(!errados.length, errados.join(' | '));
+  return Object.keys(ZAP_CASOS).length + ' numeros';
+});
+passo('acoes: e-mail de boas-vindas (convite x acesso) e recuperacao so para quem tem conta', () => {
+  S.envios.length = 0;
+  let r = ctx.crmEnviarEmail(tokAdmin, { leadId: 'L2', tipo: 'recuperacao' });
+  exige(!r.ok && /não tem conta/.test(r.error), JSON.stringify(r));
+  r = ctx.crmEnviarEmail(tokAdmin, { leadId: 'L2', tipo: 'boas_vindas' });
+  exige(r.ok && /teste grátis/.test(S.envios[S.envios.length - 1].subject), JSON.stringify(S.envios));
+  abas.users.appendRow(['uc', 'Bia', 'bia@y.com', ctx.hashPassword('x'), 'aluno', '', true, '']);
+  r = ctx.crmEnviarEmail(tokAdmin, { leadId: 'L2', tipo: 'boas_vindas' });
+  exige(r.ok && /Seu acesso/.test(S.envios[S.envios.length - 1].subject), 'acesso: ' + S.envios[S.envios.length - 1].subject);
+  r = ctx.crmEnviarEmail(tokAdmin, { leadId: 'L2', tipo: 'recuperacao' });
+  exige(r.ok && /recupera/i.test(S.envios[S.envios.length - 1].subject), 'recuperacao');
+  const h = historico('L2').join(' / ');
+  exige(/convite para o teste/.test(h) && /acesso ao app/.test(h) && /recuperação de senha enviado/.test(h), h);
+  exige(ctx.getLead(tokAdmin, 'L2').data.temConta === true && ctx.getLead(tokAdmin, 'L1').data.temConta === false, 'temConta');
+  return 'convite, acesso e codigo — tudo no historico';
 });
 
 passo('v170: ingresso de evento sai pelo MailApp com o QR embutido (o GmailApp nao tem permissao)', () => {
