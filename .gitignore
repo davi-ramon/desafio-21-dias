@@ -10,6 +10,9 @@ input_output_json_enviar_msg_gptMaker.txt
 .env
 .env.*
 
+# Arquivo de handoff — contém IDs/tokens (Cakto secret etc). Apenas local.
+CONTEXTO_PROJETO.md
+
 # ═══════════════════════════════════════════════════════
 #  DATABASE & USER DATA
 # ═══════════════════════════════════════════════════════

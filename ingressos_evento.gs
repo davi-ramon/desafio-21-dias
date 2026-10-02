@@ -174,7 +174,7 @@ function processWebhookCaktoEvento_(caktoEvt) {
 // VERIFICAR CHECK-IN — chamado via GET/POST público
 // Valida UUID, marca como presente se primeira vez
 // ─────────────────────────────────────────────────────────────
-function verificarIngressoUUID_(uuid) {
+function verificarIngressoUUID_(uuid, staffToken) {
   if (!uuid) return { ok: false, error: 'UUID não informado.' };
 
   var ss   = getSpreadsheet_();
@@ -198,7 +198,7 @@ function verificarIngressoUUID_(uuid) {
         valido: false,
         tipo:   'cancelado',
         nome:   String(dados[i][_IC_.NOME]),
-        email:  String(dados[i][_IC_.EMAIL]),
+        email:  _maskEmail_(dados[i][_IC_.EMAIL]),
         codigo: String(dados[i][_IC_.CODIGO]),
       };
     }
@@ -211,10 +211,30 @@ function verificarIngressoUUID_(uuid) {
         tipo:      'ja_utilizado',
         checkinAt: checkinAt,
         nome:      String(dados[i][_IC_.NOME]),
-        email:     String(dados[i][_IC_.EMAIL]),
-        cpf:       String(dados[i][_IC_.CPF]),
+        email:     _maskEmail_(dados[i][_IC_.EMAIL]),
+        cpf:       _maskCPF_(dados[i][_IC_.CPF]),
         produto:   String(dados[i][_IC_.PRODUTO]),
         codigo:    String(dados[i][_IC_.CODIGO]),
+      };
+    }
+
+    // BLINDAGEM: só o dispositivo autorizado (staff) confirma presença.
+    // Opt-in: enquanto CHECKIN_STAFF_TOKEN não existir, comporta-se como antes.
+    var expectedStaff = '';
+    try { expectedStaff = PropertiesService.getScriptProperties().getProperty('CHECKIN_STAFF_TOKEN') || ''; } catch(_e) {}
+    var staffOk = !expectedStaff || _timingEq_(String(staffToken || ''), expectedStaff);
+    if (!staffOk) {
+      // Consulta pública (read-only): mostra validade mas NÃO marca presença
+      return {
+        ok:            true,
+        valido:        true,
+        tipo:          'consulta',
+        somenteLeitura: true,
+        nome:          String(dados[i][_IC_.NOME]),
+        email:         _maskEmail_(dados[i][_IC_.EMAIL]),
+        cpf:           _maskCPF_(dados[i][_IC_.CPF]),
+        produto:       String(dados[i][_IC_.PRODUTO]),
+        codigo:        String(dados[i][_IC_.CODIGO]),
       };
     }
 
@@ -233,8 +253,8 @@ function verificarIngressoUUID_(uuid) {
       tipo:      'valido',
       checkinAt: agora,
       nome:      String(dados[i][_IC_.NOME]),
-      email:     String(dados[i][_IC_.EMAIL]),
-      cpf:       String(dados[i][_IC_.CPF]),
+      email:     _maskEmail_(dados[i][_IC_.EMAIL]),
+      cpf:       _maskCPF_(dados[i][_IC_.CPF]),
       produto:   String(dados[i][_IC_.PRODUTO]),
       valor:     String(dados[i][_IC_.VALOR]),
       codigo:    String(dados[i][_IC_.CODIGO]),
@@ -321,6 +341,10 @@ function _marcarEmailEnviado_(orderId) {
 //   2. qrserver.com como blob cid: (fallback)
 //   3. URL direta no <img src> (último recurso)
 // ─────────────────────────────────────────────────────────────
+// v170: MailApp em vez de GmailApp nos tres caminhos. O GmailApp pede a
+// permissao do Gmail INTEIRO, que a conta wpktavares@gmail.com nao concedeu:
+// desde a migracao de 2026-09-26 todo ingresso falhava aqui. O remetente
+// continua sendo wpktavares@gmail.com (o sistema roda como essa conta).
 function enviarEmailIngresso_(g) {
   var checkinUrl = _EVENTO_.CHECKIN_URL + '?id=' + encodeURIComponent(g.uuid);
   var assunto    = 'Ingresso Confirmado | ' + _EVENTO_.TITULO + ' ' + _EVENTO_.SUBTITULO;
@@ -330,8 +354,8 @@ function enviarEmailIngresso_(g) {
     try {
       var qrImgurUrl = _uploadQRToImgur_(checkinUrl);
       var html = _buildIngressoHTML_(g, qrImgurUrl);
-      GmailApp.sendEmail(g.email, assunto, '', {
-        from: _EVENTO_.FROM_EMAIL, name: _EVENTO_.FROM_NAME,
+      MailApp.sendEmail(g.email, assunto, '', {
+        name: _EVENTO_.FROM_NAME,
         htmlBody: html, replyTo: _EVENTO_.FROM_EMAIL,
       });
       return;
@@ -349,8 +373,8 @@ function enviarEmailIngresso_(g) {
     if (resp.getResponseCode() === 200) {
       var qrBlob = resp.getBlob().setName('qrcode.png');
       var html   = _buildIngressoHTML_(g, 'cid:qrcode');
-      GmailApp.sendEmail(g.email, assunto, '', {
-        from: _EVENTO_.FROM_EMAIL, name: _EVENTO_.FROM_NAME,
+      MailApp.sendEmail(g.email, assunto, '', {
+        name: _EVENTO_.FROM_NAME,
         htmlBody: html, replyTo: _EVENTO_.FROM_EMAIL,
         inlineImages: { qrcode: qrBlob },
       });
@@ -365,8 +389,8 @@ function enviarEmailIngresso_(g) {
                   + '?size=200x200&ecc=H&format=png&data='
                   + encodeURIComponent(checkinUrl);
   var html = _buildIngressoHTML_(g, qrDirectUrl);
-  GmailApp.sendEmail(g.email, assunto, '', {
-    from: _EVENTO_.FROM_EMAIL, name: _EVENTO_.FROM_NAME,
+  MailApp.sendEmail(g.email, assunto, '', {
+    name: _EVENTO_.FROM_NAME,
     htmlBody: html, replyTo: _EVENTO_.FROM_EMAIL,
   });
 }
@@ -507,6 +531,25 @@ function _gerarUUID_() {
 /** Código de exibição: primeiros 8 hex chars do UUID sem hífens */
 function _codigoExibicao_(uuid) {
   return String(uuid).replace(/-/g, '').substring(0, 8).toUpperCase();
+}
+
+/** Mascara CPF p/ resposta pública: mantém miolo p/ conferência, oculta extremidades.
+ *  Ex: 123.456.789-09 → ***.456.789-** */
+function _maskCPF_(cpf) {
+  var d = String(cpf || '').replace(/\D/g, '');
+  if (d.length !== 11) return cpf ? '***' : '';
+  return '***.' + d.substring(3, 6) + '.' + d.substring(6, 9) + '-**';
+}
+
+/** Mascara e-mail: joao@gmail.com → jo***@gmail.com */
+function _maskEmail_(email) {
+  var s = String(email || '').trim();
+  var at = s.indexOf('@');
+  if (at < 1) return s ? '***' : '';
+  var user = s.substring(0, at);
+  var dom  = s.substring(at);
+  var vis  = user.substring(0, Math.min(2, user.length));
+  return vis + '***' + dom;
 }
 
 /** Formata CPF: 12345678909 → 123.456.789-09 */

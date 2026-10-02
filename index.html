@@ -2005,15 +2005,43 @@ async function renderAutomacoes() {
       '</div>' +
       '<div id="metaStatusMsg" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>' +
     '</div>' +
+
+    // ── CRIATIVOS META ADS — top historicos + reciclagem + upload + AB test ──
+    '<div class="card" style="padding:24px">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+        '<div>' +
+          '<div style="font-weight:700;font-size:15px;color:var(--text)">🎨 Criativos Meta — Top Hist&oacute;ricos &amp; Teste A/B</div>' +
+          '<div style="font-size:12px;color:var(--muted);margin-top:2px">Recicla os melhores ads antigos + lan&ccedil;a at&eacute; 5 criativos novos em 1 campanha via Marketing API.</div>' +
+        '</div>' +
+      '</div>' +
+
+      // Tab buttons
+      '<div id="criativosTabs" style="display:flex;gap:6px;margin:14px 0 18px;border-bottom:1px solid var(--border)">' +
+        '<button class="btn btn-ghost btn-sm criativos-tab active" data-tab="top"      onclick="switchCriativosTab(\'top\')">🏆 Top Hist&oacute;ricos</button>' +
+        '<button class="btn btn-ghost btn-sm criativos-tab"        data-tab="ativos"   onclick="switchCriativosTab(\'ativos\')">📂 Criativos Ativos</button>' +
+        '<button class="btn btn-ghost btn-sm criativos-tab"        data-tab="novo"     onclick="switchCriativosTab(\'novo\')">➕ Novo Criativo</button>' +
+        '<button class="btn btn-ghost btn-sm criativos-tab"        data-tab="teste"    onclick="switchCriativosTab(\'teste\')">🚀 Teste A/B</button>' +
+      '</div>' +
+
+      // Tab panels (containers; preenchidos por switchCriativosTab)
+      '<div id="criativosPanel-top"    class="criativos-panel"></div>' +
+      '<div id="criativosPanel-ativos" class="criativos-panel" style="display:none"></div>' +
+      '<div id="criativosPanel-novo"   class="criativos-panel" style="display:none"></div>' +
+      '<div id="criativosPanel-teste"  class="criativos-panel" style="display:none"></div>' +
+    '</div>' +
     '<div class="card" style="padding:20px 24px">' +
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">' +
-        '<button class="btn btn-primary" onclick="salvarConfigAutomacao()">💾 Salvar configura&ccedil;&otilde;es</button>' +
+        '<button class="btn btn-primary" onclick="salvarConfigAutomacao()">�� Salvar configura&ccedil;&otilde;es</button>' +
         '<button class="btn btn-ghost" onclick="configTriggers()">⏰ Configurar todos os triggers</button>' +
         '<button class="btn btn-ghost" onclick="renderAutomacoes()">&#8635; Atualizar</button>' +
         '<span style="font-size:11px;color:var(--muted);margin-left:4px">M&eacute;tricas de resumo est&atilde;o no Dashboard.</span>' +
       '</div>' +
     '</div>' +
     '</div>';
+
+  // Popula a tab "Top Hist&oacute;ricos" depois do render (cards j&aacute; est&atilde;o no DOM)
+  _abSelecionados = [];
+  setTimeout(function() { switchCriativosTab('top'); }, 50);
 }
  
 // ── Helpers de renderização ───────────────────────────────────
@@ -2126,6 +2154,295 @@ async function abrirSeletorComprador() {
   );
 }
  
+// ══════════════════════════════════════════════════════════════
+// CRIATIVOS META ADS — UI admin (4 tabs)
+// Top Históricos | Criativos Ativos | Novo Criativo | Teste A/B
+// ══════════════════════════════════════════════════════════════
+
+function switchCriativosTab(tab) {
+  document.querySelectorAll('.criativos-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.criativos-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  var panel = document.getElementById('criativosPanel-' + tab);
+  if (panel) panel.style.display = '';
+  if (tab === 'top')    renderCriativosTop();
+  if (tab === 'ativos') renderCriativosAtivos();
+  if (tab === 'novo')   renderCriativoNovo();
+  if (tab === 'teste')  renderCriativosTeste();
+}
+
+// ── Tab 1: Top Históricos ────────────────────────────────────────
+async function renderCriativosTop() {
+  const panel = document.getElementById('criativosPanel-top');
+  panel.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  const res = await rpc('getTopCriativosHistoricos', {});
+  if (!res.ok) {
+    panel.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>' + (res.error || 'Erro') + '</p></div>';
+    return;
+  }
+  if (!res.items || res.items.length === 0) {
+    panel.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Nenhum dado histórico. Rode o sync Meta antes.</p></div>';
+    return;
+  }
+  var html = '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Top ' + res.items.length + ' criativos ranqueados por score (CTR + CPA). Clique em <strong>♻️ Reciclar</strong> para mover para a aba <code>criativos</code>.</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+    '<thead><tr style="background:var(--surface2);text-align:left">' +
+      '<th style="padding:8px 10px">#</th>' +
+      '<th style="padding:8px 10px">Criativo</th>' +
+      '<th style="padding:8px 10px;text-align:right">Gasto</th>' +
+      '<th style="padding:8px 10px;text-align:right">Leads</th>' +
+      '<th style="padding:8px 10px;text-align:right">CTR</th>' +
+      '<th style="padding:8px 10px;text-align:right">CPA</th>' +
+      '<th style="padding:8px 10px;text-align:center">Ação</th>' +
+    '</tr></thead><tbody>';
+  res.items.forEach((item, i) => {
+    var gasto = 'R$ ' + (item.gasto || 0).toFixed(2);
+    var cpa   = item.cpa > 0 ? 'R$ ' + item.cpa.toFixed(2) : '—';
+    var ctr   = item.ctr ? item.ctr.toFixed(2) + '%' : '—';
+    html += '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:9px 10px;color:var(--muted)">' + (i + 1) + '</td>' +
+      '<td style="padding:9px 10px;font-weight:600">' + escHtml(item.nome) + '</td>' +
+      '<td style="padding:9px 10px;text-align:right">' + gasto + '</td>' +
+      '<td style="padding:9px 10px;text-align:right">' + (item.leads || 0) + '</td>' +
+      '<td style="padding:9px 10px;text-align:right">' + ctr + '</td>' +
+      '<td style="padding:9px 10px;text-align:right">' + cpa + '</td>' +
+      '<td style="padding:9px 10px;text-align:center">' +
+        '<button class="btn btn-ghost btn-sm" onclick="reciclarCriativo(\'' + escAttr(item.nome) + '\')">♻️ Reciclar</button>' +
+      '</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table>';
+  panel.innerHTML = html;
+}
+
+async function reciclarCriativo(nome) {
+  if (!confirm('Reciclar o criativo "' + nome + '" para a aba criativos?')) return;
+  showStatus('Reciclando...', 'loading');
+  const res = await rpc('criarCriativoReciclado', { topAdNome: nome });
+  if (res.ok) {
+    showStatus('♻️ Criativo "' + nome + '" reciclado (id: ' + res.id + ')', 'success');
+  } else {
+    showStatus('❌ ' + (res.error || 'Erro'), 'error');
+  }
+}
+
+// ── Tab 2: Criativos Ativos ──────────────────────────────────────
+async function renderCriativosAtivos() {
+  const panel = document.getElementById('criativosPanel-ativos');
+  panel.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  const res = await rpc('listarCriativos', {});
+  if (!res.ok) {
+    panel.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>' + (res.error || 'Erro') + '</p></div>';
+    return;
+  }
+  if (!res.items || res.items.length === 0) {
+    panel.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div><p>Nenhum criativo na aba <code>criativos</code>. Recicle um top ou crie um novo.</p></div>';
+    return;
+  }
+  var html = '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + res.items.length + ' criativos cadastrados. Selecione at&eacute; 5 na aba <strong>Teste A/B</strong> para subir ao Meta.</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:12.5px">' +
+    '<thead><tr style="background:var(--surface2);text-align:left">' +
+      '<th style="padding:7px 8px">ID</th>' +
+      '<th style="padding:7px 8px">Nome</th>' +
+      '<th style="padding:7px 8px">Formato</th>' +
+      '<th style="padding:7px 8px">Gancho</th>' +
+      '<th style="padding:7px 8px">Status</th>' +
+      '<th style="padding:7px 8px">Origem</th>' +
+      '<th style="padding:7px 8px;text-align:center">Selecionar</th>' +
+    '</tr></thead><tbody>';
+  res.items.forEach(c => {
+    var isSel = _abSelecionados.indexOf(c.id) >= 0;
+    html += '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:7px 8px;font-family:monospace;color:var(--muted)">' + escHtml(c.id) + '</td>' +
+      '<td style="padding:7px 8px;font-weight:600">' + escHtml(c.nome) + '<br><span style="color:var(--muted);font-size:11px">' + escHtml((c.copy_principal || '').slice(0, 60)) + '</span></td>' +
+      '<td style="padding:7px 8px">' + escHtml(c.formato) + '</td>' +
+      '<td style="padding:7px 8px">' + escHtml(c.gancho) + '</td>' +
+      '<td style="padding:7px 8px"><span class="tag tag-' + (c.status === 'pausado' ? '1' : '0') + '">' + escHtml(c.status) + '</span></td>' +
+      '<td style="padding:7px 8px">' + escHtml(c.origem) + '</td>' +
+      '<td style="padding:7px 8px;text-align:center">' +
+        '<input type="checkbox" id="csel_' + c.id + '" ' + (isSel ? 'checked' : '') + ' onchange="toggleAbSelecionado(\'' + c.id + '\')">' +
+      '</td>' +
+    '</tr>';
+  });
+  html += '</tbody></table>';
+  panel.innerHTML = html;
+}
+
+// ── Tab 3: Novo Criativo ─────────────────────────────────────────
+function renderCriativoNovo() {
+  const panel = document.getElementById('criativosPanel-novo');
+  panel.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">' +
+      _criField('Nome', 'cn_nome', '', 'text', 'Ex: Depoimento Bia — VSL 60s') +
+      _criField('Headline', 'cn_headline', 'Desafio 21 Dias', 'text') +
+      '<div>' +
+        '<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">Formato</label>' +
+        '<select id="cn_formato" class="form-control" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">' +
+          '<option value="imagem">Imagem</option>' +
+          '<option value="video">V&iacute;deo</option>' +
+          '<option value="carrossel">Carrossel</option>' +
+        '</select>' +
+      '</div>' +
+      '<div>' +
+        '<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">Gancho</label>' +
+        '<select id="cn_gancho" class="form-control" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">' +
+          '<option value="dor">Dor</option>' +
+          '<option value="curiosidade">Curiosidade</option>' +
+          '<option value="oferta">Oferta</option>' +
+          '<option value="depoimento">Depoimento</option>' +
+          '<option value="provocacao">Provoca&ccedil;&atilde;o</option>' +
+          '<option value="capacitante">Capacitante</option>' +
+          '<option value="historia">Hist&oacute;ria</option>' +
+          '<option value="reframe">Reframe</option>' +
+        '</select>' +
+      '</div>' +
+      '<div style="grid-column:1 / span 2">' +
+        '<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">Copy principal</label>' +
+        '<textarea id="cn_copy" rows="4" placeholder="Texto principal do an&uacute;ncio" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>' +
+      '</div>' +
+      '<div>' +
+        '<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">CTA</label>' +
+        '<select id="cn_cta" class="form-control" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">' +
+          '<option value="LEARN_MORE">Saiba mais</option>' +
+          '<option value="SIGN_UP">Cadastre-se</option>' +
+          '<option value="INSTALL_NOW">Instale agora</option>' +
+          '<option value="SHOP_NOW">Compre agora</option>' +
+          '<option value="CONTACT_US">Fale conosco</option>' +
+          '<option value="SUBSCRIBE">Inscreva-se</option>' +
+          '<option value="GET_OFFER">Receba a oferta</option>' +
+        '</select>' +
+      '</div>' +
+      _criField('URL do asset (p&uacute;blica)', 'cn_asset_url', '', 'text', 'https://i.imgur.com/.../criativo.png') +
+    '</div>' +
+    '<div style="margin-top:14px;display:flex;gap:10px;align-items:center">' +
+      '<button class="btn btn-primary" onclick="salvarNovoCriativo()">💾 Salvar na aba criativos</button>' +
+      '<span id="cnStatusMsg" style="font-size:12px;color:var(--muted)"></span>' +
+    '</div>';
+}
+
+async function salvarNovoCriativo() {
+  const payload = {
+    nome:            document.getElementById('cn_nome').value.trim(),
+    formato:         document.getElementById('cn_formato').value,
+    gancho:          document.getElementById('cn_gancho').value,
+    copy_principal:  document.getElementById('cn_copy').value.trim(),
+    headline:        document.getElementById('cn_headline').value.trim(),
+    cta:             document.getElementById('cn_cta').value,
+    asset_url:       document.getElementById('cn_asset_url').value.trim(),
+    origem:          'novo'
+  };
+  if (!payload.nome) return showStatusMsg('cnStatusMsg', 'Nome é obrigatório.', 'error');
+  showStatusMsg('cnStatusMsg', 'Salvando...', 'loading');
+  const res = await rpc('salvarCriativo', payload);
+  if (res.ok) {
+    showStatusMsg('cnStatusMsg', '✅ Criativo salvo (id ' + res.id + ')', 'success');
+    setTimeout(renderCriativosAtivos, 800);
+  } else {
+    showStatusMsg('cnStatusMsg', '❌ ' + (res.error || 'Erro'), 'error');
+  }
+}
+
+function showStatusMsg(elId, msg, tipo) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const cor = tipo === 'success' ? 'var(--green)' : tipo === 'error' ? '#e53935' : 'var(--muted)';
+  el.style.color = cor;
+  el.textContent = msg;
+}
+
+function _criField(label, id, value, type, placeholder) {
+  return '<div>' +
+    '<label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:5px">' + label + '</label>' +
+    '<input type="' + (type || 'text') + '" id="' + id + '" value="' + (value || '').replace(/"/g, '&quot;') + '"' +
+    (placeholder ? ' placeholder="' + placeholder + '"' : '') +
+    ' style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit">' +
+    '</div>';
+}
+
+// ── Tab 4: Teste A/B ─────────────────────────────────────────────
+var _abSelecionados = [];
+function toggleAbSelecionado(id) {
+  var idx = _abSelecionados.indexOf(id);
+  if (idx >= 0) _abSelecionados.splice(idx, 1);
+  else _abSelecionados.push(id);
+  var contador = document.getElementById('abCount');
+  if (contador) contador.textContent = _abSelecionados.length;
+}
+
+function renderCriativosTeste() {
+  const panel = document.getElementById('criativosPanel-teste');
+  panel.innerHTML =
+    '<div style="font-size:13px;color:var(--text);margin-bottom:12px">' +
+      'Selecione at&eacute; <strong>5 criativos</strong> na aba "Criativos Ativos" e clique em <strong>Subir pro Meta</strong>.<br>' +
+      'Selecionados: <span id="abCount" style="font-weight:700;color:var(--green)">' + _abSelecionados.length + '</span>/5' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px">' +
+      _criField('Nome da campanha', 'ab_nome', 'WPK Tavares - Leads Teste A/B', 'text') +
+      _criField('Or&ccedil;amento di&aacute;rio (R$)', 'ab_budget', '50', 'number') +
+      _criField('Link de destino', 'ab_link', 'https://wpktavares.com.br/21-dias/', 'text') +
+    '</div>' +
+    '<div style="display:flex;gap:10px;align-items:center">' +
+      '<button class="btn btn-primary" onclick="subirCriativosMeta()" id="abSubmitBtn">🚀 Subir pro Meta (criar campanha + ad set + ads)</button>' +
+      '<span id="abStatus" style="font-size:12px;color:var(--muted)"></span>' +
+    '</div>' +
+    '<div id="abResultado" style="margin-top:18px"></div>';
+}
+
+async function subirCriativosMeta() {
+  if (_abSelecionados.length === 0) { alert('Selecione ao menos 1 criativo.'); return; }
+  if (_abSelecionados.length > 5)  { alert('Máximo 5 criativos por teste A/B.'); return; }
+  // Buscar detalhes
+  const lista = await rpc('listarCriativos', {});
+  if (!lista.ok) { alert('Erro ao listar criativos: ' + lista.error); return; }
+  const escolhidos = lista.items.filter(c => _abSelecionados.indexOf(c.id) >= 0);
+  if (escolhidos.length === 0) { alert('Nenhum criativo válido.'); return; }
+
+  const body = {
+    name: document.getElementById('ab_nome').value.trim(),
+    dailyBudgetBRL: parseFloat(document.getElementById('ab_budget').value) || 50,
+    criativos: escolhidos.map(c => ({
+      criativoId: c.id,
+      nome: c.nome,
+      imageHash: c.image_hash || '',
+      message: c.copy_principal || '',
+      headline: c.headline || 'Desafio 21 Dias',
+      cta: c.cta || 'LEARN_MORE',
+      link: document.getElementById('ab_link').value.trim(),
+      asset_url: c.asset_url || ''
+    }))
+  };
+  const btn = document.getElementById('abSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Subindo...';
+  document.getElementById('abStatus').textContent = 'Chamando Meta Marketing API...';
+  const res = await rpc('criarCampanhaCompletaMeta', body);
+  btn.disabled = false;
+  btn.textContent = '🚀 Subir pro Meta (criar campanha + ad set + ads)';
+  if (!res.ok) {
+    document.getElementById('abStatus').textContent = '❌ ' + (res.error || 'Erro');
+    document.getElementById('abResultado').innerHTML = '<pre style="background:var(--surface2);padding:10px;border-radius:8px;font-size:11px;color:#e53935;overflow:auto">' + JSON.stringify(res, null, 2) + '</pre>';
+    return;
+  }
+  document.getElementById('abStatus').textContent = '✅ Campanha criada em PAUSED no Meta Ads Manager.';
+  var html = '<div style="background:var(--surface2);padding:14px;border-radius:8px;border-left:3px solid var(--green)">' +
+    '<div style="font-weight:700;color:var(--text);margin-bottom:8px">🎉 Campanha criada com sucesso</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);line-height:1.7">' +
+      'Campaign ID: <code style="background:var(--bg);padding:2px 6px;border-radius:4px">' + res.campaign_id + '</code><br>' +
+      'Ad Set ID: <code style="background:var(--bg);padding:2px 6px;border-radius:4px">' + res.adset_id + '</code><br>' +
+      'Ads criados: <strong>' + res.ads.filter(a => a.ok).length + '/' + res.ads.length + '</strong>' +
+    '</div>' +
+    '<div style="margin-top:10px;font-size:12px">' +
+      '<strong>Anúncios criados:</strong>' +
+      '<ul style="margin:6px 0 0 0;padding-left:20px;line-height:1.6">' +
+        res.ads.map(a => '<li>' + (a.ok ? '✅ <code>' + a.ad_id + '</code> (' + (a.criativo_id || '-') + ')' : '❌ ' + (a.criativo_id || '-') + ': ' + (a.error || '?')) + '</li>').join('') +
+      '</ul>' +
+    '</div>' +
+    '<div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:6px;font-size:12px;color:var(--muted)">' +
+      '⚠️ Status inicial: <strong>PAUSED</strong>. Ative manualmente no <a href="https://business.facebook.com/latest/ad_campaign" target="_blank">Meta Ads Manager</a> ap&oacute;s revisar.' +
+    '</div>' +
+  '</div>';
+  document.getElementById('abResultado').innerHTML = html;
+}
+
 function _toggleSwitch(key, valor) {
   const ativo = valor === true || valor === 'true';
   return '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none">' +

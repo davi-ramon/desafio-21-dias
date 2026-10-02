@@ -1,0 +1,197 @@
+/* ============================================================
+   vsl-player.css — Player VSL high-conversion (Desafio 21 Dias)
+   Autocontido. Usa as variáveis da página quando existem,
+   com fallback próprio. Não depende de framework.
+   ============================================================ */
+
+.vslp{
+  --vslp-green:#4caf50;
+  --vslp-green-bright:#6dde71;
+  --vslp-bg:#000;
+  position:relative;
+  width:100%;
+  max-width:340px;            /* VSL vertical 9:16 centralizada */
+  margin:0 auto;
+  aspect-ratio:9/16;
+  background:#000;
+  border-radius:16px;
+  overflow:hidden;
+  box-shadow:0 0 0 1px rgba(76,175,80,0.16),0 32px 80px rgba(0,0,0,0.65);
+  cursor:pointer;
+  user-select:none;
+  isolation:isolate;
+}
+.vslp video{
+  width:100%;height:100%;
+  object-fit:contain;display:block;   /* respeita formato real, sem cortar */
+  background:#000;
+  pointer-events:none; /* cliques tratados pelo container */
+}
+
+/* placeholder p/ evitar layout shift quando entra em PiP */
+.vslp-placeholder{
+  width:100%;max-width:340px;margin:0 auto;aspect-ratio:9/16;border-radius:16px;
+  background:repeating-linear-gradient(45deg,#0a0d0b,#0a0d0b 12px,#0d1210 12px,#0d1210 24px);
+  display:none;
+}
+.vslp-placeholder.active{display:block}
+
+/* ── Overlay inicial "clique para ativar áudio" ── */
+.vslp-unmute{
+  position:absolute;inset:0;z-index:6;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:rgba(0,0,0,0.45);
+  text-align:center;padding:20px;
+  transition:opacity 0.4s;
+}
+.vslp-unmute.hidden{opacity:0;pointer-events:none}
+.vslp-unmute-icon{
+  width:74px;height:74px;border-radius:50%;
+  background:rgba(76,175,80,0.92);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 0 10px rgba(76,175,80,0.25),0 0 40px rgba(76,175,80,0.5);
+  animation:vslpPulse 1.8s ease-in-out infinite;
+}
+@keyframes vslpPulse{0%,100%{box-shadow:0 0 0 10px rgba(76,175,80,0.22),0 0 36px rgba(76,175,80,0.45)}50%{box-shadow:0 0 0 18px rgba(76,175,80,0.08),0 0 56px rgba(76,175,80,0.6)}}
+.vslp-unmute-icon svg{color:#fff;margin-left:3px}
+.vslp-unmute-text{
+  color:#fff;font-family:inherit;font-size:15px;font-weight:600;
+  line-height:1.4;max-width:340px;text-shadow:0 2px 8px rgba(0,0,0,0.6);
+}
+.vslp-unmute-sub{color:rgba(255,255,255,0.7);font-size:12px;margin-top:-6px}
+
+/* ── Botão play/pause central (após unmute) ── */
+.vslp-playpause{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:5;width:64px;height:64px;border-radius:50%;
+  background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,0.25);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity 0.25s;pointer-events:none;
+}
+.vslp-playpause svg{color:#fff}
+.vslp.paused .vslp-playpause{opacity:1}
+.vslp:hover .vslp-playpause{opacity:1}
+
+/* ── Barra de progresso psicológica (não interativa) ── */
+.vslp-progress{
+  position:absolute;left:0;right:0;bottom:0;z-index:4;
+  height:6px;background:rgba(255,255,255,0.15);
+}
+.vslp-progress-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--vslp-green),var(--vslp-green-bright));
+  box-shadow:0 0 10px rgba(109,222,113,0.6);
+  transition:width 0.25s linear;
+}
+
+/* ── PIP (picture-in-picture custom, vertical 9:16) ── */
+.vslp.vslp-pip{
+  position:fixed;
+  top:0;left:0;                 /* posição controlada via JS (left/top) */
+  width:150px;                  /* vertical: 150 x 267 */
+  max-width:none;min-width:0;margin:0;
+  aspect-ratio:9/16;
+  z-index:2147483000;           /* acima de TUDO (chat, modais, etc) */
+  border-radius:14px;
+  box-shadow:0 16px 48px rgba(0,0,0,0.75),0 0 0 1px rgba(76,175,80,0.4);
+  cursor:grab;
+  touch-action:none;            /* permite drag no touch sem scroll */
+  transition:left 0.45s cubic-bezier(0.34,1.4,0.5,1),
+             top 0.45s cubic-bezier(0.34,1.4,0.5,1),
+             width 0.45s cubic-bezier(0.34,1.4,0.5,1),
+             transform 0.45s cubic-bezier(0.22,0.61,0.36,1),
+             box-shadow 0.3s;
+}
+.vslp.vslp-pip.vslp-dragging{
+  cursor:grabbing;
+  transition:none;              /* segue o dedo/mouse sem lag */
+  box-shadow:0 24px 64px rgba(0,0,0,0.85),0 0 0 2px rgba(76,175,80,0.6);
+}
+.vslp.vslp-pip.vslp-flip{transition:none}  /* usado no FLIP de entrada */
+
+.vslp-pip-close{
+  position:absolute;top:6px;right:6px;z-index:8;
+  width:24px;height:24px;border-radius:50%;
+  background:rgba(0,0,0,0.6);border:none;cursor:pointer;
+  display:none;align-items:center;justify-content:center;
+}
+.vslp.vslp-pip .vslp-pip-close{display:flex}
+.vslp-pip-close svg{color:#fff}
+.vslp-pip-label{
+  position:absolute;top:6px;left:8px;z-index:8;
+  font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;
+  color:#fff;background:rgba(0,0,0,0.5);padding:2px 7px;border-radius:100px;
+  display:none;
+}
+.vslp.vslp-pip .vslp-pip-label{display:block}
+
+/* ── Modal de pausa ── */
+.vslp-pausemodal{
+  position:absolute;inset:0;z-index:7;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:rgba(0,0,0,0.82);backdrop-filter:blur(3px);
+  text-align:center;padding:24px;
+  opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s;
+}
+.vslp-pausemodal.show{opacity:1;visibility:visible}
+.vslp-pausemodal-title{
+  color:#fff;font-family:inherit;font-size:17px;font-weight:700;line-height:1.4;max-width:380px;
+}
+.vslp-pausemodal-sub{color:rgba(255,255,255,0.75);font-size:13px;line-height:1.5;max-width:340px}
+.vslp-pausemodal-btn{
+  margin-top:6px;background:var(--vslp-green);color:#fff;border:none;border-radius:10px;
+  padding:14px 28px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 24px rgba(76,175,80,0.4);transition:transform 0.15s,background 0.2s;
+}
+.vslp-pausemodal-btn:hover{background:var(--vslp-green-bright);transform:translateY(-2px)}
+
+/* hide pip controls when not in pip */
+.vslp:not(.vslp-pip) .vslp-pip-close,
+.vslp:not(.vslp-pip) .vslp-pip-label{display:none}
+
+/* PIP no mobile: vertical um pouco menor */
+@media(max-width:600px){
+  .vslp.vslp-pip{width:120px}
+}
+
+/* ============================================================
+   EXIT-INTENT MODAL da landing
+   ============================================================ */
+.vslp-exit-overlay{
+  position:fixed;inset:0;z-index:10001;
+  background:rgba(0,0,0,0.78);backdrop-filter:blur(5px);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  opacity:0;visibility:hidden;transition:opacity 0.3s,visibility 0.3s;
+}
+.vslp-exit-overlay.show{opacity:1;visibility:visible}
+.vslp-exit-modal{
+  background:#0f1412;border:1px solid rgba(76,175,80,0.3);
+  border-radius:18px;max-width:440px;width:100%;
+  padding:34px 30px 28px;text-align:center;
+  box-shadow:0 32px 80px rgba(0,0,0,0.6);
+  transform:scale(0.9) translateY(20px);transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+.vslp-exit-overlay.show .vslp-exit-modal{transform:scale(1) translateY(0)}
+.vslp-exit-icon{
+  width:64px;height:64px;border-radius:50%;margin:0 auto 18px;
+  background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.3);
+  display:flex;align-items:center;justify-content:center;
+}
+.vslp-exit-icon svg{color:#f5c842}
+.vslp-exit-title{
+  font-family:inherit;font-size:22px;font-weight:800;color:#eeeadc;
+  line-height:1.3;margin-bottom:10px;
+}
+.vslp-exit-sub{font-size:14px;color:#6e9070;line-height:1.55;margin-bottom:22px}
+.vslp-exit-primary{
+  width:100%;padding:17px;background:#4caf50;color:#fff;border:none;border-radius:12px;
+  font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 24px rgba(76,175,80,0.3);transition:background 0.2s,transform 0.15s;
+}
+.vslp-exit-primary:hover{background:#6dde71;transform:translateY(-2px)}
+.vslp-exit-secondary{
+  width:100%;padding:12px;margin-top:10px;background:transparent;border:none;
+  color:#6e9070;font-family:inherit;font-size:12px;cursor:pointer;transition:color 0.2s;
+}
+.vslp-exit-secondary:hover{color:#dde8dd}

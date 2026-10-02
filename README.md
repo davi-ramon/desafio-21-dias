@@ -12,7 +12,7 @@
 - **✅ Daily Check-in** — Progress registration with confetti celebration 🎉
 - **4 Daily Pillars:**
   - 🧘 **Meditation** — Integrated countdown timer
-  - 📖 **Reading** — Built-in EPUB reader (epub.js)
+  - 📖 **Reading** — Built-in EPUB/PDF reader with per-user progress
   - 💪 **Exercise** — Activity tracking
   - 🎧 **Audio** — Full-featured player with speed control, cover art, progress tracking
 - **📊 Progress History** — Visual timeline of all 21 days
@@ -22,6 +22,8 @@
 - **💳 Payment Webhooks** — Cakto integration for automatic student enrollment
 - **📈 Meta Ads Tracking** — Conversions API for ad performance
 - **🤖 QA Agent** — Automated testing with Playwright + Python
+- **🎛️ Private personalization** — Students can add private YouTube meditation/audio items and private PDF/EPUB books, with favorites, ordering and random selection
+- **🛡️ Content moderation** — Only admins can approve and publish student content globally
 
 ---
 
@@ -94,6 +96,7 @@ app-21dias/
 ├── 📄 leads.gs / leadsSync.gs      # Lead management & CRM sync
 ├── 📄 eventos.gs                   # Event tracking
 ├── 📄 workspace_audio.gs           # Audio workspace helpers
+├── 📄 user_content.gs              # Private content, ownership, storage & moderation
 ├── 📄 setup.gs                     # Initial setup & configuration
 ├── 📄 reabertura.gs                # Re-enrollment flow
 │

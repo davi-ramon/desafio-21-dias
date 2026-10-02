@@ -85,6 +85,9 @@ function processWebhookAssinatura_(caktoEvt) {
       return _okAssinatura_('ignored', 'Sem e-mail');
     }
 
+    // Notificação Telegram do evento (não quebra o fluxo se falhar)
+    try { if (typeof tgNotificarAssinatura_ === 'function') tgNotificarAssinatura_(eventType, email, d, sub); } catch(_t) {}
+
     switch (eventType) {
       // Eventos REAIS da Cakto (confirmados na doc) + aliases legados
       case 'purchase_approved':       // pagamento aprovado (1ª compra ou trial)
@@ -122,6 +125,7 @@ function processWebhookAssinatura_(caktoEvt) {
     }
   } catch(err) {
     logAction('system', 'ASSIN_ERRO_WEBHOOK', 'webhook', '', err.message);
+    try { if (typeof tgEnviarErro_ === 'function') tgEnviarErro_('Webhook assinatura', err.message); } catch(_t) {}
     return _okAssinatura_('error', err.message);
   }
 }
@@ -190,7 +194,7 @@ function _onPurchaseApproved_(email, d, sub) {
  * Se não existir, cria com senha provisória e envia e-mail de boas-vindas.
  * Retorna true se criou um novo login, false se já existia.
  */
-function _garantirLoginAluno_(email) {
+function _garantirLoginAluno_(email, trial) {
   var ss    = getSpreadsheet_();
   var users = ss.getSheetByName(SHEET_USERS);
   if (!users) return false;
@@ -202,7 +206,8 @@ function _garantirLoginAluno_(email) {
 
   // Já existe login? não faz nada
   for (var i = 1; i < rows.length; i++) {
-    if (String(rows[i][emailIdx]).toLowerCase().trim() === emailNorm) return false;
+    // v102: compara normalizado (legacy data pode estar com caps/espaco)
+    if (String(rows[i][emailIdx] || '').toLowerCase().trim() === emailNorm) return false;
   }
 
   // Busca nome em compradores
@@ -217,25 +222,32 @@ function _garantirLoginAluno_(email) {
     }
   }
 
-  // Cria login com senha provisória (reusa gerador legível do reabertura.gs)
-  var senha = (typeof _gerarSenhaTemp_ === 'function')
-    ? _gerarSenhaTemp_()
-    : Math.random().toString(36).slice(-8);
-  var hash  = hashPassword(senha);
+  // v106: cria o login com senha ALEATORIA e inutilizavel — quem define a
+  // senha de verdade e o proprio comprador, pelo link magico de uso unico.
+  // Nenhuma senha trafega por e-mail.
+  var hash = hashPassword(Utilities.getUuid() + Utilities.getUuid());
   users.appendRow([generateId(), nome, emailNorm, hash, 'aluno', '', true, nowISO()]);
 
-  // E-mail de boas-vindas (reusa template HTML bonito do reabertura.gs)
+  // E-mail "crie sua senha" (link de uso unico, 48h)
   try {
     var wsNome = 'WPK Tavares';
     try { wsNome = getWorkspaceConfig().nome || wsNome; } catch(e) {}
-    var appUrl  = 'https://app.wpktavares.com.br';
-    _enviarCredenciaisReinabertura_(emailNorm, nome || emailNorm, senha, wsNome, appUrl);
+    // v155: com contexto de trial o e-mail sai com o resumo do teste
+    _enviarBoasVindasComLink_(emailNorm, nome || emailNorm, wsNome, trial);
   } catch(e) {
-    // Fallback texto simples
+    logAction('system', 'ASSIN_EMAIL_ACESSO_ERRO', 'user', emailNorm, e.message);
+    // Fallback: senha provisoria pelo caminho legado, pra nao deixar o
+    // comprador sem NENHUM meio de entrar.
     try {
-      MailApp.sendEmail(emailNorm, 'Bem-vindo ao Desafio 21 Dias — seu acesso',
-        'E-mail: ' + emailNorm + '\nSenha provisoria: ' + senha +
-        '\n\nAcesse: https://app.wpktavares.com.br');
+      var senhaFb = (typeof _gerarSenhaTemp_ === 'function')
+        ? _gerarSenhaTemp_()
+        : Math.random().toString(36).slice(-8);
+      var rowFb = users.getLastRow();
+      var hdrFb = users.getDataRange().getValues()[0].map(function(h){ return String(h); });
+      var iHashFb = hdrFb.indexOf('password_hash');
+      if (iHashFb >= 0) users.getRange(rowFb, iHashFb + 1).setValue(hashPassword(senhaFb));
+      _enviarCredenciaisReinabertura_(emailNorm, nome || emailNorm, senhaFb,
+        'WPK Tavares', 'https://app.wpktavares.com.br');
     } catch(e2) {}
   }
 
@@ -395,8 +407,25 @@ function checkAcessoPremium_(email) {
   // Banner para exibição no app
   var banner = _buildBanner_(status, trialRem, parseInt(row[_ASS_.GRACE_DAY] || 0));
 
+  // v157: quem está travado pode estar travado por ENGANO — a confirmação do
+  // provedor não chegou. Nesse caso o app não pode ficar acusando falha de
+  // pagamento a quem pagou; ele avisa o que houve e diz o que fazer.
+  var div = { divergente: false };
+  try {
+    if (typeof bsDivergencia_ === 'function') div = bsDivergencia_(email, status);
+  } catch (e) {}
+  if (div.divergente) {
+    banner = {
+      type: 'yellow',
+      msg:  'Encontramos seu pagamento no provedor, mas ele não chegou até o app. ' +
+            'Toque aqui, abra Gerenciar assinatura e use "Sincronizar com o provedor".'
+    };
+  }
+
   return {
     allowed:        allowed,
+    divergente:     !!div.divergente,
+    statusProvedor: div.statusProvedor || '',
     status:         status,
     plan:           String(row[_ASS_.PLAN]        || ''),
     trialDays:      parseInt(row[_ASS_.TRIAL_DAYS] || 0),
@@ -626,4 +655,53 @@ function _okAssinatura_(status, msg) {
   return ContentService
     .createTextOutput(JSON.stringify({ status: status, msg: msg }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// v102: endpoint PUBLICO pra resolver "paguei mas nao consigo acessar".
+// Encontra usuario na aba users, gera nova senha provisoria, reenvia email.
+// Rate-limit compartilhado com _gatePublico_ (chamado pelo doPost).
+function reenviarCredenciaisPublic(email) {
+  try {
+    var emailNorm = String(email || '').toLowerCase().trim();
+    if (!emailNorm) return { ok: false, error: 'Email invalido.' };
+    var sh = getSpreadsheet_();
+    var users = sh.getSheetByName(SHEET_USERS);
+    if (!users) return { ok: false, error: 'Aba users nao existe.' };
+
+    var rows = users.getDataRange().getValues();
+    var headers = rows[0].map(function(h){ return String(h); });
+    var emailIdx = headers.indexOf('email');
+    var nomeIdx  = headers.indexOf('name');
+    var hashIdx  = headers.indexOf('password_hash');
+
+    for (var i = 1; i < rows.length; i++) {
+      if (String(rows[i][emailIdx] || '').toLowerCase().trim() === emailNorm) {
+        var nome = String(rows[i][nomeIdx] || '');
+        var newPwd = (typeof _gerarSenhaTemp_ === 'function')
+          ? _gerarSenhaTemp_()
+          : Math.random().toString(36).slice(-8);
+        // Reseta hash com nova senha
+        if (hashIdx >= 0) {
+          users.getRange(i + 1, hashIdx + 1).setValue(hashPassword(newPwd));
+        }
+        // Reenvia o email
+        try {
+          var wsNome = 'WPK Tavares';
+          try { wsNome = (typeof getWorkspaceConfig === 'function' ? (getWorkspaceConfig().nome || wsNome) : wsNome); } catch(e) {}
+          if (typeof _enviarCredenciaisReinabertura_ === 'function') {
+            _enviarCredenciaisReinabertura_(emailNorm, nome || emailNorm, newPwd, wsNome, 'https://app.wpktavares.com.br');
+          } else {
+            MailApp.sendEmail(emailNorm, 'WPK Tavares - Seu acesso', 'Sua nova senha: ' + newPwd);
+          }
+          try { logAction(emailNorm, 'CREDENCIAIS_REENVIADAS', 'auth', '', 'senha resetada e email reenviado'); } catch(_e) {}
+          return { ok: true, message: 'Senha nova gerada e email reenviado para ' + emailNorm + '.' };
+        } catch (e) {
+          try { logAction(emailNorm, 'CREDENCIAIS_REENVIO_ERRO', 'auth', '', e.message); } catch(_e) {}
+          return { ok: false, error: 'Usuario existe mas email nao pode ser enviado: ' + e.message };
+        }
+      }
+    }
+    try { logAction(emailNorm, 'CREDENCIAIS_REENVIADAS_NAO_EXISTE', 'auth', '', ''); } catch(_e) {}
+    return { ok: false, error: 'Email nao cadastrado. Voce comprou ou criou a conta com este email? Se sim, entre em contato com o suporte.' };
+  } catch (e) { return { ok: false, error: e.message }; }
 }

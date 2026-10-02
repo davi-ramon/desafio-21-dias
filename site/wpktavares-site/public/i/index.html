@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desafio 21 Dias — convite de um amigo</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<meta property="og:title" content="Você foi convidado para o Desafio 21 Dias">
+<meta property="og:description" content="Meditação, leitura, exercício e áudios diários. Comece com período grátis.">
+<meta property="og:image" content="https://i.imgur.com/bOf9i1R.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07090a;--green:#4caf50;--green-bright:#6dde71;--cream:#eeeadc;--muted:#6e9070}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;min-height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:24px;text-align:center}
+.logo{width:60px;height:60px;border-radius:16px;margin-bottom:20px}
+h1{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:.02em;margin-bottom:8px}
+p{font-size:14px;color:var(--muted);line-height:1.6}
+.spin{width:30px;height:30px;margin:22px auto 0;border:3px solid rgba(76,175,80,.25);
+  border-top-color:var(--green-bright);border-radius:50%;animation:g .8s linear infinite}
+@keyframes g{to{transform:rotate(360deg)}}
+a{color:var(--green-bright)}
+</style>
+</head>
+<body>
+<div>
+  <img src="https://i.imgur.com/bOf9i1R.png" alt="Desafio 21 Dias" class="logo">
+  <h1>Preparando seu convite…</h1>
+  <p>Um amigo te indicou o Desafio 21 Dias.</p>
+  <div class="spin"></div>
+  <p style="margin-top:18px;font-size:12px">
+    Não abriu? <a id="manual" href="/checkout-trial-cartao/">Toque aqui</a>
+  </p>
+</div>
+
+<script>
+(function () {
+  var GAS = 'https://script.google.com/macros/s/AKfycbx9ypaZFGLIFkCVbV2LmvSv-dZIUZvMGvhJDnG2unhCwlaVTnBMU1anbbLa15h0aKxi/exec';
+
+  // /i/CODIGO  ->  o código é o último pedaço do caminho
+  var partes = location.pathname.split('/').filter(Boolean);
+  var ref = (partes[partes.length - 1] || '').toUpperCase();
+  if (ref === 'I') ref = '';
+
+  var qp = new URLSearchParams(location.search);
+  var dias = parseInt(qp.get('dias'), 10);
+  if ([7, 14, 21, 30].indexOf(dias) < 0) dias = 7;
+
+  // c=1 diz ao checkout que o clique JA foi contado aqui. Sem isso as duas
+  // paginas contariam a mesma visita, e o painel do aluno mostraria o dobro.
+  var destino = '/checkout-trial-cartao/?dias=' + dias +
+                (ref ? '&ref=' + encodeURIComponent(ref) + '&c=1' : '');
+  document.getElementById('manual').href = destino;
+
+  // Guarda a indicação: se a pessoa não comprar hoje e voltar depois
+  // por outro caminho, quem indicou continua levando o crédito.
+  if (ref) {
+    try { localStorage.setItem('d21_ref', ref); localStorage.setItem('d21_ref_em', String(Date.now())); } catch (e) {}
+  }
+
+  function ir() { location.replace(destino); }
+
+  if (!ref) { ir(); return; }
+
+  // Conta o clique antes de sair, mas sem travar a pessoa: se o
+  // registro demorar, ela segue para o checkout do mesmo jeito.
+  var seguiu = false;
+  var vai = function () { if (!seguiu) { seguiu = true; ir(); } };
+  setTimeout(vai, 1800);
+
+  var sid = '';
+  try {
+    sid = sessionStorage.getItem('d21_sid') || '';
+    if (!sid) { sid = String(Date.now()) + Math.random().toString(36).slice(2, 8); sessionStorage.setItem('d21_sid', sid); }
+  } catch (e) { sid = String(Date.now()); }
+
+  fetch(GAS, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'registrarCliqueIndicacao',
+                           data: { ref: ref, dias: dias, sid: sid, origem: 'link-curto' } })
+  }).then(vai)['catch'](vai);
+})();
+</script>
+</body>
+</html>

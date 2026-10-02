@@ -1,0 +1,11 @@
+Áudios do módulo do sono.
+
+Coloque os .mp3 aqui e as imagens de capa em capas/.
+Depois cadastre no Admin > Módulo do Sono usando o caminho:
+
+  /media/sono/chuva-telhado.mp3
+  /media/sono/capas/chuva.jpg
+
+Faixas de 8 a 15 minutos bastam: o app repete em loop.
+Link do Google Drive NÃO funciona — o Drive não entrega
+arquivo para a tag <audio>.
